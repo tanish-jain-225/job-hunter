@@ -50,10 +50,25 @@ class Job:
 
 
 # --------------------------------------------------------------------------
-# Adapters. Each takes the raw JSON body and returns list[Job].
+# Adapters & ATS Registry. Each takes raw JSON body and returns list[Job].
 # Keeping parse separate from HTTP is what makes offline testing possible.
 # --------------------------------------------------------------------------
 
+from typing import Callable
+
+ParserFunc = Callable[[str, str, Any], list[Job]]
+REGISTERED_ATS: dict[str, tuple[str, ParserFunc]] = {}
+
+
+def register_ats(name: str, url_template: str) -> Callable[[ParserFunc], ParserFunc]:
+    """Decorator to register a new ATS board parser."""
+    def decorator(func: ParserFunc) -> ParserFunc:
+        REGISTERED_ATS[name.lower()] = (url_template, func)
+        return func
+    return decorator
+
+
+@register_ats("greenhouse", "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true")
 def parse_greenhouse(slug: str, company: str, body: Any) -> list[Job]:
     out = []
     for j in (body or {}).get("jobs", []):
@@ -71,6 +86,7 @@ def parse_greenhouse(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
+@register_ats("lever", "https://api.lever.co/v0/postings/{slug}?mode=json")
 def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
     out = []
     for j in (body or []):
@@ -99,6 +115,7 @@ def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
+@register_ats("ashby", "https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true")
 def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
     out = []
     for j in (body or {}).get("jobs", []):
@@ -123,19 +140,17 @@ def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
-ENDPOINTS = {
-    "greenhouse": ("https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true", parse_greenhouse),
-    "lever":      ("https://api.lever.co/v0/postings/{slug}?mode=json", parse_lever),
-    "ashby":      ("https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true", parse_ashby),
-}
+# Dict compatibility wrapper pointing to the registry
+ENDPOINTS = REGISTERED_ATS
 
 
 def fetch_board(ats: str, slug: str, company: str | None = None,
                 session: requests.Session | None = None) -> list[Job]:
     """Hit one company's public board. Returns [] on any failure (never raises)."""
-    if ats not in ENDPOINTS:
+    ats_lower = ats.lower()
+    if ats_lower not in REGISTERED_ATS:
         raise ValueError(f"unknown ATS: {ats}")
-    url_tpl, parser = ENDPOINTS[ats]
+    url_tpl, parser = REGISTERED_ATS[ats_lower]
     sess = session or requests
     try:
         r = sess.get(url_tpl.format(slug=slug), headers=UA, timeout=TIMEOUT)
@@ -148,7 +163,9 @@ def fetch_board(ats: str, slug: str, company: str | None = None,
         return []
 
 
-def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25) -> list[Job]:
+def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
+              max_workers: int = 8) -> list[Job]:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     from pathlib import Path
     import yaml
 
@@ -163,12 +180,35 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25) -> lis
     elif isinstance(companies, Iterable):
         company_list = [c for c in companies if isinstance(c, dict)]
 
+    if not company_list:
+        return []
+
     jobs: list[Job] = []
     session = requests.Session()
-    for c in company_list:
-        got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
-        if got:
-            print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
-        jobs.extend(got)
-        time.sleep(sleep)
+
+    if max_workers > 1 and len(company_list) > 1:
+        def worker(c: dict) -> tuple[dict, list[Job]]:
+            res = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
+            return c, res
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(company_list))) as executor:
+            futures = [executor.submit(worker, c) for c in company_list]
+            for future in as_completed(futures):
+                try:
+                    c, got = future.result()
+                    if got:
+                        print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
+                    jobs.extend(got)
+                except Exception as e:
+                    print(f"  ! worker error: {e}")
+    else:
+        for c in company_list:
+            got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
+            if got:
+                print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
+            jobs.extend(got)
+            if sleep > 0:
+                time.sleep(sleep)
+
     return jobs
+

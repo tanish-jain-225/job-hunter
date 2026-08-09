@@ -75,12 +75,17 @@ filters:
   # Drop postings older than this. Set to 28 days for fresh weekly/daily runs.
   max_age_days: 28
 
-# --- LLM stages -------------------------------------------------------------
+# --- LLM stages & concurrency -----------------------------------------------
 screen_batch_size: 7      # jobs per screening call. Higher = cheaper, sloppier.
 screen_jd_chars: 1400     # JD truncation for screening
 draft_jd_chars: 7000      # JD truncation for drafting
 score_threshold: 7.0      # 7.0 score bar: catches genuine matches while dropping poor fits
 max_per_digest: 7         # hard cap on drafted kits per run
+
+# Concurrency & rate-limit tuning
+fetch_max_workers: 8      # parallel HTTP requests across ATS boards
+llm_max_workers: 2        # concurrent LLM batch workers
+llm_delay_seconds: 2      # delay between LLM calls to respect API rate limits
 
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml

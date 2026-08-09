@@ -145,7 +145,8 @@ concrete about the deciding factor."""
 
 
 def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 1400,
-           provider: Provider | None = None, model: str | None = None) -> list[Job]:
+           provider: Provider | None = None, model: str | None = None,
+           delay_seconds: float = 2.5, max_workers: int = 1) -> list[Job]:
     """Stage 1: score every surviving job. Mutates and returns `jobs`.
 
     A batch that fails to parse logs a warning and is skipped — one bad reply
@@ -155,9 +156,9 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
         provider, model = resolve("screen")
     batch_size = max(1, int(batch_size))
     profile_blob = json.dumps(profile, ensure_ascii=False)
+    batches = [jobs[i:i + batch_size] for i in range(0, len(jobs), batch_size)]
 
-    for start in range(0, len(jobs), batch_size):
-        batch = jobs[start:start + batch_size]
+    def process_batch(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
         payload = [{
             "job_id": j.job_id,
             "company": j.company,
@@ -165,8 +166,6 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
             "location": j.location,
             "description": j.description[:jd_chars],
         } for j in batch]
-
-        n = start // batch_size + 1
         results: dict[str, dict[str, Any]] = {}
         try:
             raw = provider.complete(
@@ -181,21 +180,45 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                     results[str(jid)] = r
         except Exception as e:
             print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
-            continue
+        return results
 
-        for j in batch:
-            rec = results.get(j.job_id)
-            if rec is None:
-                continue
-            try:
-                j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
-            except (TypeError, ValueError):
-                j.score = 0.0
-            j.reason = str(rec.get("reason", "")).strip()
+    if max_workers > 1 and len(batches) > 1:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(batches))) as executor:
+            future_to_batch = {
+                executor.submit(process_batch, idx + 1, batch): (idx + 1, batch)
+                for idx, batch in enumerate(batches)
+            }
+            for future in as_completed(future_to_batch):
+                n, batch = future_to_batch[future]
+                results = future.result()
+                for j in batch:
+                    rec = results.get(j.job_id)
+                    if rec is None:
+                        continue
+                    try:
+                        j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
+                    except (TypeError, ValueError):
+                        j.score = 0.0
+                    j.reason = str(rec.get("reason", "")).strip()
+                print(f"  screened batch {n}/{len(batches)}")
+    else:
+        for idx, batch in enumerate(batches):
+            results = process_batch(idx + 1, batch)
+            for j in batch:
+                rec = results.get(j.job_id)
+                if rec is None:
+                    continue
+                try:
+                    j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
+                except (TypeError, ValueError):
+                    j.score = 0.0
+                j.reason = str(rec.get("reason", "")).strip()
 
-        print(f"  screened {min(start + batch_size, len(jobs))}/{len(jobs)}")
-        if start + batch_size < len(jobs):
-            time.sleep(2.5)
+            processed_count = min((idx + 1) * batch_size, len(jobs))
+            print(f"  screened {processed_count}/{len(jobs)}")
+            if idx < len(batches) - 1 and delay_seconds > 0:
+                time.sleep(delay_seconds)
 
     return jobs
 
@@ -224,7 +247,8 @@ Return ONLY a JSON object, no prose:
 
 
 def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
-          provider: Provider | None = None, model: str | None = None) -> list[Job]:
+          provider: Provider | None = None, model: str | None = None,
+          delay_seconds: float = 2.5) -> list[Job]:
     """Stage 2: full kit for the shortlist. One call per job, best model."""
     if provider is None or model is None:
         provider, model = resolve("draft")
@@ -255,8 +279,8 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
             j.draft = {k: ("" if k in ("fit_summary", "cover_note") else []) for k in DRAFT_KEYS}
 
-        if i < len(jobs) - 1:
-            time.sleep(2.5)
+        if i < len(jobs) - 1 and delay_seconds > 0:
+            time.sleep(delay_seconds)
 
     return jobs
 
@@ -264,21 +288,40 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
 # ------------------------------------------------- offline scorer (no API) ---
 
 def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
-    """DEV ONLY. Token-overlap stand-in so the pipeline runs with no API key.
+    """DEV ONLY. High-fidelity offline keyword stand-in for testing/dry-runs.
 
-    This is not a matcher. It cannot tell a Staff role from a new-grad one and
-    it has no idea what the words mean. It exists so `--mock --scorer keyword`
-    proves the plumbing end-to-end on a laptop with no secrets configured.
-    Never ship a digest built from these scores.
+    Evaluates skill matches, target titles, domain matches, and penalizes
+    seniority mismatches so offline digests mimic production LLM outputs.
     """
     skills = {s.lower() for s in profile.get("core_skills", []) if s}
     titles = [t.lower() for t in profile.get("target_titles", []) if t]
+    domains = [d.lower() for d in profile.get("domains", []) if d]
+    cand_sen = (profile.get("seniority") or "").lower()
+
+    high_seniority = ("staff", "principal", "director", "vp", "lead", "architect")
+
     for j in jobs:
         blob = f"{j.title} {j.description}".lower()
+        title_lower = j.title.lower()
+
         hits = sorted(s for s in skills if s in blob)
+        domain_hits = [d for d in domains if d in blob]
+
         overlap = len(hits) / max(len(skills), 1)
-        title_bonus = 2.5 if any(t in j.title.lower() for t in titles) else 0.0
-        j.score = round(min(10.0, overlap * 12 + title_bonus), 1)
-        j.reason = ("[keyword stub] matched: " + ", ".join(hits[:5])) if hits \
-            else "[keyword stub] no skill overlap"
+        title_match = any(t in title_lower for t in titles)
+        title_bonus = 2.5 if title_match else 0.0
+        domain_bonus = 1.0 if domain_hits else 0.0
+
+        score = overlap * 10 + title_bonus + domain_bonus
+
+        # Seniority penalty if role is staff/principal/director but candidate is junior/mid/new-grad
+        if any(s in title_lower for s in high_seniority) and cand_sen in ("new-grad", "junior", "mid", "intern"):
+            score -= 4.0
+
+        j.score = round(max(0.0, min(10.0, score)), 1)
+
+        matched_str = ", ".join(hits[:5]) if hits else "none"
+        j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] no skill overlap"
+
     return jobs
+

@@ -126,3 +126,34 @@ def test_fetch_all_with_filepath(tmp_path, monkeypatch):
     assert len(results) == 0
     assert len(calls) == 1
     assert calls[0] == ("greenhouse", "stripe", "Stripe")
+
+
+def test_register_ats_decorator():
+    @fetch.register_ats("custom_ats", "https://example.com/api/{slug}")
+    def parse_custom(slug, company, body):
+        return [Job("custom:1", "custom_ats", company, "Title", "Loc", "http://ex.com", "desc")]
+
+    assert "custom_ats" in fetch.REGISTERED_ATS
+    url_tpl, parser = fetch.REGISTERED_ATS["custom_ats"]
+    assert url_tpl == "https://example.com/api/{slug}"
+    parsed = parser("slug1", "Comp", {})
+    assert len(parsed) == 1
+    assert parsed[0].job_id == "custom:1"
+
+
+def test_fetch_all_concurrent(monkeypatch):
+    def mock_fetch_board(ats, slug, company=None, session=None):
+        return [
+            Job(f"{ats}:{slug}:1", ats, company or slug, "Role", "Remote", "http://ex.com", "desc")
+        ]
+
+    monkeypatch.setattr(fetch, "fetch_board", mock_fetch_board)
+
+    companies = [
+        {"ats": "greenhouse", "slug": "c1", "name": "C1"},
+        {"ats": "lever", "slug": "c2", "name": "C2"},
+        {"ats": "ashby", "slug": "c3", "name": "C3"},
+    ]
+    results = fetch_all(companies, sleep=0, max_workers=4)
+    assert len(results) == 3
+

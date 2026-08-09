@@ -70,13 +70,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     filters = cfg.get("filters", {})
     seen_file = cfg.get("seen_file", "seen.json")
 
+    fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
+    llm_max_workers = int(cfg.get("llm_max_workers", 1))
+    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 2.5))
+
     # 1. Fetch
     print("[1/5] fetching boards")
     if args.mock:
         raw_jobs = fetch_all_mock()
     else:
         companies_file = cfg.get("companies_file", "companies.yaml")
-        raw_jobs = fetch_all(companies_file)
+        raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
 
     # 2. Prefilter & dedupe
     print("\n[2/5] filtering")
@@ -104,7 +108,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         llm.screen(jobs, profile,
                    batch_size=int(cfg.get("screen_batch_size", 8)),
                    jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                   provider=provider, model=model)
+                   provider=provider, model=model,
+                   delay_seconds=llm_delay_seconds,
+                   max_workers=llm_max_workers)
 
     # Fallback to keyword screening if all LLM screening attempts failed (e.g. rate limit)
     if scorer == "llm" and not any(j.score is not None for j in jobs):
@@ -133,9 +139,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             print(f"\n[4/5] drafting kits via {d_provider.name}/{d_model}")
             llm.draft(shortlist, profile,
                       jd_chars=int(cfg.get("draft_jd_chars", 6000)),
-                      provider=d_provider, model=d_model)
+                      provider=d_provider, model=d_model,
+                      delay_seconds=llm_delay_seconds)
         except LLMError as e:
             print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
+
 
     # 5. Digest & Mailer
     print("\n[5/5] building digest")

@@ -151,7 +151,13 @@ screen_jd_chars: 1400
 draft_jd_chars: 7000
 score_threshold: 7.0
 max_per_digest: 7
+
+# Concurrency & Rate Limit Control
+fetch_max_workers: 8      # parallel HTTP requests across ATS boards
+llm_max_workers: 1        # concurrent LLM batch workers
+llm_delay_seconds: 2.5    # delay between LLM calls
 ```
+
 
 ### 3. Build Profile from Resume (`jobhunt profile`)
 
@@ -235,9 +241,10 @@ Generates `out/tracker.csv` readable by Excel or Google Sheets.
 
 ---
 
-## Automated Scheduling (GitHub Actions)
+## Automated Execution & Live Digest (GitHub Actions)
 
-Workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs every weekday at 06:00 IST (00:30 UTC). `seen.json` is preserved across runs using `actions/cache`.
+Workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every valid `push` to `main`** as well as **every weekday at 06:00 IST (00:30 UTC)**. `seen.json` is preserved seamlessly across runs using `actions/cache`.
+
 
 ### Required GitHub Repository Secrets (Settings → Secrets and variables → Actions):
 

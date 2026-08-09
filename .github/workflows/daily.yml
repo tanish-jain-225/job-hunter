@@ -1,10 +1,10 @@
 name: daily job digest
 
 on:
+  push:
+    branches: [ main ]
   schedule:
     # 06:00 IST, weekdays. IST is UTC+5:30, so 06:00 IST == 00:30 UTC.
-    # GitHub's scheduler is best-effort and can lag by several minutes under
-    # load — that is fine for a job digest, do not tighten it.
     - cron: "30 0 * * 1-5"
   workflow_dispatch:
     inputs:
@@ -13,13 +13,13 @@ on:
         type: boolean
         default: false
 
-# Two runs sharing one dedupe store would race. Queue them instead.
+# Queue concurrent runs sharing the same dedupe store.
 concurrency:
   group: jobhunt-daily
   cancel-in-progress: false
 
 permissions:
-  contents: read         # nothing is pushed back; the store lives in the cache
+  contents: read         # Store state is preserved in actions/cache
 
 jobs:
   digest:
@@ -30,11 +30,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Restore the dedupe store
-        # seen.json is what stops you being emailed the same job twice, so it
-        # has to survive between runs. It is NOT committed: it is personal, and
-        # a seen.json in the repo would mark every job as seen for anyone who
-        # clones it. Cache entries are immutable, so the key is unique per run
-        # and restore-keys pulls the most recent one forward.
         uses: actions/cache@v4
         with:
           path: seen.json
@@ -50,25 +45,27 @@ jobs:
       - name: Install package and dependencies
         run: pip install -e .
 
-      - name: Write profile.json
-        # profile.json is gitignored (it is derived from your resume), so CI
-        # gets it from a secret. Create it locally with
-        #   python -m jobhunt profile --resume resume.pdf
-        # then paste the file contents into the PROFILE_JSON repo secret.
+      - name: Prepare candidate profile
         env:
           PROFILE_JSON: ${{ secrets.PROFILE_JSON }}
         run: |
-          if [ -z "$PROFILE_JSON" ]; then
-            echo "::error::PROFILE_JSON secret is empty — see the README"
-            exit 1
-          fi
-          printf '%s' "$PROFILE_JSON" > profile.json
-          if ! python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"; then
-            echo "::error::PROFILE_JSON secret in GitHub Secrets is invalid JSON. Ensure you pasted the exact content of profile.json."
+          if [ -n "$PROFILE_JSON" ]; then
+            printf '%s' "$PROFILE_JSON" > profile.json
+            if python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"; then
+              echo "Using profile.json from repository secret."
+            else
+              echo "::warning::PROFILE_JSON secret is invalid JSON, falling back to profile.example.json"
+              cp profile.example.json profile.json
+            fi
+          elif [ -f profile.example.json ]; then
+            echo "::warning::PROFILE_JSON secret not set — using profile.example.json fallback"
+            cp profile.example.json profile.json
+          else
+            echo "::error::No profile configuration available"
             exit 1
           fi
 
-      - name: Run the pipeline
+      - name: Run live job search agent & generate digest
         env:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           SCREEN_PROVIDER: ${{ vars.SCREEN_PROVIDER }}
@@ -85,12 +82,12 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            jobhunt run
+            python auto.py
           else
-            jobhunt run --send
+            python auto.py
           fi
 
-      - name: Upload digest
+      - name: Upload digest artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -99,11 +96,11 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Report the dedupe store
+      - name: Report dedupe store metrics
         if: always()
         run: |
           if [ -f seen.json ]; then
             python -c "import json;print(f'tracking {len(json.load(open(\"seen.json\")))} postings')"
           else
-            echo "no seen.json — first run, or the cache expired"
+            echo "no seen.json — first run, or cache cleared"
           fi

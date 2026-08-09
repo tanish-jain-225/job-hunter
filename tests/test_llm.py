@@ -187,8 +187,40 @@ def test_draft_falls_back_to_empty_kit_when_model_fails():
     jobs = make_jobs(1)
     stub = StubProvider([RuntimeError("rate limit")])
 
-    llm.draft(jobs, PROFILE, provider=stub, model="m")
+    llm.draft(jobs, PROFILE, provider=stub, model="m", delay_seconds=0)
 
     d = jobs[0].draft
     assert set(d.keys()) == set(llm.DRAFT_KEYS)
     assert d["fit_summary"] == "" and d["tailored_bullets"] == []
+
+
+def test_screen_concurrency_and_delays():
+    jobs = make_jobs(16)
+    stub = StubProvider([scores_reply(jobs[:8]), scores_reply(jobs[8:])])
+
+    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m",
+               delay_seconds=0, max_workers=2)
+
+    assert len(stub.calls) == 2
+    assert all(j.score == 8.0 for j in jobs)
+
+
+def test_enhanced_keyword_screen():
+    profile = {
+        "core_skills": ["Go", "Python"],
+        "target_titles": ["Backend Engineer"],
+        "domains": ["Distributed Systems"],
+        "seniority": "junior"
+    }
+
+    matching_job = Job("greenhouse:a:1", "greenhouse", "Acme", "Backend Engineer", "Remote",
+                       "http://ex.com", "Go Python Distributed Systems core engineering")
+    staff_job = Job("greenhouse:a:2", "greenhouse", "Acme", "Staff Software Engineer", "Remote",
+                    "http://ex.com", "Go Python Distributed Systems core engineering")
+
+    jobs = [matching_job, staff_job]
+    llm.keyword_screen(jobs, profile)
+
+    assert matching_job.score > staff_job.score
+    assert "skills matched" in matching_job.reason
+
