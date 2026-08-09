@@ -41,6 +41,14 @@ def test_resolve_with_stage_overrides(monkeypatch: pytest.MonkeyPatch):
     assert model == "gemini-2.0-flash"
 
 
+def test_resolve_auto_detect_gemini(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
+    provider, model = resolve("screen", check=False)
+    assert provider.name == "gemini"
+
+
 def test_unsupported_document_error():
     provider = Provider()
     with pytest.raises(providers.UnsupportedDocument):

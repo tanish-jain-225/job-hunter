@@ -38,22 +38,12 @@ class Provider:
     required_env: str | None = None
 
     def preflight(self) -> None:
-        """Fail before the first call, not on batch 1 of 40.
-
-        Without this a missing key surfaces as a per-batch warning, every batch
-        fails the same way, and the run ends with an empty digest that reads as
-        "no good jobs today".
-        """
+        """Fail before the first call, not on batch 1 of 40."""
         if self.required_env:
             self._env(self.required_env)
 
     def complete(self, model: str, system: str, user: str, max_tokens: int,
                  json_mode: bool = False) -> str:
-        """`json_mode` asks the provider to guarantee valid JSON where it can.
-
-        Most providers have a native switch for this. It is a request, not a
-        promise — llm.parse_json still has to cope with whatever comes back.
-        """
         raise NotImplementedError
 
     def complete_document(self, model: str, prompt: str, pdf: bytes,
@@ -64,8 +54,6 @@ class Provider:
 
     @staticmethod
     def _env(key: str) -> str:
-        # An empty value is a missing value. A blank line in .env otherwise
-        # sails past the check and fails much later as an opaque 401.
         value = (os.environ.get(key) or "").strip()
         if not value:
             raise LLMError(f"{key} is not set (see .env.example)")
@@ -91,8 +79,6 @@ class AnthropicProvider(Provider):
 
     def complete(self, model: str, system: str, user: str, max_tokens: int,
                  json_mode: bool = False) -> str:
-        # No native JSON switch needed here — the prompts already specify the
-        # shape and Claude honours it. json_mode is accepted and ignored.
         msg = self._client().messages.create(
             model=model,
             max_tokens=max_tokens,
@@ -284,8 +270,6 @@ PROVIDERS = {
     "ollama": OllamaProvider,
 }
 
-# What each provider gets if you do not name a model, so `--scorer llm` works
-# after setting nothing but a key.
 DEFAULT_MODELS = {
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "gemini": {"screen": "gemini-2.0-flash", "draft": "gemini-2.0-flash"},
@@ -307,15 +291,20 @@ def get_provider(name: str) -> Provider:
 def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
     """Which provider + model handles this stage ("screen" or "draft")?
 
-    Precedence: stage-specific env var -> global env var -> built-in default.
-    Raises LLMError if the provider's credentials are missing, so the caller
-    can bail before spending anything.
+    Precedence: stage-specific env var -> global env var -> auto-detected API key -> built-in default.
     """
+    default_provider = "anthropic"
+    if os.getenv("GEMINI_API_KEY"):
+        default_provider = "gemini"
+    elif os.getenv("GROQ_API_KEY"):
+        default_provider = "groq"
+    elif os.getenv("ANTHROPIC_API_KEY"):
+        default_provider = "anthropic"
+
     name = (os.getenv(f"{stage.upper()}_PROVIDER")
             or os.getenv("LLM_PROVIDER")
-            or "anthropic").strip().lower()
-    # Resolve the provider first: a typo'd name should say "unknown provider",
-    # not send you hunting for a model id it was never going to use.
+            or default_provider).strip().lower()
+
     provider = get_provider(name)
     model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip() \
         or DEFAULT_MODELS.get(name, {}).get(stage)
