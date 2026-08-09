@@ -15,7 +15,6 @@ from pathlib import Path
 
 import yaml
 
-from . import digest, llm, store
 from .digest import build_html, send_email, write_digest
 from .fetch import fetch_all
 from .llm import build_profile, draft, keyword_screen, screen
