@@ -13,6 +13,7 @@ It will automatically:
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import webbrowser
@@ -29,7 +30,7 @@ sys.path.insert(0, str(ROOT))
 from jobhunt import cli
 
 
-def main():
+def main() -> int:
     print("=" * 65)
     print(" JOBHUNT AUTOMATION: End-to-End Pipeline")
     print("=" * 65)
@@ -43,7 +44,7 @@ def main():
     elif resume_path.exists():
         print("\n[1/3] Generating profile.json from resume.pdf...")
         try:
-            cli.cmd_profile(cli.argparse.Namespace(resume=str(resume_path), out=str(profile_path)))
+            cli.cmd_profile(argparse.Namespace(resume=str(resume_path), yaml=False))
         except Exception as e:
             print(f"  ! Warning: Profile generation error ({e}). Continuing with existing settings...")
     else:
@@ -55,19 +56,29 @@ def main():
     smtp_pass = os.environ.get("SMTP_PASS", "")
     send_email = bool(smtp_pass and "your-gmail" not in smtp_pass and "paste-your" not in smtp_pass)
 
-    args = ["run"]
+    run_args = ["jobhunt", "run"]
     if send_email:
-        args.append("--send")
+        run_args.append("--send")
 
-    exit_code = cli.main(args)
+    sys.argv = run_args
+    try:
+        cli.main()
+        exit_code = 0
+    except SystemExit as e:
+        exit_code = e.code if isinstance(e.code, int) else 1
 
     # If LLM run failed due to API quota/key error, run automatic offline fallback
     if exit_code != 0:
         print("\n  ! LLM provider unavailable/rate-limited. Running automatic keyword fallback...")
-        fallback_args = ["run", "--scorer", "keyword"]
+        fallback_args = ["jobhunt", "run", "--scorer", "keyword"]
         if send_email:
             fallback_args.append("--send")
-        exit_code = cli.main(fallback_args)
+        sys.argv = fallback_args
+        try:
+            cli.main()
+            exit_code = 0
+        except SystemExit as e:
+            exit_code = e.code if isinstance(e.code, int) else 1
 
     # 3. Launch digest in browser
     digest_path = ROOT / "out" / "digest.html"

@@ -15,9 +15,10 @@ from pathlib import Path
 
 import yaml
 
+from . import digest, llm, store
 from .digest import build_html, send_email, write_digest
 from .fetch import fetch_all
-from .llm import draft, keyword_screen, screen
+from .llm import build_profile, draft, keyword_screen, screen
 from .mock import fetch_all_mock
 from .prefilter import prefilter
 from .providers import LLMError, resolve
@@ -189,8 +190,8 @@ def cmd_profile(args: argparse.Namespace) -> int:
         sys.exit(f"Error resolving LLM provider: {e}")
 
     print(f"reading {resume_path} via {provider.name}/{model} ...")
-    prof = llm.build_profile(resume_bytes=resume_bytes, resume_text=resume_text,
-                             is_pdf=is_pdf, provider=provider, model=model)
+    prof = build_profile(resume_bytes=resume_bytes, resume_text=resume_text,
+                          is_pdf=is_pdf, provider=provider, model=model)
 
     out_file = Path("profile.json")
     out_file.write_text(yaml.dump(prof) if args.yaml else json_dumps_pretty(prof), encoding="utf-8")

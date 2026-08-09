@@ -15,14 +15,14 @@ class Store:
         self.data: dict[str, dict] = {}
         if self.path.exists():
             try:
-                self.data = json.loads(self.path.read_text())
+                self.data = json.loads(self.path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 print(f"  ! {self.path} corrupt, starting fresh")
 
     def unseen(self, jobs: list[Job]) -> list[Job]:
         return [j for j in jobs if j.job_id not in self.data]
 
-    def record(self, jobs: list[Job], emailed: bool) -> None:
+    def record(self, jobs: list[Job], emailed: bool = True) -> None:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for j in jobs:
             self.data.setdefault(j.job_id, {
@@ -74,3 +74,22 @@ class Store:
                        encoding="utf-8")
         os.replace(tmp, self.path)
 
+
+def init(path: str | Path = "seen.json") -> Store:
+    return Store(path)
+
+
+def unseen(store: Store, jobs: list[Job]) -> list[Job]:
+    return store.unseen(jobs)
+
+
+def record(store: Store, jobs: list[Job], emailed: bool = True) -> None:
+    store.record(jobs, emailed=emailed)
+
+
+def mark_applied(store: Store, job_id: str) -> bool:
+    return store.mark_applied(job_id)
+
+
+def export_csv(store: Store, path: str | Path = "out/tracker.csv") -> Path:
+    return store.export_csv(path)
