@@ -149,7 +149,12 @@ def test_cmd_profile_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 def test_main_cli_routing(monkeypatch: pytest.MonkeyPatch):
     calls = []
-    monkeypatch.setattr(cli, "cmd_stats", lambda args: calls.append("stats") or 0)
+
+    def mock_stats(args):
+        calls.append("stats")
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_stats", mock_stats)
     monkeypatch.setattr("sys.argv", ["jobhunt", "stats"])
 
     with pytest.raises(SystemExit) as exc_info:
