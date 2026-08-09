@@ -163,7 +163,11 @@ def test_stale_posting_is_dropped_by_freshness_gate():
 
 
 def test_wrong_city_dropped_but_remote_kept():
-    kept = prefilter(fetch_all_mock(), FILTERS)
+    remote_job = Job(job_id="greenhouse:acme:999", ats="greenhouse", company="Acme",
+                     title="Backend Engineer", location="Remote - Global",
+                     url="https://example.com/999", description="Go",
+                     posted_at=datetime.now(timezone.utc).isoformat())
+    kept = prefilter(fetch_all_mock() + [remote_job], FILTERS)
     assert not any("San Francisco" in (j.location or "") for j in kept)
     assert any("Remote" in (j.location or "") for j in kept)
 

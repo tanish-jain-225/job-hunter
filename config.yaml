@@ -4,35 +4,28 @@
 # LLM bill small: roughly 2000 raw postings -> 40 candidates before a single
 # token is spent.
 #
-# Tuned for: Tanish Sanghvi — Full Stack / Backend / Frontend (React/Next.js) / AI web engineer
-# Profile: new-grad/junior (0-2 YoE), React + Next.js + Node.js + Express + Flask + MongoDB + Firebase
+# Profile: Full Stack / Backend / API / AI web engineer (0-2 YoE)
 # Target: India (Mumbai, Bangalore, Pune, Hyderabad, NCR / Remote), NO senior/staff/management
 
 filters:
-  # Title regexes, matched case-insensitively against the job title only.
-  # A title must match at least one include AND zero excludes.
-  #
-  # Gotcha: "sde" as a bare regex does NOT match "Software Development
-  # Engineer" — different words entirely. Use \bsde\b for the acronym and
-  # list the spelled-out variants separately, as below.
   include_titles:
     # Core engineering titles
     - 'software engineer'
     - '\bsde\b'
     - '\bsde\s*-?\s*(i{1,3}|[123])\b'
     - 'software development engineer'
+    - 'site reliability engineer'
+    - '\bsre\b'
     - 'member of technical staff'
     - 'associate software engineer'
     - 'junior software engineer'
     - 'graduate engineer'
 
-    # Backend / API / Full-Stack / Frontend / Web variants
+    # Backend / API / Full-Stack / Web variants
     - '\b(backend|back-end|server|platform|api)\b.*\bengineer\b'
     - '\bengineer\b.*\b(backend|back-end|platform|api)\b'
     - 'full.?stack engineer'
     - 'full.?stack developer'
-    - '\b(frontend|front-end|react|web)\b.*\bengineer\b'
-    - '\bengineer\b.*\b(frontend|front-end|react|web)\b'
     - 'web developer'
     - 'web engineer'
 
@@ -53,7 +46,7 @@ filters:
     - '\b(manager|management|lead)\b'
     - '\b(intern|internship|apprentice|trainee)\b'             # too junior
     - '\b(sales|account executive|marketing|recruit|support|success)\b'
-    - '\b(ios|android|mobile|game|designer|ux|ui)\b'
+    - '\b(frontend|front-end|ios|android|mobile|game|designer|ux|ui)\b'
     - '\b(data scientist|machine learning scientist|research scientist)\b'
     - '\b(devops|devsecops)\b'
     - '\b(kernel|embedded|firmware|driver|packet|dataplane|data plane|dpdk)\b'
@@ -75,11 +68,11 @@ filters:
     - noida
     - ahmedabad
     - surat
-    
+
   # If true, anything reading as remote passes the location gate.
   allow_remote: true
 
-  # Drop postings older than this. Set to 7 days for fresh weekly/daily runs.
+  # Drop postings older than this. Set to 28 days for fresh weekly/daily runs.
   max_age_days: 28
 
 # --- LLM stages -------------------------------------------------------------

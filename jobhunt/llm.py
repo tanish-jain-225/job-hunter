@@ -178,7 +178,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 jid = r.get("job_id")
                 if jid:
                     results[str(jid)] = r
-        except (LLMError, ValueError, KeyError, TypeError) as e:
+        except Exception as e:
             print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
             continue
 
@@ -248,7 +248,7 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
                 "questions_to_ask": [str(q) for q in (kit.get("questions_to_ask") or [])],
             }
             print(f"  drafted {j.title} @ {j.company}")
-        except (LLMError, ValueError, KeyError, TypeError) as e:
+        except Exception as e:
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
             j.draft = {k: ("" if k in ("fit_summary", "cover_note") else []) for k in DRAFT_KEYS}
 
