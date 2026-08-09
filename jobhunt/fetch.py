@@ -148,10 +148,24 @@ def fetch_board(ats: str, slug: str, company: str | None = None,
         return []
 
 
-def fetch_all(companies: Iterable[dict], sleep: float = 0.25) -> list[Job]:
+def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25) -> list[Job]:
+    from pathlib import Path
+    import yaml
+
+    company_list: list[dict] = []
+    if isinstance(companies, (str, Path)):
+        p = Path(companies)
+        if p.is_file():
+            data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            company_list = data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+    elif isinstance(companies, dict):
+        company_list = companies.get("companies", [])
+    elif isinstance(companies, Iterable):
+        company_list = [c for c in companies if isinstance(c, dict)]
+
     jobs: list[Job] = []
     session = requests.Session()
-    for c in companies:
+    for c in company_list:
         got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
         if got:
             print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")

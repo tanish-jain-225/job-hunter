@@ -108,3 +108,21 @@ def test_fetch_all(monkeypatch):
     assert len(calls) == 2
     assert calls[0] == ("greenhouse", "acme", "Acme Inc")
     assert calls[1] == ("lever", "beta", None)
+
+
+def test_fetch_all_with_filepath(tmp_path, monkeypatch):
+    calls = []
+
+    def mock_fetch_board(ats, slug, company=None, session=None):
+        calls.append((ats, slug, company))
+        return []
+
+    monkeypatch.setattr(fetch, "fetch_board", mock_fetch_board)
+
+    f = tmp_path / "companies.yaml"
+    f.write_text("companies:\n  - {ats: greenhouse, slug: stripe, name: Stripe}\n")
+
+    results = fetch_all(str(f), sleep=0)
+    assert len(results) == 0
+    assert len(calls) == 1
+    assert calls[0] == ("greenhouse", "stripe", "Stripe")
