@@ -21,8 +21,15 @@ def send(subject: str, html_body: str) -> None:
     msg.set_content("This digest is HTML. Open it in an HTML-capable client.")
     msg.add_alternative(html_body, subtype="html")
 
-    with smtplib.SMTP(host, port, timeout=30) as s:
-        s.starttls()
-        s.login(user, password)
-        s.send_message(msg)
-    print(f"  mailed -> {to_addr}")
+    try:
+        with smtplib.SMTP(host, port, timeout=30) as s:
+            s.starttls()
+            s.login(user, password)
+            s.send_message(msg)
+        print(f"  mailed -> {to_addr}")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password.")
+        raise
+    except Exception as e:
+        print(f"::error::SMTP sending failed ({type(e).__name__}): {e}")
+        raise

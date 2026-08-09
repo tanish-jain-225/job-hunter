@@ -63,7 +63,10 @@ jobs:
             exit 1
           fi
           printf '%s' "$PROFILE_JSON" > profile.json
-          python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"
+          if ! python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"; then
+            echo "::error::PROFILE_JSON secret in GitHub Secrets is invalid JSON. Ensure you pasted the exact content of profile.json."
+            exit 1
+          fi
 
       - name: Run the pipeline
         env:
