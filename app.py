@@ -422,11 +422,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <!-- Main Grid -->
   <div class="grid">
-    
+
     <!-- Sidebar Controls -->
     <div>
-      
+
       <!-- Run Pipeline Card -->
+
       <div class="card">
         <div class="card-title">🚀 On-Demand Pipeline Trigger</div>
         <div class="form-group">
@@ -512,9 +513,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     function switchTab(tab) {
       document.getElementById('tab-content-digest').style.display = tab === 'digest' ? 'block' : 'none';
       document.getElementById('tab-content-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
-      
+
       document.getElementById('tab-btn-digest').classList.toggle('active', tab === 'digest');
       document.getElementById('tab-btn-tracker').classList.toggle('active', tab === 'tracker');
+
 
       if (tab === 'tracker') {
         fetchAndRenderJobs();
@@ -561,8 +563,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               <div class="job-actions">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="score-badge ${scoreClass}">${score}</span>
-                  ${isApplied 
+                  ${isApplied
                     ? `<button class="btn btn-secondary btn-sm btn-applied" disabled>✓ Applied</button>`
+
                     : `<button class="btn btn-secondary btn-sm" onclick="markAppliedDirect('${escapeHtml(j.job_id)}')">Mark Applied</button>`
                   }
                 </div>
@@ -852,7 +855,7 @@ def api_applied():
         return jsonify({
             "status": "error",
             "message": f"Job ID '{job_id}' not found in tracking store."
-        }), 444
+        }), 404
 
 
 if __name__ == "__main__":

@@ -1,12 +1,9 @@
 """Unit test suite for Flask Web Dashboard (app.py)."""
 from __future__ import annotations
 
-import json
-from pathlib import Path
 import pytest
 
 from app import app
-from jobhunt.store import Store
 
 
 @pytest.fixture
@@ -73,9 +70,9 @@ def test_api_applied_missing_id(client):
 
 
 def test_api_applied_unknown_id(client, tmp_path, monkeypatch):
-    """Verify /api/applied returns error if job_id not in store."""
+    """Verify /api/applied returns 404 error if job_id not in store."""
     res = client.post("/api/applied", json={"job_id": "greenhouse:fake:999"})
-    assert res.status_code in (400, 444)
+    assert res.status_code == 404
     data = res.get_json()
     assert data["status"] == "error"
 

@@ -1,5 +1,4 @@
 """Vercel Serverless Function entrypoint for Job Hunter Flask Web Dashboard."""
-import os
 import sys
 from pathlib import Path
 
