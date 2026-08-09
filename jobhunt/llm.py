@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Any
 
 from .fetch import Job
@@ -193,6 +194,8 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
             j.reason = str(rec.get("reason", "")).strip()
 
         print(f"  screened {min(start + batch_size, len(jobs))}/{len(jobs)}")
+        if start + batch_size < len(jobs):
+            time.sleep(2.5)
 
     return jobs
 
@@ -227,7 +230,7 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
         provider, model = resolve("draft")
     profile_blob = json.dumps(profile, ensure_ascii=False)
 
-    for j in jobs:
+    for i, j in enumerate(jobs):
         try:
             raw = provider.complete(
                 model, DRAFT_SYSTEM,
@@ -251,6 +254,9 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
         except Exception as e:
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
             j.draft = {k: ("" if k in ("fit_summary", "cover_note") else []) for k in DRAFT_KEYS}
+
+        if i < len(jobs) - 1:
+            time.sleep(2.5)
 
     return jobs
 

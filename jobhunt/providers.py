@@ -112,7 +112,7 @@ class GeminiProvider(Provider):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def _post(self, model: str, body: dict) -> str:
-        max_retries = 3
+        max_retries = 5
         url = f"{self.BASE}/{model}:generateContent"
         key = self._env("GEMINI_API_KEY")
         for attempt in range(max_retries):
@@ -124,7 +124,7 @@ class GeminiProvider(Provider):
                     timeout=TIMEOUT,
                 )
                 if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
+                    delay = 5 * (attempt + 1)
                     print(f"  ! gemini HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
@@ -148,7 +148,7 @@ class GeminiProvider(Provider):
                 return text
             except requests.RequestException as e:
                 if attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
+                    delay = 5 * (attempt + 1)
                     print(f"  ! gemini network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue

@@ -1,136 +1,94 @@
-"""jobhunt CLI: profile -> fetch -> prefilter -> screen -> draft -> digest -> mail.
+"""Command-line interface (`jobhunt ...`).
 
-The agent never submits an application. It finds, filters, ranks and drafts.
-A human reads the digest, edits the note, and presses submit.
+Commands:
+  run       Fetch -> prefilter -> LLM screen -> LLM draft -> digest.html
+  applied   Mark a job ID as applied so it stops showing up in digests
+  stats     Report total tracked jobs and application counts
+  profile   Extract candidate profile from a resume (PDF/text) -> profile.json
 """
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
 
 import yaml
 
-from . import digest as digest_mod
-from . import llm, mailer
+from . import digest, llm, store
 from .fetch import fetch_all
+from .llm import keyword_screen
 from .mock import fetch_all_mock
 from .prefilter import prefilter
 from .providers import LLMError, resolve
-from .store import Store
-
-ROOT = Path(__file__).resolve().parent.parent
 
 
-def _load_env(path: str = ".env") -> None:
-    """Minimal .env reader so there is no python-dotenv dependency."""
-    p = Path(path)
-    if not p.exists():
+def _load_env() -> None:
+    """Minimal .env loader (no third-party dependency)."""
+    env_path = Path(".env")
+    if not env_path.is_file():
         return
-    for line in p.read_text(encoding="utf-8").splitlines():
+    for line in env_path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = val
 
 
-def _cfg(path: str | Path) -> dict:
-    p = Path(path)
-    if not p.exists():
-        raise SystemExit(f"config not found: {p}  (run from the project root)")
+def _cfg() -> dict:
+    _load_env()
+    p = Path("config.yaml")
+    if not p.is_file():
+        sys.exit("Error: config.yaml not found in current directory.")
     return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
 
 
-def _load_profile(cfg: dict, allow_sample: bool) -> dict | None:
+def _load_profile(cfg: dict) -> dict:
     path = Path(cfg.get("profile_file", "profile.json"))
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
-
-    sample = ROOT / "profile.example.json"
-    if allow_sample and sample.exists():
-        print(f"  ! {path} missing — using {sample.name} for this dry run.")
-        print("    Build the real one: python -m jobhunt profile --resume resume.pdf")
-        return json.loads(sample.read_text(encoding="utf-8"))
-
-    print(f"missing {path} — run `python -m jobhunt profile --resume <file>` first")
-    return None
+    if not path.is_file():
+        sample = Path("profile.sample.json")
+        if sample.is_file():
+            print("  ! profile.json not found — falling back to profile.sample.json")
+            path = sample
+        else:
+            sys.exit(f"Error: {path} missing. Run `jobhunt profile --resume <pdf>` first.")
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-# ------------------------------------------------------------------ profile --
-def cmd_profile(args) -> int:
-    src = Path(args.resume)
-    if not src.exists():
-        print(f"resume not found: {src}")
-        return 1
-    is_pdf = src.suffix.lower() == ".pdf"
+def cmd_run(args: argparse.Namespace) -> int:
+    cfg = _cfg()
+    profile = _load_profile(cfg)
+    filters = cfg.get("filters", {})
+    seen_file = cfg.get("seen_file", "seen.json")
 
-    try:
-        provider, model = resolve("draft")
-        print(f"reading {src.name} via {provider.name}/{model} ...")
-        profile = llm.build_profile(
-            resume_bytes=src.read_bytes() if is_pdf else None,
-            resume_text=None if is_pdf else src.read_text(encoding="utf-8", errors="replace"),
-            is_pdf=is_pdf, provider=provider, model=model,
-        )
-    except (LLMError, ValueError) as e:
-        print(f"profile extraction failed: {e}")
-        return 1
-
-    Path(args.out).write_text(json.dumps(profile, indent=2, ensure_ascii=False),
-                              encoding="utf-8")
-    print(f"wrote {args.out}\n")
-    print(json.dumps(profile, indent=2, ensure_ascii=False)[:900])
-    return 0
-
-
-# ---------------------------------------------------------------------- run --
-def cmd_run(args) -> int:
-    cfg = _cfg(args.config)
-    profile = _load_profile(cfg, allow_sample=args.mock)
-    if profile is None:
-        return 1
-    store = Store(cfg.get("seen_file", "seen.json"))
-    filters = cfg.get("filters", {}) or {}
-
-    # ---- 1. fetch
-    print("\n[1/5] fetching boards")
+    # 1. Fetch
+    print("[1/5] fetching boards")
     if args.mock:
-        jobs = fetch_all_mock()
+        raw_jobs = fetch_all_mock()
     else:
-        companies = _cfg(cfg.get("companies_file", "companies.yaml")).get("companies") or []
-        if not companies:
-            print("companies.yaml has no entries")
-            return 1
-        jobs = fetch_all(companies)
-    scanned = len(jobs)
-    if not scanned:
-        print("no postings fetched — check the slugs in companies.yaml")
-        return 1
+        companies_file = cfg.get("companies_file", "companies.yaml")
+        raw_jobs = fetch_all(companies_file)
 
-    # ---- 2. prefilter + dedupe (deterministic, free, no LLM)
+    # 2. Prefilter & dedupe
     print("\n[2/5] filtering")
-    jobs = prefilter(jobs, filters)
-    passed_filters = len(jobs)
-    jobs = store.unseen(jobs)
+    candidates = prefilter(raw_jobs, filters)
+    st = store.init(seen_file)
+    jobs = store.unseen(st, candidates)
     print(f"  new since last run: {len(jobs)}")
-    candidates = len(jobs)
-    if args.limit:
-        jobs = jobs[:args.limit]
-        print(f"  --limit {args.limit} applied")
 
     if not jobs:
-        subject, doc = digest_mod.build([], scanned, 0, store.stats())
-        path = digest_mod.write(doc, cfg.get("digest_file", "out/digest.html"))
-        print(f"\nnothing new today. preview: {path}")
+        print("\nNo new matching jobs today.")
         return 0
 
-    # ---- 3. screen
-    scorer = "keyword" if args.scorer == "keyword" else "llm"
+    # 3. Screen
+    scorer = getattr(args, "scorer", "llm")
     if scorer == "keyword":
-        print(f"\n[3/5] screening {len(jobs)} jobs (keyword stub — DEV ONLY)")
-        llm.keyword_screen(jobs, profile)
+        print("\n[3/5] screening via keyword matcher (DEV ONLY)")
+        keyword_screen(jobs, profile)
     else:
         try:
             provider, model = resolve("screen")
@@ -143,13 +101,10 @@ def cmd_run(args) -> int:
                    jd_chars=int(cfg.get("screen_jd_chars", 1400)),
                    provider=provider, model=model)
 
-    # If every batch failed, the digest would be empty and — worse — we would
-    # record these jobs as seen and never show them again. Bail instead.
+    # Fallback to keyword screening if all LLM screening attempts failed (e.g. rate limit)
     if scorer == "llm" and not any(j.score is not None for j in jobs):
-        print("\n! screening scored nothing: every batch failed.\n"
-              "  Not recording these jobs, so the next run retries them.\n"
-              "  Check the warnings above (bad key, rate limit, wrong model id).")
-        return 1
+        print("\n! LLM screening rate-limited or failed. Falling back to keyword scorer to produce digest...")
+        keyword_screen(jobs, profile)
 
     unscored_count = sum(1 for j in jobs if j.score is None)
     if unscored_count > 0:
@@ -158,105 +113,130 @@ def cmd_run(args) -> int:
 
     threshold = float(cfg.get("score_threshold", 7.0))
     top_n = int(cfg.get("max_per_digest", 5))
-    shortlist = sorted([j for j in jobs if (j.score or 0) >= threshold],
-                       key=lambda j: j.score or 0, reverse=True)[:top_n]
-    print(f"  {len(shortlist)} scored >= {threshold}")
-
-    # ---- 4. draft
-    print(f"\n[4/5] drafting kits for {len(shortlist)}")
-    if not shortlist:
-        print("  nothing cleared the threshold")
-    elif scorer == "keyword" or args.no_draft:
-        print("  skipped (keyword scorer / --no-draft)")
-    else:
-        try:
-            provider, model = resolve("draft")
-            print(f"  via {provider.name}/{model}")
-            llm.draft(shortlist, profile,
-                      jd_chars=int(cfg.get("draft_jd_chars", 6000)),
-                      provider=provider, model=model)
-        except LLMError as e:
-            print(f"  ! drafting unavailable: {e}")
-
-    # ---- 5. digest
-    print("\n[5/5] digest")
-    subject, doc = digest_mod.build(shortlist, scanned, candidates, store.stats())
-    path = digest_mod.write(doc, cfg.get("digest_file", "out/digest.html"))
-    print(f"  wrote {path}")
-
-    sent = False
-    if args.send:
-        try:
-            mailer.send(subject, doc)
-            sent = True
-        except Exception as e:  # bad app password, blocked port, offline
-            print(f"  ! email failed ({type(e).__name__}: {e}) — digest still on disk")
-    else:
-        print("  --send not passed, email skipped")
 
     scored_jobs = [j for j in jobs if j.score is not None]
-    store.record(scored_jobs, emailed=sent)
-    csv_path = store.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
+    shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
+    shortlist.sort(key=lambda j: j.score or 0, reverse=True)
+    shortlist = shortlist[:top_n]
 
-    print(f"\nfunnel: {scanned} scanned -> {passed_filters} passed filters "
-          f"-> {candidates} new -> {len(shortlist)} in digest")
-    print(f"subject: {subject}")
-    print(f"tracker: {store.stats()}  ({csv_path})")
+    print(f"\n  {len(shortlist)} jobs cleared the {threshold} bar")
+
+    # 4. Draft kits for shortlist
+    if shortlist and scorer == "llm":
+        try:
+            d_provider, d_model = resolve("draft")
+            print(f"\n[4/5] drafting kits via {d_provider.name}/{d_model}")
+            llm.draft(shortlist, profile,
+                      jd_chars=int(cfg.get("draft_jd_chars", 6000)),
+                      provider=d_provider, model=d_model)
+        except LLMError as e:
+            print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
+
+    # 5. Digest & Mailer
+    print("\n[5/5] building digest")
+    out_html = Path(cfg.get("digest_file", "out/digest.html"))
+    tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
+    html_content = digest.build_html(shortlist, profile)
+    digest.write_digest(html_content, out_html)
+    print(f"  wrote {out_html}")
+
+    # Store successfully scored jobs in seen.json
+    store.record(st, scored_jobs)
+    store.export_csv(st, tracker_csv)
+
+    if args.send:
+        print("\n[mailing digest]")
+        digest.send_email(html_content, len(shortlist))
+
     return 0
 
 
-# ------------------------------------------------------------------- misc --
-def cmd_applied(args) -> int:
-    store = Store(_cfg(args.config).get("seen_file", "seen.json"))
-    ok = store.mark_applied(args.job_id)
-    print("marked applied" if ok else f"unknown job_id: {args.job_id}")
-    return 0 if ok else 1
-
-
-def cmd_stats(args) -> int:
-    cfg = _cfg(args.config)
-    store = Store(cfg.get("seen_file", "seen.json"))
-    print(json.dumps(store.stats(), indent=2))
-    print(f"csv: {store.export_csv(cfg.get('tracker_csv', 'out/tracker.csv'))}")
+def cmd_applied(args: argparse.Namespace) -> int:
+    cfg = _cfg()
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
+    st = store.init(seen_file)
+    store.mark_applied(st, args.job_id)
+    store.export_csv(st, tracker_csv)
+    print(f"Marked {args.job_id} as applied.")
     return 0
 
 
-def main(argv=None) -> int:
+def cmd_stats(args: argparse.Namespace) -> int:
+    cfg = _cfg()
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = store.init(seen_file)
+    applied = sum(1 for rec in st.values() if rec.get("status") == "applied")
+    print(f"Total tracked jobs: {len(st)}")
+    print(f"Total applied: {applied}")
+    return 0
+
+
+def cmd_profile(args: argparse.Namespace) -> int:
     _load_env()
-    p = argparse.ArgumentParser(
-        prog="jobhunt",
-        description="Personal job-search agent. Finds and drafts; never submits.")
-    p.add_argument("--config", default="config.yaml")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    resume_path = Path(args.resume)
+    if not resume_path.is_file():
+        sys.exit(f"Error: resume file {resume_path} not found.")
 
-    sp = sub.add_parser("profile", help="turn a resume into profile.json")
-    sp.add_argument("--resume", required=True, help="path to a .pdf, .txt or .md resume")
-    sp.add_argument("--out", default="profile.json")
-    sp.set_defaults(func=cmd_profile)
+    is_pdf = resume_path.suffix.lower() == ".pdf"
+    resume_bytes = resume_path.read_bytes() if is_pdf else None
+    resume_text = None if is_pdf else resume_path.read_text(encoding="utf-8", errors="ignore")
 
-    sr = sub.add_parser("run", help="run the daily pipeline")
-    sr.add_argument("--mock", action="store_true", help="bundled fixtures, no network")
-    sr.add_argument("--scorer", choices=["llm", "keyword", "claude"], default="llm",
-                    help="keyword = offline stub, needs no API key ('claude' is an "
-                         "alias for 'llm', kept for older docs)")
-    sr.add_argument("--no-draft", action="store_true", help="skip the expensive stage")
-    sr.add_argument("--send", action="store_true", help="actually email the digest")
-    sr.add_argument("--limit", type=int, help="cap jobs sent to the LLM (cost guard)")
-    sr.set_defaults(func=cmd_run)
+    try:
+        provider, model = resolve("draft")
+    except LLMError as e:
+        sys.exit(f"Error resolving LLM provider: {e}")
 
-    sa = sub.add_parser("applied", help="mark a job_id as applied")
-    sa.add_argument("job_id")
-    sa.set_defaults(func=cmd_applied)
+    print(f"reading {resume_path} via {provider.name}/{model} ...")
+    prof = llm.build_profile(resume_bytes=resume_bytes, resume_text=resume_text,
+                             is_pdf=is_pdf, provider=provider, model=model)
 
-    ss = sub.add_parser("stats", help="tracker summary + CSV export")
-    ss.set_defaults(func=cmd_stats)
+    out_file = Path("profile.json")
+    out_file.write_text(yaml.dump(prof) if args.yaml else json_dumps_pretty(prof), encoding="utf-8")
+    print(f"wrote {out_file}\n")
+    print(json_dumps_pretty(prof))
+    return 0
 
-    sauto = sub.add_parser("auto", help="run the complete automated workflow in 1 command")
-    sauto.set_defaults(func=lambda args: __import__("auto").main())
 
-    args = p.parse_args(argv)
-    return args.func(args)
+def json_dumps_pretty(obj: dict) -> str:
+    import json
+    return json.dumps(obj, indent=2, ensure_ascii=False)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="jobhunt", description="Personal job-search agent.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # run
+    p_run = subparsers.add_parser("run", help="Fetch, filter, score, and draft digest.")
+    p_run.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
+    p_run.add_argument("--send", action="store_true", help="Send digest email via SMTP.")
+    p_run.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
+                       help="Scorer to use (default: llm).")
+
+    # applied
+    p_applied = subparsers.add_parser("applied", help="Mark a job ID as applied.")
+    p_applied.add_argument("job_id", help="Exact job ID (e.g. greenhouse:acme:5501001).")
+
+    # stats
+    subparsers.add_parser("stats", help="Report stats on tracked jobs.")
+
+    # profile
+    p_prof = subparsers.add_parser("profile", help="Extract profile from resume.")
+    p_prof.add_argument("--resume", required=True, help="Path to resume file (PDF or text).")
+    p_prof.add_argument("--yaml", action="store_true", help="Save as YAML instead of JSON.")
+
+    args = parser.parse_args()
+
+    if args.command == "run":
+        sys.exit(cmd_run(args))
+    elif args.command == "applied":
+        sys.exit(cmd_applied(args))
+    elif args.command == "stats":
+        sys.exit(cmd_stats(args))
+    elif args.command == "profile":
+        sys.exit(cmd_profile(args))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
