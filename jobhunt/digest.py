@@ -112,7 +112,9 @@ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 
 
 def write(html_doc: str, path: str | Path = "out/digest.html") -> Path:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(html_doc, encoding="utf-8")
-    return path
+    from .store import get_writable_path
+    target_path = get_writable_path(path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(html_doc, encoding="utf-8")
+    return target_path
+

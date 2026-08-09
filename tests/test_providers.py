@@ -53,10 +53,14 @@ def test_resolve_auto_detect_gemini(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_resolve_auto_detect_groq(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
     provider, model = resolve("screen", check=False)
     assert provider.name == "groq"
+
 
 
 def test_resolve_missing_model(monkeypatch: pytest.MonkeyPatch):

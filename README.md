@@ -256,6 +256,7 @@ The `jobhunt` CLI provides 4 main subcommands and 1 master automation script:
 | | `-c, --config <path>` | `config.yaml` | Path to custom config file. |
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `python auto.py` | *(none)* | *(master)* | **1-Click End-to-End Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
+| `python app.py` | *(none)* | `http://localhost:5000` | **Professional Light Mode Web Dashboard**: interactive UI with on-demand "Run Job Hunt Now" button, embedded live digest viewer, and 1-click status marker. |
 
 ---
 

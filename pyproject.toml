@@ -27,6 +27,7 @@ dependencies = [
     "requests>=2.31.0",
     "PyYAML>=6.0",
     "anthropic>=0.40.0",
+    "flask>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -82,3 +83,7 @@ exclude_lines = [
     "raise NotImplementedError",
 ]
 show_missing = true
+
+[tool.vercel]
+entrypoint = "api/index.py"
+

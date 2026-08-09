@@ -388,7 +388,24 @@ once; that's the only downside, and it's harmless.
 
 ---
 
+## Step 14 — Deploying on Vercel
+
+You can deploy the complete **Job Hunter Web Board** to [Vercel](https://vercel.com) for zero-cost cloud access to your interactive digest, metrics, and on-demand triggers:
+
+1. **Push your repository** to GitHub.
+2. Log into **[Vercel](https://vercel.com)** and click **"Add New Project"**.
+3. Import your `job-hunter` GitHub repository. Vercel automatically detects `vercel.json` and configures the Python serverless runtime.
+4. Under **Environment Variables**, add your keys:
+   - `GEMINI_API_KEY` (or `GROQ_API_KEY` / `ANTHROPIC_API_KEY`)
+   - `LLM_PROVIDER` (optional, default `gemini`)
+   - `SMTP_USER` & `SMTP_PASS` (optional, for email dispatches)
+5. Click **Deploy**.
+6. Once deployed, open your Vercel URL (e.g. `https://job-hunter-xxx.vercel.app`) to view the interactive Web Board, trigger on-demand job scans, and track your job applications on demand!
+
+---
+
 ## Troubleshooting
+
 
 | Symptom | Cause | Fix |
 |---|---|---|

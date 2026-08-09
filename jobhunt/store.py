@@ -3,21 +3,56 @@ from __future__ import annotations
 
 import csv
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .fetch import Job
 
 
+def get_writable_path(path: str | Path) -> Path:
+    """Resolve a path that is writable in read-only environments (like Vercel serverless).
+
+    If target directory is not writable or VERCEL environment variable is present,
+    returns a path in temp directory while allowing initial reads from the target path.
+    """
+    target = Path(path)
+    is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
+
+    parent = target.parent if target.parent != Path(".") else Path.cwd()
+    parent_writable = True
+    if is_vercel:
+        parent_writable = False
+    else:
+        try:
+            parent.mkdir(parents=True, exist_ok=True)
+            test_file = parent / ".writable_test"
+            test_file.touch()
+            test_file.unlink()
+        except (PermissionError, OSError):
+            parent_writable = False
+
+    if parent_writable:
+        return target
+    else:
+        tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        return tmp_dir / target.name
+
+
 class Store:
     def __init__(self, path: str | Path = "seen.json"):
-        self.path = Path(path)
+        self.original_path = Path(path)
+        self.path = get_writable_path(self.original_path)
         self.data: dict[str, dict] = {}
-        if self.path.exists():
+
+        read_target = self.path if self.path.exists() else self.original_path
+        if read_target.exists():
             try:
-                self.data = json.loads(self.path.read_text(encoding="utf-8"))
+                self.data = json.loads(read_target.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
-                print(f"  ! {self.path} corrupt, starting fresh")
+                print(f"  ! {read_target} corrupt, starting fresh")
 
     def unseen(self, jobs: list[Job]) -> list[Job]:
         return [j for j in jobs if j.job_id not in self.data]
@@ -55,20 +90,20 @@ class Store:
         }
 
     def export_csv(self, path: str | Path = "out/tracker.csv") -> Path:
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        target_path = get_writable_path(path)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
         cols = ["first_seen", "company", "title", "location", "score",
                 "reason", "applied", "applied_on", "url"]
-        with path.open("w", newline="", encoding="utf-8") as fh:
+        with target_path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
             w.writeheader()
             for jid, row in sorted(self.data.items(),
                                    key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
                 w.writerow({"job_id": jid, **row})
-        return path
+        return target_path
 
     def save(self) -> None:
-        import os
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),
                        encoding="utf-8")
@@ -93,3 +128,4 @@ def mark_applied(store: Store, job_id: str) -> bool:
 
 def export_csv(store: Store, path: str | Path = "out/tracker.csv") -> Path:
     return store.export_csv(path)
+
