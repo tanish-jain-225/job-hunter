@@ -1,6 +1,8 @@
 name: daily job digest
 
 on:
+  push:
+    branches: [ main ]
   schedule:
     # 06:00 IST, weekdays. IST is UTC+5:30, so 06:00 IST == 00:30 UTC.
     - cron: "30 0 * * 1-5"
