@@ -39,20 +39,25 @@ def _load_env() -> None:
             os.environ[key] = val
 
 
-def _cfg() -> dict:
+def _cfg(config_path: str | Path | None = None) -> dict:
     _load_env()
-    p = Path("config.yaml")
+    p = Path(config_path) if config_path else Path("config.yaml")
     if not p.is_file():
-        sys.exit("Error: config.yaml not found in current directory.")
+        example = Path("config.example.yaml")
+        if example.is_file() and config_path is None:
+            print("  ! config.yaml not found — falling back to config.example.yaml")
+            p = example
+        else:
+            sys.exit(f"Error: config file {p} not found.")
     return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
 
 
 def _load_profile(cfg: dict) -> dict:
     path = Path(cfg.get("profile_file", "profile.json"))
     if not path.is_file():
-        sample = Path("profile.sample.json")
+        sample = Path("profile.example.json")
         if sample.is_file():
-            print("  ! profile.json not found — falling back to profile.sample.json")
+            print("  ! profile.json not found — falling back to profile.example.json")
             path = sample
         else:
             sys.exit(f"Error: {path} missing. Run `jobhunt profile --resume <pdf>` first.")
@@ -60,7 +65,7 @@ def _load_profile(cfg: dict) -> dict:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    cfg = _cfg()
+    cfg = _cfg(getattr(args, "config", None))
     profile = _load_profile(cfg)
     filters = cfg.get("filters", {})
     seen_file = cfg.get("seen_file", "seen.json")
@@ -136,7 +141,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
-    
+
     subject, html_content = digest.build(
         shortlist,
         scanned=len(raw_jobs),
@@ -158,7 +163,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_applied(args: argparse.Namespace) -> int:
-    cfg = _cfg()
+    cfg = _cfg(getattr(args, "config", None))
     seen_file = cfg.get("seen_file", "seen.json")
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
     st = Store(seen_file)
@@ -172,7 +177,7 @@ def cmd_applied(args: argparse.Namespace) -> int:
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
-    cfg = _cfg()
+    cfg = _cfg(getattr(args, "config", None))
     seen_file = cfg.get("seen_file", "seen.json")
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
     st = Store(seen_file)
@@ -221,6 +226,7 @@ def main() -> None:
 
     # run
     p_run = subparsers.add_parser("run", help="Fetch, filter, score, and draft digest.")
+    p_run.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
     p_run.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
     p_run.add_argument("--send", action="store_true", help="Send digest email via SMTP.")
     p_run.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
@@ -229,9 +235,11 @@ def main() -> None:
     # applied
     p_applied = subparsers.add_parser("applied", help="Mark a job ID as applied.")
     p_applied.add_argument("job_id", help="Exact job ID (e.g. greenhouse:acme:5501001).")
+    p_applied.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
 
     # stats
-    subparsers.add_parser("stats", help="Report stats on tracked jobs.")
+    p_stats = subparsers.add_parser("stats", help="Report stats on tracked jobs.")
+    p_stats.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
 
     # profile
     p_prof = subparsers.add_parser("profile", help="Extract profile from resume.")

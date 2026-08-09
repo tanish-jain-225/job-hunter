@@ -53,3 +53,100 @@ def test_unsupported_document_error():
     provider = Provider()
     with pytest.raises(providers.UnsupportedDocument):
         provider.complete_document("model", "prompt", b"pdf bytes", 100)
+
+
+def test_gemini_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "candidates": [{
+                    "finishReason": "STOP",
+                    "content": {"parts": [{"text": '{"result": "ok"}'}]}
+                }]
+            }
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    p = providers.GeminiProvider()
+    res = p.complete("gemini-2.0-flash", "sys", "user", 100, json_mode=True)
+    assert res == '{"result": "ok"}'
+
+
+def test_gemini_provider_complete_document_success(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "candidates": [{
+                    "finishReason": "STOP",
+                    "content": {"parts": [{"text": "Extracted text"}]}
+                }]
+            }
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    p = providers.GeminiProvider()
+    res = p.complete_document("gemini-2.0-flash", "prompt", b"%PDF...", 100)
+    assert res == "Extracted text"
+
+
+def test_gemini_provider_error_status(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+
+    class DummyResponse:
+        status_code = 400
+        text = "Bad Request"
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    p = providers.GeminiProvider()
+    with pytest.raises(LLMError, match="gemini HTTP 400"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+
+def test_openai_compat_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "choices": [{
+                    "message": {"content": "Groq reply"}
+                }]
+            }
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    p = providers.GroqProvider()
+    res = p.complete("llama-3.3-70b", "sys", "user", 100, json_mode=True)
+    assert res == "Groq reply"
+
+
+def test_ollama_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "message": {"content": "Ollama reply"}
+            }
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    p = providers.OllamaProvider()
+    res = p.complete("llama3.1", "sys", "user", 100, json_mode=True)
+    assert res == "Ollama reply"
+
+
+def test_ollama_provider_unreachable(monkeypatch: pytest.MonkeyPatch):
+    def mock_post(*a, **kw):
+        raise providers.requests.RequestException("Connection refused")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post)
+    p = providers.OllamaProvider()
+    with pytest.raises(LLMError, match="ollama unreachable"):
+        p.complete("llama3.1", "sys", "user", 100)

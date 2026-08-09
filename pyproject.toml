@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [
     { name = "Tanish Sanghvi" }
 ]
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.9"
 keywords = ["job-search", "career-agent", "ats", "llm", "automation", "python"]
 classifiers = [

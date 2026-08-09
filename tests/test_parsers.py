@@ -189,3 +189,18 @@ def test_allow_remote_is_what_lets_an_out_of_region_remote_role_through():
 def test_empty_filters_keep_everything():
     jobs = fetch_all_mock()
     assert len(prefilter(jobs, {})) == len(jobs)
+
+
+def test_prefilter_invalid_date_handling():
+    from jobhunt.prefilter import _parse_date
+    assert _parse_date(None) is None
+    assert _parse_date("") is None
+    assert _parse_date("not-a-date") is None
+
+    invalid_date_job = Job(
+        job_id="test:1", ats="test", company="Test", title="Backend Engineer",
+        location="Remote", url="http://ex.com", description="Go",
+        posted_at="completely-invalid-date-string"
+    )
+    kept = prefilter([invalid_date_job], {"max_age_days": 10})
+    assert len(kept) == 1

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from jobhunt import store
 from jobhunt.fetch import Job
 from jobhunt.store import Store
 
@@ -68,3 +69,22 @@ def test_store_export_csv(tmp_path: Path):
     assert "job_id" in content
     assert "greenhouse:acme:1" in content
     assert "Acme" in content
+
+
+def test_store_module_helpers(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    st = store.init(path)
+    assert isinstance(st, Store)
+
+    j1 = Job("greenhouse:acme:1", "greenhouse", "Acme", "SDE", "Bangalore", "http://ex.com/1", "desc", score=8.5)
+    unseen_jobs = store.unseen(st, [j1])
+    assert len(unseen_jobs) == 1
+
+    store.record(st, [j1], emailed=True)
+    assert len(store.unseen(st, [j1])) == 0
+
+    assert store.mark_applied(st, "greenhouse:acme:1") is True
+    assert store.mark_applied(st, "invalid") is False
+
+    csv_path = store.export_csv(st, tmp_path / "tracker.csv")
+    assert csv_path.exists()
