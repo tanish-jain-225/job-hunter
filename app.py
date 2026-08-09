@@ -687,15 +687,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 @app.route("/")
+@app.route("/api/index.py")
 def index():
     """Render main Light Mode dashboard with digest & job tracker."""
     return render_template_string(HTML_TEMPLATE)
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    print("Unhandled Exception in Flask app:\n", traceback.format_exc())
+    return jsonify({
+        "status": "error",
+        "message": f"Internal Error: {str(e)}"
+    }), 500
+
+
+
 @app.route("/api/stats")
 def api_stats():
     """Return tracker stats JSON."""
-    cfg = cli._cfg()
+    cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file)
     return jsonify(st.stats())
@@ -704,9 +716,10 @@ def api_stats():
 @app.route("/api/jobs")
 def api_jobs():
     """Return list of all tracked jobs with filtering support."""
-    cfg = cli._cfg()
+    cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file)
+
 
     status = request.args.get("status", "all").lower()
     search = request.args.get("search", "").lower().strip()
@@ -747,8 +760,9 @@ def api_jobs():
 @app.route("/api/digest")
 def api_digest():
     """Serve latest out/digest.html file or fallback placeholder."""
-    cfg = cli._cfg()
+    cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
+
 
     writable_path = get_writable_path(digest_file)
     root_path = ROOT / digest_file

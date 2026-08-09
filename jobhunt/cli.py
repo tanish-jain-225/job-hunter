@@ -22,10 +22,26 @@ from .prefilter import prefilter
 from .providers import LLMError, resolve
 from .store import Store
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve_relative(p: str | Path) -> Path:
+    path = Path(p)
+    if path.is_absolute():
+        return path
+    if path.is_file():
+        return path
+    if os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ:
+        root_path = ROOT / path
+        if root_path.is_file():
+            return root_path
+    return path
+
+
 
 def _load_env() -> None:
     """Minimal .env loader (no third-party dependency)."""
-    env_path = Path(".env")
+    env_path = _resolve_relative(Path(".env"))
     if not env_path.is_file():
         return
     for line in env_path.read_text(encoding="utf-8").splitlines():
@@ -39,29 +55,48 @@ def _load_env() -> None:
             os.environ[key] = val
 
 
-def _cfg(config_path: str | Path | None = None) -> dict:
+def _cfg(config_path: str | Path | None = None, raise_on_error: bool = True) -> dict:
     _load_env()
-    p = Path(config_path) if config_path else Path("config.yaml")
+    p = _resolve_relative(Path(config_path) if config_path else Path("config.yaml"))
     if not p.is_file():
-        example = Path("config.example.yaml")
+        example = _resolve_relative(Path("config.example.yaml"))
         if example.is_file() and config_path is None:
             print("  ! config.yaml not found — falling back to config.example.yaml")
             p = example
         else:
-            sys.exit(f"Error: config file {p} not found.")
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            if raise_on_error:
+                sys.exit(f"Error: config file {p} not found.")
+            print(f"  ! config file {p} not found, returning default config.")
+            return {}
+    try:
+        return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        if raise_on_error:
+            sys.exit(f"Error reading config {p}: {e}")
+        print(f"  ! Error reading config {p}: {e}")
+        return {}
 
 
-def _load_profile(cfg: dict) -> dict:
-    path = Path(cfg.get("profile_file", "profile.json"))
+def _load_profile(cfg: dict, raise_on_error: bool = True) -> dict:
+    path = _resolve_relative(Path(cfg.get("profile_file", "profile.json")))
     if not path.is_file():
-        sample = Path("profile.example.json")
+        sample = _resolve_relative(Path("profile.example.json"))
         if sample.is_file():
             print("  ! profile.json not found — falling back to profile.example.json")
             path = sample
         else:
-            sys.exit(f"Error: {path} missing. Run `jobhunt profile --resume <pdf>` first.")
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            if raise_on_error:
+                sys.exit(f"Error: {path} missing. Run `jobhunt profile --resume <pdf>` first.")
+            print(f"  ! profile file {path} missing, using empty profile.")
+            return {}
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        if raise_on_error:
+            sys.exit(f"Error reading profile {path}: {e}")
+        print(f"  ! Error reading profile {path}: {e}")
+        return {}
+
 
 
 def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
@@ -73,12 +108,13 @@ def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
     if args.mock:
         raw_jobs = fetch_all_mock()
     else:
-        companies_file = cfg.get("companies_file", "companies.yaml")
+        companies_file = _resolve_relative(Path(cfg.get("companies_file", "companies.yaml")))
         raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
 
     print("\n[2/5] filtering")
     candidates = prefilter(raw_jobs, filters)
     return raw_jobs, candidates
+
 
 
 def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict) -> None:
