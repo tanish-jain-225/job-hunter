@@ -1,47 +1,85 @@
-# secrets
-.env
+# ==============================================================================
+# jobhunt - End-to-End .gitignore
+# ==============================================================================
 
-# your actual resume and the profile derived from it
+# --- Secrets & Personal Data --------------------------------------------------
+# Secrets and environment configurations
+.env
+.env.local
+.env.*.local
+*.env
+
+# Personal resume files & derived profiles
 resume.*
-my_resume.pdf
+my_resume.*
+*.pdf
+*.docx
 profile.json
 !profile.example.json
 
-# generated output
+# Personal deduplication store & tracker (carried via GitHub Actions cache)
+seen.json
+seen.tmp
+*.json.tmp
+
+# --- Generated Output & Artifacts ---------------------------------------------
 out/
 *.html
 !jobhunt/templates/*.html
+digest.html
+*.csv
 
-# Your dedupe index and application tracker. Personal, and it must never ship
-# with the repo: a cloned seen.json marks every job as already-seen, so a new
-# user's first run finds nothing. GitHub Actions persists it via actions/cache
-# instead of committing it.
-seen.json
-seen.tmp
-
-# python / build / caches
+# --- Python Bytecode & Environments -------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Build, Distribution & Packaging ------------------------------------------
 *.egg-info/
 .egg-info/
 dist/
 build/
 eggs/
 .eggs/
+sdist/
+wheels/
+share/python-wheels/
+MANIFEST
+
+# --- Testing, Coverage & Quality Caches ---------------------------------------
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
-.cache
+.cache/
 
-# editors / os
+# --- Editors, IDEs & OS Files -------------------------------------------------
 .vscode/
 .idea/
-.claude/
+*.swp
+*.swo
+*~
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# --- AI Assistants & Temporary Workspace Files --------------------------------
+.claude/
+.gemini/
+*.log
+tmp/
+temp/
