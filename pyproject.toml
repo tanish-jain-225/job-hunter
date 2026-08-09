@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jobhunt"
+version = "1.0.0"
+description = "A personal job-search agent that finds, filters, ranks, and drafts application kits from public ATS boards."
+readme = "README.md"
+authors = [
+    { name = "Tanish Sanghvi" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["job-search", "career-agent", "ats", "llm", "automation", "python"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business",
+]
+dependencies = [
+    "requests>=2.31.0",
+    "PyYAML>=6.0",
+    "anthropic>=0.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.8.0",
+    "types-requests>=2.31.0",
+    "types-PyYAML>=6.0.0",
+    "ruff>=0.2.0",
+]
+
+[project.scripts]
+jobhunt = "jobhunt.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tanish-jain-225/job-hunter"
+Repository = "https://github.com/tanish-jain-225/job-hunter.git"
+Issues = "https://github.com/tanish-jain-225/job-hunter/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jobhunt*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

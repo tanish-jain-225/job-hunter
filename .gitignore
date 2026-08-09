@@ -6,6 +6,7 @@ resume.*
 my_resume.pdf
 profile.json
 !profile.example.json
+
 # generated output
 out/
 *.html
@@ -16,19 +17,31 @@ out/
 # user's first run finds nothing. GitHub Actions persists it via actions/cache
 # instead of committing it.
 seen.json
+seen.tmp
 
-# python
+# python / build / caches
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
 venv/
 env/
 *.egg-info/
+.egg-info/
+dist/
+build/
+eggs/
+.eggs/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.cache
 
 # editors / os
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db

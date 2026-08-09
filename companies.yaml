@@ -9,30 +9,32 @@
 #   https://jobs.lever.co/<slug>               -> ats: lever
 #   https://jobs.ashbyhq.com/<slug>            -> ats: ashby
 #
-# THESE ARE EXAMPLES — verify each one before you trust the output. Companies
-# migrate between ATS vendors and slugs go dead. Check a slug in your browser:
-#   https://boards-api.greenhouse.io/v1/boards/<slug>/jobs?content=true
-#   https://api.lever.co/v0/postings/<slug>?mode=json
-#   https://api.ashbyhq.com/posting-api/job-board/<slug>?includeCompensation=true
-#
 # A dead slug is not fatal: fetch_board prints the HTTP status and returns [],
 # so one bad entry never takes down the run. Watch the per-board job counts on
 # stdout — a board reporting 0 jobs every day is a slug that needs fixing.
 #
-# Start with 10-15 companies you would actually join. A list of 200 is mostly
-# noise and makes the prefilter counts impossible to reason about.
+# Tanish Sanghvi — Full Stack / Backend / AI-integrated web roles.
+# Tuned for India (Bangalore/Remote), ~0-2 YoE new-grad / junior positions.
 
 companies:
-  - {ats: greenhouse, slug: stripe,      name: Stripe}
-  - {ats: greenhouse, slug: databricks,  name: Databricks}
-  - {ats: greenhouse, slug: cloudflare,  name: Cloudflare}
-  - {ats: greenhouse, slug: figma,       name: Figma}
-  - {ats: greenhouse, slug: dropbox,     name: Dropbox}
-  - {ats: greenhouse, slug: coinbase,    name: Coinbase}
-  - {ats: greenhouse, slug: reddit,      name: Reddit}
-  - {ats: lever,      slug: voleon,      name: Voleon}
-
-  - {ats: ashby,      slug: openai,      name: OpenAI}
-  - {ats: ashby,      slug: ramp,        name: Ramp}
-  - {ats: ashby,      slug: linear,      name: Linear}
-  - {ats: ashby,      slug: vanta,       name: Vanta}
+  - {ats: greenhouse, slug: cloudflare, name: Cloudflare}
+  - {ats: greenhouse, slug: stripe, name: Stripe}
+  - {ats: greenhouse, slug: databricks, name: Databricks}
+  - {ats: greenhouse, slug: coinbase, name: Coinbase}
+  - {ats: greenhouse, slug: reddit, name: Reddit}
+  - {ats: greenhouse, slug: postman, name: Postman}
+  - {ats: greenhouse, slug: yugabyte, name: YugabyteDB}
+  - {ats: ashby, slug: openai, name: OpenAI}
+  - {ats: ashby, slug: ramp, name: Ramp}
+  - {ats: ashby, slug: linear, name: Linear}
+  - {ats: ashby, slug: vanta, name: Vanta}
+  - {ats: ashby, slug: ontic, name: Ontic}
+  - {ats: ashby, slug: opengov, name: OpenGov}
+  - {ats: ashby, slug: almabase, name: Almabase}
+  - {ats: ashby, slug: pylon-labs, name: Pylon}
+  - {ats: ashby, slug: ironcladhq, name: Ironclad}
+  - {ats: ashby, slug: rilla, name: Rilla}
+  - {ats: ashby, slug: harvey, name: Harvey}
+  - {ats: ashby, slug: merge, name: Merge}
+  - {ats: ashby, slug: anyscale, name: Anyscale}
+  - {ats: lever, slug: fampay, name: Fam}

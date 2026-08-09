@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import base64
 import os
+import time
 from typing import Any
 
 import requests
@@ -125,34 +126,48 @@ class GeminiProvider(Provider):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def _post(self, model: str, body: dict) -> str:
-        r = requests.post(
-            f"{self.BASE}/{model}:generateContent",
-            params={"key": self._env("GEMINI_API_KEY")},
-            json=body,
-            timeout=TIMEOUT,
-        )
-        if r.status_code != 200:
-            raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
-        try:
-            candidate = r.json()["candidates"][0]
-        except (KeyError, IndexError, ValueError) as e:
-            raise LLMError(f"gemini returned no candidates: {r.text[:300]}") from e
+        max_retries = 3
+        url = f"{self.BASE}/{model}:generateContent"
+        key = self._env("GEMINI_API_KEY")
+        for attempt in range(max_retries):
+            try:
+                r = requests.post(
+                    url,
+                    params={"key": key},
+                    json=body,
+                    timeout=TIMEOUT,
+                )
+                if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! gemini HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                if r.status_code != 200:
+                    raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
+                try:
+                    candidate = r.json()["candidates"][0]
+                except (KeyError, IndexError, ValueError) as e:
+                    raise LLMError(f"gemini returned no candidates: {r.text[:300]}") from e
 
-        # Gemini 2.5+ spends output tokens on internal thinking, so a tight
-        # maxOutputTokens gets consumed before the answer starts. That arrives
-        # as truncated JSON or no parts at all — say so plainly instead of
-        # letting it surface three layers up as a parse error.
-        reason = candidate.get("finishReason")
-        parts = (candidate.get("content") or {}).get("parts") or []
-        text = "".join(p.get("text", "") for p in parts if "text" in p)
-        if reason == "MAX_TOKENS" or (not text and reason not in (None, "STOP")):
-            raise LLMError(
-                f"gemini stopped early (finishReason={reason}) with "
-                f"{len(text)} chars of output — raise max_tokens for this stage"
-            )
-        if not text:
-            raise LLMError(f"gemini returned no text: {r.text[:300]}")
-        return text
+                reason = candidate.get("finishReason")
+                parts = (candidate.get("content") or {}).get("parts") or []
+                text = "".join(p.get("text", "") for p in parts if "text" in p)
+                if reason == "MAX_TOKENS" or (not text and reason not in (None, "STOP")):
+                    raise LLMError(
+                        f"gemini stopped early (finishReason={reason}) with "
+                        f"{len(text)} chars of output — raise max_tokens for this stage"
+                    )
+                if not text:
+                    raise LLMError(f"gemini returned no text: {r.text[:300]}")
+                return text
+            except requests.RequestException as e:
+                if attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! gemini network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                raise LLMError(f"gemini network error: {e}") from e
+        raise LLMError("gemini max retries reached")
 
     def complete(self, model: str, system: str, user: str, max_tokens: int,
                  json_mode: bool = False) -> str:
@@ -196,18 +211,34 @@ class OpenAICompatProvider(Provider):
                                    "max_tokens": max_tokens, "temperature": 0.2}
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
-        r = requests.post(
-            f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {self._env(self.key_env)}"},
-            json=payload,
-            timeout=TIMEOUT,
-        )
-        if r.status_code != 200:
-            raise LLMError(f"{self.name} HTTP {r.status_code}: {r.text[:300]}")
-        try:
-            return r.json()["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, ValueError) as e:
-            raise LLMError(f"{self.name} malformed reply: {r.text[:300]}") from e
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                r = requests.post(
+                    f"{base}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._env(self.key_env)}"},
+                    json=payload,
+                    timeout=TIMEOUT,
+                )
+                if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! {self.name} HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                if r.status_code != 200:
+                    raise LLMError(f"{self.name} HTTP {r.status_code}: {r.text[:300]}")
+                try:
+                    return r.json()["choices"][0]["message"]["content"]
+                except (KeyError, IndexError, ValueError) as e:
+                    raise LLMError(f"{self.name} malformed reply: {r.text[:300]}") from e
+            except requests.RequestException as e:
+                if attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! {self.name} network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                raise LLMError(f"{self.name} network error: {e}") from e
+        raise LLMError(f"{self.name} max retries reached")
 
 
 class GroqProvider(OpenAICompatProvider):
@@ -256,7 +287,7 @@ PROVIDERS = {
 # What each provider gets if you do not name a model, so `--scorer llm` works
 # after setting nothing but a key.
 DEFAULT_MODELS = {
-    "anthropic": {"screen": "claude-haiku-4-5-20251001", "draft": "claude-sonnet-5"},
+    "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "gemini": {"screen": "gemini-2.0-flash", "draft": "gemini-2.0-flash"},
     "groq": {"screen": "llama-3.3-70b-versatile", "draft": "llama-3.3-70b-versatile"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},

@@ -1,0 +1,9 @@
+include README.md
+include SETUP.md
+include CONTRIBUTING.md
+include LICENSE
+include config.yaml
+include companies.yaml
+include profile.example.json
+include .env.example
+recursive-include jobhunt *.py

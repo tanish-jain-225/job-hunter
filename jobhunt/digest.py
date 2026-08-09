@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import html
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .fetch import Job
@@ -77,7 +77,7 @@ def _card(j: Job) -> str:
 
 
 def build(jobs: list[Job], scanned: int, candidates: int, stats: dict) -> tuple[str, str]:
-    today = datetime.now().strftime("%d %b %Y")
+    today = datetime.now(timezone.utc).strftime("%d %b %Y")
     subject = (f"{len(jobs)} job{'s' if len(jobs) != 1 else ''} worth your time — {today}"
                if jobs else f"No new matches today — {today}")
 

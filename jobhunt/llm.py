@@ -26,7 +26,7 @@ DRAFT_KEYS = ("fit_summary", "tailored_bullets", "gaps", "cover_note", "question
 # (Gemini 2.5+, and anything with thinking on) spend output tokens before the
 # answer starts, so a ceiling sized to the visible answer gets consumed and you
 # get truncated JSON instead of a result.
-SCREEN_MAX_TOKENS = 4000
+SCREEN_MAX_TOKENS = 8000
 DRAFT_MAX_TOKENS = 8000
 PROFILE_MAX_TOKENS = 4000
 

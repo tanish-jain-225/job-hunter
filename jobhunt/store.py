@@ -68,4 +68,9 @@ class Store:
         return path
 
     def save(self) -> None:
-        self.path.write_text(json.dumps(self.data, indent=2, ensure_ascii=False))
+        import os
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),
+                       encoding="utf-8")
+        os.replace(tmp, self.path)
+

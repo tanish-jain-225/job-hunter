@@ -1,0 +1,70 @@
+"""Unit tests for jobhunt.store (Store class for seen.json dedupe and tracker)."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from jobhunt.fetch import Job
+from jobhunt.store import Store
+
+
+def test_store_init_creates_fresh_when_missing(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    store = Store(path)
+    assert store.data == {}
+
+
+def test_store_init_handles_corrupt_file(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    path.write_text("invalid json content {{{", encoding="utf-8")
+    store = Store(path)
+    assert store.data == {}
+
+
+def test_store_unseen_filters_correctly(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    path.write_text(json.dumps({"greenhouse:acme:1": {"title": "SDE"}}), encoding="utf-8")
+    store = Store(path)
+
+    j1 = Job("greenhouse:acme:1", "greenhouse", "Acme", "SDE", "Bangalore", "http://ex.com/1", "desc")
+    j2 = Job("greenhouse:acme:2", "greenhouse", "Acme", "SDE II", "Bangalore", "http://ex.com/2", "desc")
+
+    unseen = store.unseen([j1, j2])
+    assert len(unseen) == 1
+    assert unseen[0].job_id == "greenhouse:acme:2"
+
+
+def test_store_record_and_mark_applied(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    store = Store(path)
+
+    j1 = Job("greenhouse:acme:1", "greenhouse", "Acme", "SDE", "Bangalore", "http://ex.com/1", "desc", score=8.5)
+    store.record([j1], emailed=True)
+
+    assert "greenhouse:acme:1" in store.data
+    assert store.data["greenhouse:acme:1"]["emailed"] is True
+    assert store.data["greenhouse:acme:1"]["applied"] is False
+
+    ok = store.mark_applied("greenhouse:acme:1")
+    assert ok is True
+    assert store.data["greenhouse:acme:1"]["applied"] is True
+    assert store.data["greenhouse:acme:1"]["applied_on"] is not None
+
+    # Unknown job ID mark_applied returns False
+    assert store.mark_applied("nonexistent_id") is False
+
+
+def test_store_export_csv(tmp_path: Path):
+    seen_path = tmp_path / "seen.json"
+    csv_path = tmp_path / "out" / "tracker.csv"
+    store = Store(seen_path)
+
+    j1 = Job("greenhouse:acme:1", "greenhouse", "Acme", "SDE", "Bangalore", "http://ex.com/1", "desc", score=8.5)
+    store.record([j1], emailed=False)
+
+    exported = store.export_csv(csv_path)
+    assert exported.exists()
+    content = exported.read_text(encoding="utf-8")
+    assert "job_id" in content
+    assert "greenhouse:acme:1" in content
+    assert "Acme" in content

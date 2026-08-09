@@ -47,8 +47,8 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install package and dependencies
+        run: pip install -e .
 
       - name: Write profile.json
         # profile.json is gitignored (it is derived from your resume), so CI
@@ -82,9 +82,9 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            python -m jobhunt run
+            jobhunt run
           else
-            python -m jobhunt run --send
+            jobhunt run --send
           fi
 
       - name: Upload digest

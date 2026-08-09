@@ -294,7 +294,7 @@ def test_stage_provider_overrides_the_global_one(clean_env):
 
     assert screen_p.name == "groq"
     assert draft_p.name == "anthropic"
-    assert draft_m == "claude-sonnet-5"      # per-provider default
+    assert draft_m == "claude-3-7-sonnet-20250219"      # per-provider default
     assert screen_m == "llama-3.3-70b-versatile"
 
 

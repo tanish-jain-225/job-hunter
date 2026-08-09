@@ -151,6 +151,11 @@ def cmd_run(args) -> int:
               "  Check the warnings above (bad key, rate limit, wrong model id).")
         return 1
 
+    unscored_count = sum(1 for j in jobs if j.score is None)
+    if unscored_count > 0:
+        print(f"\n  ! Warning: {unscored_count}/{len(jobs)} jobs could not be scored by LLM.\n"
+              f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run).")
+
     threshold = float(cfg.get("score_threshold", 7.0))
     top_n = int(cfg.get("max_per_digest", 5))
     shortlist = sorted([j for j in jobs if (j.score or 0) >= threshold],
@@ -189,7 +194,8 @@ def cmd_run(args) -> int:
     else:
         print("  --send not passed, email skipped")
 
-    store.record(jobs, emailed=sent)
+    scored_jobs = [j for j in jobs if j.score is not None]
+    store.record(scored_jobs, emailed=sent)
     csv_path = store.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
 
     print(f"\nfunnel: {scanned} scanned -> {passed_filters} passed filters "
@@ -244,6 +250,9 @@ def main(argv=None) -> int:
 
     ss = sub.add_parser("stats", help="tracker summary + CSV export")
     ss.set_defaults(func=cmd_stats)
+
+    sauto = sub.add_parser("auto", help="run the complete automated workflow in 1 command")
+    sauto.set_defaults(func=lambda args: __import__("auto").main())
 
     args = p.parse_args(argv)
     return args.func(args)
