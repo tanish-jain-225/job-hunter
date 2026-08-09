@@ -599,7 +599,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       btn.disabled = true;
       spinner.style.display = 'block';
       text.innerText = 'Hunting Jobs...';
-      consoleBox.innerText = 'Starting pipeline execution...\n[1/5] Scanning ATS endpoints...\n[2/5] Filtering candidate matches...';
+      consoleBox.innerText = 'Starting pipeline execution...\\n[1/5] Scanning ATS endpoints...\\n[2/5] Filtering candidate matches...';
 
       try {
         const res = await fetch('/api/run', {
@@ -609,7 +609,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
-          consoleBox.innerText = '✅ ' + data.message + '\nDigest generated & tracking store updated!';
+          consoleBox.innerText = '✅ ' + data.message + '\\nDigest generated & tracking store updated!';
           refreshDigest();
           loadStats();
           fetchAndRenderJobs();
@@ -703,8 +703,19 @@ def index():
     return render_template_string(HTML_TEMPLATE)
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify({
+            "status": "error",
+            "message": e.description or str(e)
+        }), e.code
     import traceback
     print("Unhandled Exception in Flask app:\n", traceback.format_exc())
     return jsonify({
