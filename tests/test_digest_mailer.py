@@ -1,7 +1,6 @@
 """Unit tests for jobhunt.digest HTML generation and jobhunt.mailer SMTP message handling."""
 from __future__ import annotations
 
-import html
 from unittest.mock import MagicMock, patch
 
 import pytest

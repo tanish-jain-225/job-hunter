@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from jobhunt import cli
@@ -16,7 +16,6 @@ def test_load_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("FOO", raising=False)
 
     cli._load_env(str(env_file))
-    import os
     assert os.environ.get("TEST_VAR_JOBHUNT") == "hello_world"
     assert os.environ.get("FOO") == "bar"
 
