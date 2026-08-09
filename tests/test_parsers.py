@@ -17,7 +17,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from jobhunt import mock
-from jobhunt.fetch import parse_ashby, parse_greenhouse, parse_lever, strip_html
+from jobhunt.fetch import Job, parse_ashby, parse_greenhouse, parse_lever, strip_html
 from jobhunt.mock import fetch_all_mock
 from jobhunt.prefilter import prefilter
 
@@ -171,7 +171,6 @@ def test_wrong_city_dropped_but_remote_kept():
 def test_allow_remote_is_what_lets_an_out_of_region_remote_role_through():
     """"Remote (India)" already matches the `india` location, so it is the
     wrong fixture for this. Use a remote role that names no allowed city."""
-    from jobhunt.fetch import Job
     remote = Job(job_id="lever:x:1", ats="lever", company="X",
                  title="Backend Engineer", location="Remote - Global",
                  url="https://example.com", description="Go")

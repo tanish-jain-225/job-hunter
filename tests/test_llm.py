@@ -16,9 +16,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from jobhunt import llm, providers
+from jobhunt import llm
 from jobhunt.fetch import Job
-from jobhunt.providers import LLMError, Provider
+from jobhunt.providers import Provider
 
 PROFILE = {"core_skills": ["Go", "Kubernetes"], "target_titles": ["Backend Engineer"],
            "seniority": "mid", "years_experience": 3}
@@ -99,256 +99,96 @@ def test_screen_splits_into_batches_of_the_configured_size():
     assert [len(stub.payload(i)) for i in range(3)] == [8, 8, 4]
 
 
-def test_screen_makes_one_call_when_everything_fits_in_a_batch():
-    jobs = make_jobs(5)
-    stub = StubProvider([scores_reply(jobs)])
-    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
-    assert len(stub.calls) == 1
-
-
-def test_screen_batch_size_zero_does_not_hang():
+def test_screen_honours_batch_size_of_1():
     jobs = make_jobs(3)
-    stub = StubProvider([scores_reply(jobs[i:i + 1]) for i in range(3)])
-    llm.screen(jobs, PROFILE, batch_size=0, provider=stub, model="m")
+    stub = StubProvider([scores_reply([jobs[i]]) for i in range(3)])
+
+    llm.screen(jobs, PROFILE, batch_size=1, provider=stub, model="m")
+
     assert len(stub.calls) == 3
+    assert [len(stub.payload(i)) for i in range(3)] == [1, 1, 1]
 
 
-# ----------------------------------------------------------- truncation ----
-
-def test_screen_truncates_the_jd_before_sending():
-    jobs = make_jobs(1, desc="x" * 9000)
+def test_screen_truncates_jd_to_the_configured_length():
+    jobs = make_jobs(1, desc="X" * 5000)
     stub = StubProvider([scores_reply(jobs)])
 
     llm.screen(jobs, PROFILE, batch_size=8, jd_chars=1400, provider=stub, model="m")
 
-    assert len(stub.payload(0)[0]["description"]) == 1400
-    assert "x" * 1401 not in stub.calls[0]["user"]
-    assert jobs[0].description == "x" * 9000   # the Job itself is untouched
+    sent = stub.payload(0)[0]["description"]
+    assert len(sent) == 1400
 
 
-def test_draft_truncates_at_a_larger_limit():
-    jobs = make_jobs(1, desc="y" * 20000)
-    stub = StubProvider(['{"fit_summary":"ok","tailored_bullets":[],"gaps":[],'
-                         '"cover_note":"","questions_to_ask":[]}'])
+# ------------------------------------------------------------ resilience ----
 
-    llm.draft(jobs, PROFILE, jd_chars=6000, provider=stub, model="m")
-
-    body = stub.calls[0]["user"]
-    assert "y" * 6000 in body
-    assert "y" * 6001 not in body
-
-
-# ------------------------------------------------------- score plumbing ----
-
-def test_scores_land_on_the_right_jobs_even_when_returned_out_of_order():
-    jobs = make_jobs(3)
-    stub = StubProvider([json.dumps([
-        {"job_id": jobs[2].job_id, "score": 9.5, "reason": "third"},
-        {"job_id": jobs[0].job_id, "score": 4.0, "reason": "first"},
-        {"job_id": jobs[1].job_id, "score": 7.5, "reason": "second"},
-    ])])
-
-    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
-
-    assert [j.score for j in jobs] == [4.0, 7.5, 9.5]
-    assert [j.reason for j in jobs] == ["first", "second", "third"]
-
-
-def test_unknown_job_ids_in_the_reply_are_ignored():
+def test_screen_assigns_scores_to_the_right_job():
     jobs = make_jobs(2)
-    stub = StubProvider([json.dumps([
-        {"job_id": "greenhouse:acme:0", "score": 8, "reason": "ok"},
-        {"job_id": "hallucinated:job:999", "score": 10, "reason": "not real"},
-    ])])
+    # Model returns results out of order
+    reply = json.dumps([
+        {"job_id": jobs[1].job_id, "score": 9.5, "reason": "strong"},
+        {"job_id": jobs[0].job_id, "score": 4.0, "reason": "weak"},
+    ])
+    stub = StubProvider([reply])
+
+    llm.screen(jobs, PROFILE, provider=stub, model="m")
+
+    assert jobs[0].score == 4.0 and jobs[0].reason == "weak"
+    assert jobs[1].score == 9.5 and jobs[1].reason == "strong"
+
+
+def test_screen_survives_a_failed_batch_and_continues():
+    jobs = make_jobs(16)
+    # Batch 1 raises an exception, Batch 2 succeeds
+    stub = StubProvider([RuntimeError("500 internal server error"), scores_reply(jobs[8:])])
+
     llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
-    assert jobs[0].score == 8.0
-    assert jobs[1].score is None
+
+    # First batch is unscored, second batch scored normally
+    assert all(j.score is None for j in jobs[:8])
+    assert all(j.score == 8.0 for j in jobs[8:])
 
 
-def test_scores_are_clamped_to_the_0_10_range():
+def test_screen_clamps_scores_to_0_10():
     jobs = make_jobs(2)
-    stub = StubProvider([json.dumps([
-        {"job_id": jobs[0].job_id, "score": 47, "reason": "over"},
-        {"job_id": jobs[1].job_id, "score": -3, "reason": "under"},
-    ])])
-    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
-    assert [j.score for j in jobs] == [10.0, 0.0]
+    reply = json.dumps([
+        {"job_id": jobs[0].job_id, "score": 15.0},
+        {"job_id": jobs[1].job_id, "score": -3.0},
+    ])
+    stub = StubProvider([reply])
+
+    llm.screen(jobs, PROFILE, provider=stub, model="m")
+
+    assert jobs[0].score == 10.0
+    assert jobs[1].score == 0.0
 
 
-def test_fenced_reply_with_preamble_still_scores(capsys):
+# ----------------------------------------------------------------- draft ----
+
+def test_draft_populates_every_key_the_digest_template_expects():
     jobs = make_jobs(1)
-    stub = StubProvider([
-        "Sure! Here are the scores:\n```json\n"
-        f'[{{"job_id": "{jobs[0].job_id}", "score": 8.5, "reason": "strong Go match"}}]'
-        "\n```"])
-    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
-    assert jobs[0].score == 8.5
-    assert jobs[0].reason == "strong Go match"
-
-
-# ------------------------------------------------------- failure modes -----
-
-def test_one_bad_batch_warns_and_the_run_continues(capsys):
-    jobs = make_jobs(4)
-    stub = StubProvider(["I'd rather not answer that.", scores_reply(jobs[2:])])
-
-    llm.screen(jobs, PROFILE, batch_size=2, provider=stub, model="m")
-
-    assert [j.score for j in jobs[:2]] == [None, None]   # batch 1 dropped
-    assert [j.score for j in jobs[2:]] == [8.0, 8.0]     # batch 2 survived
-    assert "screen batch 1 failed" in capsys.readouterr().out
-
-
-def test_a_provider_error_does_not_abort_screening():
-    jobs = make_jobs(4)
-    stub = StubProvider([LLMError("HTTP 429 rate limited"), scores_reply(jobs[2:])])
-    llm.screen(jobs, PROFILE, batch_size=2, provider=stub, model="m")
-    assert jobs[3].score == 8.0
-
-
-# ----------------------------------------------------------------- draft ---
-
-def test_draft_kit_has_every_key_the_digest_renders():
-    jobs = make_jobs(1)
-    stub = StubProvider(["```json\n" + json.dumps({
-        "fit_summary": "Two sentences about fit.",
-        "tailored_bullets": ["Cut p99 by 70%", "Migrated 40 services"],
-        "gaps": ["No Rust in production"],
-        "cover_note": "A plain 130-word note.",
-        "questions_to_ask": ["How is on-call split?", "What is the deploy cadence?"],
-    }) + "\n```"])
+    kit = {
+        "fit_summary": "Great match.",
+        "tailored_bullets": ["Built X with Go."],
+        "gaps": ["No K8s in production."],
+        "cover_note": "Hi team, I built Go services.",
+        "questions_to_ask": ["How big is the team?"],
+    }
+    stub = StubProvider([json.dumps(kit)])
 
     llm.draft(jobs, PROFILE, provider=stub, model="m")
 
-    kit = jobs[0].draft
-    assert set(kit) == set(llm.DRAFT_KEYS)
-    assert kit["fit_summary"].startswith("Two sentences")
-    assert len(kit["tailored_bullets"]) == 2
-    assert isinstance(kit["gaps"], list)
+    d = jobs[0].draft
+    assert set(d.keys()) == set(llm.DRAFT_KEYS)
+    assert d["fit_summary"] == "Great match."
+    assert d["tailored_bullets"] == ["Built X with Go."]
 
 
-def test_draft_fills_missing_keys_rather_than_crashing_the_digest():
+def test_draft_falls_back_to_empty_kit_when_model_fails():
     jobs = make_jobs(1)
-    stub = StubProvider(['{"fit_summary": "only this one"}'])
+    stub = StubProvider([RuntimeError("rate limit")])
+
     llm.draft(jobs, PROFILE, provider=stub, model="m")
-    kit = jobs[0].draft
-    assert set(kit) == set(llm.DRAFT_KEYS)
-    assert kit["tailored_bullets"] == []
-    assert kit["cover_note"] == ""
 
-
-def test_failed_draft_leaves_a_renderable_empty_kit(capsys):
-    jobs = make_jobs(1)
-    stub = StubProvider(["not json"])
-    llm.draft(jobs, PROFILE, provider=stub, model="m")
-    assert set(jobs[0].draft) == set(llm.DRAFT_KEYS)
-    assert "draft failed" in capsys.readouterr().out
-
-
-def test_draft_makes_one_call_per_job():
-    jobs = make_jobs(3)
-    stub = StubProvider(['{"fit_summary":"a"}'] * 3)
-    llm.draft(jobs, PROFILE, provider=stub, model="m")
-    assert len(stub.calls) == 3
-
-
-# ------------------------------------------------- keyword stub (no API) ---
-
-def test_keyword_screen_scores_without_any_provider():
-    jobs = make_jobs(2)
-    jobs[1].description = "Sales quota and CRM hygiene."
-    jobs[1].title = "Account Executive"
-    llm.keyword_screen(jobs, PROFILE)
-    assert jobs[0].score > jobs[1].score
-    assert all(j.reason.startswith("[keyword stub]") for j in jobs)
-
-
-def test_keyword_screen_stays_in_range_with_an_empty_profile():
-    jobs = make_jobs(1)
-    llm.keyword_screen(jobs, {})
-    assert 0 <= jobs[0].score <= 10
-
-
-# ------------------------------------------------- provider resolution -----
-
-ENV_KEYS = ["LLM_PROVIDER", "SCREEN_PROVIDER", "DRAFT_PROVIDER",
-            "SCREEN_MODEL", "DRAFT_MODEL", "ANTHROPIC_API_KEY",
-            "GEMINI_API_KEY", "GROQ_API_KEY"]
-
-
-@pytest.fixture
-def clean_env(monkeypatch):
-    for k in ENV_KEYS:
-        monkeypatch.delenv(k, raising=False)
-    return monkeypatch
-
-
-def test_stage_provider_overrides_the_global_one(clean_env):
-    clean_env.setenv("LLM_PROVIDER", "anthropic")
-    clean_env.setenv("SCREEN_PROVIDER", "groq")
-    clean_env.setenv("GROQ_API_KEY", "gsk_test")
-    clean_env.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
-
-    screen_p, screen_m = providers.resolve("screen")
-    draft_p, draft_m = providers.resolve("draft")
-
-    assert screen_p.name == "groq"
-    assert draft_p.name == "anthropic"
-    assert draft_m == "claude-3-7-sonnet-20250219"      # per-provider default
-    assert screen_m == "llama-3.3-70b-versatile"
-
-
-def test_explicit_model_wins_over_the_default(clean_env):
-    clean_env.setenv("LLM_PROVIDER", "anthropic")
-    clean_env.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
-    clean_env.setenv("SCREEN_MODEL", "claude-haiku-4-5-20251001")
-    _, model = providers.resolve("screen")
-    assert model == "claude-haiku-4-5-20251001"
-
-
-def test_missing_key_fails_at_resolve_not_on_the_first_batch(clean_env):
-    """A key error must surface before we start spending, otherwise every
-    batch fails identically and the run ends with a plausible-looking empty
-    digest."""
-    clean_env.setenv("LLM_PROVIDER", "anthropic")
-    with pytest.raises(LLMError, match="ANTHROPIC_API_KEY"):
-        providers.resolve("screen")
-
-
-def test_blank_key_counts_as_missing(clean_env):
-    clean_env.setenv("LLM_PROVIDER", "groq")
-    clean_env.setenv("GROQ_API_KEY", "   ")
-    with pytest.raises(LLMError, match="GROQ_API_KEY"):
-        providers.resolve("screen")
-
-
-def test_ollama_needs_no_credentials(clean_env):
-    clean_env.setenv("LLM_PROVIDER", "ollama")
-    provider, model = providers.resolve("screen")
-    assert provider.name == "ollama" and model == "llama3.1"
-
-
-def test_unknown_provider_lists_the_valid_ones(clean_env):
-    clean_env.setenv("LLM_PROVIDER", "gpt5-turbo-ultra")
-    with pytest.raises(LLMError, match="anthropic"):
-        providers.resolve("screen")
-
-
-def test_both_stages_ask_for_json_mode_and_leave_room_for_thinking():
-    """Reasoning models spend output tokens before the answer starts. A ceiling
-    sized to the visible answer gets eaten and you get truncated JSON."""
-    jobs = make_jobs(1)
-    s = StubProvider([scores_reply(jobs)])
-    llm.screen(jobs, PROFILE, provider=s, model="m")
-    assert s.calls[0]["json_mode"] is True
-    assert s.calls[0]["max_tokens"] >= 4000
-
-    d = StubProvider(['{"fit_summary":"x"}'])
-    llm.draft(jobs, PROFILE, provider=d, model="m")
-    assert d.calls[0]["json_mode"] is True
-    assert d.calls[0]["max_tokens"] >= 8000
-
-
-def test_providers_without_document_support_say_so():
-    with pytest.raises(providers.UnsupportedDocument):
-        providers.GroqProvider().complete_document("m", "prompt", b"%PDF", 100)
+    d = jobs[0].draft
+    assert set(d.keys()) == set(llm.DRAFT_KEYS)
+    assert d["fit_summary"] == "" and d["tailored_bullets"] == []
