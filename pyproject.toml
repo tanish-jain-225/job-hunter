@@ -84,6 +84,5 @@ exclude_lines = [
 ]
 show_missing = true
 
-[tool.vercel]
-entrypoint = "api/index.py"
+
 
