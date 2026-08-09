@@ -15,12 +15,13 @@ from pathlib import Path
 
 import yaml
 
-from . import digest, llm, store
+from .digest import build_html, send_email, write_digest
 from .fetch import fetch_all
-from .llm import keyword_screen
+from .llm import draft, keyword_screen, screen
 from .mock import fetch_all_mock
 from .prefilter import prefilter
 from .providers import LLMError, resolve
+from .store import export_csv, init as store_init, mark_applied, record, unseen
 
 
 def _load_env() -> None:
@@ -76,8 +77,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     # 2. Prefilter & dedupe
     print("\n[2/5] filtering")
     candidates = prefilter(raw_jobs, filters)
-    st = store.init(seen_file)
-    jobs = store.unseen(st, candidates)
+    st = store_init(seen_file)
+    jobs = unseen(st, candidates)
     print(f"  new since last run: {len(jobs)}")
 
     if not jobs:
@@ -96,10 +97,10 @@ def cmd_run(args: argparse.Namespace) -> int:
             print(f"\n{e}\nNo key? Run with --scorer keyword for an offline dry run.")
             return 1
         print(f"\n[3/5] screening {len(jobs)} jobs via {provider.name}/{model}")
-        llm.screen(jobs, profile,
-                   batch_size=int(cfg.get("screen_batch_size", 8)),
-                   jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                   provider=provider, model=model)
+        screen(jobs, profile,
+               batch_size=int(cfg.get("screen_batch_size", 8)),
+               jd_chars=int(cfg.get("screen_jd_chars", 1400)),
+               provider=provider, model=model)
 
     # Fallback to keyword screening if all LLM screening attempts failed (e.g. rate limit)
     if scorer == "llm" and not any(j.score is not None for j in jobs):
@@ -126,9 +127,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         try:
             d_provider, d_model = resolve("draft")
             print(f"\n[4/5] drafting kits via {d_provider.name}/{d_model}")
-            llm.draft(shortlist, profile,
-                      jd_chars=int(cfg.get("draft_jd_chars", 6000)),
-                      provider=d_provider, model=d_model)
+            draft(shortlist, profile,
+                  jd_chars=int(cfg.get("draft_jd_chars", 6000)),
+                  provider=d_provider, model=d_model)
         except LLMError as e:
             print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
 
@@ -136,17 +137,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
-    html_content = digest.build_html(shortlist, profile)
-    digest.write_digest(html_content, out_html)
+    html_content = build_html(shortlist, profile)
+    write_digest(html_content, out_html)
     print(f"  wrote {out_html}")
 
     # Store successfully scored jobs in seen.json
-    store.record(st, scored_jobs)
-    store.export_csv(st, tracker_csv)
+    record(st, scored_jobs)
+    export_csv(st, tracker_csv)
 
     if args.send:
         print("\n[mailing digest]")
-        digest.send_email(html_content, len(shortlist))
+        send_email(html_content, len(shortlist))
 
     return 0
 
@@ -155,9 +156,9 @@ def cmd_applied(args: argparse.Namespace) -> int:
     cfg = _cfg()
     seen_file = cfg.get("seen_file", "seen.json")
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
-    st = store.init(seen_file)
-    store.mark_applied(st, args.job_id)
-    store.export_csv(st, tracker_csv)
+    st = store_init(seen_file)
+    mark_applied(st, args.job_id)
+    export_csv(st, tracker_csv)
     print(f"Marked {args.job_id} as applied.")
     return 0
 
@@ -165,10 +166,10 @@ def cmd_applied(args: argparse.Namespace) -> int:
 def cmd_stats(args: argparse.Namespace) -> int:
     cfg = _cfg()
     seen_file = cfg.get("seen_file", "seen.json")
-    st = store.init(seen_file)
-    applied = sum(1 for rec in st.values() if rec.get("status") == "applied")
+    st = store_init(seen_file)
+    applied_count = sum(1 for rec in st.values() if rec.get("status") == "applied")
     print(f"Total tracked jobs: {len(st)}")
-    print(f"Total applied: {applied}")
+    print(f"Total applied: {applied_count}")
     return 0
 
 
