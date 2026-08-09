@@ -9,5 +9,6 @@ if str(ROOT) not in sys.path:
 
 from app import app
 
-# Export WSGI application for Vercel
+# Export WSGI application for Vercel Serverless compatibility
 app = app
+handler = app

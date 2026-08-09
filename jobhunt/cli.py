@@ -38,7 +38,6 @@ def _resolve_relative(p: str | Path) -> Path:
     return path
 
 
-
 def _load_env() -> None:
     """Minimal .env loader (no third-party dependency)."""
     env_path = _resolve_relative(Path(".env"))
