@@ -2,14 +2,12 @@
 # jobhunt - End-to-End .gitignore
 # ==============================================================================
 
-# --- Secrets & Personal Data --------------------------------------------------
-# Secrets and environment configurations
+# --- Secrets & Personal Data  --------------------------------------------------
 .env
 .env.local
 .env.*.local
 *.env
 
-# Personal resume files & derived profiles
 resume.*
 my_resume.*
 *.pdf
@@ -17,7 +15,6 @@ my_resume.*
 profile.json
 !profile.example.json
 
-# Personal deduplication store & tracker (carried via GitHub Actions cache)
 seen.json
 seen.tmp
 *.json.tmp
