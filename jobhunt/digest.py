@@ -39,12 +39,16 @@ def _section(label: str, body: str) -> str:
             f'text-transform:uppercase;font-weight:700;">{label}</div>{body}</div>')
 
 
+def _para(t: str) -> str:
+    if not t:
+        return ""
+    return (f'<p style="margin:8px 0 0 0;color:{TEXT};font-size:14px;'
+            f'line-height:1.6;">{html.escape(t)}</p>')
+
+
 def _card(j: Job) -> str:
     d = j.draft or {}
     meta = " · ".join(x for x in [j.company, j.location or "—", j.ats] if x)
-
-    para = lambda t: (f'<p style="margin:8px 0 0 0;color:{TEXT};font-size:14px;'
-                      f'line-height:1.6;">{html.escape(t)}</p>') if t else ""
 
     cover = d.get("cover_note")
     cover_html = ""
@@ -61,8 +65,8 @@ def _card(j: Job) -> str:
     <div style="padding-left:12px;">{_badge(j.score)}</div>
   </div>
   <div style="color:{MUTED};font-size:13px;margin-top:5px;">{html.escape(meta)}</div>
-  {para(j.reason or "")}
-  {_section("Why it fits", para(d.get("fit_summary", "")))}
+  {_para(j.reason or "")}
+  {_section("Why it fits", _para(d.get("fit_summary", "")))}
   {_section("Resume bullets for this role", _bullets(d.get("tailored_bullets", [])))}
   {_section("Honest gaps", _bullets(d.get("gaps", [])))}
   {cover_html}

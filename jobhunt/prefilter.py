@@ -33,7 +33,7 @@ def _parse_date(value: str | None) -> datetime | None:
 def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     inc = cfg.get("include_titles") or [r"."]
     exc = cfg.get("exclude_titles") or []
-    locs = [l.lower() for l in (cfg.get("locations") or [])]
+    locs = [loc.lower() for loc in (cfg.get("locations") or [])]
     allow_remote = bool(cfg.get("allow_remote", True))
     max_age = cfg.get("max_age_days")
     cutoff = datetime.now(timezone.utc) - timedelta(days=max_age) if max_age else None
@@ -47,7 +47,7 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
         if locs:
             hay = f"{j.location} {j.title}".lower()
             is_remote = allow_remote and any(h in hay for h in REMOTE_HINTS)
-            if not is_remote and not any(l in hay for l in locs):
+            if not is_remote and not any(loc in hay for loc in locs):
                 stats["location"] += 1
                 continue
 
