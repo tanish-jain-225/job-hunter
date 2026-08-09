@@ -166,6 +166,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
         } for j in batch]
 
         n = start // batch_size + 1
+        results: dict[str, dict[str, Any]] = {}
         try:
             raw = provider.complete(
                 model, SCREEN_SYSTEM,
@@ -173,7 +174,6 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 f"JOBS:\n{json.dumps(payload, ensure_ascii=False)}",
                 SCREEN_MAX_TOKENS, json_mode=True,
             )
-            results = {}
             for r in _as_list(parse_json(raw)):
                 jid = r.get("job_id")
                 if jid:
@@ -183,14 +183,14 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
             continue
 
         for j in batch:
-            r = results.get(j.job_id)
-            if not r:
+            rec = results.get(j.job_id)
+            if rec is None:
                 continue
             try:
-                j.score = max(0.0, min(10.0, float(r.get("score", 0))))
+                j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
             except (TypeError, ValueError):
                 j.score = 0.0
-            j.reason = str(r.get("reason", "")).strip()
+            j.reason = str(rec.get("reason", "")).strip()
 
         print(f"  screened {min(start + batch_size, len(jobs))}/{len(jobs)}")
 

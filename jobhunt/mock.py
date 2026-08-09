@@ -13,6 +13,7 @@ it is old on purpose.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Iterable
 
 from .fetch import parse_greenhouse, parse_lever, parse_ashby, Job
 
@@ -102,60 +103,47 @@ GREENHOUSE = {
 
 LEVER = {
     "quantstack": [
-        {"id": "a1b2c3d4-1111-4aaa-9999-000000000001",
-         "text": "Backend Engineer (Go)",
-         "hostedUrl": "https://jobs.lever.co/quantstack/a1b2c3d4-1111-4aaa-9999-000000000001",
-         "applyUrl": "https://jobs.lever.co/quantstack/a1b2c3d4-1111-4aaa-9999-000000000001/apply",
-         "categories": {"location": "Bangalore", "team": "Infrastructure",
-                        "commitment": "Full-time"},
+        # keeper: right level, right city, fresh. Description split across 4 fields.
+        {"id": "c1a2b3", "text": "Backend Engineer (Go)",
+         "hostedUrl": "https://jobs.lever.co/quantstack/c1a2b3",
+         "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
          "createdAt": _lever(2),
-         "descriptionPlain": "We run a real-time market data pipeline in Go. "
-                             "You will own ingestion, fan-out and the storage layer.",
-         "lists": [{"text": "Requirements",
-                    "content": "<li>2-5 years backend experience</li>"
-                               "<li>Go or Java, strong CS fundamentals</li>"
-                               "<li>Comfort with Kubernetes, gRPC, Kafka</li>"}],
-         "additionalPlain": "We interview with one system design round and one "
-                            "pair-programming round. No take-home."},
-        {"id": "a1b2c3d4-1111-4aaa-9999-000000000002",
-         "text": "Engineering Manager, Platform",
-         "hostedUrl": "https://jobs.lever.co/quantstack/a1b2c3d4-1111-4aaa-9999-000000000002",
-         "categories": {"location": "Bangalore", "team": "Platform",
-                        "commitment": "Full-time"},
-         "createdAt": _lever(3),
-         "descriptionPlain": "Lead a team of 8 engineers. 5+ years of people management required.",
-         "lists": []},
-        {"id": "a1b2c3d4-1111-4aaa-9999-000000000003",
-         "text": "Site Reliability Engineer",
-         "hostedUrl": "https://jobs.lever.co/quantstack/a1b2c3d4-1111-4aaa-9999-000000000003",
-         "categories": {"location": "Remote (India)", "team": "SRE",
-                        "commitment": "Full-time"},
+         "descriptionPlain": "Build our high-frequency market data pipeline.",
+         "lists": [
+             {"text": "Requirements",
+              "content": "<p>2-5 years backend experience in Go or Rust</p>"},
+             {"text": "Nice to have",
+              "content": "<p>Knowledge of kernel-bypass networking (DPDK)</p>"},
+         ],
+         "additionalPlain": "No take-home assignments."},
+        # keeper: right level, right city, fresh.
+        {"id": "d4e5f6", "text": "Site Reliability Engineer",
+         "hostedUrl": "https://jobs.lever.co/quantstack/d4e5f6",
+         "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
          "createdAt": _lever(1),
-         "descriptionPlain": "Own SLOs, on-call and incident response for a "
-                             "multi-region Kubernetes fleet. Terraform, Prometheus, Go.",
-         "lists": [{"text": "Nice to have",
-                    "content": "<li>CDN or edge networking background</li>"}]},
+         "descriptionPlain": "Own our Kubernetes clusters across 3 regions.",
+         "lists": [], "additionalPlain": ""},
     ],
 }
 
 ASHBY = {
     "helioscale": {"jobs": [
-        {"id": "9f8e7d6c-2222-4bbb-8888-000000000001",
+        # keeper: right level, right city, fresh.
+        {"id": "9f8e7d6c-0000-4bbb-8888-000000000001",
          "title": "Software Engineer, Networking",
-         "location": "Bengaluru, India", "isListed": True,
-         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-2222-4bbb-8888-000000000001",
+         "location": "Bengaluru, KA, India", "isListed": True,
+         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-0000-4bbb-8888-000000000001",
          "publishedAt": _ashby(1),
-         "compensation": {"compensationTierSummary": "₹32L – ₹48L"},
-         "descriptionPlain": "Work on our anycast network and HTTP proxy layer. "
-                             "You will tune TCP congestion control, build DNS "
-                             "steering logic and reduce p99 latency across POPs. "
-                             "We use Rust and Go. 2+ years experience."},
-        {"id": "9f8e7d6c-2222-4bbb-8888-000000000002",
-         "title": "Software Engineer, Networking",
-         "location": "Bengaluru, India", "isListed": False,
-         "jobUrl": "https://jobs.ashbyhq.com/helioscale/unlisted",
+         "descriptionPlain": "eBPF, XDP, Linux kernel networking.",
+         "compensation": {"compensationTierSummary": "₹32L – ₹48L"}},
+        # junk: draft, not listed yet
+        {"id": "9f8e7d6c-1111-4bbb-8888-000000000002",
+         "title": "Software Engineer, Draft (Unlisted)",
+         "location": "Bengaluru, KA, India", "isListed": False,
+         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-1111-4bbb-8888-000000000002",
          "publishedAt": _ashby(1),
-         "descriptionPlain": "Draft posting that should never surface."},
+         "descriptionPlain": "Draft role — should be skipped."},
+        # junk: wrong discipline
         {"id": "9f8e7d6c-2222-4bbb-8888-000000000003",
          "title": "Data Scientist, Growth",
          "location": "Bengaluru, India", "isListed": True,
@@ -166,13 +154,13 @@ ASHBY = {
 }
 
 
-def fetch_all_mock(companies=None) -> list[Job]:
+def fetch_all_mock(companies: Iterable[dict] | None = None) -> list[Job]:
     jobs: list[Job] = []
-    for slug, body in GREENHOUSE.items():
-        jobs += parse_greenhouse(slug, slug.replace("-", " ").title(), body)
-    for slug, body in LEVER.items():
-        jobs += parse_lever(slug, slug.title(), body)
-    for slug, body in ASHBY.items():
-        jobs += parse_ashby(slug, slug.title(), body)
+    for slug, gh_body in GREENHOUSE.items():
+        jobs += parse_greenhouse(slug, slug.replace("-", " ").title(), gh_body)
+    for slug, lever_body in LEVER.items():
+        jobs += parse_lever(slug, slug.title(), lever_body)
+    for slug, ashby_body in ASHBY.items():
+        jobs += parse_ashby(slug, slug.title(), ashby_body)
     print(f"  [mock] {len(jobs)} postings from {len(GREENHOUSE) + len(LEVER) + len(ASHBY)} boards")
     return jobs
