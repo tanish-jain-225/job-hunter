@@ -14,6 +14,12 @@ def test_badge_color_levels():
     assert "#8b949e" in digest._badge(5.0)
 
 
+def test_digest_helpers_empty_branches():
+    assert digest._bullets([]) == ""
+    assert digest._section("Label", "") == ""
+    assert digest._para("") == ""
+
+
 def test_digest_build_escapes_xss():
     xss_job = Job(
         job_id="greenhouse:acme:1",
@@ -40,6 +46,13 @@ def test_digest_build_escapes_xss():
     assert "1 job worth your time" in subject
 
 
+def test_digest_card_with_none_draft():
+    job = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc")
+    job.draft = None
+    subject, html_doc = digest.build([job], 1, 1, {})
+    assert "Dev" in html_doc
+
+
 def test_digest_build_empty_list():
     subject, html_doc = digest.build([], scanned=50, candidates=0, stats={"tracked": 5, "applied": 1})
     assert "No new matches today" in subject
@@ -63,3 +76,37 @@ def test_mailer_send(monkeypatch: pytest.MonkeyPatch):
         sent_msg = mock_smtp_inst.send_message.call_args[0][0]
         assert sent_msg["Subject"] == "Test Digest Subject"
         assert sent_msg["To"] == "recipient@example.com"
+
+
+def test_mailer_missing_smtp_user(monkeypatch: pytest.MonkeyPatch):
+    """SMTP_USER is accessed via os.environ[] — missing key raises KeyError."""
+    monkeypatch.delenv("SMTP_USER", raising=False)
+    monkeypatch.setenv("SMTP_PASS", "password")
+    with pytest.raises(KeyError):
+        mailer.send("Subject", "<p>body</p>")
+
+
+def test_mailer_smtp_auth_failure(monkeypatch: pytest.MonkeyPatch):
+    """SMTPAuthenticationError is re-raised after printing a diagnostic."""
+    import smtplib
+    monkeypatch.setenv("SMTP_USER", "user@example.com")
+    monkeypatch.setenv("SMTP_PASS", "wrong_password")
+
+    with patch("smtplib.SMTP") as mock_smtp_cls:
+        mock_smtp_inst = MagicMock()
+        mock_smtp_cls.return_value.__enter__.return_value = mock_smtp_inst
+        mock_smtp_inst.login.side_effect = smtplib.SMTPAuthenticationError(535, b"Auth failed")
+
+        with pytest.raises(smtplib.SMTPAuthenticationError):
+            mailer.send("Subject", "<p>body</p>")
+
+
+def test_mailer_generic_exception(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("SMTP_USER", "user@example.com")
+    monkeypatch.setenv("SMTP_PASS", "password")
+
+    with patch("smtplib.SMTP") as mock_smtp_cls:
+        mock_smtp_cls.side_effect = RuntimeError("SMTP server down")
+        with pytest.raises(RuntimeError, match="SMTP server down"):
+            mailer.send("Subject", "<p>body</p>")
+

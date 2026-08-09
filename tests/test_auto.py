@@ -1,0 +1,80 @@
+"""Unit tests for auto.py master automation script."""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import auto
+from jobhunt import cli
+
+
+def test_auto_with_existing_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """When profile.json exists, auto.py skips generation and runs pipeline."""
+    monkeypatch.setattr(auto, "ROOT", tmp_path)
+    (tmp_path / "profile.json").write_text('{"name": "Test"}', encoding="utf-8")
+    (tmp_path / "config.yaml").write_text(
+        f"seen_file: {(tmp_path / 'seen.json').as_posix()}\n"
+        f"digest_file: {(tmp_path / 'out' / 'digest.html').as_posix()}\n"
+        f"profile_file: {(tmp_path / 'profile.json').as_posix()}\n"
+        f"filters:\n  include_titles: ['.*']\n",
+        encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("SMTP_PASS", raising=False)
+
+    def mock_cmd_run(args: argparse.Namespace) -> int:
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run", mock_cmd_run)
+
+    with patch.object(auto, "webbrowser", create=True) as mock_wb:
+        mock_wb.open = lambda *a: None
+        exit_code = auto.main()
+
+    assert exit_code == 0
+
+
+def test_auto_fallback_on_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """When first cmd_run fails, auto.py falls back to keyword scorer."""
+    monkeypatch.setattr(auto, "ROOT", tmp_path)
+    (tmp_path / "profile.json").write_text('{"name": "Test"}', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("SMTP_PASS", raising=False)
+
+    call_count = [0]
+    def mock_cmd_run(args: argparse.Namespace) -> int:
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return 1  # First call fails
+        return 0      # Fallback succeeds
+
+    monkeypatch.setattr(cli, "cmd_run", mock_cmd_run)
+
+    with patch.object(auto, "webbrowser", create=True) as mock_wb:
+        mock_wb.open = lambda *a: None
+        exit_code = auto.main()
+
+    assert exit_code == 0
+    assert call_count[0] == 2  # Called twice: initial + fallback
+
+
+def test_auto_no_profile_no_resume(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+    """When neither profile.json nor resume.pdf exists, auto prints a warning."""
+    monkeypatch.setattr(auto, "ROOT", tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("SMTP_PASS", raising=False)
+
+    monkeypatch.setattr(cli, "cmd_run", lambda args: 0)
+
+    with patch.object(auto, "webbrowser", create=True) as mock_wb:
+        mock_wb.open = lambda *a: None
+        auto.main()
+
+    out = capsys.readouterr().out
+    assert "Warning" in out

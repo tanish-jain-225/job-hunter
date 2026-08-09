@@ -131,8 +131,17 @@ class GeminiProvider(Provider):
                 if r.status_code != 200:
                     raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
                 try:
-                    candidate = r.json()["candidates"][0]
-                except (KeyError, IndexError, ValueError) as e:
+                    data = r.json()
+                except (ValueError, TypeError) as e:
+                    if attempt < max_retries - 1:
+                        delay = 5 * (attempt + 1)
+                        print(f"  ! gemini malformed JSON — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                        time.sleep(delay)
+                        continue
+                    raise LLMError(f"gemini returned invalid JSON: {r.text[:300]}") from e
+                try:
+                    candidate = data["candidates"][0]
+                except (KeyError, IndexError) as e:
                     raise LLMError(f"gemini returned no candidates: {r.text[:300]}") from e
 
                 reason = candidate.get("finishReason")

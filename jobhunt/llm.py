@@ -66,10 +66,15 @@ def _as_list(payload: Any) -> list[dict]:
     if isinstance(payload, list):
         return [p for p in payload if isinstance(p, dict)]
     if isinstance(payload, dict):
+        # Check known keys first, then fall back to any list-valued key.
         for key in ("jobs", "results", "scores", "items"):
             inner = payload.get(key)
             if isinstance(inner, list):
                 return [p for p in inner if isinstance(p, dict)]
+        # Fallback: if the dict has exactly one list-valued key, use it.
+        list_vals = [v for v in payload.values() if isinstance(v, list)]
+        if len(list_vals) == 1:
+            return [p for p in list_vals[0] if isinstance(p, dict)]
         return [payload]
     raise ValueError(f"expected a JSON array of results, got {type(payload).__name__}")
 
@@ -178,7 +183,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 jid = r.get("job_id")
                 if jid:
                     results[str(jid)] = r
-        except Exception as e:
+        except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
             print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
         return results
 
@@ -275,7 +280,7 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
                 "questions_to_ask": [str(q) for q in (kit.get("questions_to_ask") or [])],
             }
             print(f"  drafted {j.title} @ {j.company}")
-        except Exception as e:
+        except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
             j.draft = {k: ("" if k in ("fit_summary", "cover_note") else []) for k in DRAFT_KEYS}
 

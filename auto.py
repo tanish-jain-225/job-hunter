@@ -56,33 +56,28 @@ def main() -> int:
     smtp_pass = os.environ.get("SMTP_PASS", "")
     send_email = bool(smtp_pass and "your-gmail" not in smtp_pass and "paste-your" not in smtp_pass)
 
-    run_args = ["jobhunt", "run"]
-    if send_email:
-        run_args.append("--send")
-
-    sys.argv = run_args
-    try:
-        cli.main()
-        exit_code = 0
-    except SystemExit as e:
-        exit_code = e.code if isinstance(e.code, int) else 1
+    run_args = argparse.Namespace(
+        config=None,
+        mock=False,
+        send=send_email,
+        scorer="llm",
+    )
+    exit_code = cli.cmd_run(run_args)
 
     # If LLM run failed due to API quota/key error, run automatic offline fallback
     if exit_code != 0:
         print("\n  ! LLM provider unavailable/rate-limited. Running automatic keyword fallback...")
-        fallback_args = ["jobhunt", "run", "--scorer", "keyword"]
-        if send_email:
-            fallback_args.append("--send")
-        sys.argv = fallback_args
-        try:
-            cli.main()
-            exit_code = 0
-        except SystemExit as e:
-            exit_code = e.code if isinstance(e.code, int) else 1
+        fallback_args = argparse.Namespace(
+            config=None,
+            mock=False,
+            send=send_email,
+            scorer="keyword",
+        )
+        exit_code = cli.cmd_run(fallback_args)
 
-    # 3. Launch digest in browser
+    # 3. Launch digest in browser (skip in CI / headless)
     digest_path = ROOT / "out" / "digest.html"
-    if digest_path.exists():
+    if digest_path.exists() and not os.environ.get("CI"):
         print(f"\n[3/3] Opening {digest_path} in your browser...")
         try:
             webbrowser.open(digest_path.as_uri())

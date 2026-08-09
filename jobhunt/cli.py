@@ -64,17 +64,11 @@ def _load_profile(cfg: dict) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-def cmd_run(args: argparse.Namespace) -> int:
-    cfg = _cfg(getattr(args, "config", None))
-    profile = _load_profile(cfg)
-    filters = cfg.get("filters", {})
-    seen_file = cfg.get("seen_file", "seen.json")
-
+def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
+    """Stage 1-2: Fetch raw jobs and apply prefilter + dedupe."""
     fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
-    llm_max_workers = int(cfg.get("llm_max_workers", 1))
-    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 2.5))
+    filters = cfg.get("filters", {})
 
-    # 1. Fetch
     print("[1/5] fetching boards")
     if args.mock:
         raw_jobs = fetch_all_mock()
@@ -82,19 +76,17 @@ def cmd_run(args: argparse.Namespace) -> int:
         companies_file = cfg.get("companies_file", "companies.yaml")
         raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
 
-    # 2. Prefilter & dedupe
     print("\n[2/5] filtering")
     candidates = prefilter(raw_jobs, filters)
-    st = Store(seen_file)
-    jobs = st.unseen(candidates)
-    print(f"  new since last run: {len(jobs)}")
+    return raw_jobs, candidates
 
-    if not jobs:
-        print("\nNo new matching jobs today.")
-        return 0
 
-    # 3. Screen
+def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict) -> None:
+    """Stage 3: Score jobs via LLM or keyword matcher."""
     scorer = getattr(args, "scorer", "llm")
+    llm_max_workers = int(cfg.get("llm_max_workers", 1))
+    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 2.5))
+
     if scorer == "keyword":
         print("\n[3/5] screening via keyword matcher (DEV ONLY)")
         llm.keyword_screen(jobs, profile)
@@ -103,7 +95,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             provider, model = resolve("screen")
         except LLMError as e:
             print(f"\n{e}\nNo key? Run with --scorer keyword for an offline dry run.")
-            return 1
+            raise
         print(f"\n[3/5] screening {len(jobs)} jobs via {provider.name}/{model}")
         llm.screen(jobs, profile,
                    batch_size=int(cfg.get("screen_batch_size", 8)),
@@ -112,11 +104,14 @@ def cmd_run(args: argparse.Namespace) -> int:
                    delay_seconds=llm_delay_seconds,
                    max_workers=llm_max_workers)
 
-    # Fallback to keyword screening if all LLM screening attempts failed (e.g. rate limit)
+    # Fallback to keyword screening if all LLM screening attempts failed
     if scorer == "llm" and not any(j.score is not None for j in jobs):
         print("\n! LLM screening rate-limited or failed. Falling back to keyword scorer to produce digest...")
         llm.keyword_screen(jobs, profile)
 
+
+def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
+    """Select scored jobs and build the shortlist above the threshold."""
     unscored_count = sum(1 for j in jobs if j.score is None)
     if unscored_count > 0:
         print(f"\n  ! Warning: {unscored_count}/{len(jobs)} jobs could not be scored by LLM.\n"
@@ -131,8 +126,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     shortlist = shortlist[:top_n]
 
     print(f"\n  {len(shortlist)} jobs cleared the {threshold} bar")
+    return scored_jobs, shortlist
 
-    # 4. Draft kits for shortlist
+
+def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
+    """Stage 4: Generate application kits for the shortlist."""
+    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 2.5))
+
     if shortlist and scorer == "llm":
         try:
             d_provider, d_model = resolve("draft")
@@ -145,7 +145,10 @@ def cmd_run(args: argparse.Namespace) -> int:
             print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
 
 
-    # 5. Digest & Mailer
+def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
+                           scored_jobs: list, st, args: argparse.Namespace,
+                           cfg: dict) -> None:
+    """Stage 5: Build digest HTML, export CSV, and optionally send email."""
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
@@ -159,13 +162,43 @@ def cmd_run(args: argparse.Namespace) -> int:
     digest.write(html_content, out_html)
     print(f"  wrote {out_html}")
 
-    # Store successfully scored jobs in seen.json
     st.record(scored_jobs, emailed=args.send)
     st.export_csv(tracker_csv)
 
     if args.send:
         print("\n[mailing digest]")
         mailer.send(subject, html_content)
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    """Orchestrate the full pipeline: fetch → filter → screen → draft → digest."""
+    cfg = _cfg(getattr(args, "config", None))
+    profile = _load_profile(cfg)
+    seen_file = cfg.get("seen_file", "seen.json")
+
+    # 1-2. Fetch + filter
+    raw_jobs, candidates = _fetch_jobs(args, cfg)
+    st = Store(seen_file)
+    jobs = st.unseen(candidates)
+    print(f"  new since last run: {len(jobs)}")
+
+    if not jobs:
+        print("\nNo new matching jobs today.")
+        return 0
+
+    # 3. Screen
+    try:
+        _screen_jobs(jobs, profile, args, cfg)
+    except LLMError:
+        return 1
+
+    # 4. Shortlist + draft
+    scored_jobs, shortlist = _select_shortlist(jobs, cfg)
+    scorer = getattr(args, "scorer", "llm")
+    _draft_kits(shortlist, profile, scorer, cfg)
+
+    # 5. Digest + mail
+    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, args, cfg)
 
     return 0
 

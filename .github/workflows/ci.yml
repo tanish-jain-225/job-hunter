@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test & Lint (Python ${{ matrix.python-version }})
@@ -40,8 +43,15 @@ jobs:
 
       - name: Run pytest suite with coverage
         run: |
-          pytest --cov=jobhunt --cov-report=term-missing tests/
+          pytest --cov=jobhunt --cov-report=term-missing --cov-fail-under=90 tests/
 
       - name: Verify CLI offline dry run
         run: |
           python -m jobhunt run --mock --scorer keyword
+
+      - name: Verify master automation script dry run
+        env:
+          CI: "true"
+        run: |
+          python -c "import argparse; from jobhunt import cli; cli.cmd_run(argparse.Namespace(config=None, mock=True, send=False, scorer='keyword'))"
+

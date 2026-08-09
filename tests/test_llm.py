@@ -224,3 +224,49 @@ def test_enhanced_keyword_screen():
     assert matching_job.score > staff_job.score
     assert "skills matched" in matching_job.reason
 
+
+def test_build_profile_text_and_pdf(monkeypatch: pytest.MonkeyPatch):
+    class MockDocProvider(Provider):
+        def complete(self, *a, **kw):
+            return json.dumps({"name": "Jane", "core_skills": ["Go"]})
+
+        def complete_document(self, *a, **kw):
+            return json.dumps({"name": "Jane PDF", "core_skills": ["Python"]})
+
+    p = MockDocProvider()
+
+    prof_text = llm.build_profile(resume_text="Resume text", provider=p, model="m")
+    assert prof_text["name"] == "Jane"
+
+    prof_pdf = llm.build_profile(resume_bytes=b"%PDF...", is_pdf=True, provider=p, model="m")
+    assert prof_pdf["name"] == "Jane PDF"
+
+
+def test_build_profile_pdf_error(monkeypatch: pytest.MonkeyPatch):
+    class ErrDocProvider(Provider):
+        def complete_document(self, *a, **kw):
+            from jobhunt.providers import LLMError
+            raise LLMError("PDF error")
+
+    p = ErrDocProvider()
+    with pytest.raises(llm.LLMError, match="export your resume"):
+        llm.build_profile(resume_bytes=b"%PDF...", is_pdf=True, provider=p, model="m")
+
+
+def test_as_list_single_key_fallback():
+    data = {"custom_key": [{"job_id": "1", "score": 9.0}]}
+    assert llm._as_list(data) == [{"job_id": "1", "score": 9.0}]
+
+
+def test_screen_concurrency_invalid_score(monkeypatch: pytest.MonkeyPatch):
+    jobs = make_jobs(2)
+    reply = json.dumps([
+        {"job_id": jobs[0].job_id, "score": "invalid_score"},
+        {"job_id": jobs[1].job_id, "score": 8.0},
+    ])
+    stub = StubProvider([reply])
+    llm.screen(jobs, PROFILE, batch_size=2, provider=stub, model="m", max_workers=2)
+    assert jobs[0].score == 0.0
+    assert jobs[1].score == 8.0
+
+

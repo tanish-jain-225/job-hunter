@@ -158,7 +158,7 @@ def fetch_board(ats: str, slug: str, company: str | None = None,
             print(f"  ! {ats}/{slug} -> HTTP {r.status_code}")
             return []
         return parser(slug, company or slug, r.json())
-    except Exception as e:  # dead slug, rate limit, network blip
+    except (requests.RequestException, KeyError, ValueError, TypeError) as e:
         print(f"  ! {ats}/{slug} -> {type(e).__name__}: {e}")
         return []
 
@@ -199,7 +199,7 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
                     if got:
                         print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
                     jobs.extend(got)
-                except Exception as e:
+                except (requests.RequestException, KeyError, ValueError, TypeError) as e:
                     print(f"  ! worker error: {e}")
     else:
         for c in company_list:

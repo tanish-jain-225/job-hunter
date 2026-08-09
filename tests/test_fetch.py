@@ -4,28 +4,9 @@ from __future__ import annotations
 import pytest
 import requests
 
+from conftest import DummyResponse, DummySession
 from jobhunt import fetch
 from jobhunt.fetch import Job, fetch_all, fetch_board
-
-
-class DummyResponse:
-    def __init__(self, status_code: int, json_data: dict | list | None = None):
-        self.status_code = status_code
-        self._json_data = json_data or {}
-
-    def json(self):
-        return self._json_data
-
-
-class DummySession:
-    def __init__(self, response: DummyResponse | None = None, raise_exc: Exception | None = None):
-        self.response = response
-        self.raise_exc = raise_exc
-
-    def get(self, url, headers=None, timeout=None):
-        if self.raise_exc:
-            raise self.raise_exc
-        return self.response
 
 
 def test_job_to_dict():

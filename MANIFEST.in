@@ -6,4 +6,9 @@ include config.yaml
 include companies.yaml
 include profile.example.json
 include .env.example
+include auto.py
+include run.sh
+include run.bat
+include apply.sh
+include apply.bat
 recursive-include jobhunt *.py

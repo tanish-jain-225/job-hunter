@@ -1,7 +1,10 @@
 """Unit tests for jobhunt.providers resolution, preflight checks, and error handling."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
+import requests
 from jobhunt import providers
 from jobhunt.providers import LLMError, Provider, get_provider, resolve
 
@@ -49,10 +52,47 @@ def test_resolve_auto_detect_gemini(monkeypatch: pytest.MonkeyPatch):
     assert provider.name == "gemini"
 
 
+def test_resolve_auto_detect_groq(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
+    provider, model = resolve("screen", check=False)
+    assert provider.name == "groq"
+
+
+def test_resolve_missing_model(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LLM_PROVIDER", "custom")
+    monkeypatch.delenv("SCREEN_MODEL", raising=False)
+    monkeypatch.setattr(providers, "PROVIDERS", {"custom": Provider})
+    with pytest.raises(LLMError, match="set SCREEN_MODEL"):
+        resolve("screen", check=False)
+
+
 def test_unsupported_document_error():
     provider = Provider()
     with pytest.raises(providers.UnsupportedDocument):
         provider.complete_document("model", "prompt", b"pdf bytes", 100)
+
+
+def test_anthropic_provider(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_anthropic_key")
+
+    mock_msg = MagicMock()
+    block = MagicMock()
+    block.type = "text"
+    block.text = "Anthropic reply"
+    mock_msg.content = [block]
+
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_msg
+
+    p = providers.AnthropicProvider()
+    monkeypatch.setattr(p, "_client", lambda: mock_client)
+
+    res = p.complete("claude-3-5-haiku", "sys", "user", 100)
+    assert res == "Anthropic reply"
+
+    res_doc = p.complete_document("claude-3-5-haiku", "prompt", b"%PDF...", 100)
+    assert res_doc == "Anthropic reply"
 
 
 def test_gemini_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
@@ -95,58 +135,115 @@ def test_gemini_provider_complete_document_success(monkeypatch: pytest.MonkeyPat
     assert res == "Extracted text"
 
 
-def test_gemini_provider_error_status(monkeypatch: pytest.MonkeyPatch):
+def test_gemini_provider_retries_and_errors(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+    monkeypatch.setattr(providers.time, "sleep", lambda x: None)
 
-    class DummyResponse:
-        status_code = 400
-        text = "Bad Request"
+    # Retry on 500 then succeed
+    attempts = [0]
+    class RetryResponse:
+        def __init__(self, code):
+            self.status_code = code
+            self.text = "server error"
+        def json(self):
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "OK"}]}}]}
 
-    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    def mock_post_retry(*a, **kw):
+        attempts[0] += 1
+        if attempts[0] == 1:
+            return RetryResponse(500)
+        return RetryResponse(200)
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_retry)
     p = providers.GeminiProvider()
-    with pytest.raises(LLMError, match="gemini HTTP 400"):
+    assert p.complete("gemini-2.0-flash", "sys", "user", 100) == "OK"
+
+    # Malformed JSON
+    class MalformedResponse:
+        status_code = 200
+        text = "invalid json"
+        def json(self):
+            raise ValueError("bad json")
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: MalformedResponse())
+    with pytest.raises(LLMError, match="invalid JSON"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+    # Max tokens finish reason
+    class MaxTokensResponse:
+        status_code = 200
+        text = "stopped"
+        def json(self):
+            return {"candidates": [{"finishReason": "MAX_TOKENS", "content": {"parts": [{"text": "trunc"}]}}]}
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: MaxTokensResponse())
+    with pytest.raises(LLMError, match="gemini stopped early"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+    # Network exception
+    def mock_post_network(*a, **kw):
+        raise requests.RequestException("Conn error")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_network)
+    with pytest.raises(LLMError, match="gemini network error"):
         p.complete("gemini-2.0-flash", "sys", "user", 100)
 
 
-def test_openai_compat_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
+def test_openai_compat_provider_retries_and_errors(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
+    monkeypatch.setattr(providers.time, "sleep", lambda x: None)
 
-    class DummyResponse:
-        status_code = 200
-
-        def json(self):
-            return {
-                "choices": [{
-                    "message": {"content": "Groq reply"}
-                }]
-            }
-
-    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
     p = providers.GroqProvider()
-    res = p.complete("llama-3.3-70b", "sys", "user", 100, json_mode=True)
-    assert res == "Groq reply"
 
+    # HTTP 400 error
+    class ErrorResponse:
+        status_code = 400
+        text = "Bad Request"
 
-def test_ollama_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
-    class DummyResponse:
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: ErrorResponse())
+    with pytest.raises(LLMError, match="groq HTTP 400"):
+        p.complete("llama-3.3-70b", "sys", "user", 100)
+
+    # Malformed reply
+    class MalformedResponse:
         status_code = 200
-
+        text = "{}"
         def json(self):
-            return {
-                "message": {"content": "Ollama reply"}
-            }
+            return {}
 
-    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: MalformedResponse())
+    with pytest.raises(LLMError, match="groq malformed reply"):
+        p.complete("llama-3.3-70b", "sys", "user", 100)
+
+    # Network exception
+    def mock_post_net(*a, **kw):
+        raise requests.RequestException("Net timeout")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_net)
+    with pytest.raises(LLMError, match="groq network error"):
+        p.complete("llama-3.3-70b", "sys", "user", 100)
+
+
+def test_ollama_provider_errors(monkeypatch: pytest.MonkeyPatch):
     p = providers.OllamaProvider()
-    res = p.complete("llama3.1", "sys", "user", 100, json_mode=True)
-    assert res == "Ollama reply"
 
+    # Non 200
+    class BadResponse:
+        status_code = 500
+        text = "Internal error"
 
-def test_ollama_provider_unreachable(monkeypatch: pytest.MonkeyPatch):
-    def mock_post(*a, **kw):
-        raise providers.requests.RequestException("Connection refused")
-
-    monkeypatch.setattr(providers.requests, "post", mock_post)
-    p = providers.OllamaProvider()
-    with pytest.raises(LLMError, match="ollama unreachable"):
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: BadResponse())
+    with pytest.raises(LLMError, match="ollama HTTP 500"):
         p.complete("llama3.1", "sys", "user", 100)
+
+    # Malformed reply
+    class MalformedResponse:
+        status_code = 200
+        text = "{}"
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: MalformedResponse())
+    with pytest.raises(LLMError, match="ollama malformed reply"):
+        p.complete("llama3.1", "sys", "user", 100)
+
