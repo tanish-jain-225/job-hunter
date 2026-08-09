@@ -33,6 +33,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Hunter Dashboard</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="shortcut icon" type="image/png" href="/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -398,7 +400,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <!-- Top Navigation Header -->
   <header>
     <div class="brand">
-      <div class="brand-icon">🏹</div>
+      <img src="/logo.png" alt="Job Hunter Logo" style="width:48px; height:48px; object-fit:contain; border-radius:10px;">
       <div>
         <h1>Job Hunter</h1>
         <p>Autonomous AI Job-Search Web Board</p>
@@ -703,8 +705,12 @@ def index():
     return render_template_string(HTML_TEMPLATE)
 
 
+@app.route("/logo.png")
 @app.route("/favicon.ico")
-def favicon():
+def serve_logo():
+    logo_path = ROOT / "logo.png"
+    if logo_path.is_file():
+        return send_file(logo_path, mimetype="image/png")
     return "", 204
 
 
