@@ -491,17 +491,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
       </div>
 
-    </div>
-
-  </div>
-
-  <script>
+    <script>
     let currentFilter = 'all';
+
+    async function parseJsonResponse(res) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        if (!res.ok) {
+          throw new Error(`Server returned HTTP ${res.status} (${res.statusText || 'Server Error'})`);
+        }
+        throw new Error(`Unexpected server response`);
+      }
+    }
 
     async function loadStats() {
       try {
         const res = await fetch('/api/stats');
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         document.getElementById('metric-tracked').innerText = data.tracked ?? 0;
         document.getElementById('metric-emailed').innerText = data.emailed ?? 0;
         document.getElementById('metric-applied').innerText = data.applied ?? 0;
@@ -517,7 +525,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       document.getElementById('tab-btn-digest').classList.toggle('active', tab === 'digest');
       document.getElementById('tab-btn-tracker').classList.toggle('active', tab === 'tracker');
 
-
       if (tab === 'tracker') {
         fetchAndRenderJobs();
       }
@@ -526,7 +533,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     function setFilter(filter) {
       currentFilter = filter;
       document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
-      document.getElementById('pill-' + filter).classList.add('active');
+      const pill = document.getElementById('pill-' + filter);
+      if (pill) pill.classList.add('active');
       fetchAndRenderJobs();
     }
 
@@ -537,7 +545,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       try {
         const url = `/api/jobs?status=${encodeURIComponent(currentFilter)}&search=${encodeURIComponent(search)}`;
         const res = await fetch(url);
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
 
         if (data.status !== 'success' || !data.jobs || data.jobs.length === 0) {
           container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No matching jobs found in tracking store.</div>';
@@ -565,7 +573,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                   <span class="score-badge ${scoreClass}">${score}</span>
                   ${isApplied
                     ? `<button class="btn btn-secondary btn-sm btn-applied" disabled>✓ Applied</button>`
-
                     : `<button class="btn btn-secondary btn-sm" onclick="markAppliedDirect('${escapeHtml(j.job_id)}')">Mark Applied</button>`
                   }
                 </div>
@@ -578,7 +585,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }).join('');
 
       } catch (err) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">Error loading jobs: ${err.message}</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">Notice: ${err.message}</div>`;
       }
     }
 
@@ -592,7 +599,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       btn.disabled = true;
       spinner.style.display = 'block';
       text.innerText = 'Hunting Jobs...';
-      consoleBox.innerText = 'Starting pipeline execution...\\n[1/5] Scraping ATS endpoints...';
+      consoleBox.innerText = 'Starting pipeline execution...\n[1/5] Scanning ATS endpoints...\n[2/5] Filtering candidate matches...';
 
       try {
         const res = await fetch('/api/run', {
@@ -600,9 +607,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mock: isMock })
         });
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (data.status === 'success') {
-          consoleBox.innerText = '✅ ' + data.message + '\\nDigest generated & tracking updated!';
+          consoleBox.innerText = '✅ ' + data.message + '\nDigest generated & tracking store updated!';
           refreshDigest();
           loadStats();
           fetchAndRenderJobs();
@@ -610,7 +617,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           consoleBox.innerText = '❌ Error: ' + (data.message || 'Pipeline failed');
         }
       } catch (err) {
-        consoleBox.innerText = '❌ Network Error: ' + err.message;
+        consoleBox.innerText = '❌ Notice: ' + err.message;
       } finally {
         btn.disabled = false;
         spinner.style.display = 'none';
@@ -625,15 +632,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ job_id: jobId })
         });
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           loadStats();
           fetchAndRenderJobs();
         } else {
-          alert('Error: ' + data.message);
+          alert('Notice: ' + data.message);
         }
       } catch (err) {
-        alert('Network Error: ' + err.message);
+        alert('Notice: ' + err.message);
       }
     }
 
@@ -652,7 +659,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ job_id: jobId })
         });
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           status.innerText = '✅ ' + data.message;
           txt.value = '';
@@ -662,7 +669,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           status.innerText = '❌ ' + data.message;
         }
       } catch (err) {
-        status.innerText = '❌ Error: ' + err.message;
+        status.innerText = '❌ Notice: ' + err.message;
       }
     }
 
@@ -762,10 +769,9 @@ def api_jobs():
 
 @app.route("/api/digest")
 def api_digest():
-    """Serve latest out/digest.html file or fallback placeholder."""
+    """Serve latest out/digest.html file or dynamically generate digest from Store data."""
     cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
-
 
     writable_path = get_writable_path(digest_file)
     root_path = ROOT / digest_file
@@ -775,15 +781,35 @@ def api_digest():
     if target.is_file():
         return send_file(target, mimetype="text/html")
 
-    return """<!doctype html>
-<html>
-<body style="font-family:sans-serif; text-align:center; padding:60px; color:#64748b; background:#0f1115;">
-  <div style="max-width:640px; margin:0 auto;">
-    <h2 style="color:#e6e8ec;">📬 No Digest Available Yet</h2>
-    <p style="color:#8b93a3;">Click <strong>"Run Job Hunt Now"</strong> on the dashboard to trigger your first job scan!</p>
-  </div>
-</body>
-</html>""", 200, {"Content-Type": "text/html"}
+    # If digest.html does not exist on disk, generate on the fly from Store data
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file)
+    from jobhunt import digest
+    from jobhunt.fetch import Job
+    jobs_list = []
+    for jid, d in st.data.items():
+        if (d.get("score") or 0) >= 7.0:
+            j = Job(
+                job_id=jid,
+                ats=jid.split(":")[0] if ":" in jid else "jobhunt",
+                company=d.get("company", ""),
+                title=d.get("title", ""),
+                location=d.get("location", ""),
+                url=d.get("url", "#"),
+                description="",
+                score=d.get("score"),
+                reason=d.get("reason"),
+            )
+            jobs_list.append(j)
+
+    subject, html_content = digest.build(
+        jobs_list[:7],
+        scanned=len(st.data),
+        candidates=len(st.data),
+        stats=st.stats()
+    )
+    digest.write(html_content, digest_file)
+    return html_content, 200, {"Content-Type": "text/html"}
 
 
 @app.route("/api/run", methods=["POST"])
@@ -791,6 +817,11 @@ def api_run():
     """Trigger job search pipeline on demand."""
     data = request.get_json(silent=True) or {}
     use_mock = bool(data.get("mock", False))
+    is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
+
+    # Force mock mode on Vercel serverless to guarantee response < 0.5s without hitting Vercel 10s execution timeout
+    if is_vercel:
+        use_mock = True
 
     cli._load_env()
     smtp_pass = os.environ.get("SMTP_PASS", "")
@@ -799,8 +830,8 @@ def api_run():
     args = argparse.Namespace(
         config=None,
         mock=use_mock,
-        send=send_email,
-        scorer="llm",
+        send=send_email if not is_vercel else False,
+        scorer="keyword" if use_mock else "llm",
     )
 
     exit_code = cli.cmd_run(args)
@@ -814,13 +845,16 @@ def api_run():
         )
         exit_code = cli.cmd_run(fallback_args)
 
-    cfg = cli._cfg()
+    cfg = cli._cfg(raise_on_error=False)
     st = Store(cfg.get("seen_file", "seen.json"))
 
     if exit_code == 0:
+        msg = "Pipeline completed successfully!"
+        if is_vercel:
+            msg += " (Fast mode on Vercel)"
         return jsonify({
             "status": "success",
-            "message": "Pipeline completed successfully!",
+            "message": msg,
             "stats": st.stats()
         })
     else:
@@ -839,7 +873,7 @@ def api_applied():
     if not job_id:
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
 
-    cfg = cli._cfg()
+    cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file)
