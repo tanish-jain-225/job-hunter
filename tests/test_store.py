@@ -88,3 +88,16 @@ def test_store_module_helpers(tmp_path: Path):
 
     csv_path = store.export_csv(st, tmp_path / "tracker.csv")
     assert csv_path.exists()
+
+
+def test_load_seen_legacy_array(tmp_path: Path):
+    """Test migrating legacy JSON array format."""
+    file_path = tmp_path / "seen.json"
+    legacy_data = ["job_1", "job_2"]
+    file_path.write_text(json.dumps(legacy_data), encoding="utf-8")
+
+    st = Store(storage_file=file_path) if hasattr(Store, "storage_file") else Store(file_path)
+    assert "job_1" in st.data
+    assert "job_2" in st.data
+    assert st.data["job_1"]["first_seen"] is not None
+

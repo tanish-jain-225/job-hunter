@@ -44,7 +44,6 @@ filters:
     - '\bsenior\b'                                             # too senior (< 2 YoE)
     - '\b(director|vp|vice president|head of|chief|cto)\b'
     - '\b(manager|management|lead)\b'
-    - '\b(intern|internship|apprentice|trainee)\b'             # too junior
     - '\b(sales|account executive|marketing|recruit|support|success)\b'
     - '\b(frontend|front-end|ios|android|mobile|game|designer|ux|ui)\b'
     - '\b(data scientist|machine learning scientist|research scientist)\b'

@@ -50,7 +50,30 @@ class Store:
         read_target = self.path if self.path.exists() else self.original_path
         if read_target.exists():
             try:
-                self.data = json.loads(read_target.read_text(encoding="utf-8"))
+                raw_data = json.loads(read_target.read_text(encoding="utf-8"))
+                if isinstance(raw_data, list):
+                    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                    migrated: dict[str, dict] = {}
+                    for item in raw_data:
+                        if isinstance(item, str):
+                            migrated[item] = {
+                                "first_seen": now,
+                                "company": "",
+                                "title": "",
+                                "location": "",
+                                "url": "",
+                                "score": None,
+                                "reason": None,
+                                "emailed": False,
+                                "applied": False,
+                                "applied_on": None,
+                            }
+                        elif isinstance(item, dict) and "job_id" in item:
+                            migrated[str(item["job_id"])] = item
+                    self.data = migrated
+                    self.save()
+                elif isinstance(raw_data, dict):
+                    self.data = raw_data
             except json.JSONDecodeError:
                 print(f"  ! {read_target} corrupt, starting fresh")
 

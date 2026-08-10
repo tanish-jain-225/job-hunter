@@ -58,6 +58,8 @@ jobs:
               echo "::warning::PROFILE_JSON secret is invalid JSON, falling back to profile.example.json"
               cp profile.example.json profile.json
             fi
+          elif [ -f profile.json ]; then
+            echo "Using committed profile.json from repository."
           elif [ -f profile.example.json ]; then
             echo "::warning::PROFILE_JSON secret not set — using profile.example.json fallback"
             cp profile.example.json profile.json
