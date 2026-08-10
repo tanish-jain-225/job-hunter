@@ -7,26 +7,27 @@ from pathlib import Path
 
 from .fetch import Job
 
-BG = "#0f1115"
-CARD = "#171a21"
-LINE = "#262b36"
-TEXT = "#e6e8ec"
-MUTED = "#8b93a3"
-ACCENT = "#7c9cff"
+BG = "#f8fafc"
+CARD = "#ffffff"
+LINE = "#e2e8f0"
+TEXT = "#0f172a"
+MUTED = "#64748b"
+ACCENT = "#4f46e5"
 
 
 def _badge(score: float | None) -> str:
     s = score or 0
     color = "#3fb950" if s >= 8.5 else "#d29922" if s >= 7 else "#8b949e"
-    return (f'<span style="background:{color};color:#0f1115;font-weight:700;'
-            f'padding:3px 9px;border-radius:999px;font-size:13px;">{s:.1f}</span>')
+    bg = "#dcfce7" if s >= 8.5 else "#fef9c3" if s >= 7 else "#f1f5f9"
+    return (f'<span style="background:{bg};color:{color};font-weight:800;'
+            f'padding:4px 10px;border-radius:999px;font-size:13px;border:1px solid {LINE};">{s:.1f}</span>')
 
 
 def _bullets(items: list[str]) -> str:
     if not items:
         return ""
     lis = "".join(
-        f'<li style="margin:0 0 6px 0;color:{TEXT};font-size:14px;line-height:1.5;">'
+        f'<li style="margin:0 0 6px 0;color:#334155;font-size:14px;line-height:1.5;">'
         f'{html.escape(str(i))}</li>' for i in items)
     return f'<ul style="margin:8px 0 0 0;padding-left:18px;">{lis}</ul>'
 
@@ -36,13 +37,13 @@ def _section(label: str, body: str) -> str:
         return ""
     return (f'<div style="margin-top:14px;">'
             f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
-            f'text-transform:uppercase;font-weight:700;">{label}</div>{body}</div>')
+            f'text-transform:uppercase;font-weight:800;">{label}</div>{body}</div>')
 
 
 def _para(t: str) -> str:
     if not t:
         return ""
-    return (f'<p style="margin:8px 0 0 0;color:{TEXT};font-size:14px;'
+    return (f'<p style="margin:8px 0 0 0;color:#334155;font-size:14px;'
             f'line-height:1.6;">{html.escape(t)}</p>')
 
 
@@ -54,17 +55,17 @@ def _card(j: Job) -> str:
     cover_html = ""
     if cover:
         cover_html = _section("Cover note (edit before sending)",
-            f'<div style="margin-top:8px;padding:12px;background:#0d1017;'
-            f'border:1px solid {LINE};border-radius:8px;color:{TEXT};font-size:14px;'
+            f'<div style="margin-top:8px;padding:12px;background:#f1f5f9;'
+            f'border:1px solid {LINE};border-radius:8px;color:#1e293b;font-size:14px;'
             f'line-height:1.6;white-space:pre-wrap;">{html.escape(cover)}</div>')
 
     return f"""
-<div style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px;margin-bottom:14px;">
+<div style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.05);">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div style="font-size:17px;font-weight:700;color:{TEXT};">{html.escape(j.title)}</div>
     <div style="padding-left:12px;">{_badge(j.score)}</div>
   </div>
-  <div style="color:{MUTED};font-size:13px;margin-top:5px;">{html.escape(meta)}</div>
+  <div style="color:{MUTED};font-size:13px;margin-top:4px;font-weight:500;">{html.escape(meta)}</div>
   {_para(j.reason or "")}
   {_section("Why it fits", _para(d.get("fit_summary", "")))}
   {_section("Resume bullets for this role", _bullets(d.get("tailored_bullets", [])))}
@@ -73,8 +74,8 @@ def _card(j: Job) -> str:
   {_section("Ask them", _bullets(d.get("questions_to_ask", [])))}
   <div style="margin-top:16px;">
     <a href="{html.escape(j.url)}" style="display:inline-block;background:{ACCENT};
-       color:#0f1115;font-weight:700;font-size:14px;text-decoration:none;
-       padding:10px 18px;border-radius:8px;">Open &amp; apply →</a>
+       color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;
+       padding:10px 18px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.2);">Open &amp; apply →</a>
     <span style="color:{MUTED};font-size:11px;margin-left:10px;">{html.escape(j.job_id)}</span>
   </div>
 </div>"""
@@ -92,17 +93,17 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict) -> tuple[
                 f'padding:24px;color:{MUTED};font-size:14px;">Scanned {scanned} postings, '
                 f'nothing cleared the bar today. Boards are quiet on weekends.</div>')
 
-    html_doc = f"""<!doctype html><html><body style="margin:0;padding:20px;background:{BG};
-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    html_doc = f"""<!doctype html><html><body style="margin:0;padding:24px 20px;background:{BG};
+font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;">
 <div style="max-width:640px;margin:0 auto;">
-  <div style="color:{TEXT};font-size:22px;font-weight:800;">Your job digest</div>
-  <div style="color:{MUTED};font-size:13px;margin:6px 0 20px 0;">
+  <div style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;">Your job digest</div>
+  <div style="color:{MUTED};font-size:13px;margin:6px 0 20px 0;line-height:1.5;">
     {today} · scanned {scanned} postings · {candidates} passed filters ·
     {len(jobs)} made the cut<br>
     tracker: {stats.get('tracked', 0)} seen · {stats.get('applied', 0)} applied
   </div>
   {body}
-  <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:18px;
+  <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:20px;
        border-top:1px solid {LINE};padding-top:14px;">
     Drafts are starting points, not send-ready. Read the JD, edit the note,
     then submit it yourself.
