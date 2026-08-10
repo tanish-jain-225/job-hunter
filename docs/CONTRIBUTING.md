@@ -1,10 +1,14 @@
-# Contributing to jobhunt
+# 🤝 Contributing to Job Hunter
 
-Thank you for your interest in contributing to `jobhunt`! This guide covers local setup, test execution, code quality standards, and architectural conventions.
+Thank you for your interest in contributing to `jobhunt`! This guide covers local development setup, test execution, code quality standards, and architectural conventions.
+
+> 💡 *For user setup instructions, see [SETUP.md](SETUP.md).*  
+> 💡 *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
+> 💡 *For architectural design specifications, see [jobhunt.md](jobhunt.md).*
 
 ---
 
-## Development Setup
+## 💻 Development Setup
 
 1. **Clone the repository**:
    ```bash
@@ -30,7 +34,7 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 
 ---
 
-## Running Tests & Quality Checks
+## 🧪 Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
 Run the full test suite without any network requests or API keys:
@@ -60,7 +64,7 @@ jobhunt run --mock --scorer keyword
 
 ---
 
-## Architecture & Layout
+## 🏗️ Architecture & Layout
 
 ```
 jobhunt/
@@ -78,7 +82,7 @@ jobhunt/
 
 ---
 
-## Code Guidelines & Principles
+## 📏 Code Guidelines & Principles
 
 1. **Separation of Parsing and I/O**:
    - HTTP fetching must be kept separate from ATS response parsing.
@@ -98,16 +102,11 @@ jobhunt/
    - Add fixtures in `mock.py`.
    - Write tests in `tests/test_parsers.py`.
 
-5. **Adding an LLM Provider**:
-   - Subclass `Provider` in `providers.py` and implement `complete()`.
-   - Register the provider class in `PROVIDERS` and add default model entries in `DEFAULT_MODELS`.
-   - Add tests in `tests/test_providers.py`.
-
 ---
 
-## Pull Request Guidelines
+## 🔗 Documentation Links
 
-- Ensure all existing tests pass (`pytest`).
-- Maintain full type safety (`mypy jobhunt`).
-- Keep code formatted cleanly according to project conventions (`ruff check`).
-- Do not commit personal data files (`profile.json`, `seen.json`, `.env`, `resume.pdf`).
+- **[SETUP.md](SETUP.md)** — Beginner installation guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[jobhunt.md](jobhunt.md)** — Original prompt & technical requirements specification.
+- **[README.md](../README.md)** — Project homepage.

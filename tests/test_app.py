@@ -129,3 +129,22 @@ def test_api_jobs_add_delete_and_unmark(client):
     job_ids_after = [j["job_id"] for j in res_after.get_json()["jobs"]]
     assert job_id not in job_ids_after
 
+
+def test_api_end_to_end_digest_rebuild(client):
+    """Verify force rebuild of digest HTML dynamically syncs shortlist changes."""
+    # Add high-score job
+    res_add = client.post("/api/jobs/add", json={
+        "title": "Principal Systems Engineer",
+        "company": "SyncCorp",
+        "score": 9.8,
+        "applied": False
+    })
+    assert res_add.status_code == 200
+
+    # Request digest with force rebuild timestamp
+    res_digest = client.get("/api/digest?t=123456789")
+    assert res_digest.status_code == 200
+    html_text = res_digest.data.decode("utf-8")
+    assert "SyncCorp" in html_text or "Principal Systems Engineer" in html_text
+
+

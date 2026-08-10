@@ -164,6 +164,11 @@ class Store:
             ts_str = str(int(datetime.now(timezone.utc).timestamp() * 1000))
             job_id = f"{ats}:{safe_company}:{ts_str}"
 
+        try:
+            clamped_score = max(0.0, min(10.0, float(score))) if score is not None else 7.5
+        except (ValueError, TypeError):
+            clamped_score = 7.5
+
         self.data[job_id] = {
             "first_seen": now,
             "company": company,
@@ -171,7 +176,7 @@ class Store:
             "location": location or "Remote/Unspecified",
             "url": url or "#",
             "ats": ats,
-            "score": score,
+            "score": clamped_score,
             "reason": reason,
             "emailed": False,
             "applied": bool(applied),
@@ -193,20 +198,27 @@ class Store:
         target_path.parent.mkdir(parents=True, exist_ok=True)
         cols = ["first_seen", "company", "title", "location", "score",
                 "reason", "applied", "applied_on", "url"]
-        with target_path.open("w", newline="", encoding="utf-8") as fh:
+        tmp_csv = target_path.with_suffix(".tmp")
+        with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
             w.writeheader()
             for jid, row in sorted(self.data.items(),
                                    key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
                 w.writerow({"job_id": jid, **row})
+        os.replace(tmp_csv, target_path)
         return target_path
 
-    def save(self) -> None:
+    def save(self, auto_export: bool = True) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),
                        encoding="utf-8")
         os.replace(tmp, self.path)
+        if auto_export:
+            try:
+                self.export_csv()
+            except Exception as e:
+                print(f"  ! Store auto-export CSV warning: {e}")
 
 
 def init(path: str | Path = "seen.json") -> Store:

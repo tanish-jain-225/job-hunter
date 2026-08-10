@@ -129,6 +129,33 @@ def test_store_unmark_delete_and_add_job(tmp_path: Path):
     assert store.delete_job(st, "nonexistent_id") is False
 
 
+def test_store_auto_csv_export_sync(tmp_path: Path, monkeypatch):
+    """Verify Store.save() automatically updates out/tracker.csv."""
+    seen_path = tmp_path / "seen.json"
+    csv_path = tmp_path / "out" / "tracker.csv"
+    monkeypatch.chdir(tmp_path)
+
+    st = Store(seen_path)
+    job_id = st.add_job(title="Staff Engineer", company="GitHub", score=9.5)
+
+    assert csv_path.exists()
+    csv_text = csv_path.read_text(encoding="utf-8")
+    assert job_id in csv_text
+    assert "GitHub" in csv_text
+
+
+def test_store_score_clamping(tmp_path: Path):
+    """Verify score clamping to 0.0-10.0 in add_job."""
+    seen_path = tmp_path / "seen.json"
+    st = Store(seen_path)
+
+    j1 = st.add_job(title="High Score Job", company="Acme", score=15.0)
+    j2 = st.add_job(title="Low Score Job", company="Acme", score=-5.0)
+
+    assert st.data[j1]["score"] == 10.0
+    assert st.data[j2]["score"] == 0.0
+
+
 def test_load_seen_legacy_array(tmp_path: Path):
     """Test migrating legacy JSON array format."""
     file_path = tmp_path / "seen.json"
@@ -139,5 +166,6 @@ def test_load_seen_legacy_array(tmp_path: Path):
     assert "job_1" in st.data
     assert "job_2" in st.data
     assert st.data["job_1"]["first_seen"] is not None
+
 
 

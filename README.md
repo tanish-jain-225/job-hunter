@@ -37,7 +37,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 ```
 
 > [!TIP]
-> **First time setting up?** Check out **[SETUP.md](SETUP.md)** for a beginner-friendly 13-step setup guide.
+> **First time setting up?** Check out **[SETUP.md](docs/SETUP.md)** for a beginner-friendly setup guide, or **[GUIDE.md](docs/GUIDE.md)** for personal utility automation.
 
 ---
 
@@ -292,7 +292,7 @@ jobhunt stats
 
 ## 🤖 Automated Execution & GitHub Actions
 
-The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every weekday at 06:00 IST (00:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
+The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every weekday at 09:00 IST (03:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
 
 ### 🔑 Required Repository Secrets
 Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
@@ -348,8 +348,11 @@ job-hunter/
 ├── run.bat / run.sh          # 1-Click execution scripts
 ├── apply.bat / apply.sh      # 1-Click apply status marker scripts
 ├── README.md                 # Master project documentation & narrative
-├── SETUP.md                  # 13-step beginner setup guide
-└── CONTRIBUTING.md           # Developer guidelines
+└── docs/                     # End-to-End Documentation Suite
+    ├── GUIDE.md              # Personal Utility & 3-Mode Setup Guide
+    ├── SETUP.md              # 13-step beginner setup guide
+    ├── CONTRIBUTING.md       # Developer guidelines & testing
+    └── jobhunt.md            # System architecture specification prompt
 ```
 
 ---
@@ -391,6 +394,6 @@ pytest --cov=jobhunt --cov-report=term-missing
 
 ## 📄 Contributing & License
 
-Contributions are welcome! Please refer to **[CONTRIBUTING.md](CONTRIBUTING.md)** for developer instructions and code standards.
+Contributions are welcome! Please refer to **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** for developer instructions and code standards.
 
 Distributed under the **[MIT License](LICENSE)**.

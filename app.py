@@ -516,9 +516,47 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast Notification System */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .toast-success { border-left: 4px solid var(--success); }
+    .toast-error { border-left: 4px solid var(--danger); }
+    .toast-info { border-left: 4px solid var(--primary); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
 
   <!-- Top Navigation Header -->
   <header>
@@ -632,7 +670,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <div id="tab-content-tracker" style="display:none;">
         <div class="tracker-bar">
           <input type="text" class="form-input tracker-search" id="tracker-search-input"
-                 placeholder="Search company, title, or location..." oninput="fetchAndRenderJobs()">
+                 placeholder="Search company, title, or location... (Press '/' to search)" oninput="fetchAndRenderJobs()">
           <div class="filter-pills">
             <button class="pill active" id="pill-all" onclick="setFilter('all')">All Jobs</button>
             <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">Shortlisted (7.0+)</button>
@@ -668,6 +706,38 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     let currentFilter = 'all';
     let cachedJobsMap = {};
 
+    // Cross-Tab Broadcast Channel Sync
+    const syncChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('jobhunt_sync') : null;
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'SYNC_UPDATE') {
+          refreshAllViews(false);
+          showToast('Dashboard updated from another tab', 'info');
+        }
+      };
+    }
+
+    function notifySync() {
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_UPDATE', timestamp: Date.now() });
+      }
+    }
+
+    function showToast(message, type = 'success', duration = 3000) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+    }
+
     async function parseJsonResponse(res) {
       const text = await res.text();
       try {
@@ -692,6 +762,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }
     }
 
+    async function refreshAllViews(notify = true) {
+      await loadStats();
+      await fetchAndRenderJobs();
+      refreshDigest();
+      if (notify) notifySync();
+    }
+
     function switchTab(tab) {
       document.getElementById('tab-content-digest').style.display = tab === 'digest' ? 'block' : 'none';
       document.getElementById('tab-content-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
@@ -699,7 +776,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       document.getElementById('tab-btn-digest').classList.toggle('active', tab === 'digest');
       document.getElementById('tab-btn-tracker').classList.toggle('active', tab === 'tracker');
 
-      if (tab === 'tracker') {
+      if (tab === 'digest') {
+        refreshDigest();
+      } else if (tab === 'tracker') {
         fetchAndRenderJobs();
       }
     }
@@ -736,7 +815,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary);
 
           return `
-            <div class="job-item">
+            <div class="job-item" id="job-card-${escapeHtml(j.job_id)}">
               <div class="job-meta">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="job-title">${escapeHtml(j.title)}</span>
@@ -752,8 +831,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="score-badge ${scoreClass}">${score}</span>
                   ${isApplied
-                    ? `<button class="btn btn-secondary btn-sm btn-applied" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')">✓ Applied</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')">Mark Applied</button>`
+                    ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')">✓ Applied</button>`
+                    : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')">Mark Applied</button>`
                   }
                   <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')">🗑️ Delete</button>
                 </div>
@@ -818,6 +897,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       navigator.clipboard.writeText(txt).then(() => {
         const btn = document.getElementById('btn-copy-cover');
         btn.innerText = 'Copied! ✓';
+        showToast('Cover note copied to clipboard!', 'success');
         setTimeout(() => { btn.innerText = 'Copy Note 📋'; }, 2000);
       });
     }
@@ -843,14 +923,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           consoleBox.innerText = `✅ ${data.message}\nDigest generated & tracking store updated!`;
-          refreshDigest();
-          loadStats();
-          fetchAndRenderJobs();
+          showToast('Pipeline run completed successfully!', 'success');
+          refreshAllViews();
         } else {
           consoleBox.innerText = '❌ Error: ' + (data.message || 'Pipeline failed');
+          showToast('Pipeline failed: ' + data.message, 'error');
         }
       } catch (err) {
         consoleBox.innerText = '❌ Notice: ' + err.message;
+        showToast('Notice: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
         spinner.style.display = 'none';
@@ -859,6 +940,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     }
 
     async function toggleAppliedDirect(jobId, action) {
+      const btn = document.getElementById('btn-app-' + jobId);
+      const isUnmark = action === 'unmark';
+
+      // Optimistic UI update
+      if (btn) {
+        btn.innerText = isUnmark ? 'Mark Applied' : '✓ Applied';
+        btn.className = isUnmark ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-sm btn-applied';
+      }
+
       try {
         const res = await fetch('/api/applied', {
           method: 'POST',
@@ -867,14 +957,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
-          loadStats();
-          fetchAndRenderJobs();
-          refreshDigest();
+          showToast(data.message, 'success');
+          refreshAllViews();
         } else {
-          alert('Notice: ' + data.message);
+          // Rollback on error
+          if (btn) {
+            btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
+            btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
+          }
+          showToast('Notice: ' + data.message, 'error');
         }
       } catch (err) {
-        alert('Notice: ' + err.message);
+        // Rollback on exception
+        if (btn) {
+          btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
+          btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
+        }
+        showToast('Notice: ' + err.message, 'error');
       }
     }
 
@@ -882,6 +981,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       if (!confirm(`Are you sure you want to delete job '${jobId}' from tracking store?`)) {
         return;
       }
+
+      const card = document.getElementById('job-card-' + jobId);
+      if (card) {
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+      }
+
       try {
         const res = await fetch('/api/delete', {
           method: 'POST',
@@ -890,14 +996,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
-          loadStats();
-          fetchAndRenderJobs();
-          refreshDigest();
+          showToast(data.message, 'success');
+          refreshAllViews();
         } else {
-          alert('Notice: ' + data.message);
+          if (card) {
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+          }
+          showToast('Notice: ' + data.message, 'error');
         }
       } catch (err) {
-        alert('Notice: ' + err.message);
+        if (card) {
+          card.style.opacity = '1';
+          card.style.pointerEvents = 'auto';
+        }
+        showToast('Notice: ' + err.message, 'error');
       }
     }
 
@@ -907,6 +1020,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const jobId = txt.value.trim();
       if (!jobId) {
         status.innerText = 'Please enter a valid Job ID.';
+        showToast('Please enter a valid Job ID', 'error');
         return;
       }
 
@@ -919,15 +1033,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           status.innerText = '✅ ' + data.message;
+          showToast(data.message, 'success');
           txt.value = '';
-          loadStats();
-          fetchAndRenderJobs();
-          refreshDigest();
+          refreshAllViews();
         } else {
           status.innerText = '❌ ' + data.message;
+          showToast(data.message, 'error');
         }
       } catch (err) {
         status.innerText = '❌ Notice: ' + err.message;
+        showToast(err.message, 'error');
       }
     }
 
@@ -945,6 +1060,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       if (!title || !company) {
         status.innerText = 'Please enter both Job Title and Company.';
+        showToast('Please enter both Job Title and Company.', 'error');
         return;
       }
 
@@ -966,25 +1082,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           status.innerText = '✅ ' + data.message;
+          showToast(data.message, 'success');
           titleEl.value = '';
           companyEl.value = '';
           locEl.value = '';
           urlEl.value = '';
           appliedEl.checked = false;
-          loadStats();
-          fetchAndRenderJobs();
-          refreshDigest();
+          refreshAllViews();
         } else {
           status.innerText = '❌ ' + data.message;
+          showToast(data.message, 'error');
         }
       } catch (err) {
         status.innerText = '❌ Notice: ' + err.message;
+        showToast(err.message, 'error');
       }
     }
 
     function refreshDigest() {
       const frame = document.getElementById('digest-frame');
-      frame.src = '/api/digest?t=' + new Date().getTime();
+      if (frame) {
+        frame.src = '/api/digest?t=' + new Date().getTime();
+      }
     }
 
     function escapeHtml(str) {
@@ -996,6 +1115,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    // Auto Heartbeat (10s)
+    setInterval(() => {
+      loadStats();
+    }, 10000);
+
+    // Sync on Tab Visibility / Focus
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        refreshAllViews(false);
+      }
+    });
+
+    // Keyboard Shortcuts: '/' to focus search, 'Esc' to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        switchTab('tracker');
+        const input = document.getElementById('tracker-search-input');
+        if (input) input.focus();
+      } else if (e.key === 'Escape') {
+        closeKitModal();
+      }
+    });
 
     // Initial load
     loadStats();
