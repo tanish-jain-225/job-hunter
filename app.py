@@ -541,12 +541,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <!-- Run Pipeline Card -->
       <div class="card">
         <div class="card-title">🚀 On-Demand Pipeline Trigger</div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="chk-mock">
-            Run with offline mock fixtures (--mock)
-          </label>
-        </div>
         <button class="btn" id="btn-run" onclick="runPipeline()">
           <span class="spinner" id="run-spinner"></span>
           <span id="run-text">Run Job Hunt Now</span>
@@ -782,7 +776,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const spinner = document.getElementById('run-spinner');
       const text = document.getElementById('run-text');
       const consoleBox = document.getElementById('run-console');
-      const isMock = document.getElementById('chk-mock').checked;
+      const isMock = false;
 
       btn.disabled = true;
       spinner.style.display = 'block';
