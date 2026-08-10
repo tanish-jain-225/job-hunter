@@ -130,6 +130,57 @@ class Store:
         self.save()
         return True
 
+    def unmark_applied(self, job_id: str) -> bool:
+        if job_id not in self.data:
+            return False
+        self.data[job_id]["applied"] = False
+        self.data[job_id]["applied_on"] = None
+        self.save()
+        return True
+
+    def delete_job(self, job_id: str) -> bool:
+        if job_id not in self.data:
+            return False
+        del self.data[job_id]
+        self.save()
+        return True
+
+    def add_job(
+        self,
+        title: str,
+        company: str,
+        location: str = "Remote/Unspecified",
+        url: str = "#",
+        ats: str = "custom",
+        score: float = 7.5,
+        reason: str = "Manually added via Dashboard",
+        applied: bool = False,
+        draft: dict | None = None,
+        job_id: str | None = None,
+    ) -> str:
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        if not job_id:
+            safe_company = "".join(c for c in company.lower() if c.isalnum()) or "company"
+            ts_str = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+            job_id = f"{ats}:{safe_company}:{ts_str}"
+
+        self.data[job_id] = {
+            "first_seen": now,
+            "company": company,
+            "title": title,
+            "location": location or "Remote/Unspecified",
+            "url": url or "#",
+            "ats": ats,
+            "score": score,
+            "reason": reason,
+            "emailed": False,
+            "applied": bool(applied),
+            "applied_on": now if applied else None,
+            "draft": draft or {},
+        }
+        self.save()
+        return job_id
+
     def stats(self) -> dict:
         return {
             "tracked": len(self.data),
@@ -174,6 +225,19 @@ def mark_applied(store: Store, job_id: str) -> bool:
     return store.mark_applied(job_id)
 
 
+def unmark_applied(store: Store, job_id: str) -> bool:
+    return store.unmark_applied(job_id)
+
+
+def delete_job(store: Store, job_id: str) -> bool:
+    return store.delete_job(job_id)
+
+
+def add_job(store: Store, **kwargs) -> str:
+    return store.add_job(**kwargs)
+
+
 def export_csv(store: Store, path: str | Path = "out/tracker.csv") -> Path:
     return store.export_csv(path)
+
 

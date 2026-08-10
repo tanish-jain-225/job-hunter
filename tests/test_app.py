@@ -84,3 +84,48 @@ def test_api_run_mock(client, monkeypatch):
     assert res.status_code == 200
     data = res.get_json()
     assert data["status"] == "success"
+
+
+def test_api_jobs_add_delete_and_unmark(client):
+    """Verify custom job addition, status toggling, and deletion via API."""
+    # 1. Add custom job
+    res_add = client.post("/api/jobs/add", json={
+        "title": "Lead AI Architect",
+        "company": "Antigravity Corp",
+        "location": "San Francisco, CA",
+        "url": "https://antigravity.ai/jobs/1",
+        "score": 9.2,
+        "applied": False
+    })
+    assert res_add.status_code == 200
+    add_data = res_add.get_json()
+    assert add_data["status"] == "success"
+    job_id = add_data["job_id"]
+    assert "antigravitycorp" in job_id
+
+    # 2. Verify job appears in /api/jobs and /api/jobs?status=unapplied
+    res_list = client.get("/api/jobs?status=unapplied")
+    assert res_list.status_code == 200
+    job_ids = [j["job_id"] for j in res_list.get_json()["jobs"]]
+    assert job_id in job_ids
+
+    # 3. Mark applied
+    res_mark = client.post("/api/applied", json={"job_id": job_id, "action": "mark"})
+    assert res_mark.status_code == 200
+    assert res_mark.get_json()["status"] == "success"
+
+    # 4. Unmark applied
+    res_unmark = client.post("/api/applied", json={"job_id": job_id, "action": "unmark"})
+    assert res_unmark.status_code == 200
+    assert res_unmark.get_json()["status"] == "success"
+
+    # 5. Delete job
+    res_delete = client.post("/api/delete", json={"job_id": job_id})
+    assert res_delete.status_code == 200
+    assert res_delete.get_json()["status"] == "success"
+
+    # Verify job is removed
+    res_after = client.get("/api/jobs")
+    job_ids_after = [j["job_id"] for j in res_after.get_json()["jobs"]]
+    assert job_id not in job_ids_after
+

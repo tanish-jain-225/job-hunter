@@ -221,6 +221,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       color: #059669;
       border: 1px solid #a7f3d0;
     }
+    .btn-applied:hover {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+    }
+    .btn-danger {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .btn-danger:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
 
     .form-group { margin-bottom: 16px; }
     .form-label {
@@ -555,8 +568,43 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
           <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
         </div>
-        <button class="btn btn-secondary" style="width:100%;" onclick="markAppliedFromInput()">Mark as Applied</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('mark')">Mark Applied</button>
+          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('unmark')">Unmark</button>
+        </div>
         <div id="applied-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
+      </div>
+
+      <!-- Add Custom Job Card -->
+      <div class="card">
+        <div class="card-title">➕ Add Custom Job</div>
+        <div class="form-group">
+          <label class="form-label" for="add-title">Job Title *</label>
+          <input type="text" class="form-input" id="add-title" placeholder="e.g. Senior Backend Engineer">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-company">Company *</label>
+          <input type="text" class="form-input" id="add-company" placeholder="e.g. Stripe">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-location">Location</label>
+          <input type="text" class="form-input" id="add-location" placeholder="e.g. San Francisco / Remote">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-url">Job URL</label>
+          <input type="url" class="form-input" id="add-url" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-score">Match Score (0-10)</label>
+          <input type="number" step="0.1" min="0" max="10" class="form-input" id="add-score" value="8.0">
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="add-applied"> Mark as already applied
+          </label>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;" onclick="addCustomJobFromInput()">Add Job to Store</button>
+        <div id="add-job-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
       </div>
 
     </div>
@@ -589,6 +637,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <button class="pill active" id="pill-all" onclick="setFilter('all')">All Jobs</button>
             <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">Shortlisted (7.0+)</button>
             <button class="pill" id="pill-applied" onclick="setFilter('applied')">Applied</button>
+            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">Unapplied</button>
           </div>
         </div>
         <div class="job-list" id="job-list-container">
@@ -695,6 +744,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 </div>
                 <div class="job-sub">
                   <strong>${escapeHtml(j.company)}</strong> · ${escapeHtml(j.location || 'Remote/Unspecified')}
+                  <span style="font-size:11px; color:var(--text-muted); margin-left:8px;">(${escapeHtml(j.job_id)})</span>
                 </div>
                 ${j.reason ? `<div class="job-reason">💡 ${escapeHtml(j.reason)}</div>` : ''}
               </div>
@@ -702,9 +752,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="score-badge ${scoreClass}">${score}</span>
                   ${isApplied
-                    ? `<button class="btn btn-secondary btn-sm btn-applied" disabled>✓ Applied</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="markAppliedDirect('${escapeHtml(j.job_id)}')">Mark Applied</button>`
+                    ? `<button class="btn btn-secondary btn-sm btn-applied" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')">✓ Applied</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')">Mark Applied</button>`
                   }
+                  <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')">🗑️ Delete</button>
                 </div>
                 <div style="display:flex; gap:6px;">
                   ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')">Inspect Kit 📄</button>` : ''}
@@ -781,7 +832,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       btn.disabled = true;
       spinner.style.display = 'block';
       text.innerText = 'Hunting Jobs...';
-      consoleBox.innerText = 'Starting pipeline execution...\\n[1/5] Scanning ATS endpoints...\\n[2/5] Filtering candidate matches...';
+      consoleBox.innerText = 'Starting pipeline execution...\n[1/5] Scanning ATS endpoints...\n[2/5] Filtering candidate matches...';
 
       try {
         const res = await fetch('/api/run', {
@@ -791,7 +842,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
-          consoleBox.innerText = '✅ ' + data.message + '\\nDigest generated & tracking store updated!';
+          consoleBox.innerText = '✅ ' + data.message + '\nDigest generated & tracking store updated!';
           refreshDigest();
           loadStats();
           fetchAndRenderJobs();
@@ -807,17 +858,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }
     }
 
-    async function markAppliedDirect(jobId) {
+    async function toggleAppliedDirect(jobId, action) {
       try {
         const res = await fetch('/api/applied', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId })
+          body: JSON.stringify({ job_id: jobId, action: action })
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
           loadStats();
           fetchAndRenderJobs();
+          refreshDigest();
         } else {
           alert('Notice: ' + data.message);
         }
@@ -826,7 +878,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }
     }
 
-    async function markAppliedFromInput() {
+    async function deleteJobDirect(jobId) {
+      if (!confirm(`Are you sure you want to delete job '${jobId}' from tracking store?`)) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: jobId })
+        });
+        const data = await parseJsonResponse(res);
+        if (data.status === 'success') {
+          loadStats();
+          fetchAndRenderJobs();
+          refreshDigest();
+        } else {
+          alert('Notice: ' + data.message);
+        }
+      } catch (err) {
+        alert('Notice: ' + err.message);
+      }
+    }
+
+    async function markAppliedFromInput(action) {
       const txt = document.getElementById('txt-job-id');
       const status = document.getElementById('applied-status');
       const jobId = txt.value.trim();
@@ -839,7 +914,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const res = await fetch('/api/applied', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId })
+          body: JSON.stringify({ job_id: jobId, action: action || 'mark' })
         });
         const data = await parseJsonResponse(res);
         if (data.status === 'success') {
@@ -847,6 +922,58 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           txt.value = '';
           loadStats();
           fetchAndRenderJobs();
+          refreshDigest();
+        } else {
+          status.innerText = '❌ ' + data.message;
+        }
+      } catch (err) {
+        status.innerText = '❌ Notice: ' + err.message;
+      }
+    }
+
+    async function addCustomJobFromInput() {
+      const titleEl = document.getElementById('add-title');
+      const companyEl = document.getElementById('add-company');
+      const locEl = document.getElementById('add-location');
+      const urlEl = document.getElementById('add-url');
+      const scoreEl = document.getElementById('add-score');
+      const appliedEl = document.getElementById('add-applied');
+      const status = document.getElementById('add-job-status');
+
+      const title = titleEl.value.trim();
+      const company = companyEl.value.trim();
+
+      if (!title || !company) {
+        status.innerText = 'Please enter both Job Title and Company.';
+        return;
+      }
+
+      status.innerText = 'Adding job...';
+
+      try {
+        const res = await fetch('/api/jobs/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title,
+            company: company,
+            location: locEl.value.trim() || 'Remote/Unspecified',
+            url: urlEl.value.trim() || '#',
+            score: parseFloat(scoreEl.value) || 8.0,
+            applied: appliedEl.checked
+          })
+        });
+        const data = await parseJsonResponse(res);
+        if (data.status === 'success') {
+          status.innerText = '✅ ' + data.message;
+          titleEl.value = '';
+          companyEl.value = '';
+          locEl.value = '';
+          urlEl.value = '';
+          appliedEl.checked = false;
+          loadStats();
+          fetchAndRenderJobs();
+          refreshDigest();
         } else {
           status.innerText = '❌ ' + data.message;
         }
@@ -941,6 +1068,8 @@ def api_jobs():
             continue
         elif status == "applied" and not item.get("applied"):
             continue
+        elif status == "unapplied" and item.get("applied"):
+            continue
 
         # Filter min_score
         if min_score is not None and (item.get("score") or 0) < min_score:
@@ -969,23 +1098,24 @@ def api_digest():
     """Serve latest out/digest.html file or dynamically generate digest from Store data."""
     cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
+    force_rebuild = request.args.get("t") is not None or request.args.get("force") is not None
 
     writable_path = get_writable_path(digest_file)
     root_path = ROOT / digest_file
 
     target = writable_path if writable_path.is_file() else root_path
 
-    if target.is_file():
+    if target.is_file() and not force_rebuild:
         return send_file(target, mimetype="text/html")
 
-    # If digest.html does not exist on disk, generate on the fly from Store data
+    # If digest.html does not exist on disk or force rebuild requested, generate on the fly from Store data
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file)
     from jobhunt import digest
     from jobhunt.fetch import Job
     jobs_list = []
     for jid, d in st.data.items():
-        if (d.get("score") or 0) >= 7.0:
+        if (d.get("score") or 0) >= 7.0 and not d.get("applied"):
             j = Job(
                 job_id=jid,
                 ats=jid.split(":")[0] if ":" in jid else "jobhunt",
@@ -996,6 +1126,7 @@ def api_digest():
                 description="",
                 score=d.get("score"),
                 reason=d.get("reason"),
+                draft=d.get("draft"),
             )
             jobs_list.append(j)
 
@@ -1063,7 +1194,43 @@ def api_run():
 
 @app.route("/api/applied", methods=["POST"])
 def api_applied():
-    """Mark a job as applied."""
+    """Mark or unmark a job as applied."""
+    data = request.get_json(silent=True) or {}
+    job_id = data.get("job_id", "").strip()
+    action = data.get("action", "mark").lower().strip()
+
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file)
+
+    if action == "unmark":
+        success = st.unmark_applied(job_id)
+        msg_str = f"Unmarked '{job_id}' as applied."
+    else:
+        success = st.mark_applied(job_id)
+        msg_str = f"Marked '{job_id}' as applied."
+
+    if success:
+        st.export_csv(tracker_csv)
+        return jsonify({
+            "status": "success",
+            "message": msg_str,
+            "stats": st.stats()
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "message": f"Job ID '{job_id}' not found in tracking store."
+        }), 404
+
+
+@app.route("/api/delete", methods=["POST", "DELETE"])
+def api_delete():
+    """Delete a job entry from the tracking store."""
     data = request.get_json(silent=True) or {}
     job_id = data.get("job_id", "").strip()
 
@@ -1075,11 +1242,11 @@ def api_applied():
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file)
 
-    if st.mark_applied(job_id):
+    if st.delete_job(job_id):
         st.export_csv(tracker_csv)
         return jsonify({
             "status": "success",
-            "message": f"Marked '{job_id}' as applied.",
+            "message": f"Deleted job '{job_id}'.",
             "stats": st.stats()
         })
     else:
@@ -1087,6 +1254,52 @@ def api_applied():
             "status": "error",
             "message": f"Job ID '{job_id}' not found in tracking store."
         }), 404
+
+
+@app.route("/api/jobs/add", methods=["POST"])
+def api_jobs_add():
+    """Add a new job entry manually to the tracking store."""
+    data = request.get_json(silent=True) or {}
+    title = data.get("title", "").strip()
+    company = data.get("company", "").strip()
+
+    if not title or not company:
+        return jsonify({"status": "error", "message": "Title and Company are required."}), 400
+
+    location = data.get("location", "Remote/Unspecified").strip()
+    url = data.get("url", "#").strip()
+    ats = data.get("ats", "custom").strip()
+    reason = data.get("reason", "Manually added via Dashboard").strip()
+    applied = bool(data.get("applied", False))
+
+    try:
+        score = float(data.get("score", 7.5))
+    except (TypeError, ValueError):
+        score = 7.5
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file)
+
+    job_id = st.add_job(
+        title=title,
+        company=company,
+        location=location,
+        url=url,
+        ats=ats,
+        score=score,
+        reason=reason,
+        applied=applied,
+    )
+    st.export_csv(tracker_csv)
+
+    return jsonify({
+        "status": "success",
+        "message": f"Added job '{title}' ({job_id}).",
+        "job_id": job_id,
+        "stats": st.stats()
+    })
 
 
 if __name__ == "__main__":

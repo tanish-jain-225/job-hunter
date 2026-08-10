@@ -90,6 +90,45 @@ def test_store_module_helpers(tmp_path: Path):
     assert csv_path.exists()
 
 
+def test_store_unmark_delete_and_add_job(tmp_path: Path):
+    path = tmp_path / "seen.json"
+    st = Store(path)
+
+    # 1. Add job
+    job_id = st.add_job(
+        title="Backend Engineer",
+        company="Stripe",
+        location="Remote",
+        url="https://stripe.com/jobs/123",
+        score=8.5,
+        applied=True,
+    )
+    assert job_id in st.data
+    assert st.data[job_id]["title"] == "Backend Engineer"
+    assert st.data[job_id]["applied"] is True
+    assert st.stats()["applied"] == 1
+    assert st.stats()["tracked"] == 1
+
+    # 2. Unmark applied
+    assert st.unmark_applied(job_id) is True
+    assert st.data[job_id]["applied"] is False
+    assert st.data[job_id]["applied_on"] is None
+    assert st.stats()["applied"] == 0
+
+    # 3. Unmark non-existent job returns False
+    assert st.unmark_applied("nonexistent_id") is False
+
+    # 4. Module helpers for unmark, delete, and add
+    added_id = store.add_job(st, title="Frontend Dev", company="Vercel", score=9.0)
+    assert added_id in st.data
+    assert store.unmark_applied(st, added_id) is True
+
+    # 5. Delete job
+    assert store.delete_job(st, job_id) is True
+    assert job_id not in st.data
+    assert store.delete_job(st, "nonexistent_id") is False
+
+
 def test_load_seen_legacy_array(tmp_path: Path):
     """Test migrating legacy JSON array format."""
     file_path = tmp_path / "seen.json"
@@ -100,4 +139,5 @@ def test_load_seen_legacy_array(tmp_path: Path):
     assert "job_1" in st.data
     assert "job_2" in st.data
     assert st.data["job_1"]["first_seen"] is not None
+
 
