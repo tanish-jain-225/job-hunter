@@ -26,6 +26,15 @@
       </div>
     </div>
     <div class="header-actions">
+      <!-- Live Real-Time Sync Indicator -->
+      <div class="sync-status-pill" id="sync-status-indicator" title="Real-time sync active — changes automatically sync across all tabs and devices" onclick="manualSync()">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-text" id="sync-text">Live Synced</span>
+        <button class="btn-sync-icon" id="btn-sync-icon" title="Force sync now" aria-label="Sync Now" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+      </div>
+
       <div class="metrics">
         <div class="metric-pill" title="Total jobs stored in database">
           <div class="metric-val" id="metric-tracked">--</div>
@@ -136,9 +145,12 @@
       <!-- Tab 1: Digest Viewport -->
       <div id="tab-content-digest">
         <div class="digest-header-row">
-          <span style="font-size:13px; color:var(--text-muted); font-weight:500;">Latest generated HTML digest briefing preview</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size:13px; color:var(--text-muted); font-weight:500;">Latest generated HTML digest briefing preview</span>
+            <span class="badge-live-sync" id="digest-sync-tag">Auto-Synced</span>
+          </div>
           <div class="digest-header-actions">
-            <button class="btn btn-secondary btn-sm" onclick="refreshDigest()">🔄 Refresh Digest</button>
+            <button class="btn btn-secondary btn-sm" onclick="refreshDigest(true)">🔄 Refresh Digest</button>
             <a href="/api/digest" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">↗ Open Full Tab</a>
           </div>
         </div>
@@ -149,8 +161,13 @@
       <div id="tab-content-tracker" style="display:none;">
         <div class="tracker-bar">
           <div class="tracker-controls-row">
-            <input type="text" class="form-input tracker-search" id="tracker-search-input"
-                   placeholder="Search company, title, location... (Press '/' to search)" oninput="fetchAndRenderJobs()">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" class="form-input tracker-search" id="tracker-search-input"
+                     placeholder="Search company, title, location... (Press '/' to search)" oninput="handleSearchInput()">
+              <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;">✕</button>
+              <span class="search-kbd-hint" title="Press '/' to focus search">/</span>
+            </div>
             
             <select class="form-input tracker-select" id="tracker-ats-select" onchange="fetchAndRenderJobs()">
               <option value="all">All ATS Boards</option>
@@ -171,10 +188,22 @@
           </div>
 
           <div class="filter-pills" style="margin-top: 10px;">
-            <button class="pill active" id="pill-all" onclick="setFilter('all')">All Jobs</button>
-            <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">Shortlisted (7.0+)</button>
-            <button class="pill" id="pill-applied" onclick="setFilter('applied')">Applied</button>
-            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">Unapplied</button>
+            <button class="pill active" id="pill-all" onclick="setFilter('all')">
+              <span>All Jobs</span>
+              <span class="pill-count" id="count-all">0</span>
+            </button>
+            <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">
+              <span>Shortlisted (7.0+)</span>
+              <span class="pill-count" id="count-shortlisted">0</span>
+            </button>
+            <button class="pill" id="pill-applied" onclick="setFilter('applied')">
+              <span>Applied</span>
+              <span class="pill-count" id="count-applied">0</span>
+            </button>
+            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">
+              <span>Unapplied</span>
+              <span class="pill-count" id="count-unapplied">0</span>
+            </button>
           </div>
         </div>
         <div class="job-list" id="job-list-container">
@@ -193,7 +222,10 @@
           <div class="modal-title" id="modal-job-title">Job Application Kit</div>
           <div class="modal-subtitle" id="modal-job-meta">Company · Location</div>
         </div>
-        <button class="modal-close" onclick="closeKitModal()">×</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button class="btn btn-secondary btn-sm" id="modal-applied-toggle-btn" onclick="toggleModalAppliedDirect()"></button>
+          <button class="modal-close" onclick="closeKitModal()" aria-label="Close modal">×</button>
+        </div>
       </div>
       <div id="modal-body">
         <!-- Kit Details populated dynamically -->

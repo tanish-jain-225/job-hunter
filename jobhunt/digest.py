@@ -53,7 +53,7 @@ def _card(j: Job) -> str:
     meta = " · ".join(x for x in [j.company, j.location or "—", j.ats] if x)
 
     india_badge = d.get("india_eligibility", "Verified India-Friendly")
-    best_project = d.get("best_project", "Edvanta")
+    best_project = d.get("best_project", "Project Match")
     cold_outreach = d.get("cold_outreach", "")
     cover = d.get("cover_note", "")
 
@@ -103,9 +103,15 @@ def _card(j: Job) -> str:
 </div>"""
 
 
-def build(jobs: list[Job], scanned: int, candidates: int, stats: dict) -> tuple[str, str]:
+def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: dict | None = None) -> tuple[str, str]:
     today = datetime.now(timezone.utc).strftime("%d %b %Y")
-    subject = (f"{len(jobs)} Remote Role{'s' if len(jobs) != 1 else ''} Matched for Tanish — {today}"
+    name = (profile or {}).get("name") or "Tanish Sanghvi"
+    edu = (profile or {}).get("education") or "VESIT 2027"
+    cand_info = f"<b>{html.escape(name)}</b>"
+    if edu:
+        cand_info += f" ({html.escape(str(edu))})"
+
+    subject = (f"{len(jobs)} Remote Role{'s' if len(jobs) != 1 else ''} Matched for {name} — {today}"
                if jobs else f"No new remote matches today — {today}")
 
     if jobs:
@@ -120,7 +126,7 @@ box-sizing:border-box;word-break:break-word;overflow-wrap:break-word;font-family
 <div style="max-width:680px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
   <div style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">🏹 Job Hunter — Remote Briefing</div>
   <div style="color:{MUTED};font-size:12.5px;margin:6px 0 20px 0;line-height:1.5;word-break:break-word;">
-    {today} · Candidate: <b>Tanish Sanghvi</b> (VESIT 2027) · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed title/location filter · <b>{len(jobs)}</b> shortlisted<br>
+    {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed title/location filter · <b>{len(jobs)}</b> shortlisted<br>
     Tracker: {stats.get('tracked', 0)} total seen
   </div>
   {body}

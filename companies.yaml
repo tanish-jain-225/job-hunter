@@ -62,6 +62,7 @@ companies:
   - {ats: lever, slug: gohighlevel, name: GoHighLevel}
   - {ats: lever, slug: fampay, name: FamPay}
 
-  # --- Workable & SmartRecruiters ---
+  # --- Workable, SmartRecruiters & BambooHR ---
   - {ats: workable, slug: vector, name: Vector}
   - {ats: smartrecruiters, slug: visa, name: Visa}
+  - {ats: bamboohr, slug: acme, name: Acme}

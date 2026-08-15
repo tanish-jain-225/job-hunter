@@ -133,7 +133,7 @@ def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict)
             raise
         print(f"\n[3/5] screening {len(jobs)} jobs via {provider.name}/{model}")
         llm.screen(jobs, profile,
-                   batch_size=int(cfg.get("screen_batch_size", 8)),
+                   batch_size=int(cfg.get("screen_batch_size", 7)),
                    jd_chars=int(cfg.get("screen_jd_chars", 1400)),
                    provider=provider, model=model,
                    delay_seconds=llm_delay_seconds,
@@ -153,7 +153,7 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
               f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run).")
 
     threshold = float(cfg.get("score_threshold", 7.0))
-    top_n = int(cfg.get("max_per_digest", 5))
+    top_n = int(cfg.get("max_per_digest", 7))
 
     scored_jobs = [j for j in jobs if j.score is not None]
     shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
@@ -173,7 +173,7 @@ def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
             d_provider, d_model = resolve("draft")
             print(f"\n[4/5] drafting kits via {d_provider.name}/{d_model}")
             llm.draft(shortlist, profile,
-                      jd_chars=int(cfg.get("draft_jd_chars", 6000)),
+                      jd_chars=int(cfg.get("draft_jd_chars", 7000)),
                       provider=d_provider, model=d_model,
                       delay_seconds=llm_delay_seconds)
         except LLMError as e:
@@ -182,7 +182,7 @@ def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
 
 def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
                            scored_jobs: list, st, args: argparse.Namespace,
-                           cfg: dict) -> None:
+                           cfg: dict, profile: dict | None = None) -> None:
     """Stage 5: Build digest HTML, export CSV, and optionally send email."""
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
@@ -193,6 +193,7 @@ def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
         scanned=len(raw_jobs),
         candidates=len(candidates),
         stats=st.stats(),
+        profile=profile,
     )
     digest.write(html_content, out_html)
     print(f"  wrote {out_html}")
@@ -220,7 +221,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if not jobs:
         print("\nNo new matching jobs today.")
         if getattr(args, "send", False):
-            _build_and_send_digest([], raw_jobs, candidates, [], st, args, cfg)
+            _build_and_send_digest([], raw_jobs, candidates, [], st, args, cfg, profile=profile)
         return 0
 
     # 3. Screen
@@ -235,7 +236,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     _draft_kits(shortlist, profile, scorer, cfg)
 
     # 5. Digest + mail
-    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, args, cfg)
+    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, args, cfg, profile=profile)
 
     return 0
 

@@ -30,31 +30,31 @@ You can configure the host and port using environment variables or command-line 
 
 ## 🎨 User Interface Features
 
-The dashboard is designed as a single-page application with a premium theme, supporting the following features:
+The dashboard is designed as a single-page application with a premium Light Glassmorphism theme, supporting the following features:
 
-### 1. 🌓 Light/Dark Mode
-A toggle in the top navigation bar allows you to switch between a clean light workspace and a sleek midnight dark mode. Your preference is persisted in the browser's local storage.
+### 1. ⚡ Zero-Refresh Real-Time State Sync
+* Changes made in any tab (marking jobs applied, deleting, or adding jobs) automatically sync across all open browser windows and devices via `BroadcastChannel` and `/api/sync` version hash comparison.
+* A **Live Synced** status pill in the top header provides visual pulse indicators and one-click manual synchronization.
 
 ### 2. 📊 Executive Metrics Panel
-Four real-time metric cards summarize your job search metrics:
-* **Discovered:** Total number of postings processed and matching the include/exclude filters.
-* **Matches:** Number of jobs that scored above your configuration threshold (e.g., $\ge 7.0/10$).
-* **Applied:** Number of roles you have officially marked as applied.
-* **Success Rate:** Percentage of matched jobs that you successfully applied to.
+* Real-time metric pills summarize your tracking status: **Tracked** (total database size), **Emailed** (matches dispatched), and **Applied** (jobs marked as submitted).
+* Filter pills provide one-click status switching between *All Jobs*, *Shortlisted (7.0+)*, *Applied*, and *Unapplied* with live counts.
 
 ### 3. 🔍 Search, Sort, and Status Filters
-A control center lets you drill down into job listings:
-* **Interactive Search Bar:** Query by company name, job title, locations, or specific technologies. Press `/` anywhere on the page to focus the search bar.
-* **Status Filter:** Toggle between displaying *All Jobs*, *Shortlisted (7.0+)*, *Applied*, or *Unapplied*.
+* **Interactive Search Bar:** Query by company name, job title, locations, or specific technologies. Press `/` anywhere on the page to focus the search bar, with instant clearing via `Esc` or the clear button.
 * **Crawl Source Filter:** Filter by ATS platform (*Greenhouse*, *Lever*, *Ashby*, *Workable*, *SmartRecruiters*, *BambooHR*, or *Custom*).
 * **Sorting Options:** Sort jobs by *Date*, *Match Score*, or *Company*.
 
 ### 4. 📄 Briefing Digest Reader & Kit Inspector
-* You can view the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or refresh.
+* You can view the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or force a live rebuild.
 * Click **"View Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored cold outreach messages and custom cover notes.
 
 ### 5. 🤖 Live Pipeline Trigger
-A **"Run Job Hunt Now"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.
+* An **"On-Demand Pipeline Trigger"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.
+
+### 6. ➕ Custom Job Addition & Quick Status Marker
+* Manually input external jobs into the tracking store directly from the dashboard sidebar.
+* Quick Mark/Unmark controls let you update job application status instantly with automatic CSV export synchronization.
 
 ---
 

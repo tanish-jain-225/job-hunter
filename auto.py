@@ -30,7 +30,17 @@ sys.path.insert(0, str(ROOT))
 from jobhunt import cli
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Job Hunter Master Automation Pipeline.")
+    parser.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
+    parser.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
+    parser.add_argument("--send", action="store_true", default=None, help="Send digest email via SMTP.")
+    parser.add_argument("--scorer", choices=["llm", "keyword"], default="llm", help="Scoring engine.")
+    parser.add_argument("--resume", help="Path to resume file (PDF or text) to generate profile.json.")
+
+    raw_argv = argv if argv is not None else ([] if any("pytest" in a for a in sys.argv[:1]) else sys.argv[1:])
+    parsed_args, _ = parser.parse_known_args(raw_argv)
+
     print("=" * 65)
     print(" JOBHUNT AUTOMATION: End-to-End Pipeline")
     print("=" * 65)
@@ -39,12 +49,12 @@ def main() -> int:
 
     # 1. Check profile.json
     profile_path = ROOT / "profile.json"
-    resume_path = ROOT / "resume.pdf"
+    resume_path = Path(parsed_args.resume) if parsed_args.resume else (ROOT / "resume.pdf")
 
-    if profile_path.exists():
+    if profile_path.exists() and not parsed_args.resume:
         print("\n[1/3] Verified profile.json (ready)")
     elif resume_path.exists():
-        print("\n[1/3] Generating profile.json from resume.pdf...")
+        print(f"\n[1/3] Generating profile.json from {resume_path}...")
         try:
             cli.cmd_profile(argparse.Namespace(resume=str(resume_path), yaml=False))
         except Exception as e:
@@ -59,22 +69,25 @@ def main() -> int:
         os.environ["LLM_PROVIDER"] = "gemini"
 
     smtp_pass = os.environ.get("SMTP_PASS", "")
-    send_email = bool(smtp_pass and "your-gmail" not in smtp_pass and "paste-your" not in smtp_pass)
+    if parsed_args.send is None:
+        send_email = bool(smtp_pass and "your-gmail" not in smtp_pass and "paste-your" not in smtp_pass)
+    else:
+        send_email = bool(parsed_args.send)
 
     run_args = argparse.Namespace(
-        config=None,
-        mock=False,
+        config=parsed_args.config,
+        mock=bool(parsed_args.mock),
         send=send_email,
-        scorer="llm",
+        scorer=parsed_args.scorer,
     )
     exit_code = cli.cmd_run(run_args)
 
     # If LLM run failed due to API quota/key error, run automatic offline fallback
-    if exit_code != 0:
+    if exit_code != 0 and parsed_args.scorer == "llm":
         print("\n  ! LLM provider unavailable/rate-limited. Running automatic keyword fallback...")
         fallback_args = argparse.Namespace(
-            config=None,
-            mock=False,
+            config=parsed_args.config,
+            mock=bool(parsed_args.mock),
             send=send_email,
             scorer="keyword",
         )

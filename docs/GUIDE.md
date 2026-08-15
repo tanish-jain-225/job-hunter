@@ -95,7 +95,7 @@ pip install -e .
   ```bash
   python app.py
   ```
-  Open `http://localhost:5000` to view your interactive Light/Dark dashboard, search tracked jobs, mark applied roles, and launch application kits.
+  Open `http://localhost:5000` to view your Executive Light Glassmorphism dashboard, search tracked jobs, mark applied roles, and inspect application kits.
 
 ---
 
@@ -131,7 +131,7 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (186 unit and integration tests, 99%+ test coverage). |
+| `pytest` | Run the full test suite (189 unit and integration tests, 99%+ test coverage). |
 
 ---
 

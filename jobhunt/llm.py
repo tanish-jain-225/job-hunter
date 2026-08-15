@@ -360,19 +360,34 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] no skill overlap"
 
         # Populate offline draft stand-in for dry-run rendering
+        cand_name = _get_candidate_name(profile)
+        edu_str = str((profile or {}).get("education") or "VESIT 2027 Grad")
+        cand_projects = (profile or {}).get("notable_projects") or []
+        first_project = cand_projects[0] if cand_projects else "Edvanta (AI Platform)"
+        github_link = str((profile or {}).get("github") or "https://github.com/tanish-jain-225")
+
+        project_highlight = first_project
+        if any(p for p in cand_projects if "ai" in p.lower() or "python" in p.lower()) and ("ai" in blob or "python" in blob):
+            project_highlight = next(p for p in cand_projects if "ai" in p.lower() or "python" in p.lower())
+        elif any(p for p in cand_projects if "next" in p.lower() or "test" in p.lower()) and ("next" in blob or "test" in blob):
+            project_highlight = next(p for p in cand_projects if "next" in p.lower() or "test" in p.lower())
+
+        lead_skill_1 = hits[0] if len(hits) > 0 else (profile.get("core_skills", ["React.js"])[0] if profile.get("core_skills") else "React.js")
+        lead_skill_2 = hits[1] if len(hits) > 1 else (profile.get("core_skills", ["", "Node.js"])[1] if len(profile.get("core_skills", [])) > 1 else "Node.js")
+
         j.draft = {
             "fit_summary": f"Strong alignment for {j.title} at {j.company} with core stack match ({matched_str}).",
             "india_eligibility": "Verified India-Friendly" if "india" in blob or "remote" in blob else "India Eligibility Unverified",
-            "best_project": "Edvanta (AI Platform)" if "ai" in blob or "python" in blob else ("Department Ledger Portal" if "next" in blob or "test" in blob else "DineEase (Node/Express API)"),
+            "best_project": project_highlight,
             "tailored_bullets": [
-                f"Built scalable web applications utilizing {hits[0] if len(hits) > 0 else 'React.js'} and {hits[1] if len(hits) > 1 else 'Node.js'}.",
-                "Developed RESTful backend API routes with robust authentication and MongoDB data stores.",
-                "Integrated Gemini AI API workflows and automated unit/E2E testing pipelines."
+                f"Built scalable web applications utilizing {lead_skill_1} and {lead_skill_2}.",
+                "Developed RESTful backend API routes with robust authentication and structured data stores.",
+                "Integrated automated testing pipelines and modern software engineering workflows."
             ],
-            "matching_skills": hits[:6] if hits else ["React.js", "Node.js", "Python", "REST APIs"],
+            "matching_skills": hits[:6] if hits else (profile.get("core_skills", ["React.js", "Node.js", "Python", "REST APIs"])[:6]),
             "gaps": ["Verify specific domain/experience requirements mentioned in the job description."],
-            "cover_note": f"Hi Hiring Team,\n\nI am Tanish Sanghvi, a Software Engineering student at VESIT graduating in 2027. I built Edvanta (33 API routes, National Finalist at Hack Celestial 2.0) and Department Ledger Portal (77 Jest tests, 5 Playwright gates). My technical background in {matched_str} aligns directly with your {j.title} position.\n\nBest regards,\nTanish Sanghvi",
-            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm Tanish Sanghvi, a 2027 VESIT undergrad who built Edvanta (AI guidance platform, 33 APIs, Hackathon finalist) using {matched_str}. Would love to connect!\nGitHub: https://github.com/tanish-jain-225",
+            "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with background in {edu_str}. I built {project_highlight}. My technical skills in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
+            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and built {project_highlight} using {matched_str}. Would love to connect!\nGitHub: {github_link}",
             "questions_to_ask": [
                 f"What are the primary technical milestones for the {j.title} in their first 90 days?",
                 "How does your engineering team approach architecture reviews and deployment testing?"

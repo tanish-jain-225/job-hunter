@@ -18,7 +18,7 @@ graph TD
 ```
 
 ### Phase 1: Deterministic Prefiltering (Deterministic & Free)
-Before any LLM token is spent, all fetched postings are run through quick regex and date matches defined in [config.yaml](file:///d:/_Deployed_Projects_Vercel/job-hunter/config.yaml):
+Before any LLM token is spent, all fetched postings are run through quick regex and date matches defined in [config.yaml](../config.yaml):
 * **Include Titles:** Matches target roles (e.g., `software engineer`, `backend`, `intern`).
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
 * **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`.

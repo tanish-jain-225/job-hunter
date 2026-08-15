@@ -1,6 +1,6 @@
 """Flask Web Dashboard for Job Hunter (job-hunter).
 
-Provides a professional Light/Dark Mode web interface and REST API endpoints:
+Provides an Executive Light Glassmorphism web interface and REST API endpoints:
 - GET /              : Interactive web dashboard with digest & job tracker
 - GET /api/jobs      : Return tracked jobs JSON with search & status filters
 - POST /api/run      : On-demand pipeline execution & email dispatch
@@ -91,13 +91,96 @@ def handle_exception(e):
     }), 500
 
 
-@app.route("/api/stats")
-def api_stats():
-    """Return tracker stats JSON."""
+import hashlib
+import time
+
+_PIPELINE_STATE = {
+    "running": False,
+    "step": "idle",
+    "message": "System ready.",
+    "last_run": None,
+    "exit_code": 0
+}
+
+
+def _get_store_version(st: Store) -> str:
+    """Generate a deterministic fast hash/version token representing current store state."""
+    try:
+        # Fast composite hash of count + item keys and applied/score states
+        items = [f"{jid}:{d.get('applied', False)}:{d.get('score', '')}:{d.get('first_seen', '')}"
+                 for jid, d in sorted(st.data.items())]
+        content = f"{len(st.data)}|" + "|".join(items)
+        return hashlib.md5(content.encode("utf-8")).hexdigest()[:16]
+    except Exception:
+        return str(int(time.time()))
+
+
+@app.route("/api/sync")
+def api_sync():
+    """High-speed real-time synchronization endpoint for client zero-refresh sync."""
     cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file)
-    return jsonify(st.stats())
+
+    score_threshold = float(cfg.get("score_threshold", 7.0))
+    shortlisted_count = 0
+    applied_count = 0
+    unapplied_count = 0
+    ats_counts: dict[str, int] = {}
+
+    for jid, item in st.data.items():
+        score = item.get("score") or 0.0
+        applied = bool(item.get("applied"))
+        job_ats = (item.get("ats") or (jid.split(":")[0] if ":" in jid else "custom")).lower()
+
+        if score >= score_threshold:
+            shortlisted_count += 1
+        if applied:
+            applied_count += 1
+        else:
+            unapplied_count += 1
+
+        ats_counts[job_ats] = ats_counts.get(job_ats, 0) + 1
+
+    stats = {
+        "tracked": len(st.data),
+        "emailed": sum(1 for v in st.data.values() if v.get("emailed")),
+        "applied": applied_count,
+        "unapplied": unapplied_count,
+        "shortlisted": shortlisted_count,
+    }
+
+    version = _get_store_version(st)
+
+    return jsonify({
+        "status": "success",
+        "version": version,
+        "stats": stats,
+        "ats_counts": ats_counts,
+        "pipeline": _PIPELINE_STATE,
+        "timestamp": time.time()
+    })
+
+
+@app.route("/api/stats")
+def api_stats():
+    """Return tracker stats JSON with complete count breakdown."""
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file)
+
+    score_threshold = float(cfg.get("score_threshold", 7.0))
+    shortlisted_count = sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold)
+    applied_count = sum(1 for v in st.data.values() if v.get("applied"))
+    unapplied_count = len(st.data) - applied_count
+
+    stats = {
+        **st.stats(),
+        "shortlisted": shortlisted_count,
+        "unapplied": unapplied_count,
+        "version": _get_store_version(st)
+    }
+    return jsonify(stats)
 
 
 @app.route("/api/config")
@@ -208,51 +291,60 @@ def api_digest():
     """Serve latest out/digest.html file or dynamically generate digest from Store data."""
     cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
-    force_rebuild = request.args.get("t") is not None or request.args.get("force") is not None
+    force_rebuild = request.args.get("t") is not None or request.args.get("force") is not None or request.args.get("live") is not None
+
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file)
 
     writable_path = get_writable_path(digest_file)
     root_path = ROOT / digest_file
-
     target = writable_path if writable_path.is_file() else root_path
 
-    if target.is_file() and not force_rebuild:
-        return send_file(target, mimetype="text/html")
+    # If force_rebuild or file does not exist, build live digest
+    if not target.is_file() or force_rebuild:
+        from jobhunt import digest
+        from jobhunt.fetch import Job
+        jobs_list = []
+        for jid, d in st.data.items():
+            if (d.get("score") or 0) >= 7.0 and not d.get("applied"):
+                j = Job(
+                    job_id=jid,
+                    ats=jid.split(":")[0] if ":" in jid else "jobhunt",
+                    company=d.get("company", ""),
+                    title=d.get("title", ""),
+                    location=d.get("location", ""),
+                    url=d.get("url", "#"),
+                    description="",
+                    score=d.get("score"),
+                    reason=d.get("reason"),
+                    draft=d.get("draft"),
+                )
+                jobs_list.append(j)
 
-    # If digest.html does not exist on disk or force rebuild requested, generate on the fly from Store data
-    seen_file = cfg.get("seen_file", "seen.json")
-    st = Store(seen_file)
-    from jobhunt import digest
-    from jobhunt.fetch import Job
-    jobs_list = []
-    for jid, d in st.data.items():
-        if (d.get("score") or 0) >= 7.0 and not d.get("applied"):
-            j = Job(
-                job_id=jid,
-                ats=jid.split(":")[0] if ":" in jid else "jobhunt",
-                company=d.get("company", ""),
-                title=d.get("title", ""),
-                location=d.get("location", ""),
-                url=d.get("url", "#"),
-                description="",
-                score=d.get("score"),
-                reason=d.get("reason"),
-                draft=d.get("draft"),
-            )
-            jobs_list.append(j)
+        # Sort shortlist by score descending
+        jobs_list.sort(key=lambda x: (x.score if x.score is not None else -1.0), reverse=True)
 
-    subject, html_content = digest.build(
-        jobs_list[:7],
-        scanned=len(st.data),
-        candidates=len(st.data),
-        stats=st.stats()
-    )
-    digest.write(html_content, digest_file)
-    return html_content, 200, {"Content-Type": "text/html"}
+        profile = cli._load_profile(cfg, raise_on_error=False)
+        subject, html_content = digest.build(
+            jobs_list[:7],
+            scanned=len(st.data),
+            candidates=len(st.data),
+            stats=st.stats(),
+            profile=profile,
+        )
+        try:
+            digest.write(html_content, digest_file)
+        except Exception:
+            pass
+        return html_content, 200, {"Content-Type": "text/html"}
+
+    return send_file(target, mimetype="text/html")
 
 
 @app.route("/api/run", methods=["POST"])
 def api_run():
-    """Trigger job search pipeline on demand."""
+    """Trigger job search pipeline on demand with real-time state tracking."""
+    global _PIPELINE_STATE
     data = request.get_json(silent=True) or {}
     use_mock = bool(data.get("mock", False))
     is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
@@ -260,6 +352,11 @@ def api_run():
     # Force mock mode on Vercel serverless to guarantee response < 0.5s without hitting Vercel 10s execution timeout
     if is_vercel:
         use_mock = True
+
+    _PIPELINE_STATE["running"] = True
+    _PIPELINE_STATE["step"] = "running"
+    _PIPELINE_STATE["message"] = "Scanning ATS boards and fetching job listings..."
+    _PIPELINE_STATE["last_run"] = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
 
     cli._load_env()
     smtp_pass = os.environ.get("SMTP_PASS", "")
@@ -272,39 +369,67 @@ def api_run():
         scorer="keyword" if use_mock else "llm",
     )
 
-    exit_code = cli.cmd_run(args)
-    if exit_code != 0 and not use_mock:
-        # LLM fallback to keyword scorer
-        fallback_args = argparse.Namespace(
-            config=None,
-            mock=use_mock,
-            send=send_email,
-            scorer="keyword",
-        )
-        exit_code = cli.cmd_run(fallback_args)
+    try:
+        exit_code = cli.cmd_run(args)
+        if exit_code != 0 and not use_mock:
+            # LLM fallback to keyword scorer
+            fallback_args = argparse.Namespace(
+                config=None,
+                mock=use_mock,
+                send=send_email,
+                scorer="keyword",
+            )
+            exit_code = cli.cmd_run(fallback_args)
+    except Exception as e:
+        exit_code = 1
+        _PIPELINE_STATE["running"] = False
+        _PIPELINE_STATE["step"] = "error"
+        _PIPELINE_STATE["message"] = f"Execution error: {str(e)}"
+        _PIPELINE_STATE["exit_code"] = 1
+        return jsonify({
+            "status": "error",
+            "message": f"Pipeline failed: {str(e)}"
+        }), 500
 
     cfg = cli._cfg(raise_on_error=False)
     st = Store(cfg.get("seen_file", "seen.json"))
+    version = _get_store_version(st)
+
+    _PIPELINE_STATE["running"] = False
+    _PIPELINE_STATE["exit_code"] = exit_code
 
     if exit_code == 0:
         msg = "Pipeline completed successfully!"
         if is_vercel:
             msg += " (Fast mode on Vercel)"
+        _PIPELINE_STATE["step"] = "completed"
+        _PIPELINE_STATE["message"] = msg
+
+        # Re-export CSV & generate fresh digest
+        try:
+            st.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
+        except Exception:
+            pass
+
         return jsonify({
             "status": "success",
             "message": msg,
+            "version": version,
             "stats": st.stats()
         })
     else:
+        _PIPELINE_STATE["step"] = "error"
+        _PIPELINE_STATE["message"] = f"Pipeline exited with code {exit_code}"
         return jsonify({
             "status": "error",
-            "message": f"Pipeline exited with code {exit_code}"
+            "message": f"Pipeline exited with code {exit_code}",
+            "version": version
         }), 500
 
 
 @app.route("/api/applied", methods=["POST"])
 def api_applied():
-    """Mark or unmark a job as applied."""
+    """Mark or unmark a job as applied with immediate version bump."""
     data = request.get_json(silent=True) or {}
     job_id = data.get("job_id", "").strip()
     action = data.get("action", "mark").lower().strip()
@@ -326,9 +451,13 @@ def api_applied():
 
     if success:
         st.export_csv(tracker_csv)
+        version = _get_store_version(st)
         return jsonify({
             "status": "success",
             "message": msg_str,
+            "job_id": job_id,
+            "applied": action != "unmark",
+            "version": version,
             "stats": st.stats()
         })
     else:
@@ -340,7 +469,7 @@ def api_applied():
 
 @app.route("/api/delete", methods=["POST", "DELETE"])
 def api_delete():
-    """Delete a job entry from the tracking store."""
+    """Delete a job entry from the tracking store with immediate version bump."""
     data = request.get_json(silent=True) or {}
     job_id = data.get("job_id", "").strip()
 
@@ -354,9 +483,12 @@ def api_delete():
 
     if st.delete_job(job_id):
         st.export_csv(tracker_csv)
+        version = _get_store_version(st)
         return jsonify({
             "status": "success",
             "message": f"Deleted job '{job_id}'.",
+            "job_id": job_id,
+            "version": version,
             "stats": st.stats()
         })
     else:
@@ -403,11 +535,16 @@ def api_jobs_add():
         applied=applied,
     )
     st.export_csv(tracker_csv)
+    version = _get_store_version(st)
+
+    new_job_data = st.data.get(job_id, {})
 
     return jsonify({
         "status": "success",
         "message": f"Added job '{title}' ({job_id}).",
         "job_id": job_id,
+        "job": {"job_id": job_id, **new_job_data},
+        "version": version,
         "stats": st.stats()
     })
 
@@ -418,3 +555,4 @@ if __name__ == "__main__":
     print(" Server running at: http://localhost:5000")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
+

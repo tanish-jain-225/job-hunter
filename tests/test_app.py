@@ -340,6 +340,25 @@ def test_api_jobs_add_invalid_score_fallback(client):
     assert res.get_json()["status"] == "success"
 
 
+def test_api_sync(client):
+    """Verify /api/sync returns real-time state version, metrics, breakdown, and pipeline status."""
+    res = client.get("/api/sync")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["status"] == "success"
+    assert "version" in data
+    assert isinstance(data["version"], str)
+    assert "stats" in data
+    assert "tracked" in data["stats"]
+    assert "applied" in data["stats"]
+    assert "unapplied" in data["stats"]
+    assert "shortlisted" in data["stats"]
+    assert "ats_counts" in data
+    assert "pipeline" in data
+    assert "timestamp" in data
+
+
+
 
 
 

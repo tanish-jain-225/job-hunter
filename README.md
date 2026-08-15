@@ -262,7 +262,7 @@ The `jobhunt` CLI provides 4 main subcommands and 1 master automation script:
 | | `-c, --config <path>` | `config.yaml` | Path to custom config file. |
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `python auto.py` | *(none)* | *(master)* | **1-Click End-to-End Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
-| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Interactive Light/Dark UI with on-demand pipeline execution, 1-click CSV export download, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons (`Copy Outreach ⚡`, `Copy Note 📋`), and keyboard hotkeys (`/`, `Esc`). |
+| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Glassmorphism UI with zero-refresh real-time sync, on-demand pipeline execution, 1-click CSV export download, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons (`Copy Outreach ⚡`, `Copy Note 📋`), and keyboard hotkeys (`/`, `Esc`). |
 
 ---
 
@@ -390,7 +390,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (186 unit & integration tests):
+Run the full test suite locally (189 unit & integration tests):
 ```bash
 pytest
 ```

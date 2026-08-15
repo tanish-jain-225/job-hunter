@@ -149,3 +149,28 @@ def test_auto_browser_open_exception(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert exit_code == 0
 
 
+def test_auto_cli_custom_flags(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """When auto.py is invoked with custom arguments, it forwards them to cmd_run."""
+    monkeypatch.setattr(auto, "ROOT", tmp_path)
+    (tmp_path / "profile.json").write_text('{"name": "Auto"}', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    passed_args = []
+    def mock_cmd_run(args: argparse.Namespace) -> int:
+        passed_args.append(args)
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run", mock_cmd_run)
+
+    with patch.object(auto, "webbrowser", create=True) as mock_wb:
+        mock_wb.open = lambda *a: None
+        exit_code = auto.main(["--mock", "--scorer", "keyword", "--send"])
+
+    assert exit_code == 0
+    assert len(passed_args) == 1
+    assert passed_args[0].mock is True
+    assert passed_args[0].scorer == "keyword"
+    assert passed_args[0].send is True
+
+
+

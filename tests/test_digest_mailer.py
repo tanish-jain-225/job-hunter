@@ -153,3 +153,16 @@ def test_digest_write(tmp_path: Path):
     assert "Digest" in res.read_text(encoding="utf-8")
 
 
+def test_digest_build_with_custom_profile():
+    job = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=8.5)
+    custom_profile = {
+        "name": "Jane Doe",
+        "education": "M.S. Computer Science, Stanford 2025"
+    }
+    subject, html_doc = digest.build([job], 10, 5, {"tracked": 10}, profile=custom_profile)
+    assert "Matched for Jane Doe" in subject
+    assert "Jane Doe" in html_doc
+    assert "Stanford 2025" in html_doc
+
+
+
