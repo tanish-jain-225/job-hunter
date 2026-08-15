@@ -4,8 +4,8 @@ on:
   push:
     branches: [ main ]
   schedule:
-    # 09:00 IST, weekdays. IST is UTC+5:30, so 09:00 IST == 03:30 UTC.
-    - cron: "30 3 * * 1-5"
+    # 09:00 IST daily. IST is UTC+5:30, so 09:00 IST == 03:30 UTC.
+    - cron: "30 3 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -13,13 +13,12 @@ on:
         type: boolean
         default: false
 
-# Queue concurrent runs sharing the same dedupe store.
 concurrency:
   group: jobhunt-daily
   cancel-in-progress: false
 
 permissions:
-  contents: read         # Store state is preserved in actions/cache
+  contents: read
 
 jobs:
   digest:
@@ -29,11 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore the dedupe store
+      - name: Restore dedupe store
         uses: actions/cache@v4
         with:
           path: seen.json
-          key: jobhunt-seen-${{ runner.os }}-${{ github.run_id }}
+          key: jobhunt-seen-${{ runner.os }}-${{ github.run_number }}
           restore-keys: |
             jobhunt-seen-${{ runner.os }}-
             jobhunt-seen-
@@ -46,6 +45,29 @@ jobs:
       - name: Install package and dependencies
         run: pip install -e .
 
+      - name: Verify repository secrets
+        env:
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+        run: |
+          echo "=== Checking Secret Availability ==="
+          if [ -z "$SMTP_PASS" ]; then
+            echo "::error::SMTP_PASS secret is missing! Emails cannot be sent without this secret."
+          else
+            echo "✓ SMTP_PASS secret is configured."
+          fi
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::warning::GEMINI_API_KEY secret is missing! Screening will fall back to keyword matcher."
+          else
+            echo "✓ GEMINI_API_KEY secret is configured."
+          fi
+          if [ -z "$SMTP_USER" ]; then
+            echo "::warning::SMTP_USER secret is missing."
+          else
+            echo "✓ SMTP_USER secret is configured ($SMTP_USER)."
+          fi
+
       - name: Prepare candidate profile
         env:
           PROFILE_JSON: ${{ secrets.PROFILE_JSON }}
@@ -55,17 +77,13 @@ jobs:
             if python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"; then
               echo "Using profile.json from repository secret."
             else
-              echo "::warning::PROFILE_JSON secret is invalid JSON, falling back to profile.example.json"
-              cp profile.example.json profile.json
+              echo "::warning::PROFILE_JSON secret is invalid JSON, falling back to local profile.json or example"
             fi
           elif [ -f profile.json ]; then
-            echo "Using committed profile.json from repository."
+            echo "Using profile.json from repository."
           elif [ -f profile.example.json ]; then
             echo "::warning::PROFILE_JSON secret not set — using profile.example.json fallback"
             cp profile.example.json profile.json
-          else
-            echo "::error::No profile configuration available"
-            exit 1
           fi
 
       - name: Run live job search agent & generate digest

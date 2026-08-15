@@ -219,6 +219,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     if not jobs:
         print("\nNo new matching jobs today.")
+        if getattr(args, "send", False):
+            _build_and_send_digest([], raw_jobs, candidates, [], st, args, cfg)
         return 0
 
     # 3. Screen

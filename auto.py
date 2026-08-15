@@ -35,6 +35,8 @@ def main() -> int:
     print(" JOBHUNT AUTOMATION: End-to-End Pipeline")
     print("=" * 65)
 
+    os.chdir(ROOT)
+
     # 1. Check profile.json
     profile_path = ROOT / "profile.json"
     resume_path = ROOT / "resume.pdf"
@@ -53,6 +55,9 @@ def main() -> int:
     # 2. Run the main pipeline
     print("\n[2/3] Running job search pipeline...")
     cli._load_env()
+    if not os.environ.get("LLM_PROVIDER") and os.environ.get("GEMINI_API_KEY"):
+        os.environ["LLM_PROVIDER"] = "gemini"
+
     smtp_pass = os.environ.get("SMTP_PASS", "")
     send_email = bool(smtp_pass and "your-gmail" not in smtp_pass and "paste-your" not in smtp_pass)
 
