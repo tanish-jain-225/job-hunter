@@ -17,8 +17,25 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request, send_file
 
-# Add project root to sys.path
-ROOT = Path(__file__).resolve().parent
+def _get_project_root() -> Path:
+    candidates = [
+        Path(__file__).resolve().parent,
+        Path.cwd(),
+    ]
+    try:
+        import jobhunt
+        candidates.append(Path(jobhunt.__file__).resolve().parent.parent)
+    except Exception:
+        pass
+
+    for candidate in candidates:
+        if (candidate / "templates" / "index.html").is_file():
+            return candidate
+
+    return candidates[0]
+
+
+ROOT = _get_project_root()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
