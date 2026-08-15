@@ -329,7 +329,7 @@ job-hunter/
 ├── jobhunt/
 │   ├── __init__.py           # Package version (1.0.0) & public exports
 │   ├── cli.py                # Argparse subcommands (profile, run, applied, stats, auto)
-│   ├── fetch.py              # Job dataclass & ATS API parsers (Greenhouse, Lever, Ashby)
+│   ├── fetch.py              # Job dataclass & ATS API parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR)
 │   ├── prefilter.py          # Deterministic regex, location, and age filter
 │   ├── providers.py          # Provider interface + Anthropic/Gemini/Groq/OpenAI/Ollama clients
 │   ├── llm.py                # Screen, draft, profile extraction & tolerant JSON parser
@@ -337,19 +337,31 @@ job-hunter/
 │   ├── digest.py             # Responsive HTML digest generator with inline CSS & XSS escaping
 │   ├── mailer.py             # SMTP client for email delivery
 │   └── mock.py               # Native ATS JSON fixtures for offline testing
+├── templates/
+│   └── index.html            # Web dashboard HTML layout & semantic templates
+├── static/
+│   ├── css/style.css         # Executive design system, typography & light/dark tokens
+│   └── js/app.js             # State persistence, BroadcastChannel sync, AbortController & search
 ├── tests/
-│   ├── test_parsers.py       # ATS JSON parsing & prefilter test suite
-│   ├── test_llm.py           # LLM batching, truncation, JSON parsing & stub tests
+│   ├── conftest.py           # Pytest shared fixtures & test environment setup
+│   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
+│   ├── test_auto.py          # Master automation script & fallback tests
 │   ├── test_cli.py           # CLI argument parsing & subcommand execution tests
-│   ├── test_store.py         # Store persistence, corrupt state recovery, CSV export tests
+│   ├── test_digest_mailer.py # HTML digest builder, XSS escaping, mail message tests
+│   ├── test_fetch.py         # ATS network fetching, session pooling & concurrency tests
+│   ├── test_llm.py           # LLM batching, truncation, JSON parsing & stub tests
+│   ├── test_parsers.py       # ATS JSON parsing & prefilter test suite
 │   ├── test_providers.py     # Provider resolution, env preflight, fallback tests
-│   └── test_digest_mailer.py # HTML digest builder, XSS escaping, mail message tests
+│   └── test_store.py         # Store persistence, corrupt state recovery, CSV export tests
+├── api/
+│   └── index.py              # Vercel Serverless Function entrypoint
 ├── .github/workflows/
 │   ├── ci.yml                # CI lint/type-check/test workflow
 │   └── daily.yml             # Daily automated execution & digest workflow
 ├── pyproject.toml            # PEP 621 packaging metadata & tool configurations
 ├── config.yaml               # Pipeline thresholds & filter rules
 ├── companies.yaml            # Board targets
+├── app.py                    # Flask Web Dashboard & REST API server
 ├── auto.py                   # Master cross-platform pipeline launcher script
 ├── run.bat / run.sh          # 1-Click execution scripts
 ├── apply.bat / apply.sh      # 1-Click apply status marker scripts
@@ -372,19 +384,20 @@ job-hunter/
 - **Greenhouse**: The `content` HTML field is double HTML-entity-escaped. `strip_html()` unescapes content before and after tag stripping to prevent leaking raw entities like `&amp;` into LLM prompts.
 - **Lever**: The `createdAt` property uses epoch **milliseconds**. Converted to UTC datetime objects. Description fields span `descriptionPlain`, `lists[].text`, `lists[].content`, and `additionalPlain` — all concatenated to prevent missing job requirements.
 - **Ashby**: Draft postings marked with `isListed: false` are filtered out automatically.
+- **Workable & SmartRecruiters & BambooHR**: Resilient field lookups accommodate varying JSON shapes, nested department/location objects, and alternative date fields (`releasedDate`, `published`, `datePosted`).
 
 ---
 
 ## 🧪 Automated Test Suite
 
-Run unit tests locally:
+Run the full test suite locally (186 unit & integration tests):
 ```bash
 pytest
 ```
 
-Run test suite with detailed coverage reporting:
+Run test suite with detailed 99%+ coverage reporting:
 ```bash
-pytest --cov=jobhunt --cov-report=term-missing
+pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 ```
 
 ---

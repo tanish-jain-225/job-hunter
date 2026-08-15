@@ -4,9 +4,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from jobhunt import store
 from jobhunt.fetch import Job
 from jobhunt.store import Store
+
 
 
 def test_store_init_creates_fresh_when_missing(tmp_path: Path):
@@ -215,4 +218,57 @@ def test_store_add_job_invalid_score(tmp_path: Path):
     st = Store(tmp_path / "seen.json")
     j1 = st.add_job(title="Invalid Score Job", company="Test", score="invalid-score")  # type: ignore
     assert st.data[j1]["score"] == 7.5
+
+
+def test_sanitize_job_url_all_ats_types():
+    # Domain without scheme
+    assert store.sanitize_job_url("stripe.com/jobs/123") == "https://stripe.com/jobs/123"
+
+    # Greenhouse
+    assert store.sanitize_job_url("", ats="greenhouse", job_id="greenhouse:stripe:101") == "https://boards.greenhouse.io/stripe/jobs/101"
+
+    # Lever
+    assert store.sanitize_job_url("", ats="lever", job_id="lever:stripe:102") == "https://jobs.lever.co/stripe/102"
+
+    # Ashby
+    assert store.sanitize_job_url("", ats="ashby", job_id="ashby:openai:103") == "https://jobs.ashbyhq.com/openai/103"
+
+    # Workable
+    assert store.sanitize_job_url("", ats="workable", job_id="workable:vector:104") == "https://apply.workable.com/vector/j/104/"
+
+    # SmartRecruiters
+    assert store.sanitize_job_url("", ats="smartrecruiters", job_id="smartrecruiters:visa:105") == "https://jobs.smartrecruiters.com/visa/105"
+
+    # BambooHR
+    assert store.sanitize_job_url("", ats="bamboohr", job_id="bamboohr:acme:106") == "https://acme.bamboohr.com/careers/106"
+
+    # Custom empty query fallback
+    fallback_url = store.sanitize_job_url("", company="", title="")
+    assert "software+engineering+jobs+apply" in fallback_url
+
+
+def test_atomic_replace_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    src = tmp_path / "src.tmp"
+    dst = tmp_path / "dst.txt"
+    src.write_text("hello atomic", encoding="utf-8")
+
+    # Force os.replace to fail with OSError so it uses write_bytes fallback
+    monkeypatch.setattr(store.os, "replace", lambda s, d: (_ for _ in ()).throw(OSError("Locked")))
+    store._atomic_replace(src, dst, retries=2, delay=0.01)
+
+    assert dst.exists()
+    assert dst.read_text(encoding="utf-8") == "hello atomic"
+
+
+def test_store_auto_seed_vercel_exception(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setattr("jobhunt.mock.fetch_all_mock", lambda: (_ for _ in ()).throw(RuntimeError("Mock seed error")))
+    unique_path = tmp_path / "unique_empty_seen_err.json"
+    _ = Store(unique_path)
+    out = capsys.readouterr().out
+    assert "Store auto-seed error" in out
+
+
+
+
 

@@ -277,3 +277,11 @@ def test_bamboohr_parser():
     assert "Kubernetes & Terraform" in b_jobs[0].description
 
 
+def test_prefilter_stale_date_drop():
+    old_date = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+    old_job = Job("1", "gh", "Acme", "Software Engineer", "Remote", "http://x", "Python", posted_at=old_date)
+    kept = prefilter([old_job], {"max_age_days": 28, "include_titles": ["Software Engineer"]})
+    assert len(kept) == 0
+
+
+

@@ -299,4 +299,72 @@ def test_build_profile_invalid_non_dict(monkeypatch: pytest.MonkeyPatch):
         llm.build_profile(resume_text="Text", provider=p, model="m")
 
 
+def test_as_list_raises_on_invalid_type():
+    with pytest.raises(ValueError, match="expected a JSON array"):
+        llm._as_list("just a plain string")
+
+    with pytest.raises(ValueError, match="expected a JSON array"):
+        llm._as_list(12345)
+
+
+def test_llm_stages_resolve_default_provider(monkeypatch: pytest.MonkeyPatch):
+    mock_prov = StubProvider([json.dumps({"name": "Default Test"})])
+    monkeypatch.setattr(llm, "resolve", lambda stage: (mock_prov, "test-model"))
+
+    # 1. build_profile with provider=None
+    prof = llm.build_profile(resume_text="Some text", provider=None, model=None)
+    assert prof["name"] == "Default Test"
+
+    # 2. screen with provider=None
+    jobs = make_jobs(1)
+    mock_prov.replies = [scores_reply(jobs)]
+    llm.screen(jobs, prof, provider=None, model=None, delay_seconds=0)
+    assert jobs[0].score == 8.0
+
+    # 3. draft with provider=None and delay_seconds > 0
+    jobs2 = make_jobs(2)
+    mock_prov.replies = [
+        json.dumps({"fit_summary": "Fit 1", "tailored_bullets": ["Bullet 1"]}),
+        json.dumps({"fit_summary": "Fit 2", "tailored_bullets": ["Bullet 2"]}),
+    ]
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    llm.draft(jobs2, prof, provider=None, model=None, delay_seconds=0.01)
+    assert jobs2[0].draft["fit_summary"] == "Fit 1"
+    assert jobs2[1].draft["fit_summary"] == "Fit 2"
+
+
+def test_draft_raises_when_non_dict(monkeypatch: pytest.MonkeyPatch):
+    jobs = make_jobs(1)
+    mock_prov = StubProvider([json.dumps(["not", "a", "dict"])])
+    llm.draft(jobs, PROFILE, provider=mock_prov, model="m", delay_seconds=0)
+    assert jobs[0].draft["fit_summary"] == ""
+
+
+def test_parse_json_secondary_candidate_loop():
+    # String where first candidate match ({...}) is invalid JSON, but second ([...]) is valid JSON
+    raw = "prefix { 'invalid': json } and [1, 2, 3] suffix"
+    res = llm.parse_json(raw)
+    assert res == [1, 2, 3]
+
+
+def test_screen_multi_worker_missing_and_invalid_score():
+    jobs = make_jobs(3)
+    # Return batch where job_id is missing and one has invalid score
+    reply1 = json.dumps([
+        {"job_id": jobs[0].job_id, "score": "not-a-number", "reason": "invalid score test"}
+    ])
+    reply2 = json.dumps([
+        {"job_id": "unmatched-job-id", "score": 9.0}
+    ])
+    stub = StubProvider([reply1, reply2])
+    # batch_size=1 and 3 jobs creates 3 batches (> 1), triggering concurrent ThreadPoolExecutor
+    llm.screen(jobs[:2], PROFILE, batch_size=1, provider=stub, model="m", max_workers=2)
+    assert jobs[0].score == 0.0
+    assert jobs[0].reason == "invalid score test"
+    assert jobs[1].score is None
+
+
+
+
+
 

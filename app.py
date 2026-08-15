@@ -56,6 +56,16 @@ def index():
     return render_template("index.html")
 
 
+@app.after_request
+def add_cache_headers(response):
+    """Ensure dynamic API responses are fresh and never cached improperly by proxies/browsers."""
+    if request.path.startswith("/api/") and not request.path.endswith(".py"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 @app.route("/logo.png")
 @app.route("/favicon.ico")
 def serve_logo():

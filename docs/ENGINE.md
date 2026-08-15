@@ -83,8 +83,8 @@ LLM_PROVIDER=gemini # options: gemini, groq, anthropic, openai, ollama
 | :--- | :--- | :--- | :--- |
 | **Google Gemini** | `gemini-2.5-flash` | `GEMINI_API_KEY` | **Recommended:** Extremely fast, large context window, and generous free-tier quotas. |
 | **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | Blazing-fast inference speeds. |
-| **Anthropic** | `claude-3-5-sonnet` | `ANTHROPIC_API_KEY` | Best-in-class reasoning and writing styles. |
-| **OpenAI** | `gpt-4o-mini` / `gpt-4o` | `OPENAI_API_KEY` | Standard model provider. |
+| **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-sonnet` | `ANTHROPIC_API_KEY` | Best-in-class reasoning and writing styles. |
+| **OpenAI** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |
 | **Ollama** | Local model (e.g., `llama3`) | `OLLAMA_HOST` | Run locally on your machine for 100% free, offline inference. |
 
 ---
@@ -94,10 +94,24 @@ LLM_PROVIDER=gemini # options: gemini, groq, anthropic, openai, ollama
 Job Hunter is built to ensure a scheduled crawl never fails due to network hiccups, API outages, or rate limits.
 
 ### 1. Offline Keyword Scorer Fallback
-If your LLM provider is down, hits rate limits, or is not configured, the engine automatically falls back to the **Keyword Scorer** (defined in `jobhunt.prefilter`). 
+If your LLM provider is down, hits rate limits, or is not configured, the engine automatically falls back to the **Keyword Scorer** (defined in `jobhunt.llm`). 
 * It scans the job text for keywords matching your `core_skills` (from `profile.json`).
 * It assigns a score based on skill density.
 * This allows the digest to still build and send with basic relevance matching, entirely offline!
 
 ### 2. Forgiving JSON Parser (`llm.parse_json`)
 LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles/conversations. Job Hunter uses an intelligent, regex-backed parser that extracts only the valid JSON substring and handles missing brackets or commas gracefully, preventing model parsing errors from crashing runs.
+
+---
+
+## 🔗 Documentation Links
+
+- **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[MULTI_USER.md](MULTI_USER.md)** — Setting up multiple users.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
+- **[README.md](../README.md)** — Project homepage.
+

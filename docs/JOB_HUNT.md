@@ -75,9 +75,9 @@ Two stages for token efficiency:
 
 ### Provider Flexibility
 Make provider swappable via environment variables (`LLM_PROVIDER`):
-- Google Gemini (`gemini-3.5-flash`)
+- Google Gemini (`gemini-2.5-flash` / `gemini-2.0-flash`)
 - Groq (`llama-3.3-70b-versatile`)
-- Anthropic (`claude-3-5-sonnet`)
+- Anthropic (`claude-3-7-sonnet` / `claude-3-5-sonnet`)
 - OpenAI-compatible endpoints & local Ollama
 
 ---

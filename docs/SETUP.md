@@ -13,7 +13,7 @@ Start here if you've never run a Python project before. Every step assumes you h
 
 ## Step 1 — Install Python
 
-You need **Python 3.10 or newer**.
+You need **Python 3.9 or newer** (Python 3.9, 3.10, 3.11, or 3.12).
 
 - **Windows** — download from [python.org/downloads](https://www.python.org/downloads/). On the first screen of the installer, **tick "Add python.exe to PATH"** before clicking Install. Missing that checkbox is the single most common reason nothing works afterwards.
 - **macOS** — `brew install python` if you have Homebrew, otherwise python.org.
@@ -26,7 +26,7 @@ python --version        # Windows
 python3 --version       # macOS / Linux
 ```
 
-You should see `Python 3.10.x` or higher. If you see "command not found", reinstall with the PATH box ticked.
+You should see `Python 3.9.x` or higher. If you see "command not found", reinstall with the PATH box ticked.
 
 > From here on, wherever you see `python`, use `python3` on macOS/Linux.
 
@@ -83,7 +83,7 @@ Before touching keys or resumes, check your install with mock data:
 jobhunt run --mock --scorer keyword
 ```
 
-You should see mock Greenhouse/Ashby boards fetch, filter, and output summary output.
+You should see mock Greenhouse/Lever/Ashby boards fetch, filter, and output summary stats.
 
 ---
 
@@ -104,7 +104,7 @@ MAIL_TO=your_email@gmail.com
 Extract your candidate profile from your resume:
 ```bash
 jobhunt profile --resume resume.pdf
-# or: python -m jobhunt profile --resume resume.pdf
+# or: python -m jobhunt.cli profile --resume resume.pdf
 ```
 
 ---
@@ -123,7 +123,7 @@ Once configured, run the pipeline or launch the interactive dashboard:
   ```bash
   python app.py
   ```
-  *Launches the Executive Web Dashboard on `http://localhost:5000` with 1-click CSV export, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons, and dark mode.*
+  *Launches the Executive Web Dashboard on `http://localhost:5000` (Vercel Serverless ready) with 1-click CSV export download, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons, and search.*
 
 ---
 

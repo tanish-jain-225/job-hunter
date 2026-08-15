@@ -312,4 +312,34 @@ def test_resolve_relative_vercel(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     assert rel_path is not None
 
 
+def test_screen_jobs_keyword_scorer():
+    jobs = [Job("1", "gh", "Acme", "Software Engineer", "remote", "http://x", "Python")]
+    args = argparse.Namespace(scorer="keyword")
+    cli._screen_jobs(jobs, {"core_skills": ["Python"]}, args, {})
+    assert jobs[0].score is not None
+
+
+def test_cmd_run_full_pipeline_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    (tmp_path / "profile.json").write_text(json.dumps({"name": "Test User", "core_skills": ["Go"]}), encoding="utf-8")
+    (tmp_path / "config.yaml").write_text(
+        f"seen_file: {(tmp_path / 'seen.json').as_posix()}\n"
+        f"digest_file: {(tmp_path / 'out' / 'digest.html').as_posix()}\n"
+        f"tracker_csv: {(tmp_path / 'out' / 'tracker.csv').as_posix()}\n"
+        f"score_threshold: 6.0\n"
+        f"max_per_digest: 5\n"
+        f"screen_batch_size: 5\n",
+        encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    # Use mock ATS data and keyword scorer
+    args = argparse.Namespace(config=None, mock=True, scorer="keyword", send=False)
+    exit_code = cli.cmd_run(args)
+    assert exit_code == 0
+    assert (tmp_path / "out" / "digest.html").exists()
+    assert (tmp_path / "seen.json").exists()
+    assert (tmp_path / "out" / "tracker.csv").exists()
+
+
+
 

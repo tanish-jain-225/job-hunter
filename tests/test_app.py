@@ -222,4 +222,125 @@ def test_api_jobs_ats_and_sorting(client):
     assert companies == sorted(companies)
 
 
+def test_api_cache_control_headers(client):
+    """Verify dynamic API endpoints include no-store / must-revalidate cache headers."""
+    res_stats = client.get("/api/stats")
+    assert res_stats.status_code == 200
+    assert "no-store" in res_stats.headers.get("Cache-Control", "")
+    assert "no-cache" in res_stats.headers.get("Cache-Control", "")
+
+    res_jobs = client.get("/api/jobs")
+    assert res_jobs.status_code == 200
+    assert "no-store" in res_jobs.headers.get("Cache-Control", "")
+
+
+def test_app_get_project_root_fallback(monkeypatch):
+    import app as app_module
+    from pathlib import Path
+    # If no candidate has templates/index.html, it returns candidates[0]
+    monkeypatch.setattr(Path, "is_file", lambda self: False)
+    root = app_module._get_project_root()
+    assert root is not None
+
+
+def test_serve_logo_missing(client, monkeypatch):
+    from pathlib import Path
+    monkeypatch.setattr(Path, "is_file", lambda self: False)
+    res = client.get("/logo.png")
+    assert res.status_code == 204
+
+
+def test_app_handle_exception_and_http_exception(client):
+    from werkzeug.exceptions import NotFound
+    import app as app_module
+
+    # Test HTTPException handling (e.g. NotFound)
+    with app_module.app.test_request_context():
+        res_http, code_http = app_module.handle_exception(NotFound("Custom Not Found"))
+        assert code_http == 404
+        assert res_http.get_json()["status"] == "error"
+        assert res_http.get_json()["message"] == "Custom Not Found"
+
+    # Test generic unhandled Exception handling (500)
+    with app_module.app.test_request_context():
+        res_gen, code_gen = app_module.handle_exception(RuntimeError("Custom internal runtime failure"))
+        assert code_gen == 500
+        assert res_gen.get_json()["status"] == "error"
+        assert "Custom internal runtime failure" in res_gen.get_json()["message"]
+
+
+def test_api_config_yaml_error(client, monkeypatch):
+    import yaml
+    monkeypatch.setattr(yaml, "safe_load", lambda *a, **kw: (_ for _ in ()).throw(ValueError("YAML syntax error")))
+    res = client.get("/api/config")
+    assert res.status_code == 200
+    assert res.get_json()["companies_count"] == 0
+
+
+
+def test_api_jobs_filters_more(client):
+    # Add an applied job and an unapplied job
+    client.post("/api/jobs/add", json={"title": "Applied Role", "company": "AppCo", "applied": True, "score": 8.0})
+    client.post("/api/jobs/add", json={"title": "Unapplied Role", "company": "UnAppCo", "applied": False, "score": 5.0})
+
+    # Status applied
+    res_app = client.get("/api/jobs?status=applied")
+    assert res_app.status_code == 200
+    assert any(j["company"] == "AppCo" for j in res_app.get_json()["jobs"])
+    assert not any(j["company"] == "UnAppCo" for j in res_app.get_json()["jobs"])
+
+    # Status unapplied
+    res_unapp = client.get("/api/jobs?status=unapplied")
+    assert res_unapp.status_code == 200
+    assert any(j["company"] == "UnAppCo" for j in res_unapp.get_json()["jobs"])
+
+    # Min score filter
+    res_min_score = client.get("/api/jobs?min_score=7.5")
+    assert res_min_score.status_code == 200
+    for j in res_min_score.get_json()["jobs"]:
+        assert (j.get("score") or 0) >= 7.5
+
+
+def test_api_run_vercel_mode(client, monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setattr("jobhunt.cli.cmd_run", lambda args: 0)
+    res = client.post("/api/run")
+    assert res.status_code == 200
+    assert "Fast mode on Vercel" in res.get_json()["message"]
+
+
+def test_api_run_fallback_and_error(client, monkeypatch):
+    # First call fails, second succeeds (fallback to keyword)
+    call_count = [0]
+    def mock_cmd_run(args):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return 1
+        return 0
+
+    monkeypatch.setattr("jobhunt.cli.cmd_run", mock_cmd_run)
+    res = client.post("/api/run", json={"mock": False})
+    assert res.status_code == 200
+    assert call_count[0] == 2
+
+    # Both fail -> returns 500
+    monkeypatch.setattr("jobhunt.cli.cmd_run", lambda args: 2)
+    res_err = client.post("/api/run", json={"mock": False})
+    assert res_err.status_code == 500
+    assert res_err.get_json()["status"] == "error"
+
+
+def test_api_jobs_add_invalid_score_fallback(client):
+    res = client.post("/api/jobs/add", json={
+        "title": "Fallback Score Dev",
+        "company": "ScoreCo",
+        "score": "not_a_number"
+    })
+    assert res.status_code == 200
+    assert res.get_json()["status"] == "success"
+
+
+
+
+
 

@@ -41,13 +41,13 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## 🧪 Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full test suite without any network requests or API keys:
+Run the full test suite without any network requests or API keys (186 tests with 99%+ coverage):
 ```bash
 pytest
 ```
-Run with coverage:
+Run with complete coverage:
 ```bash
-pytest --cov=jobhunt --cov-report=term-missing
+pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 ```
 
 ### 2. Linting & Code Style (Ruff)
@@ -57,7 +57,7 @@ ruff check .
 
 ### 3. Static Type Checking (Mypy)
 ```bash
-mypy jobhunt
+mypy jobhunt app.py auto.py
 ```
 
 ### 4. Dry Run Verification

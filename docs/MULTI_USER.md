@@ -140,3 +140,17 @@ To support this centralized run in GitHub Actions:
 | **Maintenance** | 🟢 Automatic (Zero code changes) | 🟡 Manual (Need to maintain `multi_run.py`) |
 | **Email Server** | 🟢 Individual SMTP credentials | 🟡 Single SMTP Server (Sends to all users) |
 | **Setup Complexity**| 🟢 Low | 🟡 Medium |
+
+---
+
+## 🔗 Documentation Links
+
+- **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[ENGINE.md](ENGINE.md)** — Job-matching engine details.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
+- **[README.md](../README.md)** — Project homepage.
+

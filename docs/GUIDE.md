@@ -17,7 +17,7 @@
 ## 🚀 Core Philosophy & Features
 
 - **🔒 100% Data Privacy**: Your resume, job applications, scores, and notes remain completely local on your machine or inside your private repository.
-- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini 3.5 Flash) and free email dispatches.
+- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini 2.5 Flash / Groq) and free email dispatches.
 - **⚡ Zero-Database Architecture**: No SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`).
 - **📊 Automatic Excel/Sheets Sync**: All tracked and applied jobs auto-export to `out/tracker.csv` on every action.
 - **🤖 Automated Daily Email Digest**: Delivers personalized HTML career digests straight to your email inbox every morning.
@@ -27,8 +27,8 @@
 ## 📋 Prerequisites
 
 Before setting up, ensure you have:
-1. **Python 3.10+** installed.
-2. **Google Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)).
+1. **Python 3.9+** (3.9, 3.10, 3.11, or 3.12) installed.
+2. **Google Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)) or Anthropic / Groq keys.
 3. *(Optional for email digests)* **Gmail App Password** (Generated via [Google Account Security](https://myaccount.google.com/apppasswords)).
 
 ---
@@ -59,7 +59,7 @@ pip install -e .
 2. **Generate Profile from Resume**:
    Place your `resume.pdf` in the project root and run:
    ```bash
-   python -m jobhunt.cli profile --resume resume.pdf
+   jobhunt profile --resume resume.pdf
    ```
    *This automatically extracts your skills, experience, and target summary into `profile.json`.*
 
@@ -107,7 +107,7 @@ To receive your email digest every morning at 9:00 AM automatically on your comp
 
 ---
 
-### Mode C: 100% Free Cloud Automation via GitHub Actions (No Computer Turned On Required)
+### Mode 3: 100% Free Cloud Automation via GitHub Actions (No Computer Turned On Required)
 You can run Job Hunter completely in the cloud without leaving your computer on:
 
 1. Push your repository to **GitHub** (keep it **Private** for data security).
@@ -126,11 +126,12 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | Command | Description |
 | :--- | :--- |
 | `python auto.py` | Run complete end-to-end pipeline (fetch $\rightarrow$ prefilter $\rightarrow$ screen $\rightarrow$ draft $\rightarrow$ email). |
-| `python app.py` | Start Flask Web Dashboard on `http://localhost:5000`. |
-| `jobhunt run` | Run job search CLI command. |
+| `python app.py` | Start Flask Web Dashboard on `http://localhost:5000` (Vercel Serverless ready). |
+| `jobhunt run` | Run job search CLI command (`--mock`, `--send`, `--scorer {llm,keyword}`). |
+| `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (152 unit and integration tests). |
+| `pytest` | Run the full test suite (186 unit and integration tests, 99%+ test coverage). |
 
 ---
 

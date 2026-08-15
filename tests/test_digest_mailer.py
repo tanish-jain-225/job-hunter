@@ -1,11 +1,13 @@
 """Unit tests for jobhunt.digest HTML generation and jobhunt.mailer SMTP message handling."""
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from jobhunt import digest, mailer
 from jobhunt.fetch import Job
+
 
 
 def test_badge_color_levels():
@@ -112,4 +114,42 @@ def test_mailer_generic_exception(monkeypatch: pytest.MonkeyPatch):
         mock_smtp_cls.side_effect = RuntimeError("SMTP server down")
         with pytest.raises(RuntimeError, match="SMTP server down"):
             mailer.send("Subject", "<p>body</p>")
+
+
+def test_digest_card_with_outreach_and_cover():
+    job = Job(
+        job_id="ashby:openai:1",
+        ats="ashby",
+        company="OpenAI",
+        title="AI Engineer",
+        location="Remote",
+        url="https://jobs.ashbyhq.com/openai/1",
+        description="Build LLM applications",
+        score=8.5,
+        reason="Direct stack fit",
+        draft={
+            "fit_summary": "Strong fit for Python and LLMs.",
+            "india_eligibility": "Verified India-Friendly",
+            "best_project": "Edvanta AI",
+            "tailored_bullets": ["Engineered Flask backend."],
+            "matching_skills": ["Python", "Flask", "Gemini API"],
+            "gaps": ["None"],
+            "cover_note": "Dear OpenAI team,\nI am writing to apply...",
+            "cold_outreach": "Hi! I built Edvanta...",
+            "questions_to_ask": ["What is the primary LLM infrastructure?"],
+        }
+    )
+    card_html = digest._card(job)
+    assert "Cold Outreach" in card_html
+    assert "Cover Note" in card_html
+    assert "Verified India-Friendly" in card_html
+    assert "Edvanta AI" in card_html
+
+
+def test_digest_write(tmp_path: Path):
+    target = tmp_path / "out" / "custom_digest.html"
+    res = digest.write("<html><body>Digest</body></html>", target)
+    assert res.exists()
+    assert "Digest" in res.read_text(encoding="utf-8")
+
 

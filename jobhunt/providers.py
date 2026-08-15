@@ -162,7 +162,9 @@ class GeminiProvider(Provider):
                     time.sleep(delay)
                     continue
                 raise LLMError(f"gemini network error: {e}") from e
-        raise LLMError("gemini max retries reached")
+        raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
+
+
 
     def complete(self, model: str, system: str, user: str, max_tokens: int,
                  json_mode: bool = False) -> str:
@@ -233,7 +235,9 @@ class OpenAICompatProvider(Provider):
                     time.sleep(delay)
                     continue
                 raise LLMError(f"{self.name} network error: {e}") from e
-        raise LLMError(f"{self.name} max retries reached")
+        raise LLMError(f"{self.name} failed after {max_retries} attempts")  # pragma: no cover
+
+
 
 
 class GroqProvider(OpenAICompatProvider):

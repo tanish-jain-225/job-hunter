@@ -333,4 +333,82 @@ def test_ollama_provider_success(monkeypatch: pytest.MonkeyPatch):
     assert res == "Ollama OK"
 
 
+def test_anthropic_import_error(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_key")
+    p = providers.AnthropicProvider()
+
+    import builtins
+    orig_import = builtins.__import__
+
+    def mock_import(name, *args, **kwargs):
+        if name == "anthropic":
+            raise ImportError("No module named anthropic")
+        return orig_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+    with pytest.raises(LLMError, match="pip install anthropic"):
+        p._client()
+
+
+def test_gemini_max_retries_and_non_200(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    p = providers.GeminiProvider()
+
+    # Immediate non-retryable error (e.g. 403 Forbidden)
+    class ForbiddenResponse:
+        status_code = 403
+        text = "Forbidden"
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: ForbiddenResponse())
+    with pytest.raises(LLMError, match="gemini HTTP 403"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+    # Permanent network error reaching max retries
+    def mock_post_err(*a, **kw):
+        raise requests.RequestException("Network timeout after retries")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_err)
+    with pytest.raises(LLMError, match="gemini network error"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+
+def test_openai_compat_max_retries_error(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GROQ_API_KEY", "dummy_key")
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    p = providers.GroqProvider()
+
+    # Permanent network error reaching max retries
+    def mock_post_net_err(*a, **kw):
+        raise requests.RequestException("Groq network down")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_net_err)
+    with pytest.raises(LLMError, match="groq network error"):
+        p.complete("llama-3.3-70b", "sys", "user", 100)
+
+
+
+def test_ollama_connection_error(monkeypatch: pytest.MonkeyPatch):
+    p = providers.OllamaProvider()
+
+    def mock_post_err(*a, **kw):
+        raise requests.RequestException("Connection refused")
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_err)
+    with pytest.raises(LLMError, match="ollama unreachable"):
+        p.complete("llama3.1", "sys", "user", 100)
+
+
+def test_resolve_auto_detect_anthropic(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_anthropic_key")
+
+    provider, model = resolve("screen", check=False)
+    assert provider.name == "anthropic"
+
+
+
 

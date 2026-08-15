@@ -71,3 +71,17 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ### Question: Why did the same job show up again in my feed?
 * **Answer:** Some recruiters delete and re-post the same listing on Greenhouse or Lever. When they do, the ATS assigns it a **new unique job ID**. Because the ID changed, Job Hunter treats it as a fresh posting. You can filter duplicates out manually on your web dashboard by clicking **Mark Applied** or ignoring it.
+
+---
+
+## 🔗 Documentation Links
+
+- **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[ENGINE.md](ENGINE.md)** — Job-matching engine details.
+- **[MULTI_USER.md](MULTI_USER.md)** — Setting up multiple users.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
+- **[README.md](../README.md)** — Project homepage.
+

@@ -54,10 +54,12 @@ def sanitize_job_url(
         elif ats_name == "bamboohr" and slug and raw_id:
             return f"https://{slug}.bamboohr.com/careers/{raw_id}"
 
-    query = f"{company} {title} jobs apply".strip()
+    query = f"{company} {title}".strip()
     if not query:
-        query = "software engineering jobs apply"
-    return f"https://www.google.com/search?q={urllib.parse.quote_plus(query)}"
+        query = "software engineering"
+    full_query = f"{query} jobs apply"
+    return f"https://www.google.com/search?q={urllib.parse.quote_plus(full_query)}"
+
 
 
 def get_writable_path(path: str | Path) -> Path:
@@ -88,6 +90,24 @@ def get_writable_path(path: str | Path) -> Path:
         tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
         tmp_dir.mkdir(parents=True, exist_ok=True)
         return tmp_dir / target.name
+
+
+def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
+    """Safely replace dst with src, retrying transient Windows file locks."""
+    import time
+    for attempt in range(retries):
+        try:
+            os.replace(src, dst)
+            return
+        except OSError:
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                try:
+                    dst.write_bytes(src.read_bytes())
+                    src.unlink(missing_ok=True)
+                except Exception:
+                    os.replace(src, dst)
 
 
 class Store:
@@ -313,7 +333,7 @@ class Store:
                 row_copy["india_eligibility"] = draft.get("india_eligibility", "Verified India-Friendly")
                 row_copy["best_project"] = draft.get("best_project", "Edvanta")
                 w.writerow({"job_id": jid, **row_copy})
-        os.replace(tmp_csv, target_path)
+        _atomic_replace(tmp_csv, target_path)
         return target_path
 
     def save(self, auto_export: bool = True) -> None:
@@ -321,7 +341,7 @@ class Store:
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),
                        encoding="utf-8")
-        os.replace(tmp, self.path)
+        _atomic_replace(tmp, self.path)
         if auto_export:
             try:
                 self.export_csv()
