@@ -18,33 +18,8 @@ function notifySync() {
   }
 }
 
-// Light/Dark Theme management
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeButton(savedTheme);
-}
-
-function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  updateThemeButton(newTheme);
-  
-  // Post message to digest frame if present
-  const frame = document.getElementById('digest-frame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.postMessage({ type: 'theme', theme: newTheme }, '*');
-  }
-}
-
-function updateThemeButton(theme) {
-  const btn = document.getElementById('theme-toggle');
-  if (btn) {
-    btn.innerHTML = theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
-  }
-}
+// Enforce professional Light Mode theme
+document.documentElement.setAttribute('data-theme', 'light');
 
 function showToast(message, type = 'success', duration = 3000) {
   const container = document.getElementById('toast-container');
@@ -151,7 +126,8 @@ async function fetchAndRenderJobs() {
               <span class="ats-tag">${escapeHtml(j.ats || 'ats')}</span>
             </div>
             <div class="job-sub">
-              <strong>${escapeHtml(j.company)}</strong> · ${escapeHtml(j.location || 'Remote/Unspecified')}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><strong>${escapeHtml(j.company)}</strong> 
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; margin-left: 8px;"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>${escapeHtml(j.location || 'Remote/Unspecified')}
               <span style="font-size:11px; color:var(--text-muted); margin-left:8px; display:inline-block;">(${escapeHtml(j.job_id)})</span>
             </div>
             ${j.reason ? `<div class="job-reason">💡 ${escapeHtml(j.reason)}</div>` : ''}
@@ -162,14 +138,14 @@ async function fetchAndRenderJobs() {
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               ${isApplied
-                ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')">✓ Applied</button>`
-                : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')">Mark Applied</button>`
+                ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied</button>`
+                : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied</button>`
               }
-              <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')">🗑️ Delete</button>
+              <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete</button>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')">Inspect Kit 📄</button>` : ''}
-              <a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">Open Link ↗</a>
+              ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Inspect Kit</button>` : ''}
+              <a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Link</a>
             </div>
           </div>
         </div>
@@ -181,15 +157,28 @@ async function fetchAndRenderJobs() {
   }
 }
 
-function copySectionText(textId, btnId, originalLabel) {
+function copySectionText(textId, btnId) {
   const el = document.getElementById(textId);
   if (!el) return;
   const txt = el.innerText;
   navigator.clipboard.writeText(txt).then(() => {
     const btn = document.getElementById(btnId);
-    if (btn) btn.innerText = 'Copied! ✓';
-    showToast('Copied to clipboard!', 'success');
-    setTimeout(() => { if (btn) btn.innerText = originalLabel; }, 2000);
+    if (btn) {
+      const type = btn.getAttribute('data-original');
+      let originalHtml = '';
+      if (type === 'outreach') {
+        originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
+      } else if (type === 'cover') {
+        originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
+      }
+      
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="color:#10b981;">Copied!</span>`;
+      
+      showToast('Copied to clipboard!', 'success');
+      setTimeout(() => { 
+        if (btn) btn.innerHTML = originalHtml; 
+      }, 2000);
+    }
   });
 }
 
@@ -204,17 +193,20 @@ function openKitModal(jobId) {
   let html = '';
 
   if (d.fit_summary) {
-    html += `<div class="kit-section"><div class="kit-label">Why It Fits</div><p style="font-size:13px; line-height:1.5;">${escapeHtml(d.fit_summary)}</p></div>`;
+    html += `<div class="kit-section"><div class="kit-label">Why It Fits</div><p style="font-size:13.5px; line-height:1.6; color:var(--text-main);">${escapeHtml(d.fit_summary)}</p></div>`;
   }
+
+  const outreachLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
+  const coverLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
 
   if (d.cold_outreach) {
     html += `
       <div class="kit-section">
         <div class="kit-label" style="display:flex; justify-content:space-between; align-items:center;">
           <span>⚡ Cold Outreach (&lt;80 words)</span>
-          <button class="copy-btn" id="btn-copy-outreach" onclick="copySectionText('outreach-text', 'btn-copy-outreach', 'Copy Outreach ⚡')">Copy Outreach ⚡</button>
+          <button class="copy-btn" id="btn-copy-outreach" data-original="outreach" onclick="copySectionText('outreach-text', 'btn-copy-outreach')">${outreachLabelSvg}</button>
         </div>
-        <div class="cover-box" id="outreach-text" style="background:var(--success-bg); color:var(--success); font-family:monospace;">${escapeHtml(d.cold_outreach)}</div>
+        <div class="cover-box" id="outreach-text" style="background:var(--success-bg); color:var(--success); border-color:var(--success-border); font-family:monospace;">${escapeHtml(d.cold_outreach)}</div>
       </div>`;
   }
 
@@ -223,23 +215,23 @@ function openKitModal(jobId) {
       <div class="kit-section">
         <div class="kit-label" style="display:flex; justify-content:space-between; align-items:center;">
           <span>📝 Cover Note</span>
-          <button class="copy-btn" id="btn-copy-cover" onclick="copySectionText('cover-text', 'btn-copy-cover', 'Copy Note 📋')">Copy Note 📋</button>
+          <button class="copy-btn" id="btn-copy-cover" data-original="cover" onclick="copySectionText('cover-text', 'btn-copy-cover')">${coverLabelSvg}</button>
         </div>
         <div class="cover-box" id="cover-text">${escapeHtml(d.cover_note)}</div>
       </div>`;
   }
 
   if (d.tailored_bullets && d.tailored_bullets.length) {
-    html += `<div class="kit-section"><div class="kit-label">Tailored Resume Bullets</div><ul style="padding-left:18px; font-size:13px;">${d.tailored_bullets.map(b => `<li style="margin-bottom:4px;">${escapeHtml(b)}</li>`).join('')}</ul></div>`;
+    html += `<div class="kit-section"><div class="kit-label">Tailored Resume Bullets</div><ul style="padding-left:18px; font-size:13.5px; line-height:1.6; color:var(--text-main);">${d.tailored_bullets.map(b => `<li style="margin-bottom:6px;">${escapeHtml(b)}</li>`).join('')}</ul></div>`;
   }
   if (d.gaps && d.gaps.length) {
-    html += `<div class="kit-section"><div class="kit-label">Honest Gaps</div><ul style="padding-left:18px; font-size:13px;">${d.gaps.map(g => `<li style="margin-bottom:4px;">${escapeHtml(g)}</li>`).join('')}</ul></div>`;
+    html += `<div class="kit-section"><div class="kit-label" style="color:var(--danger);">Honest Gaps / Gaps</div><ul style="padding-left:18px; font-size:13.5px; line-height:1.6; color:var(--text-main);">${d.gaps.map(g => `<li style="margin-bottom:6px; color:#b91c1c;">${escapeHtml(g)}</li>`).join('')}</ul></div>`;
   }
   if (d.questions_to_ask && d.questions_to_ask.length) {
-    html += `<div class="kit-section"><div class="kit-label">Questions To Ask</div><ul style="padding-left:18px; font-size:13px;">${d.questions_to_ask.map(q => `<li style="margin-bottom:4px;">${escapeHtml(q)}</li>`).join('')}</ul></div>`;
+    html += `<div class="kit-section"><div class="kit-label">Questions To Ask</div><ul style="padding-left:18px; font-size:13.5px; line-height:1.6; color:var(--text-main);">${d.questions_to_ask.map(q => `<li style="margin-bottom:6px;">${escapeHtml(q)}</li>`).join('')}</ul></div>`;
   }
 
-  html += `<div style="margin-top:20px; text-align:right;"><a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-block; text-decoration:none;">Open Posting Page ↗</a></div>`;
+  html += `<div style="margin-top:24px; text-align:right;"><a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Posting Page</a></div>`;
 
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('kit-modal').classList.add('active');
@@ -296,7 +288,9 @@ async function toggleAppliedDirect(jobId, action) {
 
   // Optimistic UI update
   if (btn) {
-    btn.innerText = isUnmark ? 'Mark Applied' : '✓ Applied';
+    btn.innerHTML = isUnmark 
+      ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`
+      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`;
     btn.className = isUnmark ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-sm btn-applied';
   }
 
@@ -313,7 +307,9 @@ async function toggleAppliedDirect(jobId, action) {
     } else {
       // Rollback on error
       if (btn) {
-        btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
+        btn.innerHTML = isUnmark 
+          ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`;
         btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
       }
       showToast('Notice: ' + data.message, 'error');
@@ -321,7 +317,9 @@ async function toggleAppliedDirect(jobId, action) {
   } catch (err) {
     // Rollback on exception
     if (btn) {
-      btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
+      btn.innerHTML = isUnmark 
+        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`;
       btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
     }
     showToast('Notice: ' + err.message, 'error');
@@ -493,6 +491,5 @@ document.addEventListener('keydown', (e) => {
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
   loadStats();
 });
