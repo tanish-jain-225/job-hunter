@@ -268,6 +268,11 @@ def test_cmd_run_no_jobs_with_send(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_fetch_jobs", lambda args, cfg: ([], []))
 
+    sent = []
+    monkeypatch.setattr(cli.mailer, "send", lambda subj, body: sent.append(subj))
+
     args = argparse.Namespace(config=None, mock=True, scorer="keyword", send=True)
     assert cli.cmd_run(args) == 0
+    assert len(sent) == 1
+
 

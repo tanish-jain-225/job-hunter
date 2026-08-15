@@ -149,11 +149,12 @@ def test_store_score_clamping(tmp_path: Path):
     seen_path = tmp_path / "seen.json"
     st = Store(seen_path)
 
-    j1 = st.add_job(title="High Score Job", company="Acme", score=15.0)
-    j2 = st.add_job(title="Low Score Job", company="Acme", score=-5.0)
+    j1 = st.add_job(title="High Score Job", company="AcmeHigh", score=15.0)
+    j2 = st.add_job(title="Low Score Job", company="AcmeLow", score=-5.0)
 
     assert st.data[j1]["score"] == 10.0
     assert st.data[j2]["score"] == 0.0
+
 
 
 def test_load_seen_legacy_array(tmp_path: Path):
