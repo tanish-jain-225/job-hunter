@@ -4,7 +4,11 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 
 > 💡 *For user setup instructions, see [SETUP.md](SETUP.md).*  
 > 💡 *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
-> 💡 *For architectural design specifications, see [jobhunt.md](jobhunt.md).*
+> 💡 *For the web dashboard and REST API, see [DASHBOARD.md](DASHBOARD.md).*  
+> 💡 *For the scoring and matching engine, see [ENGINE.md](ENGINE.md).*  
+> 💡 *For multi-user settings, see [MULTI_USER.md](MULTI_USER.md).*  
+> 💡 *For troubleshooting guidelines, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).*  
+> 💡 *For architectural design specifications, see [JOB_HUNT.md](JOB_HUNT.md).*
 
 ---
 
@@ -108,5 +112,9 @@ jobhunt/
 
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
-- **[jobhunt.md](jobhunt.md)** — Original prompt & technical requirements specification.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine details.
+- **[MULTI_USER.md](MULTI_USER.md)** — Multi-user setup strategies.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting.
+- **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
 - **[README.md](../README.md)** — Project homepage.

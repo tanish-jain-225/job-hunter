@@ -5,8 +5,12 @@
 ---
 
 > 💡 *For step-by-step beginner setup, see [SETUP.md](SETUP.md).*  
+> 💡 *For the web dashboard and REST API endpoints, see [DASHBOARD.md](DASHBOARD.md).*  
+> 💡 *For details on the job-matching LLM scoring system, see [ENGINE.md](ENGINE.md).*  
+> 💡 *To run Job Hunter for multiple people, see [MULTI_USER.md](MULTI_USER.md).*  
+> 💡 *For SMTP or action-running issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).*  
 > 💡 *For developer guidelines & testing, see [CONTRIBUTING.md](CONTRIBUTING.md).*  
-> 💡 *For architectural design specifications, see [jobhunt.md](jobhunt.md).*
+> 💡 *For architectural design specifications, see [JOB_HUNT.md](JOB_HUNT.md).*
 
 ---
 

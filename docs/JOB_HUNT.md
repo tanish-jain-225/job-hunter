@@ -4,6 +4,10 @@ This document contains the foundational specification prompt for **Job Hunter**,
 
 > 💡 *For user setup instructions, see [SETUP.md](SETUP.md).*  
 > 💡 *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
+> 💡 *For the web dashboard details, see [DASHBOARD.md](DASHBOARD.md).*  
+> 💡 *For details on the job-matching engine, see [ENGINE.md](ENGINE.md).*  
+> 💡 *For setting up multiple users, see [MULTI_USER.md](MULTI_USER.md).*  
+> 💡 *For troubleshooting common issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).*  
 > 💡 *For developer guidelines & testing, see [CONTRIBUTING.md](CONTRIBUTING.md).*
 
 ---
@@ -84,5 +88,9 @@ Make provider swappable via environment variables (`LLM_PROVIDER`):
 
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and API reference.
+- **[ENGINE.md](ENGINE.md)** — Job-matching engine details.
+- **[MULTI_USER.md](MULTI_USER.md)** — Setting up multiple users.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Troubleshooting and FAQs.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions.
 - **[README.md](../README.md)** — Project homepage.

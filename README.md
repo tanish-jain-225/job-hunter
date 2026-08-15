@@ -350,9 +350,13 @@ job-hunter/
 ├── README.md                 # Master project documentation & narrative
 └── docs/                     # End-to-End Documentation Suite
     ├── GUIDE.md              # Personal Utility & 3-Mode Setup Guide
-    ├── SETUP.md              # 13-step beginner setup guide
+    ├── SETUP.md              # Complete installation & setup guide
+    ├── DASHBOARD.md          # Web dashboard & REST API Reference
+    ├── ENGINE.md             # LLM Matcher & Scoring engine specifications
+    ├── MULTI_USER.md         # Forking vs Centralized Multi-User guide
+    ├── TROUBLESHOOTING.md    # Common errors & solutions guide
     ├── CONTRIBUTING.md       # Developer guidelines & testing
-    └── jobhunt.md            # System architecture specification prompt
+    └── JOB_HUNT.md            # System architecture specification prompt
 ```
 
 ---
