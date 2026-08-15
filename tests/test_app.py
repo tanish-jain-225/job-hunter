@@ -174,3 +174,49 @@ def test_logo_route(client):
     assert res.status_code in (200, 204)
 
 
+def test_api_config(client):
+    """Verify /api/config endpoint returns configuration summary."""
+    res = client.get("/api/config")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["status"] == "success"
+    assert "companies_count" in data
+    assert "filters" in data
+    assert "score_threshold" in data
+
+
+def test_api_export_csv(client):
+    """Verify /api/export/csv endpoint serves CSV download file."""
+    res = client.get("/api/export/csv")
+    assert res.status_code == 200
+    assert res.mimetype == "text/csv"
+    assert "attachment" in res.headers.get("Content-Disposition", "")
+    assert b"job_id" in res.data
+
+
+def test_api_jobs_ats_and_sorting(client):
+    """Verify /api/jobs filtering by ats and sorting options."""
+    # Add custom jobs with distinct attributes
+    client.post("/api/jobs/add", json={"title": "Alpha Dev", "company": "AAA", "ats": "greenhouse", "score": 6.0})
+    client.post("/api/jobs/add", json={"title": "Beta Dev", "company": "BBB", "ats": "lever", "score": 9.5})
+
+    # Test ATS filter
+    res_gh = client.get("/api/jobs?ats=greenhouse")
+    assert res_gh.status_code == 200
+    for j in res_gh.get_json()["jobs"]:
+        assert j.get("ats", "").lower() == "greenhouse" or "greenhouse" in j.get("job_id", "")
+
+    # Test Sort by Score
+    res_score_sort = client.get("/api/jobs?sort=score")
+    assert res_score_sort.status_code == 200
+    scores = [j.get("score", 0) for j in res_score_sort.get_json()["jobs"] if j.get("score") is not None]
+    assert scores == sorted(scores, reverse=True)
+
+    # Test Sort by Company
+    res_comp_sort = client.get("/api/jobs?sort=company")
+    assert res_comp_sort.status_code == 200
+    companies = [j.get("company", "").lower() for j in res_comp_sort.get_json()["jobs"]]
+    assert companies == sorted(companies)
+
+
+

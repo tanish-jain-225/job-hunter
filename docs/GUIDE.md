@@ -1,6 +1,6 @@
 # 📖 Job Hunter — Personal Utility Setup & Usage Guide
 
-**Job Hunter** is a 100% database-free, zero-cost, private personal utility designed to help individual job seekers discover, score, track, and apply for high-match engineering and tech roles across major ATS platforms (**Greenhouse**, **Lever**, **Ashby**).
+**Job Hunter** is a 100% database-free, zero-cost, private personal utility designed to help individual job seekers discover, score, track, and apply for high-match engineering and tech roles across major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**).
 
 ---
 

@@ -32,13 +32,19 @@ One daily run performs the following automated funnel:
 - **Greenhouse**: `GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
 - **Lever**: `GET https://api.lever.co/v0/postings/{slug}?mode=json`
 - **Ashby**: `GET https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
+- **Workable**: `GET https://apply.workable.com/api/v2/accounts/{slug}/jobs`
+- **SmartRecruiters**: `GET https://api.smartrecruiters.com/v1/companies/{slug}/postings`
+- **BambooHR**: `GET https://{slug}.bamboohr.com/careers/list`
 
 ### Field Mapping
 - **Greenhouse** $\rightarrow$ `jobs[]` with `id`, `title`, `location.name`, `absolute_url`, `updated_at`, `content` (HTML-entity-escaped HTML).
 - **Lever** $\rightarrow$ top-level array with `id`, `text` (title), `categories.location`, `hostedUrl`, `descriptionPlain`, `createdAt` (epoch **ms**). Concatenate `descriptionPlain` + `lists[]` + `additionalPlain`.
 - **Ashby** $\rightarrow$ `jobs[]` with `id`, `title`, `location`, `jobUrl`, `descriptionPlain`, `publishedAt`, `compensation`. Skip roles with `isListed: false`.
+- **Workable** $\rightarrow$ `results[]` or `jobs[]` with `shortcode`, `title`, `location.city`, `url`, `description`, `published`.
+- **SmartRecruiters** $\rightarrow$ `content[]` with `id`, `name`, `location.city`, `refNumber`, `jobAd.sections.jobDescription.text`, `releasedDate`.
+- **BambooHR** $\rightarrow$ `result[]` or `jobs[]` with `id`, `jobOpeningName`, `location`, `description`, `datePosted`.
 
-Normalize all three into one dataclass with a globally unique `job_id = "{ats}:{slug}:{id}"` for deduplication.
+Normalize all ATS boards into one dataclass with a globally unique `job_id = "{ats}:{slug}:{id}"` for deduplication.
 
 ---
 

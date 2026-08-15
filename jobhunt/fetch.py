@@ -211,6 +211,29 @@ def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
+@register_ats("bamboohr", "https://{slug}.bamboohr.com/careers/list")
+def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
+    out: list[Job] = []
+    jobs_list = (body or {}).get("result") or (body or {}).get("jobs") or (body if isinstance(body, list) else [])
+    for j in jobs_list:
+        if not isinstance(j, dict):
+            continue
+        jid = j.get("id") or j.get("jobOpeningId")
+        loc_parts = [j.get("location", {}).get("city"), j.get("location", {}).get("state")]
+        loc_str = ", ".join(p for p in loc_parts if p) or j.get("location") or "Remote/Unspecified"
+        out.append(Job(
+            job_id=f"bamboohr:{slug}:{jid}",
+            ats="bamboohr",
+            company=company,
+            title=(j.get("jobOpeningName") or j.get("title") or "").strip(),
+            location=str(loc_str).strip(),
+            url=f"https://{slug}.bamboohr.com/careers/{jid}",
+            description=strip_html(j.get("description") or j.get("jobDescription")),
+            posted_at=j.get("datePosted") or j.get("postedDate"),
+        ))
+    return out
+
+
 # Dict compatibility wrapper pointing to the registry
 ENDPOINTS = REGISTERED_ATS
 

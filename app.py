@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template_string, request, send_file
+from flask import Flask, jsonify, render_template, request, send_file
 
 # Add project root to sys.path
 ROOT = Path(__file__).resolve().parent
@@ -27,1132 +27,12 @@ from jobhunt.store import Store, get_writable_path
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Hunter — Executive AI Career Dashboard</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="shortcut icon" type="image/png" href="/logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --border: #e2e8f0;
-      --border-hover: #cbd5e1;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --primary-light: #e0e7ff;
-      --success: #059669;
-      --success-bg: #ecfdf5;
-      --warning: #d97706;
-      --warning-bg: #fffbeb;
-      --danger: #dc2626;
-      --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
-      --radius: 12px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background-color: var(--bg);
-      color: var(--text-main);
-      line-height: 1.5;
-      padding: 24px;
-      max-width: 1320px;
-      margin: 0 auto;
-    }
-
-    /* Header */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--card-bg);
-      padding: 20px 28px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .brand-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      object-fit: contain;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-    }
-    .brand h1 {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--text-main);
-      letter-spacing: -0.025em;
-    }
-    .brand p {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    /* Metrics Pills */
-    .metrics {
-      display: flex;
-      gap: 12px;
-    }
-    .metric-pill {
-      background: #f1f5f9;
-      border: 1px solid var(--border);
-      padding: 10px 18px;
-      border-radius: 10px;
-      text-align: center;
-      min-width: 105px;
-      transition: transform 0.15s ease;
-    }
-    .metric-pill:hover {
-      transform: translateY(-1px);
-    }
-    .metric-val {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--primary);
-    }
-    .metric-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-    }
-
-    /* Grid Layout */
-    .grid {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 24px;
-    }
-    @media (max-width: 920px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-
-    /* Card */
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-    .card-title {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--text-main);
-      letter-spacing: -0.01em;
-    }
-
-    /* Buttons & Controls */
-    .btn {
-      width: 100%;
-      background: var(--primary);
-      color: #ffffff;
-      border: none;
-      padding: 12px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.15s ease-in-out;
-      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-    }
-    .btn:hover {
-      background: var(--primary-hover);
-      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-      transform: translateY(-1px);
-    }
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .btn-secondary {
-      background: #ffffff;
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
-      width: auto;
-    }
-    .btn-secondary:hover {
-      background: #f8fafc;
-      border-color: var(--border-hover);
-      box-shadow: var(--shadow-md);
-    }
-    .btn-sm {
-      padding: 6px 14px;
-      font-size: 12px;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-    .btn-applied {
-      background: #ecfdf5;
-      color: #059669;
-      border: 1px solid #a7f3d0;
-    }
-    .btn-applied:hover {
-      background: #d1fae5;
-      border-color: #6ee7b7;
-    }
-    .btn-danger {
-      background: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-    .btn-danger:hover {
-      background: #fee2e2;
-      border-color: #fca5a5;
-    }
-
-    .form-group { margin-bottom: 16px; }
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-    .form-input {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .form-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-      user-select: none;
-      font-weight: 500;
-    }
-
-    /* Console Output */
-    .console {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-      color: #334155;
-      max-height: 150px;
-      overflow-y: auto;
-      margin-top: 16px;
-      white-space: pre-wrap;
-      line-height: 1.6;
-    }
-
-    /* Viewport Tabs */
-    .tab-bar {
-      display: flex;
-      gap: 8px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .tab-btn {
-      padding: 10px 20px;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .tab-btn:hover { color: var(--text-main); }
-    .tab-btn.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-
-    .viewport-frame {
-      width: 100%;
-      height: 780px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: #ffffff;
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* Board Controls & Job Cards */
-    .tracker-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .tracker-search { flex: 1; min-width: 240px; }
-    .filter-pills { display: flex; gap: 6px; }
-    .pill {
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #ffffff;
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .pill:hover { border-color: var(--border-hover); color: var(--text-main); }
-    .pill.active {
-      background: var(--primary);
-      color: #ffffff;
-      border-color: var(--primary);
-      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-    }
-
-    .job-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-height: 740px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-    .job-item {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-    }
-    .job-item:hover {
-      border-color: var(--border-hover);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
-    }
-    .job-meta { flex: 1; }
-    .job-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 4px;
-      line-height: 1.3;
-    }
-    .job-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .ats-tag {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      background: #f1f5f9;
-      color: #475569;
-      margin-left: 6px;
-    }
-    .job-reason {
-      font-size: 12px;
-      color: #334155;
-      background: #f8fafc;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      margin-top: 8px;
-    }
-
-    .job-actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 10px;
-    }
-    .score-badge {
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-      min-width: 48px;
-      text-align: center;
-    }
-    .score-high { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .score-mid { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
-    .score-low { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
-
-    /* Modal Dialog for Kit Inspection */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-content {
-      background: #ffffff;
-      border-radius: 16px;
-      max-width: 720px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-      border: 1px solid var(--border);
-      padding: 24px 28px;
-      position: relative;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .modal-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
-    .modal-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-    .modal-close {
-      background: #f1f5f9;
-      border: none;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-close:hover { background: #e2e8f0; color: var(--text-main); }
-
-    .kit-section {
-      margin-bottom: 20px;
-    }
-    .kit-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      font-weight: 800;
-      color: var(--text-muted);
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-    }
-    .cover-box {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #334155;
-      white-space: pre-wrap;
-    }
-    .copy-btn {
-      float: right;
-      font-size: 11px;
-      padding: 4px 10px;
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .copy-btn:hover { background: var(--primary-light); color: var(--primary); }
-
-    /* Spinner */
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ffffff;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      display: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Toast Notification System */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    }
-    .toast {
-      padding: 12px 18px;
-      border-radius: 10px;
-      background: var(--card-bg);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-lg);
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
-      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      transition: opacity 0.25s ease, transform 0.25s ease;
-    }
-    .toast-success { border-left: 4px solid var(--success); }
-    .toast-error { border-left: 4px solid var(--danger); }
-    .toast-info { border-left: 4px solid var(--primary); }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateY(12px) scale(0.96); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toast-container"></div>
-
-  <!-- Top Navigation Header -->
-  <header>
-    <div class="brand">
-      <img src="/logo.png" alt="Job Hunter Logo" class="brand-icon">
-      <div>
-        <h1>Job Hunter</h1>
-        <p>Autonomous AI Job-Search Web Board</p>
-      </div>
-    </div>
-    <div class="metrics">
-      <div class="metric-pill">
-        <div class="metric-val" id="metric-tracked">--</div>
-        <div class="metric-label">Tracked</div>
-      </div>
-      <div class="metric-pill">
-        <div class="metric-val" id="metric-emailed">--</div>
-        <div class="metric-label">Emailed</div>
-      </div>
-      <div class="metric-pill">
-        <div class="metric-val" id="metric-applied">--</div>
-        <div class="metric-label">Applied</div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Grid -->
-  <div class="grid">
-
-    <!-- Sidebar Controls -->
-    <div>
-
-      <!-- Run Pipeline Card -->
-      <div class="card">
-        <div class="card-title">🚀 On-Demand Pipeline Trigger</div>
-        <button class="btn" id="btn-run" onclick="runPipeline()">
-          <span class="spinner" id="run-spinner"></span>
-          <span id="run-text">Run Job Hunt Now</span>
-        </button>
-        <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning.</div>
-      </div>
-
-      <!-- Quick Mark Applied Card -->
-      <div class="card">
-        <div class="card-title">📌 Quick Mark Applied</div>
-        <div class="form-group">
-          <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
-          <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('mark')">Mark Applied</button>
-          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('unmark')">Unmark</button>
-        </div>
-        <div id="applied-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
-      </div>
-
-      <!-- Add Custom Job Card -->
-      <div class="card">
-        <div class="card-title">➕ Add Custom Job</div>
-        <div class="form-group">
-          <label class="form-label" for="add-title">Job Title *</label>
-          <input type="text" class="form-input" id="add-title" placeholder="e.g. Senior Backend Engineer">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-company">Company *</label>
-          <input type="text" class="form-input" id="add-company" placeholder="e.g. Stripe">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-location">Location</label>
-          <input type="text" class="form-input" id="add-location" placeholder="e.g. San Francisco / Remote">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-url">Job URL</label>
-          <input type="url" class="form-input" id="add-url" placeholder="https://...">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-score">Match Score (0-10)</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-input" id="add-score" value="8.0">
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="add-applied"> Mark as already applied
-          </label>
-        </div>
-        <button class="btn btn-secondary" style="width:100%;" onclick="addCustomJobFromInput()">Add Job to Store</button>
-        <div id="add-job-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
-      </div>
-
-    </div>
-
-    <!-- Main Board Viewport -->
-    <div>
-      <div class="tab-bar">
-        <button class="tab-btn active" id="tab-btn-digest" onclick="switchTab('digest')">📬 Daily Digest Briefing</button>
-        <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')">📋 Interactive Job Board</button>
-      </div>
-
-      <!-- Tab 1: Digest Viewport -->
-      <div id="tab-content-digest">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <span style="font-size:13px; color:var(--text-muted); font-weight:500;">Latest generated HTML digest briefing preview</span>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-secondary btn-sm" onclick="refreshDigest()">🔄 Refresh Digest</button>
-            <a href="/api/digest" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">↗ Open Full Tab</a>
-          </div>
-        </div>
-        <iframe class="viewport-frame" id="digest-frame" src="/api/digest"></iframe>
-      </div>
-
-      <!-- Tab 2: Tracker Board -->
-      <div id="tab-content-tracker" style="display:none;">
-        <div class="tracker-bar">
-          <input type="text" class="form-input tracker-search" id="tracker-search-input"
-                 placeholder="Search company, title, or location... (Press '/' to search)" oninput="fetchAndRenderJobs()">
-          <div class="filter-pills">
-            <button class="pill active" id="pill-all" onclick="setFilter('all')">All Jobs</button>
-            <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">Shortlisted (7.0+)</button>
-            <button class="pill" id="pill-applied" onclick="setFilter('applied')">Applied</button>
-            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">Unapplied</button>
-          </div>
-        </div>
-        <div class="job-list" id="job-list-container">
-          <div style="text-align:center; padding:40px; color:var(--text-muted);">Loading job board data...</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Modal for Inspecting Application Kit -->
-  <div class="modal-overlay" id="kit-modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div>
-          <div class="modal-title" id="modal-job-title">Job Application Kit</div>
-          <div class="modal-subtitle" id="modal-job-meta">Company · Location</div>
-        </div>
-        <button class="modal-close" onclick="closeKitModal()">×</button>
-      </div>
-      <div id="modal-body">
-        <!-- Kit Details populated dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let currentFilter = 'all';
-    let cachedJobsMap = {};
-
-    // Cross-Tab Broadcast Channel Sync
-    const syncChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('jobhunt_sync') : null;
-    if (syncChannel) {
-      syncChannel.onmessage = (event) => {
-        if (event.data && event.data.type === 'SYNC_UPDATE') {
-          refreshAllViews(false);
-          showToast('Dashboard updated from another tab', 'info');
-        }
-      };
-    }
-
-    function notifySync() {
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_UPDATE', timestamp: Date.now() });
-      }
-    }
-
-    function showToast(message, type = 'success', duration = 3000) {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-      toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)';
-        setTimeout(() => toast.remove(), 250);
-      }, duration);
-    }
-
-    async function parseJsonResponse(res) {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        if (!res.ok) {
-          throw new Error(`Server returned HTTP ${res.status} (${res.statusText || 'Server Error'})`);
-        }
-        throw new Error(`Unexpected server response`);
-      }
-    }
-
-    async function loadStats() {
-      try {
-        const res = await fetch('/api/stats');
-        const data = await parseJsonResponse(res);
-        document.getElementById('metric-tracked').innerText = data.tracked ?? 0;
-        document.getElementById('metric-emailed').innerText = data.emailed ?? 0;
-        document.getElementById('metric-applied').innerText = data.applied ?? 0;
-      } catch (err) {
-        console.error('Failed to load stats', err);
-      }
-    }
-
-    async function refreshAllViews(notify = true) {
-      await loadStats();
-      await fetchAndRenderJobs();
-      refreshDigest();
-      if (notify) notifySync();
-    }
-
-    function switchTab(tab) {
-      document.getElementById('tab-content-digest').style.display = tab === 'digest' ? 'block' : 'none';
-      document.getElementById('tab-content-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
-
-      document.getElementById('tab-btn-digest').classList.toggle('active', tab === 'digest');
-      document.getElementById('tab-btn-tracker').classList.toggle('active', tab === 'tracker');
-
-      if (tab === 'digest') {
-        refreshDigest();
-      } else if (tab === 'tracker') {
-        fetchAndRenderJobs();
-      }
-    }
-
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
-      const pill = document.getElementById('pill-' + filter);
-      if (pill) pill.classList.add('active');
-      fetchAndRenderJobs();
-    }
-
-    async function fetchAndRenderJobs() {
-      const container = document.getElementById('job-list-container');
-      const search = document.getElementById('tracker-search-input').value.trim();
-
-      try {
-        const url = `/api/jobs?status=${encodeURIComponent(currentFilter)}&search=${encodeURIComponent(search)}`;
-        const res = await fetch(url);
-        const data = await parseJsonResponse(res);
-
-        if (data.status !== 'success' || !data.jobs || data.jobs.length === 0) {
-          container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No matching jobs found in tracking store.</div>';
-          return;
-        }
-
-        cachedJobsMap = {};
-        data.jobs.forEach(j => { cachedJobsMap[j.job_id] = j; });
-
-        container.innerHTML = data.jobs.map(j => {
-          const score = j.score != null ? Number(j.score).toFixed(1) : 'N/A';
-          const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
-          const isApplied = Boolean(j.applied);
-          const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary);
-
-          return `
-            <div class="job-item" id="job-card-${escapeHtml(j.job_id)}">
-              <div class="job-meta">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="job-title">${escapeHtml(j.title)}</span>
-                  <span class="ats-tag">${escapeHtml(j.ats || 'ats')}</span>
-                </div>
-                <div class="job-sub">
-                  <strong>${escapeHtml(j.company)}</strong> · ${escapeHtml(j.location || 'Remote/Unspecified')}
-                  <span style="font-size:11px; color:var(--text-muted); margin-left:8px;">(${escapeHtml(j.job_id)})</span>
-                </div>
-                ${j.reason ? `<div class="job-reason">💡 ${escapeHtml(j.reason)}</div>` : ''}
-              </div>
-              <div class="job-actions">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="score-badge ${scoreClass}">${score}</span>
-                  ${isApplied
-                    ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')">✓ Applied</button>`
-                    : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')">Mark Applied</button>`
-                  }
-                  <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')">🗑️ Delete</button>
-                </div>
-                <div style="display:flex; gap:6px;">
-                  ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')">Inspect Kit 📄</button>` : ''}
-                  <a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">Open Link ↗</a>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-      } catch (err) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger);">Notice: ${escapeHtml(err.message)}</div>`;
-      }
-    }
-
-    function openKitModal(jobId) {
-      const j = cachedJobsMap[jobId];
-      if (!j || !j.draft) return;
-
-      document.getElementById('modal-job-title').innerText = j.title || 'Job Application Kit';
-      document.getElementById('modal-job-meta').innerText = `${j.company} · ${j.location || 'Remote/Unspecified'}`;
-
-      const d = j.draft;
-      let html = '';
-
-      if (d.fit_summary) {
-        html += `<div class="kit-section"><div class="kit-label">Why It Fits</div><p style="font-size:13px; color:#334155; line-height:1.5;">${escapeHtml(d.fit_summary)}</p></div>`;
-      }
-      if (d.cover_note) {
-        html += `
-          <div class="kit-section">
-            <div class="kit-label">Cover Note
-              <button class="copy-btn" id="btn-copy-cover" onclick="copyCoverNote()">Copy Note 📋</button>
-            </div>
-            <div class="cover-box" id="cover-text">${escapeHtml(d.cover_note)}</div>
-          </div>`;
-      }
-      if (d.tailored_bullets && d.tailored_bullets.length) {
-        html += `<div class="kit-section"><div class="kit-label">Tailored Resume Bullets</div><ul style="padding-left:18px; font-size:13px; color:#334155;">${d.tailored_bullets.map(b => `<li style="margin-bottom:4px;">${escapeHtml(b)}</li>`).join('')}</ul></div>`;
-      }
-      if (d.gaps && d.gaps.length) {
-        html += `<div class="kit-section"><div class="kit-label">Honest Gaps</div><ul style="padding-left:18px; font-size:13px; color:#334155;">${d.gaps.map(g => `<li style="margin-bottom:4px;">${escapeHtml(g)}</li>`).join('')}</ul></div>`;
-      }
-      if (d.questions_to_ask && d.questions_to_ask.length) {
-        html += `<div class="kit-section"><div class="kit-label">Questions To Ask</div><ul style="padding-left:18px; font-size:13px; color:#334155;">${d.questions_to_ask.map(q => `<li style="margin-bottom:4px;">${escapeHtml(q)}</li>`).join('')}</ul></div>`;
-      }
-
-      html += `<div style="margin-top:20px; text-align:right;"><a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-block; text-decoration:none;">Open Posting Page ↗</a></div>`;
-
-      document.getElementById('modal-body').innerHTML = html;
-      document.getElementById('kit-modal').classList.add('active');
-    }
-
-    function closeKitModal() {
-      document.getElementById('kit-modal').classList.remove('active');
-    }
-
-    function copyCoverNote() {
-      const txt = document.getElementById('cover-text').innerText;
-      navigator.clipboard.writeText(txt).then(() => {
-        const btn = document.getElementById('btn-copy-cover');
-        btn.innerText = 'Copied! ✓';
-        showToast('Cover note copied to clipboard!', 'success');
-        setTimeout(() => { btn.innerText = 'Copy Note 📋'; }, 2000);
-      });
-    }
-
-    async function runPipeline() {
-      const btn = document.getElementById('btn-run');
-      const spinner = document.getElementById('run-spinner');
-      const text = document.getElementById('run-text');
-      const consoleBox = document.getElementById('run-console');
-      const isMock = false;
-
-      btn.disabled = true;
-      spinner.style.display = 'block';
-      text.innerText = 'Hunting Jobs...';
-      consoleBox.innerText = `Starting pipeline execution...\n[1/5] Scanning ATS endpoints...\n[2/5] Filtering candidate matches...`;
-
-      try {
-        const res = await fetch('/api/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mock: isMock })
-        });
-        const data = await parseJsonResponse(res);
-        if (data.status === 'success') {
-          consoleBox.innerText = `✅ ${data.message}\nDigest generated & tracking store updated!`;
-          showToast('Pipeline run completed successfully!', 'success');
-          refreshAllViews();
-        } else {
-          consoleBox.innerText = '❌ Error: ' + (data.message || 'Pipeline failed');
-          showToast('Pipeline failed: ' + data.message, 'error');
-        }
-      } catch (err) {
-        consoleBox.innerText = '❌ Notice: ' + err.message;
-        showToast('Notice: ' + err.message, 'error');
-      } finally {
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        text.innerText = 'Run Job Hunt Now';
-      }
-    }
-
-    async function toggleAppliedDirect(jobId, action) {
-      const btn = document.getElementById('btn-app-' + jobId);
-      const isUnmark = action === 'unmark';
-
-      // Optimistic UI update
-      if (btn) {
-        btn.innerText = isUnmark ? 'Mark Applied' : '✓ Applied';
-        btn.className = isUnmark ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-sm btn-applied';
-      }
-
-      try {
-        const res = await fetch('/api/applied', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId, action: action })
-        });
-        const data = await parseJsonResponse(res);
-        if (data.status === 'success') {
-          showToast(data.message, 'success');
-          refreshAllViews();
-        } else {
-          // Rollback on error
-          if (btn) {
-            btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
-            btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
-          }
-          showToast('Notice: ' + data.message, 'error');
-        }
-      } catch (err) {
-        // Rollback on exception
-        if (btn) {
-          btn.innerText = isUnmark ? '✓ Applied' : 'Mark Applied';
-          btn.className = isUnmark ? 'btn btn-secondary btn-sm btn-applied' : 'btn btn-secondary btn-sm';
-        }
-        showToast('Notice: ' + err.message, 'error');
-      }
-    }
-
-    async function deleteJobDirect(jobId) {
-      if (!confirm(`Are you sure you want to delete job '${jobId}' from tracking store?`)) {
-        return;
-      }
-
-      const card = document.getElementById('job-card-' + jobId);
-      if (card) {
-        card.style.opacity = '0.4';
-        card.style.pointerEvents = 'none';
-      }
-
-      try {
-        const res = await fetch('/api/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId })
-        });
-        const data = await parseJsonResponse(res);
-        if (data.status === 'success') {
-          showToast(data.message, 'success');
-          refreshAllViews();
-        } else {
-          if (card) {
-            card.style.opacity = '1';
-            card.style.pointerEvents = 'auto';
-          }
-          showToast('Notice: ' + data.message, 'error');
-        }
-      } catch (err) {
-        if (card) {
-          card.style.opacity = '1';
-          card.style.pointerEvents = 'auto';
-        }
-        showToast('Notice: ' + err.message, 'error');
-      }
-    }
-
-    async function markAppliedFromInput(action) {
-      const txt = document.getElementById('txt-job-id');
-      const status = document.getElementById('applied-status');
-      const jobId = txt.value.trim();
-      if (!jobId) {
-        status.innerText = 'Please enter a valid Job ID.';
-        showToast('Please enter a valid Job ID', 'error');
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/applied', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId, action: action || 'mark' })
-        });
-        const data = await parseJsonResponse(res);
-        if (data.status === 'success') {
-          status.innerText = '✅ ' + data.message;
-          showToast(data.message, 'success');
-          txt.value = '';
-          refreshAllViews();
-        } else {
-          status.innerText = '❌ ' + data.message;
-          showToast(data.message, 'error');
-        }
-      } catch (err) {
-        status.innerText = '❌ Notice: ' + err.message;
-        showToast(err.message, 'error');
-      }
-    }
-
-    async function addCustomJobFromInput() {
-      const titleEl = document.getElementById('add-title');
-      const companyEl = document.getElementById('add-company');
-      const locEl = document.getElementById('add-location');
-      const urlEl = document.getElementById('add-url');
-      const scoreEl = document.getElementById('add-score');
-      const appliedEl = document.getElementById('add-applied');
-      const status = document.getElementById('add-job-status');
-
-      const title = titleEl.value.trim();
-      const company = companyEl.value.trim();
-
-      if (!title || !company) {
-        status.innerText = 'Please enter both Job Title and Company.';
-        showToast('Please enter both Job Title and Company.', 'error');
-        return;
-      }
-
-      status.innerText = 'Adding job...';
-
-      try {
-        const res = await fetch('/api/jobs/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: title,
-            company: company,
-            location: locEl.value.trim() || 'Remote/Unspecified',
-            url: urlEl.value.trim() || '#',
-            score: parseFloat(scoreEl.value) || 8.0,
-            applied: appliedEl.checked
-          })
-        });
-        const data = await parseJsonResponse(res);
-        if (data.status === 'success') {
-          status.innerText = '✅ ' + data.message;
-          showToast(data.message, 'success');
-          titleEl.value = '';
-          companyEl.value = '';
-          locEl.value = '';
-          urlEl.value = '';
-          appliedEl.checked = false;
-          refreshAllViews();
-        } else {
-          status.innerText = '❌ ' + data.message;
-          showToast(data.message, 'error');
-        }
-      } catch (err) {
-        status.innerText = '❌ Notice: ' + err.message;
-        showToast(err.message, 'error');
-      }
-    }
-
-    function refreshDigest() {
-      const frame = document.getElementById('digest-frame');
-      if (frame) {
-        frame.src = '/api/digest?t=' + new Date().getTime();
-      }
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    // Auto Heartbeat (10s)
-    setInterval(() => {
-      loadStats();
-    }, 10000);
-
-    // Sync on Tab Visibility / Focus
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        refreshAllViews(false);
-      }
-    });
-
-    // Keyboard Shortcuts: '/' to focus search, 'Esc' to close modal
-    document.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        switchTab('tracker');
-        const input = document.getElementById('tracker-search-input');
-        if (input) input.focus();
-      } else if (e.key === 'Escape') {
-        closeKitModal();
-      }
-    });
-
-    // Initial load
-    loadStats();
-  </script>
-</body>
-</html>
-"""
-
 
 @app.route("/")
 @app.route("/api/index.py")
 def index():
     """Render main Light Mode dashboard with digest & job tracker."""
-    return render_template_string(HTML_TEMPLATE)
+    return render_template("index.html")
 
 
 @app.route("/logo.png")
@@ -1180,7 +60,6 @@ def handle_exception(e):
     }), 500
 
 
-
 @app.route("/api/stats")
 def api_stats():
     """Return tracker stats JSON."""
@@ -1190,21 +69,69 @@ def api_stats():
     return jsonify(st.stats())
 
 
+@app.route("/api/config")
+def api_config():
+    """Return summary of active configuration and ATS boards."""
+    cfg = cli._cfg(raise_on_error=False)
+    filters = cfg.get("filters", {})
+    companies_file = ROOT / cfg.get("companies_file", "companies.yaml")
+    company_count = 0
+    if companies_file.is_file():
+        try:
+            import yaml
+            data = yaml.safe_load(companies_file.read_text(encoding="utf-8")) or {}
+            company_count = len(data.get("companies", [])) if isinstance(data, dict) else len(data)
+        except Exception:
+            pass
+
+    return jsonify({
+        "status": "success",
+        "companies_count": company_count,
+        "filters": {
+            "include_titles_count": len(filters.get("include_titles", [])),
+            "exclude_titles_count": len(filters.get("exclude_titles", [])),
+            "locations": filters.get("locations", []),
+            "allow_remote": bool(filters.get("allow_remote", True)),
+            "max_age_days": filters.get("max_age_days", 28),
+        },
+        "score_threshold": cfg.get("score_threshold", 7.0),
+        "max_per_digest": cfg.get("max_per_digest", 7),
+    })
+
+
+@app.route("/api/export/csv")
+def api_export_csv():
+    """Serve job tracker data exported as CSV file download."""
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file)
+    csv_path = st.export_csv(tracker_csv)
+    return send_file(
+        csv_path,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="tracker.csv"
+    )
+
+
 @app.route("/api/jobs")
 def api_jobs():
-    """Return list of all tracked jobs with filtering support."""
+    """Return list of all tracked jobs with filtering and sorting support."""
     cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file)
 
-
     status = request.args.get("status", "all").lower()
+    ats_filter = request.args.get("ats", "all").lower().strip()
     search = request.args.get("search", "").lower().strip()
     min_score = request.args.get("min_score", type=float)
+    sort_by = request.args.get("sort", "date").lower().strip()
 
     jobs_list = []
     for job_id, data in st.data.items():
         item = {"job_id": job_id, **data}
+        job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
 
         # Filter status
         if status == "shortlisted" and (item.get("score") or 0) < 7.0:
@@ -1214,20 +141,29 @@ def api_jobs():
         elif status == "unapplied" and item.get("applied"):
             continue
 
+        # Filter ATS provider
+        if ats_filter != "all" and job_ats != ats_filter:
+            continue
+
         # Filter min_score
         if min_score is not None and (item.get("score") or 0) < min_score:
             continue
 
         # Filter search text
         if search:
-            searchable = f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')}".lower()
+            searchable = f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats}".lower()
             if search not in searchable:
                 continue
 
         jobs_list.append(item)
 
-    # Sort by first_seen reverse
-    jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
+    # Sort logic
+    if sort_by == "score":
+        jobs_list.sort(key=lambda j: (j.get("score") if j.get("score") is not None else -1.0, j.get("first_seen", "")), reverse=True)
+    elif sort_by == "company":
+        jobs_list.sort(key=lambda j: j.get("company", "").lower())
+    else:  # default: date
+        jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
 
     return jsonify({
         "status": "success",

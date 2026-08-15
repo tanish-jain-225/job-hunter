@@ -135,16 +135,22 @@ Define target company career boards in [`companies.yaml`](companies.yaml). The `
 | `boards.greenhouse.io/stripe` | `greenhouse` | `stripe` |
 | `jobs.lever.co/netlify` | `lever` | `netlify` |
 | `jobs.ashbyhq.com/ramp` | `ashby` | `ramp` |
+| `apply.workable.com/vector` | `workable` | `vector` |
+| `jobs.smartrecruiters.com/visa` | `smartrecruiters` | `visa` |
+| `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
 
 ```yaml
 companies:
   - {ats: greenhouse, slug: stripe, name: Stripe}
   - {ats: ashby, slug: openai, name: OpenAI}
   - {ats: lever, slug: fampay, name: FamPay}
+  - {ats: workable, slug: vector, name: Vector}
+  - {ats: smartrecruiters, slug: visa, name: Visa}
+  - {ats: bamboohr, slug: acme, name: Acme}
 ```
 
 > [!NOTE]
-> **Why public ATS boards instead of LinkedIn/Naukri?** Scraping auth-gated sites violates Terms of Service and breaks constantly. Greenhouse, Lever, and Ashby expose clean, unauthenticated JSON endpoints officially intended for public job listing retrieval.
+> **Why public ATS boards instead of LinkedIn/Naukri?** Scraping auth-gated sites violates Terms of Service and breaks constantly. Greenhouse, Lever, Ashby, Workable, SmartRecruiters, and BambooHR expose clean, unauthenticated JSON endpoints officially intended for public job listing retrieval.
 
 ---
 
@@ -256,7 +262,7 @@ The `jobhunt` CLI provides 4 main subcommands and 1 master automation script:
 | | `-c, --config <path>` | `config.yaml` | Path to custom config file. |
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `python auto.py` | *(none)* | *(master)* | **1-Click End-to-End Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
-| `python app.py` | *(none)* | `http://localhost:5000` | **Professional Light Mode Web Dashboard**: interactive UI with on-demand "Run Job Hunt Now" button, embedded live digest viewer, and 1-click status marker. |
+| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Interactive Light/Dark UI with on-demand pipeline execution, 1-click CSV export download, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons (`Copy Outreach ⚡`, `Copy Note 📋`), and keyboard hotkeys (`/`, `Esc`). |
 
 ---
 

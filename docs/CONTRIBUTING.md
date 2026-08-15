@@ -73,7 +73,7 @@ jobhunt run --mock --scorer keyword
 ```
 jobhunt/
   ├── __init__.py       # Package version & public symbols
-  ├── fetch.py          # Job dataclass & ATS parsers (Greenhouse, Lever, Ashby)
+  ├── fetch.py          # Job dataclass & ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR)
   ├── prefilter.py      # Pre-LLM deterministic title/location/age filtering
   ├── providers.py      # Swappable LLM clients (Anthropic, Gemini, Groq, OpenAI-compat, Ollama)
   ├── llm.py            # Screening, drafting, profile generation & forgiving JSON parser

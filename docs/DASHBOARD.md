@@ -62,49 +62,70 @@ A **"Run Search Pipeline"** button in the header triggers a live crawl of all ta
 The dashboard web server exposes a clean REST API. You can use these endpoints to integrate Job Hunter with external tools or dashboards (like Notion, Slack, or custom scripts).
 
 ### 1. Retrieve Tracked Jobs
-Returns a JSON list of all processed jobs matching search, source, and status queries.
+Returns a JSON list of all processed jobs matching search, status, ats board, and sorting queries.
 * **Endpoint:** `GET /api/jobs`
 * **Query Parameters:**
-  * `query` (string): Text query to search titles/companies.
-  * `status` (string): Filter by status (`all`, `matched`, `applied`).
-  * `source` (string): Filter by ATS board (`all`, `greenhouse`, `lever`, `ashby`).
+  * `search` (string): Text query to search titles, companies, or locations.
+  * `status` (string): Filter by status (`all`, `shortlisted`, `applied`, `unapplied`).
+  * `ats` (string): Filter by ATS board (`all`, `greenhouse`, `lever`, `ashby`, `workable`, `smartrecruiters`, `bamboohr`, `custom`).
+  * `sort` (string): Sort jobs by `date`, `score`, or `company`.
 * **Response Output:**
   ```json
-  [
-    {
-      "id": "greenhouse:stripe:4089201",
-      "company": "Stripe",
-      "title": "Software Engineer Intern - Backend",
-      "location": "Bengaluru, India",
-      "url": "https://boards.greenhouse.io/stripe/jobs/4089201",
-      "score": 8.5,
-      "reason": "Strong match with Python/REST API experience...",
-      "status": "matched",
-      "date_added": "2026-08-15"
-    }
-  ]
+  {
+    "status": "success",
+    "count": 1,
+    "jobs": [
+      {
+        "job_id": "greenhouse:stripe:4089201",
+        "company": "Stripe",
+        "title": "Software Engineer II",
+        "location": "Bengaluru, India",
+        "url": "https://boards.greenhouse.io/stripe/jobs/4089201",
+        "score": 8.5,
+        "reason": "Strong match with Python/REST API experience...",
+        "applied": false,
+        "first_seen": "2026-08-15T12:00:00+00:00"
+      }
+    ]
+  }
   ```
 
-### 2. Mark Job as Applied
+### 2. Export Job Tracking CSV
+Serves raw job tracking data as a direct CSV download (`tracker.csv`).
+* **Endpoint:** `GET /api/export/csv`
+* **Response:** File attachment download with `Content-Type: text/csv`.
+
+### 3. Fetch Configuration Summary
+Returns active pipeline configuration and filter statistics.
+* **Endpoint:** `GET /api/config`
+* **Response Output:**
+  ```json
+  {
+    "status": "success",
+    "companies_count": 42,
+    "filters": {
+      "include_titles_count": 8,
+      "exclude_titles_count": 6,
+      "allow_remote": true,
+      "max_age_days": 28
+    },
+    "score_threshold": 7.0
+  }
+  ```
+
+### 4. Mark Job as Applied
 Updates the status of a job ID to `"applied"` in the state store and updates the tracker CSV file.
 * **Endpoint:** `POST /api/applied`
 * **Request Payload:**
   ```json
   {
-    "job_id": "greenhouse:stripe:4089201"
-  }
-  ```
-* **Response Output:**
-  ```json
-  {
-    "success": true,
     "job_id": "greenhouse:stripe:4089201",
-    "status": "applied"
+    "action": "mark"
   }
   ```
 
-### 3. Trigger Live Crawl
-Executes the scraping and scoring pipeline in a separate background thread.
+### 5. Trigger Live Pipeline
+Executes the scraping and scoring pipeline on demand.
 * **Endpoint:** `POST /api/run`
 * **Request Payload (Optional):**
   ```json
@@ -113,28 +134,12 @@ Executes the scraping and scoring pipeline in a separate background thread.
     "scorer": "llm"
   }
   ```
-* **Response Output:**
-  ```json
-  {
-    "success": true,
-    "message": "Pipeline started in background"
-  }
-  ```
 
-### 4. Fetch Latest Digest
+### 6. Fetch Latest Digest
 Returns the raw compiled HTML email briefing file (`out/digest.html`).
 * **Endpoint:** `GET /api/digest`
-* **Response Output:** Raw responsive HTML content.
 
-### 5. Fetch Dashboard Metrics
-Returns total and filtered metric counts.
+### 7. Fetch Dashboard Metrics
+Returns total, emailed, and applied metric counts.
 * **Endpoint:** `GET /api/stats`
-* **Response Output:**
-  ```json
-  {
-    "total_tracked": 142,
-    "total_matched": 18,
-    "total_applied": 4,
-    "success_rate_percent": 22.2
-  }
-  ```
+

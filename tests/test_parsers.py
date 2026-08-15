@@ -253,3 +253,27 @@ def test_workable_and_smartrecruiters_parsers():
     assert sr_jobs[0].location == "Mumbai"
     assert "Node.js & MongoDB" in sr_jobs[0].description
 
+
+def test_bamboohr_parser():
+    from jobhunt.fetch import parse_bamboohr
+
+    bamboohr_data = {
+        "result": [
+            {
+                "id": "101",
+                "jobOpeningName": "Senior Platform Engineer",
+                "location": {"city": "Pune", "state": "MH"},
+                "description": "<p>Kubernetes & Terraform</p>",
+                "datePosted": "2026-08-10",
+            }
+        ]
+    }
+    b_jobs = parse_bamboohr("acme", "Acme Corp", bamboohr_data)
+    assert len(b_jobs) == 1
+    assert b_jobs[0].job_id == "bamboohr:acme:101"
+    assert b_jobs[0].ats == "bamboohr"
+    assert b_jobs[0].company == "Acme Corp"
+    assert b_jobs[0].location == "Pune, MH"
+    assert "Kubernetes & Terraform" in b_jobs[0].description
+
+

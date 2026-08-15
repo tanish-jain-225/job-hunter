@@ -108,7 +108,25 @@ python -m jobhunt.cli profile --resume resume.pdf
 
 ---
 
-## Step 6 — Next Steps & Useful Links
+## Step 6 — Launch Execution & Dashboard
+
+Once configured, run the pipeline or launch the interactive dashboard:
+
+- **1-Click Master Run**:
+  ```bash
+  python auto.py
+  ```
+  *Fetches jobs across all target ATS boards, screens candidates, drafts application kits, updates tracking CSV, and launches `digest.html` briefing in your default browser.*
+
+- **Interactive Web Dashboard**:
+  ```bash
+  python app.py
+  ```
+  *Launches the Executive Web Dashboard on `http://localhost:5000` with 1-click CSV export, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons, and dark mode.*
+
+---
+
+## Step 7 — Next Steps & Useful Links
 
 - **[GUIDE.md](GUIDE.md)** — Learn how to run as a 100% database-free personal utility or configure free GitHub Actions cloud execution.
 - **[DASHBOARD.md](DASHBOARD.md)** — Explore the Flask-based web dashboard and REST API endpoints.
