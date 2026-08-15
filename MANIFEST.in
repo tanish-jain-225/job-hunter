@@ -11,3 +11,8 @@ include run.bat
 include apply.sh
 include apply.bat
 recursive-include jobhunt *.py
+include app.py
+include logo.png
+recursive-include templates *
+recursive-include static *
+
