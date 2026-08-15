@@ -95,7 +95,7 @@ def _card(j: Job) -> str:
   {_section("❓ Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))}
 
   <div style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <a href="{html.escape(j.url)}" style="display:inline-block;background:{ACCENT};
+    <a href="{html.escape(j.url)}" style="display:inline-flex;align-items:center;justify-content:center;background:{ACCENT};
        color:#ffffff;font-weight:700;font-size:13.5px;text-decoration:none;
        padding:9px 16px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;">Open Job Listing &amp; Apply →</a>
     <span style="color:{MUTED};font-size:11px;word-break:break-all;">ID: {html.escape(j.job_id)}</span>
@@ -116,8 +116,8 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict) -> tuple[
                 f'0 candidates cleared the 70+ match bar today.</div>')
 
     html_doc = f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:16px 12px;background:{BG};
-box-sizing:border-box;word-break:break-word;overflow-wrap:break-word;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;">
-<div style="max-width:680px;width:100%;margin:0 auto;box-sizing:border-box;">
+box-sizing:border-box;word-break:break-word;overflow-wrap:break-word;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;">
+<div style="max-width:680px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
   <div style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">🏹 Job Hunter — Remote Briefing</div>
   <div style="color:{MUTED};font-size:12.5px;margin:6px 0 20px 0;line-height:1.5;word-break:break-word;">
     {today} · Candidate: <b>Tanish Sanghvi</b> (VESIT 2027) · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed title/location filter · <b>{len(jobs)}</b> shortlisted<br>
@@ -129,7 +129,6 @@ box-sizing:border-box;word-break:break-word;overflow-wrap:break-word;font-family
     Autonomous execution engine by Job Hunter. Application kits drafted from master resume.pdf.
   </div>
 </div></body></html>"""
-    return subject, html_doc
     return subject, html_doc
 
 

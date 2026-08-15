@@ -96,13 +96,16 @@ def parse_greenhouse(slug: str, company: str, body: Any) -> list[Job]:
     out = []
     for j in (body or {}).get("jobs", []):
         loc = (j.get("location") or {}).get("name") or ""
+        jid = j.get("id")
+        raw_url = j.get("absolute_url")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://boards.greenhouse.io/{slug}/jobs/{jid}"
         out.append(Job(
-            job_id=f"greenhouse:{slug}:{j.get('id')}",
+            job_id=f"greenhouse:{slug}:{jid}",
             ats="greenhouse",
             company=company,
             title=(j.get("title") or "").strip(),
             location=loc.strip(),
-            url=j.get("absolute_url") or "",
+            url=url,
             description=strip_html(j.get("content")),
             posted_at=j.get("updated_at") or j.get("first_published"),
         ))
@@ -124,13 +127,16 @@ def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
         posted = None
         if isinstance(ts, (int, float)):
             posted = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
+        jid = j.get("id")
+        raw_url = j.get("hostedUrl") or j.get("applyUrl")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://jobs.lever.co/{slug}/{jid}"
         out.append(Job(
-            job_id=f"lever:{slug}:{j.get('id')}",
+            job_id=f"lever:{slug}:{jid}",
             ats="lever",
             company=company,
             title=(j.get("text") or "").strip(),
             location=(cats.get("location") or "").strip(),
-            url=j.get("hostedUrl") or j.get("applyUrl") or "",
+            url=url,
             description="\n\n".join(c for c in chunks if c).strip(),
             posted_at=posted,
             salary=cats.get("commitment"),
@@ -149,13 +155,16 @@ def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
         summary = comp.get("compensationTierSummary") or comp.get("summaryComponents")
         if isinstance(summary, str):
             salary = summary
+        jid = j.get("id")
+        raw_url = j.get("jobUrl") or j.get("applyUrl")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://jobs.ashbyhq.com/{slug}/{jid}"
         out.append(Job(
-            job_id=f"ashby:{slug}:{j.get('id')}",
+            job_id=f"ashby:{slug}:{jid}",
             ats="ashby",
             company=company,
             title=(j.get("title") or "").strip(),
             location=(j.get("location") or "").strip(),
-            url=j.get("jobUrl") or j.get("applyUrl") or "",
+            url=url,
             description=(j.get("descriptionPlain") or strip_html(j.get("descriptionHtml")) or "").strip(),
             posted_at=j.get("publishedAt"),
             salary=salary,
@@ -172,13 +181,16 @@ def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
             continue
         loc = j.get("location") or {}
         loc_str = loc.get("city") or loc.get("country") or j.get("location_str") or ""
+        shortcode = j.get("shortcode") or j.get("id")
+        raw_url = j.get("url") or j.get("application_url")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://apply.workable.com/{slug}/j/{shortcode}/"
         out.append(Job(
-            job_id=f"workable:{slug}:{j.get('shortcode') or j.get('id')}",
+            job_id=f"workable:{slug}:{shortcode}",
             ats="workable",
             company=company,
             title=(j.get("title") or "").strip(),
             location=str(loc_str).strip(),
-            url=j.get("url") or f"https://apply.workable.com/{slug}/j/{j.get('shortcode')}/",
+            url=url,
             description=strip_html(j.get("description")),
             posted_at=j.get("published") or j.get("created_at"),
         ))
@@ -198,13 +210,16 @@ def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
             continue
         loc = j.get("location") or {}
         loc_str = loc.get("city") or loc.get("country") or ""
+        jid = j.get("id")
+        raw_url = j.get("applyUrl") or j.get("jobAd", {}).get("applyUrl")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://jobs.smartrecruiters.com/{slug}/{jid}"
         out.append(Job(
-            job_id=f"smartrecruiters:{slug}:{j.get('id')}",
+            job_id=f"smartrecruiters:{slug}:{jid}",
             ats="smartrecruiters",
             company=company,
             title=(j.get("name") or j.get("title") or "").strip(),
             location=str(loc_str).strip(),
-            url=j.get("refNumber") or f"https://jobs.smartrecruiters.com/{slug}/{j.get('id')}",
+            url=url,
             description=strip_html(j.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text")),
             posted_at=j.get("releasedDate") or j.get("createdOn"),
         ))
@@ -221,13 +236,14 @@ def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
         jid = j.get("id") or j.get("jobOpeningId")
         loc_parts = [j.get("location", {}).get("city"), j.get("location", {}).get("state")]
         loc_str = ", ".join(p for p in loc_parts if p) or j.get("location") or "Remote/Unspecified"
+        url = f"https://{slug}.bamboohr.com/careers/{jid}"
         out.append(Job(
             job_id=f"bamboohr:{slug}:{jid}",
             ats="bamboohr",
             company=company,
             title=(j.get("jobOpeningName") or j.get("title") or "").strip(),
             location=str(loc_str).strip(),
-            url=f"https://{slug}.bamboohr.com/careers/{jid}",
+            url=url,
             description=strip_html(j.get("description") or j.get("jobDescription")),
             posted_at=j.get("datePosted") or j.get("postedDate"),
         ))

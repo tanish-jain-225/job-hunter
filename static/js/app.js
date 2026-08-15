@@ -89,6 +89,45 @@ function setFilter(filter) {
   fetchAndRenderJobs();
 }
 
+function resolveJobUrl(j) {
+  if (!j) return '#';
+  let url = (j.url || '').trim();
+  if (url && url !== '#' && !url.startsWith('javascript:')) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (url.includes('.') && !url.startsWith('/')) {
+      return 'https://' + url;
+    }
+  }
+
+  // Auto-resolve based on ATS and job_id
+  const jobId = j.job_id || '';
+  if (jobId.includes(':')) {
+    const parts = jobId.split(':');
+    const ats = (j.ats || parts[0] || '').toLowerCase();
+    const slug = parts[1] || '';
+    const rawId = parts[2] || '';
+
+    if (ats === 'greenhouse' && slug && rawId) {
+      return `https://boards.greenhouse.io/${slug}/jobs/${rawId}`;
+    } else if (ats === 'lever' && slug && rawId) {
+      return `https://jobs.lever.co/${slug}/${rawId}`;
+    } else if (ats === 'ashby' && slug && rawId) {
+      return `https://jobs.ashbyhq.com/${slug}/${rawId}`;
+    } else if (ats === 'workable' && slug && rawId) {
+      return `https://apply.workable.com/${slug}/j/${rawId}/`;
+    } else if (ats === 'smartrecruiters' && slug && rawId) {
+      return `https://jobs.smartrecruiters.com/${slug}/${rawId}`;
+    } else if (ats === 'bamboohr' && slug && rawId) {
+      return `https://${slug}.bamboohr.com/careers/${rawId}`;
+    }
+  }
+
+  const query = `${j.company || ''} ${j.title || ''} jobs apply`.trim();
+  return `https://www.google.com/search?q=${encodeURIComponent(query || 'tech jobs apply')}`;
+}
+
 async function fetchAndRenderJobs() {
   const container = document.getElementById('job-list-container');
   const searchInput = document.getElementById('tracker-search-input');
@@ -117,6 +156,7 @@ async function fetchAndRenderJobs() {
       const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
       const isApplied = Boolean(j.applied);
       const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary);
+      const applyUrl = resolveJobUrl(j);
 
       return `
         <div class="job-item" id="job-card-${escapeHtml(j.job_id)}">
@@ -145,7 +185,7 @@ async function fetchAndRenderJobs() {
             </div>
             <div class="job-action-btn-row">
               ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Inspect Kit</button>` : ''}
-              <a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Link</a>
+              <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Link</a>
             </div>
           </div>
         </div>
@@ -231,7 +271,8 @@ function openKitModal(jobId) {
     html += `<div class="kit-section"><div class="kit-label">Questions To Ask</div><ul style="padding-left:18px; font-size:13.5px; line-height:1.6; color:var(--text-main);">${d.questions_to_ask.map(q => `<li style="margin-bottom:6px;">${escapeHtml(q)}</li>`).join('')}</ul></div>`;
   }
 
-  html += `<div style="margin-top:24px; text-align:right;"><a href="${escapeHtml(j.url)}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Posting Page</a></div>`;
+  const modalApplyUrl = resolveJobUrl(j);
+  html += `<div style="margin-top:24px; text-align:right;"><a href="${escapeHtml(modalApplyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Posting Page</a></div>`;
 
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('kit-modal').classList.add('active');

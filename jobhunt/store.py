@@ -8,7 +8,56 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import urllib.parse
+
 from .fetch import Job
+
+
+def sanitize_job_url(
+    url: str | None,
+    ats: str = "",
+    job_id: str = "",
+    company: str = "",
+    title: str = "",
+) -> str:
+    """Ensure every job has a valid, working HTTP/HTTPS apply URL.
+
+    - If the URL is already a valid http/https link, preserves it.
+    - If the URL is a domain without scheme (e.g. 'stripe.com/jobs'), prepends 'https://'.
+    - If the URL is empty, '#', or broken, automatically constructs the canonical ATS apply URL.
+    - If custom or unknown ATS, constructs a direct search/careers URL.
+    """
+    clean = (url or "").strip()
+    if clean and clean != "#":
+        if clean.startswith(("http://", "https://")):
+            return clean
+        if "." in clean and not clean.startswith(("/", "#", "javascript:")):
+            return f"https://{clean}"
+
+    effective_id = job_id or ""
+    if ":" in effective_id:
+        parts = effective_id.split(":", 2)
+        ats_name = (ats or parts[0]).lower()
+        slug = parts[1] if len(parts) > 1 else ""
+        raw_id = parts[2] if len(parts) > 2 else ""
+
+        if ats_name == "greenhouse" and slug and raw_id:
+            return f"https://boards.greenhouse.io/{slug}/jobs/{raw_id}"
+        elif ats_name == "lever" and slug and raw_id:
+            return f"https://jobs.lever.co/{slug}/{raw_id}"
+        elif ats_name == "ashby" and slug and raw_id:
+            return f"https://jobs.ashbyhq.com/{slug}/{raw_id}"
+        elif ats_name == "workable" and slug and raw_id:
+            return f"https://apply.workable.com/{slug}/j/{raw_id}/"
+        elif ats_name == "smartrecruiters" and slug and raw_id:
+            return f"https://jobs.smartrecruiters.com/{slug}/{raw_id}"
+        elif ats_name == "bamboohr" and slug and raw_id:
+            return f"https://{slug}.bamboohr.com/careers/{raw_id}"
+
+    query = f"{company} {title} jobs apply".strip()
+    if not query:
+        query = "software engineering jobs apply"
+    return f"https://www.google.com/search?q={urllib.parse.quote_plus(query)}"
 
 
 def get_writable_path(path: str | Path) -> Path:
@@ -61,7 +110,7 @@ class Store:
                                 "company": "",
                                 "title": "",
                                 "location": "",
-                                "url": "",
+                                "url": sanitize_job_url("", job_id=item),
                                 "score": None,
                                 "reason": None,
                                 "emailed": False,
@@ -69,13 +118,38 @@ class Store:
                                 "applied_on": None,
                             }
                         elif isinstance(item, dict) and "job_id" in item:
-                            migrated[str(item["job_id"])] = item
+                            jid = str(item["job_id"])
+                            item["url"] = sanitize_job_url(
+                                item.get("url"),
+                                ats=item.get("ats", ""),
+                                job_id=jid,
+                                company=item.get("company", ""),
+                                title=item.get("title", ""),
+                            )
+                            migrated[jid] = item
                     self.data = migrated
                     self.save()
                 elif isinstance(raw_data, dict):
                     self.data = raw_data
             except json.JSONDecodeError:
                 print(f"  ! {read_target} corrupt, starting fresh")
+
+        # Ensure all stored jobs have valid, sanitized apply URLs
+        changed_urls = False
+        for jid, row in list(self.data.items()):
+            current_url = row.get("url", "")
+            sanitized = sanitize_job_url(
+                current_url,
+                ats=row.get("ats", ""),
+                job_id=jid,
+                company=row.get("company", ""),
+                title=row.get("title", ""),
+            )
+            if sanitized != current_url:
+                row["url"] = sanitized
+                changed_urls = True
+        if changed_urls:
+            self.save(auto_export=False)
 
         # Auto-seed mock jobs on Vercel serverless if store is empty
         if not self.data and (os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ):
@@ -91,7 +165,7 @@ class Store:
                         "company": j.company,
                         "title": j.title,
                         "location": j.location,
-                        "url": j.url,
+                        "url": sanitize_job_url(j.url, ats=j.ats, job_id=j.job_id, company=j.company, title=j.title),
                         "score": j.score,
                         "reason": j.reason,
                         "emailed": True,
@@ -108,12 +182,19 @@ class Store:
     def record(self, jobs: list[Job], emailed: bool = True) -> None:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for j in jobs:
+            clean_url = sanitize_job_url(
+                j.url,
+                ats=j.ats,
+                job_id=j.job_id,
+                company=j.company,
+                title=j.title,
+            )
             self.data.setdefault(j.job_id, {
                 "first_seen": now,
                 "company": j.company,
                 "title": j.title,
                 "location": j.location,
-                "url": j.url,
+                "url": clean_url,
                 "score": j.score,
                 "reason": j.reason,
                 "emailed": emailed,
@@ -169,12 +250,20 @@ class Store:
         except (ValueError, TypeError):
             clamped_score = 7.5
 
+        clean_url = sanitize_job_url(
+            url,
+            ats=ats,
+            job_id=job_id,
+            company=company,
+            title=title,
+        )
+
         self.data[job_id] = {
             "first_seen": now,
             "company": company,
             "title": title,
             "location": location or "Remote/Unspecified",
-            "url": url or "#",
+            "url": clean_url,
             "ats": ats,
             "score": clamped_score,
             "reason": reason,
