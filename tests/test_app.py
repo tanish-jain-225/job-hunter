@@ -148,3 +148,29 @@ def test_api_end_to_end_digest_rebuild(client):
     assert "SyncCorp" in html_text or "Principal Systems Engineer" in html_text
 
 
+def test_api_delete_errors(client):
+    """Verify /api/delete 400 and 404 responses."""
+    # Missing job_id
+    res_missing = client.post("/api/delete", json={})
+    assert res_missing.status_code == 400
+
+    # Unknown job_id
+    res_unknown = client.post("/api/delete", json={"job_id": "nonexistent:999"})
+    assert res_unknown.status_code == 404
+
+
+def test_api_jobs_add_missing_fields(client):
+    """Verify /api/jobs/add 400 when title or company is missing."""
+    res_no_title = client.post("/api/jobs/add", json={"company": "Acme"})
+    assert res_no_title.status_code == 400
+
+    res_no_company = client.post("/api/jobs/add", json={"title": "Engineer"})
+    assert res_no_company.status_code == 400
+
+
+def test_logo_route(client):
+    """Verify /logo.png route returns logo file or 204."""
+    res = client.get("/logo.png")
+    assert res.status_code in (200, 204)
+
+

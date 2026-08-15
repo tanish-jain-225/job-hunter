@@ -251,3 +251,64 @@ def test_ollama_provider_errors(monkeypatch: pytest.MonkeyPatch):
     with pytest.raises(LLMError, match="ollama malformed reply"):
         p.complete("llama3.1", "sys", "user", 100)
 
+
+def test_anthropic_provider_client(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_key")
+    p = providers.AnthropicProvider()
+    try:
+        client = p._client()
+        assert client is not None
+    except LLMError as e:
+        assert "pip install anthropic" in str(e)
+
+
+def test_gemini_provider_no_candidates_and_empty_text(monkeypatch: pytest.MonkeyPatch):
+    p = providers.GeminiProvider()
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+
+    # No candidates key
+    class NoCandidatesResponse:
+        status_code = 200
+        text = "{}"
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: NoCandidatesResponse())
+    with pytest.raises(LLMError, match="gemini returned no candidates"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+    # Empty text response
+    class EmptyTextResponse:
+        status_code = 200
+        text = "empty text"
+        def json(self):
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": []}}]}
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: EmptyTextResponse())
+    with pytest.raises(LLMError, match="gemini returned no text"):
+        p.complete("gemini-2.0-flash", "sys", "user", 100)
+
+
+def test_openai_compat_retry_loop(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
+    monkeypatch.setattr(providers.time, "sleep", lambda x: None)
+
+    p = providers.GroqProvider()
+    attempts = [0]
+
+    class RetryResponse:
+        def __init__(self, code):
+            self.status_code = code
+            self.text = "server error"
+        def json(self):
+            return {"choices": [{"message": {"content": "OK"}}]}
+
+    def mock_post_retry(*a, **kw):
+        attempts[0] += 1
+        if attempts[0] == 1:
+            return RetryResponse(500)
+        return RetryResponse(200)
+
+    monkeypatch.setattr(providers.requests, "post", mock_post_retry)
+    assert p.complete("llama-3.3-70b", "sys", "user", 100, json_mode=True) == "OK"
+

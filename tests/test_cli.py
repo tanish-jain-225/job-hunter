@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 import pytest
-from jobhunt import cli
+from jobhunt import cli, providers
 from jobhunt.fetch import Job
 from jobhunt.providers import LLMError, Provider
 
@@ -238,4 +238,36 @@ def test_main_cli_routing_all(monkeypatch: pytest.MonkeyPatch):
             cli.main()
         assert exc_info.value.code == 0
         assert called == [cmd]
+
+
+def test_cmd_profile_success_and_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    resume_file = tmp_path / "resume.txt"
+    resume_file.write_text("Tanish Sanghvi Software Engineer Resume", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    mock_provider = providers.GroqProvider()
+    monkeypatch.setattr(cli, "resolve", lambda stage: (mock_provider, "llama-3.3-70b"))
+    monkeypatch.setattr(cli.llm, "build_profile", lambda **kw: {"name": "Tanish", "seniority": "intern"})
+
+    args = argparse.Namespace(resume=str(resume_file), yaml=True)
+    assert cli.cmd_profile(args) == 0
+    assert (tmp_path / "profile.json").exists()
+
+
+def test_cmd_profile_missing_resume(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.chdir(tmp_path)
+    args = argparse.Namespace(resume="nonexistent_resume.pdf", yaml=False)
+    with pytest.raises(SystemExit, match="resume file nonexistent_resume.pdf not found"):
+        cli.cmd_profile(args)
+
+
+def test_cmd_run_no_jobs_with_send(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    (tmp_path / "profile.json").write_text(json.dumps({"name": "Test User"}), encoding="utf-8")
+    (tmp_path / "config.yaml").write_text(f"seen_file: {(tmp_path / 'seen.json').as_posix()}\n", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli, "_fetch_jobs", lambda args, cfg: ([], []))
+
+    args = argparse.Namespace(config=None, mock=True, scorer="keyword", send=True)
+    assert cli.cmd_run(args) == 0
 

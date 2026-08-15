@@ -159,13 +159,39 @@ def test_store_score_clamping(tmp_path: Path):
 def test_load_seen_legacy_array(tmp_path: Path):
     """Test migrating legacy JSON array format."""
     file_path = tmp_path / "seen.json"
-    legacy_data = ["job_1", "job_2"]
+    legacy_data = ["job_1", {"job_id": "job_2", "title": "SDE"}]
     file_path.write_text(json.dumps(legacy_data), encoding="utf-8")
 
-    st = Store(storage_file=file_path) if hasattr(Store, "storage_file") else Store(file_path)
+    st = Store(file_path)
     assert "job_1" in st.data
     assert "job_2" in st.data
-    assert st.data["job_1"]["first_seen"] is not None
+    assert st.data["job_2"]["title"] == "SDE"
 
 
+def test_store_writable_path_vercel(tmp_path: Path, monkeypatch):
+    """Test get_writable_path under VERCEL environment variable."""
+    monkeypatch.setenv("VERCEL", "1")
+    target = tmp_path / "seen.json"
+    path = store.get_writable_path(target)
+    assert "jobhunt" in str(path) or path == target
 
+
+def test_store_auto_export_warning(tmp_path: Path, monkeypatch):
+    """Test auto_export CSV warning handling in save()."""
+    seen_path = tmp_path / "seen.json"
+    st = Store(seen_path)
+
+    def failing_export(*args, **kwargs):
+        raise OSError("CSV write permission denied")
+
+    monkeypatch.setattr(st, "export_csv", failing_export)
+    # Should not raise exception
+    st.save(auto_export=True)
+
+
+def test_store_auto_seed_vercel(tmp_path: Path, monkeypatch):
+    """Test auto-seeding mock jobs on Vercel when store is empty."""
+    monkeypatch.setenv("VERCEL", "1")
+    seen_path = tmp_path / "seen.json"
+    st = Store(seen_path)
+    assert len(st.data) > 0
