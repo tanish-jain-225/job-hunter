@@ -16,6 +16,9 @@ def client():
 def test_index_route(client):
     """Verify index route renders Light Mode dashboard HTML."""
     res = client.get("/")
+    if res.status_code != 200:
+        print("DIAGNOSTIC STATUS:", res.status_code)
+        print("DIAGNOSTIC DATA:", res.data.decode("utf-8", errors="replace"))
     assert res.status_code == 200
     assert b"Job Hunter" in res.data
     assert b"Run Job Hunt Now" in res.data

@@ -27,8 +27,8 @@ from jobhunt.store import Store, get_writable_path
 
 app = Flask(
     __name__,
-    template_folder=str(ROOT / "templates"),
-    static_folder=str(ROOT / "static")
+    template_folder="templates",
+    static_folder="static"
 )
 
 
