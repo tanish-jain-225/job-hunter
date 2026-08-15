@@ -103,7 +103,8 @@ MAIL_TO=your_email@gmail.com
 
 Extract your candidate profile from your resume:
 ```bash
-python -m jobhunt.cli profile --resume resume.pdf
+jobhunt profile --resume resume.pdf
+# or: python -m jobhunt profile --resume resume.pdf
 ```
 
 ---

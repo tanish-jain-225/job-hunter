@@ -19,7 +19,7 @@
 Modern job searching is broken. Engineers spend hours every week manually sifting through thousands of irrelevant job board postings, dealing with spam, guessing fit percentages, and writing repetitive cover letters. 
 
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
-1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints (**Greenhouse**, **Lever**, **Ashby**) across target companies.
+1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**) across target companies.
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
 3. 🧠 **Screening & Intelligence**: Scores surviving roles (1.0 - 10.0) against your candidate profile using high-throughput LLMs.
 4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, matching resume bullets, and gap analyses for top-ranked matches.
@@ -33,7 +33,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 │ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
 │ ~2,000 ATS Roles    │       │ ~40 Matching Roles  │       │ ~5 Top Matches      │       │ HTML Digest & Email │
 └─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (Greenhouse/Lever/Ashby)     (0 API Cost Filter)           (Anthropic/Gemini/Groq)        (Inbox / Browser)
+  (6 Major ATS Platforms)      (0 API Cost Filter)           (Anthropic/Gemini/Groq)        (Inbox / Browser)
 ```
 
 > [!TIP]

@@ -37,7 +37,7 @@ Before setting up, ensure you have:
 
 ### Step 1: Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-username/job-hunter.git
+git clone https://github.com/tanish-jain-225/job-hunter.git
 cd job-hunter
 pip install -e .
 ```
@@ -130,7 +130,7 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt run` | Run job search CLI command. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (127 unit tests). |
+| `pytest` | Run the full test suite (152 unit and integration tests). |
 
 ---
 
