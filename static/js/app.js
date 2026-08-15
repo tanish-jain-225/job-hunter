@@ -451,7 +451,16 @@ async function addCustomJobFromInput() {
 function refreshDigest() {
   const frame = document.getElementById('digest-frame');
   if (frame) {
-    frame.src = '/api/digest?t=' + new Date().getTime();
+    const url = '/api/digest?t=' + new Date().getTime();
+    try {
+      if (frame.contentWindow && frame.contentWindow.location) {
+        frame.contentWindow.location.replace(url);
+      } else {
+        frame.src = url;
+      }
+    } catch (e) {
+      frame.src = url;
+    }
   }
 }
 
