@@ -71,18 +71,18 @@ def _card(j: Job) -> str:
             f'line-height:1.6;white-space:pre-wrap;">{html.escape(cover)}</div>')
 
     return f"""
-<div style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:22px;margin-bottom:20px;box-shadow:0 2px 5px rgba(15,23,42,0.06);">
+<div style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px 16px;margin-bottom:18px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:break-word;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-    <div>
-      <div style="font-size:18px;font-weight:800;color:{TEXT};">{html.escape(j.title)}</div>
-      <div style="color:{MUTED};font-size:13px;margin-top:4px;font-weight:500;">{html.escape(meta)}</div>
+    <div style="flex:1 1 200px;min-width:0;">
+      <div style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;">{html.escape(j.title)}</div>
+      <div style="color:{MUTED};font-size:12.5px;margin-top:4px;font-weight:500;word-break:break-word;">{html.escape(meta)}</div>
     </div>
-    <div>{_badge(j)}</div>
+    <div style="flex-shrink:0;">{_badge(j)}</div>
   </div>
 
-  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
-    <span style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #bfdbfe;">🇮🇳 {html.escape(india_badge)}</span>
-    <span style="background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #fecaca;">🚀 Project: {html.escape(best_project)}</span>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;">🇮🇳 {html.escape(india_badge)}</span>
+    <span style="background:#fef2f2;color:#b91c1c;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #fecaca;">🚀 Project: {html.escape(best_project)}</span>
   </div>
 
   {_para(j.reason or "")}
@@ -94,11 +94,11 @@ def _card(j: Job) -> str:
   {cover_html}
   {_section("❓ Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))}
 
-  <div style="margin-top:18px;padding-top:14px;border-top:1px solid {LINE};">
+  <div style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <a href="{html.escape(j.url)}" style="display:inline-block;background:{ACCENT};
-       color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;
-       padding:10px 20px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);">Open Job Listing &amp; Apply →</a>
-    <span style="color:{MUTED};font-size:11px;margin-left:12px;">ID: {html.escape(j.job_id)}</span>
+       color:#ffffff;font-weight:700;font-size:13.5px;text-decoration:none;
+       padding:9px 16px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;">Open Job Listing &amp; Apply →</a>
+    <span style="color:{MUTED};font-size:11px;word-break:break-all;">ID: {html.escape(j.job_id)}</span>
   </div>
 </div>"""
 
@@ -112,23 +112,24 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict) -> tuple[
         body = "".join(_card(j) for j in jobs)
     else:
         body = (f'<div style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
-                f'padding:24px;color:{MUTED};font-size:14px;">Scanned {scanned} postings across 40+ ATS boards, '
+                f'padding:20px 16px;color:{MUTED};font-size:13.5px;word-break:break-word;">Scanned {scanned} postings across 40+ ATS boards, '
                 f'0 candidates cleared the 70+ match bar today.</div>')
 
-    html_doc = f"""<!doctype html><html><body style="margin:0;padding:24px 20px;background:{BG};
-font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;">
-<div style="max-width:680px;margin:0 auto;">
-  <div style="color:{TEXT};font-size:24px;font-weight:800;letter-spacing:-0.02em;">🏹 Job Hunter — Remote Briefing</div>
-  <div style="color:{MUTED};font-size:13px;margin:6px 0 22px 0;line-height:1.5;">
+    html_doc = f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:16px 12px;background:{BG};
+box-sizing:border-box;word-break:break-word;overflow-wrap:break-word;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;">
+<div style="max-width:680px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">🏹 Job Hunter — Remote Briefing</div>
+  <div style="color:{MUTED};font-size:12.5px;margin:6px 0 20px 0;line-height:1.5;word-break:break-word;">
     {today} · Candidate: <b>Tanish Sanghvi</b> (VESIT 2027) · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed title/location filter · <b>{len(jobs)}</b> shortlisted<br>
     Tracker: {stats.get('tracked', 0)} total seen
   </div>
   {body}
-  <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:24px;
-       border-top:1px solid {LINE};padding-top:14px;">
+  <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:20px;
+       border-top:1px solid {LINE};padding-top:12px;word-break:break-word;">
     Autonomous execution engine by Job Hunter. Application kits drafted from master resume.pdf.
   </div>
 </div></body></html>"""
+    return subject, html_doc
     return subject, html_doc
 
 

@@ -76,9 +76,9 @@
           <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
           <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
         </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('mark')">Mark Applied</button>
-          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('unmark')">Unmark</button>
+        <div class="btn-group-dual">
+          <button class="btn btn-secondary" onclick="markAppliedFromInput('mark')">Mark Applied</button>
+          <button class="btn btn-secondary" onclick="markAppliedFromInput('unmark')">Unmark</button>
         </div>
         <div id="applied-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
       </div>
@@ -135,9 +135,9 @@
 
       <!-- Tab 1: Digest Viewport -->
       <div id="tab-content-digest">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div class="digest-header-row">
           <span style="font-size:13px; color:var(--text-muted); font-weight:500;">Latest generated HTML digest briefing preview</span>
-          <div style="display:flex; gap:8px;">
+          <div class="digest-header-actions">
             <button class="btn btn-secondary btn-sm" onclick="refreshDigest()">🔄 Refresh Digest</button>
             <a href="/api/digest" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">↗ Open Full Tab</a>
           </div>
@@ -148,11 +148,11 @@
       <!-- Tab 2: Tracker Board -->
       <div id="tab-content-tracker" style="display:none;">
         <div class="tracker-bar">
-          <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap;">
-            <input type="text" class="form-input tracker-search" id="tracker-search-input" style="flex: 1; min-width: 220px;"
+          <div class="tracker-controls-row">
+            <input type="text" class="form-input tracker-search" id="tracker-search-input"
                    placeholder="Search company, title, location... (Press '/' to search)" oninput="fetchAndRenderJobs()">
             
-            <select class="form-input" id="tracker-ats-select" style="width: 140px;" onchange="fetchAndRenderJobs()">
+            <select class="form-input tracker-select" id="tracker-ats-select" onchange="fetchAndRenderJobs()">
               <option value="all">All ATS Boards</option>
               <option value="greenhouse">Greenhouse</option>
               <option value="lever">Lever</option>
@@ -163,7 +163,7 @@
               <option value="custom">Custom</option>
             </select>
 
-            <select class="form-input" id="tracker-sort-select" style="width: 140px;" onchange="fetchAndRenderJobs()">
+            <select class="form-input tracker-select" id="tracker-sort-select" onchange="fetchAndRenderJobs()">
               <option value="date">Sort: Date</option>
               <option value="score">Sort: Match Score</option>
               <option value="company">Sort: Company</option>
