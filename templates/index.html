@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Hunter — Executive AI Career Dashboard</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="shortcut icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;850&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <img src="/logo.png" alt="Job Hunter Logo" class="brand-icon">
+      <div>
+        <h1>Job Hunter</h1>
+        <p>Autonomous AI Job-Search Web Board</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="metrics">
+        <div class="metric-pill" title="Total jobs stored in database">
+          <div class="metric-val" id="metric-tracked">--</div>
+          <div class="metric-label">Tracked</div>
+        </div>
+        <div class="metric-pill" title="Total matches dispatched to email">
+          <div class="metric-val" id="metric-emailed">--</div>
+          <div class="metric-label">Emailed</div>
+        </div>
+        <div class="metric-pill" title="Total jobs marked as applied">
+          <div class="metric-val" id="metric-applied">--</div>
+          <div class="metric-label">Applied</div>
+        </div>
+      </div>
+      <a href="/api/export/csv" class="btn btn-secondary btn-sm" download="tracker.csv" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;" title="Download job tracking data as CSV">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Export CSV</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <div class="grid">
+
+    <!-- Sidebar Controls -->
+    <div>
+
+      <!-- Run Pipeline Card -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>On-Demand Pipeline Trigger</span>
+        </div>
+        <button class="btn" id="btn-run" onclick="runPipeline()">
+          <span class="spinner" id="run-spinner"></span>
+          <span id="run-text">Run Job Hunt Now</span>
+        </button>
+        <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning.</div>
+      </div>
+
+      <!-- Quick Mark Applied Card -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <span>Quick Mark Applied</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
+          <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('mark')">Mark Applied</button>
+          <button class="btn btn-secondary" style="flex:1;" onclick="markAppliedFromInput('unmark')">Unmark</button>
+        </div>
+        <div id="applied-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
+      </div>
+
+      <!-- Add Custom Job Card -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add Custom Job</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-title">Job Title *</label>
+          <input type="text" class="form-input" id="add-title" placeholder="e.g. Senior Backend Engineer">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-company">Company *</label>
+          <input type="text" class="form-input" id="add-company" placeholder="e.g. Stripe">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-location">Location</label>
+          <input type="text" class="form-input" id="add-location" placeholder="e.g. San Francisco / Remote">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-url">Job URL</label>
+          <input type="url" class="form-input" id="add-url" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-score">Match Score (0-10)</label>
+          <input type="number" step="0.1" min="0" max="10" class="form-input" id="add-score" value="8.0">
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="add-applied"> Mark as already applied
+          </label>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;" onclick="addCustomJobFromInput()">Add Job to Store</button>
+        <div id="add-job-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
+      </div>
+
+    </div>
+
+    <!-- Main Board Viewport -->
+    <div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-btn-digest" onclick="switchTab('digest')" style="display: inline-flex; align-items: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <span>Daily Digest Briefing</span>
+        </button>
+        <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" style="display: inline-flex; align-items: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Interactive Job Board</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Digest Viewport -->
+      <div id="tab-content-digest">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <span style="font-size:13px; color:var(--text-muted); font-weight:500;">Latest generated HTML digest briefing preview</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="refreshDigest()">🔄 Refresh Digest</button>
+            <a href="/api/digest" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">↗ Open Full Tab</a>
+          </div>
+        </div>
+        <iframe class="viewport-frame" id="digest-frame" src="/api/digest"></iframe>
+      </div>
+
+      <!-- Tab 2: Tracker Board -->
+      <div id="tab-content-tracker" style="display:none;">
+        <div class="tracker-bar">
+          <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap;">
+            <input type="text" class="form-input tracker-search" id="tracker-search-input" style="flex: 1; min-width: 220px;"
+                   placeholder="Search company, title, location... (Press '/' to search)" oninput="fetchAndRenderJobs()">
+            
+            <select class="form-input" id="tracker-ats-select" style="width: 140px;" onchange="fetchAndRenderJobs()">
+              <option value="all">All ATS Boards</option>
+              <option value="greenhouse">Greenhouse</option>
+              <option value="lever">Lever</option>
+              <option value="ashby">Ashby</option>
+              <option value="workable">Workable</option>
+              <option value="smartrecruiters">SmartRecruiters</option>
+              <option value="bamboohr">BambooHR</option>
+              <option value="custom">Custom</option>
+            </select>
+
+            <select class="form-input" id="tracker-sort-select" style="width: 140px;" onchange="fetchAndRenderJobs()">
+              <option value="date">Sort: Date</option>
+              <option value="score">Sort: Match Score</option>
+              <option value="company">Sort: Company</option>
+            </select>
+          </div>
+
+          <div class="filter-pills" style="margin-top: 10px;">
+            <button class="pill active" id="pill-all" onclick="setFilter('all')">All Jobs</button>
+            <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">Shortlisted (7.0+)</button>
+            <button class="pill" id="pill-applied" onclick="setFilter('applied')">Applied</button>
+            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">Unapplied</button>
+          </div>
+        </div>
+        <div class="job-list" id="job-list-container">
+          <div style="text-align:center; padding:40px; color:var(--text-muted);">Loading job board data...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal for Inspecting Application Kit -->
+  <div class="modal-overlay" id="kit-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modal-job-title">Job Application Kit</div>
+          <div class="modal-subtitle" id="modal-job-meta">Company · Location</div>
+        </div>
+        <button class="modal-close" onclick="closeKitModal()">×</button>
+      </div>
+      <div id="modal-body">
+        <!-- Kit Details populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-side JavaScript -->
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>

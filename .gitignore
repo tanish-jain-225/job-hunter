@@ -22,6 +22,8 @@ seen.tmp
 # --- Generated Output & Artifacts ---------------------------------------------
 out/
 *.html
+!templates/*.html
+!templates/**/*.html
 !jobhunt/templates/*.html
 digest.html
 *.csv
