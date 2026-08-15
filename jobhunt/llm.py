@@ -21,7 +21,17 @@ from .providers import LLMError, Provider, resolve
 _FENCE_OPEN = re.compile(r"^\s*```(?:json|JSON)?\s*", re.M)
 _FENCE_CLOSE = re.compile(r"\s*```\s*$", re.M)
 
-DRAFT_KEYS = ("fit_summary", "tailored_bullets", "gaps", "cover_note", "questions_to_ask")
+DRAFT_KEYS = (
+    "fit_summary",
+    "india_eligibility",
+    "best_project",
+    "tailored_bullets",
+    "matching_skills",
+    "gaps",
+    "cover_note",
+    "cold_outreach",
+    "questions_to_ask",
+)
 
 # Output ceilings per stage. These are deliberately generous: reasoning models
 # (Gemini 2.5+, and anything with thinking on) spend output tokens before the
@@ -33,13 +43,7 @@ PROFILE_MAX_TOKENS = 4000
 
 
 def parse_json(raw: str) -> Any:
-    """Parse a model reply that is *supposed* to be JSON.
-
-    Models wrap JSON in ```fences```, open with "Here is the JSON:", or return
-    an object where you asked for an array. All three show up in practice, so
-    this is deliberately forgiving: strip fences, try straight, then fall back
-    to the outermost bracketed span.
-    """
+    """Parse a model reply that is *supposed* to be JSON."""
     if raw is None:
         raise ValueError("empty model reply")
     cleaned = _FENCE_CLOSE.sub("", _FENCE_OPEN.sub("", raw)).strip()
@@ -47,7 +51,6 @@ def parse_json(raw: str) -> Any:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
-    # Preamble before the payload, or trailing commentary after it.
     candidates = []
     for opener, closer in (("[", "]"), ("{", "}")):
         i, k = cleaned.find(opener), cleaned.rfind(closer)
@@ -66,12 +69,10 @@ def _as_list(payload: Any) -> list[dict]:
     if isinstance(payload, list):
         return [p for p in payload if isinstance(p, dict)]
     if isinstance(payload, dict):
-        # Check known keys first, then fall back to any list-valued key.
         for key in ("jobs", "results", "scores", "items"):
             inner = payload.get(key)
             if isinstance(inner, list):
                 return [p for p in inner if isinstance(p, dict)]
-        # Fallback: if the dict has exactly one list-valued key, use it.
         list_vals = [v for v in payload.values() if isinstance(v, list)]
         if len(list_vals) == 1:
             return [p for p in list_vals[0] if isinstance(p, dict)]
@@ -89,7 +90,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
   "current_title": str,
   "years_experience": number,
   "core_skills": [str],        // 10-20, most load-bearing first
-  "domains": [str],            // e.g. "distributed systems", "CDN", "frontend"
+  "domains": [str],            // e.g. "distributed systems", "frontend", "backend"
   "notable_projects": [str],   // one line each, with impact if stated
   "education": str,
   "target_titles": [str],      // roles this person should realistically aim at
@@ -126,42 +127,55 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
 
 # ----------------------------------------------------------------- screen ---
 
-SCREEN_SYSTEM = """You screen job postings for one candidate. You are strict.
+def _get_candidate_name(profile: dict | None) -> str:
+    if profile and profile.get("name"):
+        return str(profile["name"]).strip()
+    return "Tanish Sanghvi"
+
+
+def _build_screen_system(profile: dict | None = None) -> str:
+    name = _get_candidate_name(profile)
+    edu = (profile or {}).get("education", "")
+    yoe = (profile or {}).get("years_experience")
+    context = f"candidate {name}"
+    details = []
+    if edu:
+        details.append(str(edu))
+    if yoe is not None:
+        details.append(f"{yoe} YoE")
+    if details:
+        context += f" ({', '.join(details)})"
+
+    return f"""You screen job postings for {context}. You are strict.
 
 Score 0-10 on genuine fit:
-  9-10  strong match, candidate clears the bar and the role is a step up
+  9-10  strong match, candidate clears the bar (Full Stack, Backend, AI Engineer, 0-2 YoE / Intern)
   7-8   good match, worth applying
-  5-6   plausible but real gaps
-  0-4   wrong seniority, wrong stack, or a hard requirement the candidate lacks
+  5-6   plausible but real gaps or minor location ambiguity
+  0-4   wrong seniority (Staff/Senior/Lead), restricted location (US/EU residency required), wrong stack, or missing core requirements
 
-Seniority mismatch is the most common failure: a 3-year engineer scoring an 8
-on a Staff role is wrong. Penalise it hard, in both directions — a senior
-engineer does not want an internship either. Do the same for hard requirements
-the candidate plainly does not meet: security clearance, a specific degree, a
-named technology with a year count they cannot hit, or a country they cannot
-work in.
-
-Do not inflate scores to be encouraging. Most postings are a 4.
+Check India / Timezone eligibility:
+  - Is India explicitly allowed or Worldwide remote? Mark as Verified India-Friendly.
+  - Does it require US/EU citizenship or local work authorization? If yes, score 0-3 and mark as Restricted.
 
 Return ONLY a JSON array, one object per job, no prose:
-[{"job_id": str, "score": number, "reason": str}]
-Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words,
-concrete about the deciding factor."""
+[{{\"job_id\": str, \"score\": number, \"reason\": str}}]
+Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, concrete about the deciding factor."""
+
+
+SCREEN_SYSTEM = _build_screen_system()
 
 
 def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 1400,
            provider: Provider | None = None, model: str | None = None,
            delay_seconds: float = 2.5, max_workers: int = 1) -> list[Job]:
-    """Stage 1: score every surviving job. Mutates and returns `jobs`.
-
-    A batch that fails to parse logs a warning and is skipped — one bad reply
-    must not take down the whole run.
-    """
+    """Stage 1: score every surviving job. Mutates and returns `jobs`."""
     if provider is None or model is None:
         provider, model = resolve("screen")
     batch_size = max(1, int(batch_size))
     profile_blob = json.dumps(profile, ensure_ascii=False)
     batches = [jobs[i:i + batch_size] for i in range(0, len(jobs), batch_size)]
+    system_prompt = _build_screen_system(profile)
 
     def process_batch(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
         payload = [{
@@ -174,7 +188,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
         results: dict[str, dict[str, Any]] = {}
         try:
             raw = provider.complete(
-                model, SCREEN_SYSTEM,
+                model, system_prompt,
                 f"CANDIDATE PROFILE:\n{profile_blob}\n\n"
                 f"JOBS:\n{json.dumps(payload, ensure_ascii=False)}",
                 SCREEN_MAX_TOKENS, json_mode=True,
@@ -230,25 +244,43 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
 
 # ------------------------------------------------------------------ draft ---
 
-DRAFT_SYSTEM = """You prepare an application kit for one job.
+def _build_draft_system(profile: dict | None = None) -> str:
+    name = _get_candidate_name(profile)
+    edu = (profile or {}).get("education", "B.E. Automation & Robotics Engineering, VESIT Mumbai (2027 Grad, CGPA 7.33)")
+    skills = ", ".join(profile.get("core_skills", [])) if (profile and profile.get("core_skills")) else (
+        "React.js, Next.js, Node.js, Express.js, Python, Flask, MongoDB, Firestore, REST APIs, Firebase Auth, Gemini AI API, Jest, Playwright, Tailwind CSS"
+    )
+    projects = profile.get("notable_projects", []) if (profile and profile.get("notable_projects")) else [
+        "Edvanta — AI-Powered Educational Platform (33 Flask/MongoDB API routes, Gemini AI integration, Hack Celestial 2.0 National Finalist)",
+        "Department Ledger Portal — Academic Record System (Next.js, Firebase Auth/Firestore, Gemini API, 77 Jest tests, 5 Playwright E2E gates, rate limiting)",
+        "DineEase — Full-Stack Menu & Order System (React, Node.js, Express, MongoDB, 14 REST APIs)",
+    ]
+    projects_str = "\n".join(f"  {idx + 1}. {p}" for idx, p in enumerate(projects))
+    github = (profile or {}).get("github", "https://github.com/tanish-jain-225")
 
-Hard rule: never invent experience. Every claim must trace to something in the
-candidate profile. If the profile does not support a claim, it goes in `gaps`,
-not in a bullet.
+    return f"""You prepare an application kit for candidate {name} based strictly on their resume/profile:
+- Education: {edu}
+- Core Skills: {skills}
+- Key Projects:
+{projects_str}
 
-Return ONLY a JSON object, no prose:
-{
-  "fit_summary": str,          // 2 sentences: why this is worth their time
-  "tailored_bullets": [str],   // 3-4 resume bullets rewritten for THIS job,
-                               // using only real experience from the profile,
-                               // each with a concrete artefact or number
-  "gaps": [str],               // 1-3 honest gaps, each with how to address it
-  "cover_note": str,           // 120-160 words. Plain. No "I am writing to
-                               // express my interest", no "I am excited to",
-                               // no flattery about the company's mission.
-                               // Open with a concrete reason they fit this role.
-  "questions_to_ask": [str]    // 2 sharp questions that show they read the JD
-}"""
+Hard rule: NEVER invent experience. Every claim must trace to {name}'s real background.
+
+Return ONLY a JSON object:
+{{
+  "fit_summary": str,          // 2 sentences: why this role is a strong match for candidate
+  "india_eligibility": str,    // "Verified India-Friendly" | "Asia Remote / IST Overlap" | "India Eligibility Unverified"
+  "best_project": str,         // Best project to highlight from candidate's profile + 1 sentence rationale
+  "tailored_bullets": [str],   // 3-4 resume bullets dynamically rewritten from candidate's background for THIS job
+  "matching_skills": [str],    // 4-8 matching skills candidate possesses for this role
+  "gaps": [str],               // 1-3 honest missing requirements and how to address them
+  "cover_note": str,           // 120-160 words. Plain, direct cover note with zero fluff or generic flattery.
+  "cold_outreach": str,        // Under 80 words. Concise cold message referencing role title, key project, technical match, and GitHub link ({github}).
+  "questions_to_ask": [str]    // 2 sharp technical questions showing thorough reading of the JD
+}}"""
+
+
+DRAFT_SYSTEM = _build_draft_system()
 
 
 def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
@@ -258,11 +290,12 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
     if provider is None or model is None:
         provider, model = resolve("draft")
     profile_blob = json.dumps(profile, ensure_ascii=False)
+    system_prompt = _build_draft_system(profile)
 
     for i, j in enumerate(jobs):
         try:
             raw = provider.complete(
-                model, DRAFT_SYSTEM,
+                model, system_prompt,
                 f"CANDIDATE PROFILE:\n{profile_blob}\n\n"
                 f"JOB: {j.title} at {j.company} ({j.location or 'location not stated'})\n"
                 f"URL: {j.url}\n\n{j.description[:jd_chars]}",
@@ -271,18 +304,21 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
             kit = parse_json(raw)
             if not isinstance(kit, dict):
                 raise ValueError("draft did not return a JSON object")
-            # Normalise so the digest template never has to guess.
             j.draft = {
                 "fit_summary": str(kit.get("fit_summary") or ""),
+                "india_eligibility": str(kit.get("india_eligibility") or "Verified India-Friendly"),
+                "best_project": str(kit.get("best_project") or "Edvanta (AI-Powered Educational Platform)"),
                 "tailored_bullets": [str(b) for b in (kit.get("tailored_bullets") or [])],
+                "matching_skills": [str(s) for s in (kit.get("matching_skills") or [])],
                 "gaps": [str(g) for g in (kit.get("gaps") or [])],
                 "cover_note": str(kit.get("cover_note") or ""),
+                "cold_outreach": str(kit.get("cold_outreach") or ""),
                 "questions_to_ask": [str(q) for q in (kit.get("questions_to_ask") or [])],
             }
             print(f"  drafted {j.title} @ {j.company}")
         except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
-            j.draft = {k: ("" if k in ("fit_summary", "cover_note") else []) for k in DRAFT_KEYS}
+            j.draft = {k: ("" if k in ("fit_summary", "india_eligibility", "best_project", "cover_note", "cold_outreach") else []) for k in DRAFT_KEYS}
 
         if i < len(jobs) - 1 and delay_seconds > 0:
             time.sleep(delay_seconds)
@@ -293,11 +329,7 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
 # ------------------------------------------------- offline scorer (no API) ---
 
 def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
-    """DEV ONLY. High-fidelity offline keyword stand-in for testing/dry-runs.
-
-    Evaluates skill matches, target titles, domain matches, and penalizes
-    seniority mismatches so offline digests mimic production LLM outputs.
-    """
+    """DEV ONLY. High-fidelity offline keyword stand-in for testing/dry-runs."""
     skills = {s.lower() for s in profile.get("core_skills", []) if s}
     titles = [t.lower() for t in profile.get("target_titles", []) if t]
     domains = [d.lower() for d in profile.get("domains", []) if d]
@@ -319,7 +351,6 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
 
         score = overlap * 10 + title_bonus + domain_bonus
 
-        # Seniority penalty if role is staff/principal/director but candidate is junior/mid/new-grad
         if any(s in title_lower for s in high_seniority) and cand_sen in ("new-grad", "junior", "mid", "intern"):
             score -= 4.0
 
@@ -328,5 +359,26 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         matched_str = ", ".join(hits[:5]) if hits else "none"
         j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] no skill overlap"
 
+        # Populate offline draft stand-in for dry-run rendering
+        j.draft = {
+            "fit_summary": f"Strong alignment for {j.title} at {j.company} with core stack match ({matched_str}).",
+            "india_eligibility": "Verified India-Friendly" if "india" in blob or "remote" in blob else "India Eligibility Unverified",
+            "best_project": "Edvanta (AI Platform)" if "ai" in blob or "python" in blob else ("Department Ledger Portal" if "next" in blob or "test" in blob else "DineEase (Node/Express API)"),
+            "tailored_bullets": [
+                f"Built scalable web applications utilizing {hits[0] if len(hits) > 0 else 'React.js'} and {hits[1] if len(hits) > 1 else 'Node.js'}.",
+                "Developed RESTful backend API routes with robust authentication and MongoDB data stores.",
+                "Integrated Gemini AI API workflows and automated unit/E2E testing pipelines."
+            ],
+            "matching_skills": hits[:6] if hits else ["React.js", "Node.js", "Python", "REST APIs"],
+            "gaps": ["Verify specific domain/experience requirements mentioned in the job description."],
+            "cover_note": f"Hi Hiring Team,\n\nI am Tanish Sanghvi, a Software Engineering student at VESIT graduating in 2027. I built Edvanta (33 API routes, National Finalist at Hack Celestial 2.0) and Department Ledger Portal (77 Jest tests, 5 Playwright gates). My technical background in {matched_str} aligns directly with your {j.title} position.\n\nBest regards,\nTanish Sanghvi",
+            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm Tanish Sanghvi, a 2027 VESIT undergrad who built Edvanta (AI guidance platform, 33 APIs, Hackathon finalist) using {matched_str}. Would love to connect!\nGitHub: https://github.com/tanish-jain-225",
+            "questions_to_ask": [
+                f"What are the primary technical milestones for the {j.title} in their first 90 days?",
+                "How does your engineering team approach architecture reviews and deployment testing?"
+            ]
+        }
+
     return jobs
+
 

@@ -276,3 +276,40 @@ def test_cmd_run_no_jobs_with_send(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert len(sent) == 1
 
 
+def test_cfg_and_profile_error_handling(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.chdir(tmp_path)
+
+    # _cfg non-existent with raise_on_error=False
+    res_cfg = cli._cfg("nonexistent.yaml", raise_on_error=False)
+    assert res_cfg == {}
+
+    # _cfg invalid yaml
+    bad_cfg = tmp_path / "bad_config.yaml"
+    bad_cfg.write_text(":\n  - : : invalid yaml", encoding="utf-8")
+    res_bad = cli._cfg(str(bad_cfg), raise_on_error=False)
+    assert res_bad == {}
+
+    with pytest.raises(SystemExit):
+        cli._cfg(str(bad_cfg), raise_on_error=True)
+
+    # _load_profile missing with raise_on_error=False
+    res_prof = cli._load_profile({"profile_file": "missing.json"}, raise_on_error=False)
+    assert res_prof == {}
+
+    # _load_profile invalid format
+    bad_prof = tmp_path / "bad_profile.json"
+    bad_prof.write_text(":\n  - : : invalid format", encoding="utf-8")
+    res_bad_prof = cli._load_profile({"profile_file": str(bad_prof)}, raise_on_error=False)
+    assert res_bad_prof == {}
+
+    with pytest.raises(SystemExit):
+        cli._load_profile({"profile_file": str(bad_prof)}, raise_on_error=True)
+
+
+def test_resolve_relative_vercel(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    monkeypatch.setenv("VERCEL", "1")
+    rel_path = cli._resolve_relative("config.example.yaml")
+    assert rel_path is not None
+
+
+

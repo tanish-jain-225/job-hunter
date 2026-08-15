@@ -196,7 +196,7 @@ class Store:
     def export_csv(self, path: str | Path = "out/tracker.csv") -> Path:
         target_path = get_writable_path(path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        cols = ["first_seen", "company", "title", "location", "score",
+        cols = ["first_seen", "company", "title", "location", "score", "score_100", "queue_category", "india_eligibility", "best_project",
                 "reason", "applied", "applied_on", "url"]
         tmp_csv = target_path.with_suffix(".tmp")
         with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
@@ -204,7 +204,26 @@ class Store:
             w.writeheader()
             for jid, row in sorted(self.data.items(),
                                    key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
-                w.writerow({"job_id": jid, **row})
+                score_val = row.get("score")
+                score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
+                if score_100 >= 90:
+                    cat = "🔥 Exceptional"
+                elif score_100 >= 80:
+                    cat = "🟢 Strong Apply"
+                elif score_100 >= 70:
+                    cat = "🟡 Apply"
+                elif score_100 >= 60:
+                    cat = "⚪ Consider"
+                else:
+                    cat = "🔴 Skip"
+
+                draft = row.get("draft") or {}
+                row_copy = dict(row)
+                row_copy["score_100"] = score_100
+                row_copy["queue_category"] = cat
+                row_copy["india_eligibility"] = draft.get("india_eligibility", "Verified India-Friendly")
+                row_copy["best_project"] = draft.get("best_project", "Edvanta")
+                w.writerow({"job_id": jid, **row_copy})
         os.replace(tmp_csv, target_path)
         return target_path
 

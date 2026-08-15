@@ -270,3 +270,33 @@ def test_screen_concurrency_invalid_score(monkeypatch: pytest.MonkeyPatch):
     assert jobs[1].score == 8.0
 
 
+def test_dynamic_prompt_builders():
+    prof = {
+        "name": "Jane Developer",
+        "education": "M.S. Computer Science, Stanford 2025",
+        "years_experience": 2,
+        "core_skills": ["Rust", "Python", "System Design"],
+        "notable_projects": ["Custom DB Engine — Rust key-value store"],
+        "github": "https://github.com/janedev"
+    }
+    screen_sys = llm._build_screen_system(prof)
+    assert "candidate Jane Developer" in screen_sys
+    assert "M.S. Computer Science" in screen_sys
+
+    draft_sys = llm._build_draft_system(prof)
+    assert "Jane Developer" in draft_sys
+    assert "Custom DB Engine" in draft_sys
+    assert "https://github.com/janedev" in draft_sys
+
+
+def test_build_profile_invalid_non_dict(monkeypatch: pytest.MonkeyPatch):
+    class NonDictProvider(Provider):
+        def complete(self, *a, **kw):
+            return json.dumps(["not", "a", "dict"])
+
+    p = NonDictProvider()
+    with pytest.raises(ValueError, match="did not return a JSON object"):
+        llm.build_profile(resume_text="Text", provider=p, model="m")
+
+
+

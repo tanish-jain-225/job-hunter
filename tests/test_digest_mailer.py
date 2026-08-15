@@ -9,9 +9,12 @@ from jobhunt.fetch import Job
 
 
 def test_badge_color_levels():
-    assert "#3fb950" in digest._badge(9.0)
-    assert "#d29922" in digest._badge(7.5)
-    assert "#8b949e" in digest._badge(5.0)
+    j1 = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=9.2)
+    j2 = Job("2", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=7.5)
+    j3 = Job("3", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=5.0)
+    assert "#15803d" in digest._badge(j1)
+    assert "#b45309" in digest._badge(j2)
+    assert "#475569" in digest._badge(j3)
 
 
 def test_digest_helpers_empty_branches():
@@ -43,7 +46,7 @@ def test_digest_build_escapes_xss():
     subject, html_doc = digest.build([xss_job], scanned=10, candidates=5, stats={"tracked": 1, "applied": 0})
     assert "<script>" not in html_doc
     assert "&lt;script&gt;" in html_doc
-    assert "1 job worth your time" in subject
+    assert "Remote Role" in subject
 
 
 def test_digest_card_with_none_draft():
@@ -55,8 +58,8 @@ def test_digest_card_with_none_draft():
 
 def test_digest_build_empty_list():
     subject, html_doc = digest.build([], scanned=50, candidates=0, stats={"tracked": 5, "applied": 1})
-    assert "No new matches today" in subject
-    assert "nothing cleared the bar today" in html_doc
+    assert "No new remote matches today" in subject
+    assert "0 candidates cleared" in html_doc
 
 
 def test_mailer_send(monkeypatch: pytest.MonkeyPatch):

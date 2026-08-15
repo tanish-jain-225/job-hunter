@@ -312,3 +312,25 @@ def test_openai_compat_retry_loop(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(providers.requests, "post", mock_post_retry)
     assert p.complete("llama-3.3-70b", "sys", "user", 100, json_mode=True) == "OK"
 
+
+def test_base_provider_not_implemented():
+    p = Provider()
+    with pytest.raises(NotImplementedError):
+        p.complete("model", "sys", "user", 100)
+
+
+def test_ollama_provider_success(monkeypatch: pytest.MonkeyPatch):
+    p = providers.OllamaProvider()
+
+    class OllamaOkResponse:
+        status_code = 200
+        text = "ok"
+        def json(self):
+            return {"message": {"content": "Ollama OK"}}
+
+    monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: OllamaOkResponse())
+    res = p.complete("llama3", "sys", "user", 100, json_mode=True)
+    assert res == "Ollama OK"
+
+
+

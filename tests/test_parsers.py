@@ -204,3 +204,52 @@ def test_prefilter_invalid_date_handling():
     )
     kept = prefilter([invalid_date_job], {"max_age_days": 10})
     assert len(kept) == 1
+
+
+def test_workable_and_smartrecruiters_parsers():
+    from jobhunt.fetch import parse_workable, parse_smartrecruiters
+
+    workable_data = {
+        "results": [
+            {
+                "shortcode": "W123",
+                "title": "Backend Engineer",
+                "location": {"city": "Bangalore", "country": "India"},
+                "url": "https://apply.workable.com/vector/j/W123/",
+                "description": "<p>Python & Flask API</p>",
+                "published": "2026-08-01",
+            }
+        ]
+    }
+    w_jobs = parse_workable("vector", "Vector", workable_data)
+    assert len(w_jobs) == 1
+    assert w_jobs[0].job_id == "workable:vector:W123"
+    assert w_jobs[0].ats == "workable"
+    assert w_jobs[0].company == "Vector"
+    assert w_jobs[0].location == "Bangalore"
+    assert "Python & Flask API" in w_jobs[0].description
+
+    sr_data = {
+        "content": [
+            {
+                "id": "SR456",
+                "name": "Software Engineer II",
+                "location": {"city": "Mumbai"},
+                "refNumber": "https://jobs.smartrecruiters.com/visa/SR456",
+                "jobAd": {
+                    "sections": {
+                        "jobDescription": {"text": "<p>Node.js & MongoDB</p>"}
+                    }
+                },
+                "releasedDate": "2026-08-05",
+            }
+        ]
+    }
+    sr_jobs = parse_smartrecruiters("visa", "Visa", sr_data)
+    assert len(sr_jobs) == 1
+    assert sr_jobs[0].job_id == "smartrecruiters:visa:SR456"
+    assert sr_jobs[0].ats == "smartrecruiters"
+    assert sr_jobs[0].company == "Visa"
+    assert sr_jobs[0].location == "Mumbai"
+    assert "Node.js & MongoDB" in sr_jobs[0].description
+

@@ -196,3 +196,23 @@ def test_store_auto_seed_vercel(tmp_path: Path, monkeypatch):
     seen_path = tmp_path / "seen.json"
     st = Store(seen_path)
     assert len(st.data) > 0
+
+
+def test_get_writable_path_permission_error(tmp_path: Path, monkeypatch):
+    """Test fallback when parent directory touch fails with PermissionError."""
+    target = tmp_path / "sub" / "seen.json"
+
+    def mock_touch(self):
+        raise PermissionError("Access denied")
+
+    monkeypatch.setattr(Path, "touch", mock_touch)
+    path = store.get_writable_path(target)
+    assert "jobhunt" in str(path)
+
+
+def test_store_add_job_invalid_score(tmp_path: Path):
+    """Test add_job handling invalid non-numeric score."""
+    st = Store(tmp_path / "seen.json")
+    j1 = st.add_job(title="Invalid Score Job", company="Test", score="invalid-score")  # type: ignore
+    assert st.data[j1]["score"] == 7.5
+

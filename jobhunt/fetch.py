@@ -45,8 +45,31 @@ class Job:
     reason: str | None = None
     draft: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def score_100(self) -> int:
+        if self.score is None:
+            return 0
+        return int(round(max(0.0, min(10.0, float(self.score))) * 10))
+
+    @property
+    def queue_category(self) -> str:
+        s = self.score_100
+        if s >= 90:
+            return "🔥 Exceptional"
+        elif s >= 80:
+            return "🟢 Strong Apply"
+        elif s >= 70:
+            return "🟡 Apply"
+        elif s >= 60:
+            return "⚪ Consider"
+        else:
+            return "🔴 Skip"
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["score_100"] = self.score_100
+        d["queue_category"] = self.queue_category
+        return d
 
 
 # --------------------------------------------------------------------------
@@ -140,8 +163,57 @@ def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
+@register_ats("workable", "https://apply.workable.com/api/v2/accounts/{slug}/jobs")
+def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
+    out = []
+    jobs_list = (body or {}).get("results") or (body or {}).get("jobs") or (body if isinstance(body, list) else [])
+    for j in jobs_list:
+        if not isinstance(j, dict):
+            continue
+        loc = j.get("location") or {}
+        loc_str = loc.get("city") or loc.get("country") or j.get("location_str") or ""
+        out.append(Job(
+            job_id=f"workable:{slug}:{j.get('shortcode') or j.get('id')}",
+            ats="workable",
+            company=company,
+            title=(j.get("title") or "").strip(),
+            location=str(loc_str).strip(),
+            url=j.get("url") or f"https://apply.workable.com/{slug}/j/{j.get('shortcode')}/",
+            description=strip_html(j.get("description")),
+            posted_at=j.get("published") or j.get("created_at"),
+        ))
+    return out
+
+
+@register_ats("smartrecruiters", "https://api.smartrecruiters.com/v1/companies/{slug}/postings")
+def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
+    out: list[Job] = []
+    jobs_list: list[Any] = []
+    if isinstance(body, dict) and isinstance(body.get("content"), list):
+        jobs_list = body["content"]
+    elif isinstance(body, list):
+        jobs_list = body
+    for j in jobs_list:
+        if not isinstance(j, dict):
+            continue
+        loc = j.get("location") or {}
+        loc_str = loc.get("city") or loc.get("country") or ""
+        out.append(Job(
+            job_id=f"smartrecruiters:{slug}:{j.get('id')}",
+            ats="smartrecruiters",
+            company=company,
+            title=(j.get("name") or j.get("title") or "").strip(),
+            location=str(loc_str).strip(),
+            url=j.get("refNumber") or f"https://jobs.smartrecruiters.com/{slug}/{j.get('id')}",
+            description=strip_html(j.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text")),
+            posted_at=j.get("releasedDate") or j.get("createdOn"),
+        ))
+    return out
+
+
 # Dict compatibility wrapper pointing to the registry
 ENDPOINTS = REGISTERED_ATS
+
 
 
 def fetch_board(ats: str, slug: str, company: str | None = None,

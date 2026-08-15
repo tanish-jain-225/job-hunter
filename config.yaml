@@ -9,8 +9,9 @@
 
 filters:
   include_titles:
-    # Core engineering titles
+    # Core engineering titles & internships
     - 'software engineer'
+    - 'software engineering'
     - '\bsde\b'
     - '\bsde\s*-?\s*(i{1,3}|[123])\b'
     - 'software development engineer'
@@ -20,23 +21,31 @@ filters:
     - 'associate software engineer'
     - 'junior software engineer'
     - 'graduate engineer'
+    - 'engineer intern'
+    - 'developer intern'
+    - 'software intern'
+    - 'engineering intern'
+    - '\bintern\b'
 
-    # Backend / API / Full-Stack / Web variants
+    # Backend / API / Full-Stack / Web / Frontend variants
     - '\b(backend|back-end|server|platform|api)\b.*\bengineer\b'
     - '\bengineer\b.*\b(backend|back-end|platform|api)\b'
     - 'full.?stack engineer'
     - 'full.?stack developer'
+    - 'frontend engineer'
+    - 'frontend developer'
     - 'web developer'
     - 'web engineer'
 
-    # Node.js / Python / JavaScript / TypeScript specific
-    - '\b(node(\.js)?|python|javascript|typescript)\b.*\bengineer\b'
-    - '\bengineer\b.*\b(node(\.js)?|python|javascript|typescript)\b'
+    # Node.js / Python / JavaScript / TypeScript / React / Next.js specific
+    - '\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b.*\b(engineer|developer)\b'
+    - '\b(engineer|developer)\b.*\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b'
 
     # AI/ML engineering (integrations/applications)
     - '\b(ai|ml|llm|genai|generative)\b.*\bengineer\b'
     - '\bengineer\b.*\b(ai|llm|genai|generative)\b'
     - 'ai application(s)? engineer'
+    - 'ai software engineer'
 
   # Anything matching these is dropped even if an include matched.
   exclude_titles:
@@ -45,7 +54,7 @@ filters:
     - '\b(director|vp|vice president|head of|chief|cto)\b'
     - '\b(manager|management|lead)\b'
     - '\b(sales|account executive|marketing|recruit|support|success)\b'
-    - '\b(frontend|front-end|ios|android|mobile|game|designer|ux|ui)\b'
+    - '\b(ios|android|mobile|game|designer|design|ux|ui)\b'
     - '\b(data scientist|machine learning scientist|research scientist)\b'
     - '\b(devops|devsecops)\b'
     - '\b(kernel|embedded|firmware|driver|packet|dataplane|data plane|dpdk)\b'
