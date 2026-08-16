@@ -21,8 +21,8 @@ def _badge(job: Job) -> str:
     bg = "#dcfce7" if s >= 90 else "#f0fdf4" if s >= 80 else "#fef3c7" if s >= 70 else "#f1f5f9"
     badge_label = f"{job.queue_category} ({s}/100)"
     return (f'<span style="background:{bg};color:{color};font-weight:800;'
-            f'padding:5px 10px;border-radius:999px;font-size:12px;border:1px solid {LINE};'
-            f'display:inline-flex;align-items:center;justify-content:center;text-align:center;'
+            f'padding:5px 12px;border-radius:999px;font-size:12.5px;border:1px solid {LINE};'
+            f'display:inline-block;text-align:center;'
             f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{badge_label}</span>')
 
 
@@ -39,7 +39,7 @@ def _bullets(items: list[str]) -> str:
 def _section(label: str, body: str) -> str:
     if not body:
         return ""
-    return (f'<div style="margin-top:14px;width:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;">'
+    return (f'<div style="margin-top:14px;width:100%;box-sizing:border-box;display:block;clear:both;">'
             f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
             f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;">{label}</div>{body}</div>')
 
@@ -75,18 +75,18 @@ def _card(j: Job) -> str:
             f'line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;">{html.escape(cover)}</div>')
 
     return f"""
-<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:16px 14px;margin-bottom:16px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;min-width:0;display:flex;flex-direction:column;">
-  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;width:100%;min-width:0;">
-    <div style="flex:1 1 180px;min-width:0;display:flex;flex-direction:column;">
-      <div style="font-size:16px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
-      <div style="color:{MUTED};font-size:12px;margin-top:4px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px 16px;margin-bottom:18px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
+  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;width:100%;box-sizing:border-box;margin-bottom:10px;">
+    <div style="flex:1 1 200px;min-width:0;display:block;">
+      <div style="font-size:16.5px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
+      <div style="color:{MUTED};font-size:12.5px;margin-top:4px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
     </div>
-    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-flex;max-width:100%;">{_badge(j)}</div>
+    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;max-width:100%;">{_badge(j)}</div>
   </div>
 
-  <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;min-width:0;">
-    <span style="background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;word-break:break-word;overflow-wrap:anywhere;display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;">🇮🇳 {html.escape(india_badge)}</span>
-    <span style="background:#fef2f2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #fecaca;word-break:break-word;overflow-wrap:anywhere;display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;">🚀 Project: {html.escape(best_project)}</span>
+  <div style="margin-top:10px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">🇮🇳 {html.escape(india_badge)}</span>
+    <span style="background:#fef2f2;color:#b91c1c;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #fecaca;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">🚀 Project: {html.escape(best_project)}</span>
   </div>
 
   {_para(j.reason or "")}
@@ -98,11 +98,11 @@ def _card(j: Job) -> str:
   {cover_html}
   {_section("❓ Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))}
 
-  <div class="card-footer-flex" style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%;min-width:0;">
-    <a href="{html.escape(j.url)}" class="btn-apply-email" style="display:inline-flex;align-items:center;justify-content:center;background:{ACCENT};
+  <div class="card-footer-flex" style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;">
+    <a href="{html.escape(j.url)}" class="btn-apply-email" style="display:inline-block;background:{ACCENT};
        color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;
-       padding:9px 14px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;flex:1 1 180px;min-width:0;">Open Job Listing &amp; Apply →</a>
-    <span style="color:{MUTED};font-size:11px;word-break:break-all;overflow-wrap:anywhere;flex:1 1 auto;text-align:right;">ID: {html.escape(j.job_id)}</span>
+       padding:9px 16px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;">Open Job Listing &amp; Apply →</a>
+    <span style="color:{MUTED};font-size:11px;word-break:break-all;overflow-wrap:anywhere;text-align:right;">ID: {html.escape(j.job_id)}</span>
   </div>
 </div>"""
 
@@ -122,36 +122,44 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         body = "".join(_card(j) for j in jobs)
     else:
         body = (f'<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
-                f'padding:16px 14px;color:{MUTED};font-size:13px;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;min-width:0;">Scanned {scanned} postings across 40+ ATS boards, '
+                f'padding:20px 16px;color:{MUTED};font-size:13.5px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">Scanned {scanned} postings across 40+ ATS boards, '
                 f'0 candidates cleared the 70+ match bar today.</div>')
 
-    html_doc = f"""<!doctype html><html lang="en" style="box-sizing:border-box;-webkit-text-size-adjust:100%;"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><meta http-equiv="X-UA-Compatible" content="IE=edge"><style>
-* {{ box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }}
-body {{ margin: 0; padding: 0; -webkit-text-size-adjust: 100%; background: {BG}; }}
-img, table {{ max-width: 100%; height: auto; }}
-@media only screen and (max-width: 480px) {{
-  .digest-wrap {{ padding: 10px 6px !important; }}
-  .digest-card {{ padding: 12px 10px !important; border-radius: 10px !important; margin-bottom: 12px !important; }}
-  .card-header-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
-  .card-badge-wrap {{ align-self: flex-start !important; }}
-  .card-footer-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
-  .btn-apply-email {{ width: 100% !important; flex: 1 1 100% !important; text-align: center !important; justify-content: center !important; }}
-  .digest-title {{ font-size: 18px !important; }}
-}}
-</style></head><body style="margin:0;padding:14px 8px;background:{BG};
-box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;width:100%;min-width:0;-webkit-text-size-adjust:100%;">
-<div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;">
-  <div class="digest-title" style="color:{TEXT};font-size:21px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;">🏹 Job Hunter — Remote Briefing</div>
-  <div style="color:{MUTED};font-size:12px;margin:6px 0 16px 0;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;">
-    {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
-    Tracker: {stats.get('tracked', 0)} total seen
+    html_doc = f"""<!doctype html>
+<html lang="en" style="box-sizing:border-box;-webkit-text-size-adjust:100%;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; }}
+    img, table {{ max-width: 100%; height: auto; }}
+    @media only screen and (max-width: 480px) {{
+      .digest-wrap {{ padding: 12px 6px !important; }}
+      .digest-card {{ padding: 14px 10px !important; border-radius: 10px !important; margin-bottom: 12px !important; }}
+      .card-header-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
+      .card-badge-wrap {{ align-self: flex-start !important; margin-top: 4px !important; }}
+      .card-footer-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
+      .btn-apply-email {{ width: 100% !important; text-align: center !important; justify-content: center !important; }}
+      .digest-title {{ font-size: 19px !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 8px;background:{BG};box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;color:{TEXT};">
+  <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
+    <div class="digest-title" style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin-bottom:6px;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">🏹 Job Hunter — Remote Briefing</div>
+    <div style="color:{MUTED};font-size:12.5px;margin:0 0 20px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+      {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
+      Tracker: {stats.get('tracked', 0)} total seen
+    </div>
+    {body}
+    <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:20px;border-top:1px solid {LINE};padding-top:12px;display:block;clear:both;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+      Autonomous execution engine by Job Hunter. Application kits drafted from master resume.pdf.
+    </div>
   </div>
-  {body}
-  <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:16px;
-       border-top:1px solid {LINE};padding-top:10px;word-break:break-word;overflow-wrap:anywhere;">
-    Autonomous execution engine by Job Hunter. Application kits drafted from master resume.pdf.
-  </div>
-</div></body></html>"""
+</body>
+</html>"""
     return subject, html_doc
 
 
@@ -161,5 +169,6 @@ def write(html_doc: str, path: str | Path = "out/digest.html") -> Path:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(html_doc, encoding="utf-8")
     return target_path
+
 
 

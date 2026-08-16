@@ -176,11 +176,14 @@ def test_digest_responsive_structure():
     })
     subject, html_doc = digest.build([job], 20, 5, {"tracked": 20})
     assert 'viewport' in html_doc
-    assert 'display:flex' in html_doc
     assert '@media' in html_doc
     assert 'box-sizing:border-box' in html_doc
     assert 'overflow-wrap:anywhere' in html_doc or 'word-break:break-word' in html_doc
     assert 'digest-card' in html_doc
+    # Ensure body does not have display:flex (which Gmail breaks into horizontal row)
+    assert '<body style="margin:0;padding:16px 8px;background:' in html_doc
+    assert 'display:flex' not in html_doc.split('<body')[1].split('<div class="digest-wrap"')[0]
+
 
 
 
