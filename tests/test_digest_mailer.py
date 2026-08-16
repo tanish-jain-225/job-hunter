@@ -165,4 +165,23 @@ def test_digest_build_with_custom_profile():
     assert "Stanford 2025" in html_doc
 
 
+def test_digest_responsive_structure():
+    job = Job("greenhouse:stripe:1", "greenhouse", "Stripe", "Senior Backend Engineer", "Remote", "https://stripe.com/job/1", "desc", score=9.5, draft={
+        "fit_summary": "Top match",
+        "india_eligibility": "Verified India-Friendly",
+        "best_project": "Payments Engine",
+        "tailored_bullets": ["Built real-time payout pipeline."],
+        "cold_outreach": "Hey team, check out my payment engine repo.",
+        "cover_note": "I'd love to join Stripe."
+    })
+    subject, html_doc = digest.build([job], 20, 5, {"tracked": 20})
+    assert 'viewport' in html_doc
+    assert 'display:flex' in html_doc
+    assert '@media' in html_doc
+    assert 'box-sizing:border-box' in html_doc
+    assert 'overflow-wrap:anywhere' in html_doc or 'word-break:break-word' in html_doc
+    assert 'digest-card' in html_doc
+
+
+
 
