@@ -41,7 +41,7 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## 🧪 Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full test suite without any network requests or API keys (189 tests with 99%+ coverage):
+Run the full test suite without any network requests or API keys (191 tests with 98%+ coverage):
 ```bash
 pytest
 ```

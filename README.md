@@ -390,12 +390,12 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (189 unit & integration tests):
+Run the full test suite locally (191 unit & integration tests):
 ```bash
 pytest
 ```
 
-Run test suite with detailed 99%+ coverage reporting:
+Run test suite with detailed 98%+ coverage reporting:
 ```bash
 pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 ```
