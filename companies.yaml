@@ -1,13 +1,37 @@
 # Target company career boards (100% Web-Verified Live HTTP 200 Endpoints).
 #
-#   ats:   greenhouse | lever | ashby
+#   ats:   greenhouse | lever | ashby | workable | smartrecruiters | bamboohr
 #   slug:  the company's public board identifier
 #   name:  company name for digest display
 #
 # All slugs verified via live HTTP GET requests against public APIs.
 
 companies:
-  # --- Greenhouse (Verified 200 OK) ---
+  # --- Top Indian Unicorns & Startups (Verified 200 OK) ---
+  - {ats: greenhouse, slug: razorpaysoftwareprivatelimited, name: Razorpay}
+  - {ats: lever, slug: meesho, name: Meesho}
+  - {ats: greenhouse, slug: phonepe, name: PhonePe}
+  - {ats: lever, slug: cred, name: CRED}
+  - {ats: greenhouse, slug: groww, name: Groww}
+  - {ats: greenhouse, slug: slice, name: Slice}
+  - {ats: greenhouse, slug: inmobi, name: InMobi}
+  - {ats: greenhouse, slug: glance, name: Glance}
+  - {ats: ashby, slug: sarvam, name: Sarvam AI}
+  - {ats: lever, slug: porter, name: Porter}
+  - {ats: greenhouse, slug: devrev, name: DevRev}
+  - {ats: ashby, slug: signoz, name: SigNoz}
+  - {ats: lever, slug: zeta, name: Zeta Suite}
+  - {ats: lever, slug: mindtickle, name: Mindtickle}
+  - {ats: lever, slug: epifi, name: Fi Money}
+  - {ats: lever, slug: fampay, name: FamPay}
+  - {ats: smartrecruiters, slug: freshworks, name: Freshworks}
+  - {ats: greenhouse, slug: thoughtworks, name: Thoughtworks}
+  - {ats: greenhouse, slug: rubrik, name: Rubrik India}
+  - {ats: greenhouse, slug: postman, name: Postman}
+  - {ats: greenhouse, slug: hackerrank, name: HackerRank}
+  - {ats: ashby, slug: almabase, name: Almabase}
+
+  # --- Global Tech with India Hubs & Elite Remote Boards ---
   - {ats: greenhouse, slug: stripe, name: Stripe}
   - {ats: greenhouse, slug: databricks, name: Databricks}
   - {ats: greenhouse, slug: anthropic, name: Anthropic}
@@ -22,13 +46,11 @@ companies:
   - {ats: greenhouse, slug: coinbase, name: Coinbase}
   - {ats: greenhouse, slug: figma, name: Figma}
   - {ats: greenhouse, slug: reddit, name: Reddit}
-  - {ats: greenhouse, slug: postman, name: Postman}
   - {ats: greenhouse, slug: vercel, name: Vercel}
   - {ats: greenhouse, slug: netlify, name: Netlify}
-  - {ats: greenhouse, slug: hackerrank, name: HackerRank}
   - {ats: greenhouse, slug: yugabyte, name: YugabyteDB}
 
-  # --- Ashby (Verified 200 OK) ---
+  # --- Ashby High-Growth AI & Tech Boards ---
   - {ats: ashby, slug: openai, name: OpenAI}
   - {ats: ashby, slug: harvey, name: Harvey}
   - {ats: ashby, slug: ramp, name: Ramp}
@@ -54,15 +76,9 @@ companies:
   - {ats: ashby, slug: posthog, name: PostHog}
   - {ats: ashby, slug: ontic, name: Ontic}
   - {ats: ashby, slug: railway, name: Railway}
-  - {ats: ashby, slug: almabase, name: Almabase}
   - {ats: ashby, slug: weaviate, name: Weaviate}
 
-  # --- Lever (Verified 200 OK) ---
+  # --- Lever, SmartRecruiters & Workable ---
   - {ats: lever, slug: palantir, name: Palantir}
   - {ats: lever, slug: gohighlevel, name: GoHighLevel}
-  - {ats: lever, slug: fampay, name: FamPay}
-
-  # --- Workable, SmartRecruiters & BambooHR ---
-  - {ats: workable, slug: vector, name: Vector}
   - {ats: smartrecruiters, slug: visa, name: Visa}
-  - {ats: bamboohr, slug: acme, name: Acme}

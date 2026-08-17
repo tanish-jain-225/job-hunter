@@ -186,6 +186,20 @@ def test_allow_remote_is_what_lets_an_out_of_region_remote_role_through():
     assert kept_off == []
 
 
+def test_exclude_locations_drops_out_of_region_remote():
+    us_remote = Job(job_id="greenhouse:x:2", ats="greenhouse", company="X",
+                    title="Backend Engineer", location="Remote - United States",
+                    url="https://example.com", description="Python")
+    india_remote = Job(job_id="greenhouse:x:3", ats="greenhouse", company="X",
+                      title="Backend Engineer", location="Remote - India",
+                      url="https://example.com", description="Python")
+
+    test_filters = dict(FILTERS, exclude_locations=[r"\b(united states|usa)\b"])
+    kept = prefilter([us_remote, india_remote], test_filters)
+    assert len(kept) == 1
+    assert kept[0].job_id == "greenhouse:x:3"
+
+
 def test_empty_filters_keep_everything():
     jobs = fetch_all_mock()
     assert len(prefilter(jobs, {})) == len(jobs)

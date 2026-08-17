@@ -34,6 +34,7 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     inc = cfg.get("include_titles") or [r"."]
     exc = cfg.get("exclude_titles") or []
     locs = [loc.lower() for loc in (cfg.get("locations") or [])]
+    exc_locs = cfg.get("exclude_locations") or []
     allow_remote = bool(cfg.get("allow_remote", True))
     max_age = cfg.get("max_age_days")
     cutoff = datetime.now(timezone.utc) - timedelta(days=max_age) if max_age else None
@@ -46,8 +47,15 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
 
         if locs:
             hay = f"{j.location} {j.title}".lower()
+            loc_lower = (j.location or "").lower()
+            is_in_target_loc = any(loc in hay for loc in locs)
+
+            if exc_locs and _any_match(exc_locs, loc_lower) and not is_in_target_loc:
+                stats["location"] += 1
+                continue
+
             is_remote = allow_remote and any(h in hay for h in REMOTE_HINTS)
-            if not is_remote and not any(loc in hay for loc in locs):
+            if not is_remote and not is_in_target_loc:
                 stats["location"] += 1
                 continue
 
