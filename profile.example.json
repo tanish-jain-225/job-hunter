@@ -1,43 +1,70 @@
 {
-  "name": "Sample Candidate",
-  "current_title": "Software Engineer II",
-  "years_experience": 3,
+  "name": "Jane Doe",
+  "location": "Mumbai, India / Remote",
+  "email": "jane.doe@example.com",
+  "github": "https://github.com/janedoe",
+  "current_title": "Full Stack & AI Software Engineer",
+  "years_experience": 1,
+  "graduation_year": 2026,
+  "education": "B.Tech in Computer Engineering (2022 - 2026) | CGPA: 8.5 / 10",
   "core_skills": [
-    "Go",
-    "Java",
+    "JavaScript (ES6+)",
+    "TypeScript",
     "Python",
-    "distributed systems",
-    "Kubernetes",
-    "Kafka",
-    "gRPC",
+    "React.js",
+    "Next.js",
+    "Node.js",
+    "Express.js",
+    "Flask",
+    "FastAPI",
     "PostgreSQL",
+    "MongoDB",
     "Redis",
+    "REST APIs",
+    "GraphQL",
     "Docker",
-    "Terraform",
-    "observability",
-    "TCP/IP",
-    "HTTP",
-    "DNS",
-    "system design"
+    "Git",
+    "GitHub Actions",
+    "Jest",
+    "Playwright",
+    "Gemini AI API",
+    "Anthropic Claude API",
+    "Tailwind CSS"
   ],
   "domains": [
-    "backend services",
-    "distributed systems",
-    "CDN and edge networking",
-    "platform infrastructure"
+    "Full Stack Web Applications",
+    "Backend Microservices & Distributed APIs",
+    "Generative AI & LLM Agent Workflows",
+    "Automated Testing & CI/CD Pipelines",
+    "Cloud Architecture & System Design"
   ],
   "notable_projects": [
-    "Rebuilt a request-routing layer in Go, cutting p99 latency from 340ms to 95ms",
-    "Owned the migration of 40 services onto Kubernetes with zero customer-facing downtime",
-    "Built a Kafka-based event pipeline handling 1.2B events/day"
+    "AI Career Intelligence Platform: Autonomous agent indexing 2,000+ ATS job postings daily with deterministic regex filtering, multi-model screening (Gemini/Claude), and automated application kit drafting.",
+    "Distributed Document Ledger: High-throughput academic record system built with Next.js, PostgreSQL, and Redis featuring 80+ unit/E2E test gates, rate limiting, and audit logging.",
+    "Real-Time Collaborative Canvas: Full-stack workspace with React, WebSockets, Node.js, and Redis pub/sub supporting 1,000+ concurrent live participants."
   ],
-  "education": "B.E. Computer Science, 2022",
+  "achievements": [
+    "Winner / Finalist at National Hackathon (Top 5 out of 300+ teams)",
+    "Open Source Contributor to modern developer tooling and web frameworks"
+  ],
   "target_titles": [
     "Software Engineer",
+    "Full Stack Engineer",
     "Backend Engineer",
     "Software Development Engineer",
-    "Site Reliability Engineer",
-    "Platform Engineer"
+    "Software Engineer Intern",
+    "Junior Software Engineer",
+    "Associate Software Engineer",
+    "AI Software Engineer"
   ],
-  "seniority": "mid"
+  "seniority": "junior",
+  "avoid_roles": [
+    "Senior",
+    "Staff",
+    "Principal",
+    "Director",
+    "Engineering Manager",
+    "Non-technical / Sales",
+    "Legacy monolithic stack without modern web technologies"
+  ]
 }
