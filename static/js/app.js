@@ -3373,30 +3373,40 @@ async function initAuth() {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: true
+          detectSessionInUrl: true,
+          storage: window.localStorage
         }
       });
 
-      // Get initial session
+      // Get initial session from localStorage
       const { data } = await supabaseClient.auth.getSession();
       currentAuthSession = data?.session || null;
 
-      // Listen for auth state changes
+      // Listen for auth state changes across all tabs and token refreshes
       supabaseClient.auth.onAuthStateChange((event, session) => {
         currentAuthSession = session;
         updateUserHeader(session);
         if (session) {
+          setAppView('dashboard');
           syncDashboard(true);
           startHeartbeat();
+
+          // Clean up OAuth fragment from address bar if present
+          if (window.location.hash && window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
         } else {
           stopHeartbeat();
-          setAppView('landing');
+          if (authConfig.auth_required) {
+            setAppView('landing');
+          }
         }
       });
     }
 
-    // Initialize View
+    // Initialize View based on restored session
     if (currentAuthSession) {
+      setAppView('dashboard');
       updateUserHeader(currentAuthSession);
       syncDashboard(true);
       startHeartbeat();
@@ -3416,6 +3426,7 @@ async function initAuth() {
     startHeartbeat();
   }
 }
+
 
 // Initialization on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
