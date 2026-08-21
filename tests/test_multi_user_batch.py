@@ -11,7 +11,16 @@ import jobhunt.multi
 from jobhunt.multi import run_multi_user_pipeline
 
 
+@pytest.fixture(autouse=True)
+def mock_multi_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://mock-multi.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "mock-anon-key")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "mock-service-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "mock-gemini-key")
+
+
 def test_multi_user_pipeline_mock_run(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+
     # Ensure memory returns 2 distinct active profiles
     mock_users = [
         {

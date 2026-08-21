@@ -23,6 +23,8 @@ def mock_supabase_env(monkeypatch):
     monkeypatch.setenv("SUPABASE_ANON_KEY", "mock-anon-key")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "mock-service-key")
     monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setenv("GEMINI_API_KEY", "mock-gemini-key")
+
 
 
 def test_resume_upload_text_payload(client, mock_supabase_env):
