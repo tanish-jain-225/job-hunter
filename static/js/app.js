@@ -1931,23 +1931,77 @@ function closeProfileModal() {
 }
 
 function flushUserProfileData() {
-  const preservedEmail = currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
+  const preservedEmail = (
+    currentAuthSession?.user?.email ||
+    activeProfileData?.notification_email ||
+    activeProfileData?.email ||
+    document.getElementById('notif-target-email')?.value ||
+    ''
+  ).trim();
 
-  // 1. Clear all candidate criteria, name, resume text, and Section 3 min score in DOM without touching database
+  // 1. Clear all text, textarea, and numeric inputs across Profile & Onboarding modals
   const fieldIds = [
     'prof-name', 'prof-title', 'prof-years', 'prof-education',
     'prof-skills', 'prof-targets', 'prof-excludes', 'prof-resume-text',
-    'notif-min-score',
+    'prof-specific-cities', 'notif-min-score',
     'onboard-prof-name', 'onboard-prof-title', 'onboard-prof-years',
     'onboard-prof-education', 'onboard-prof-skills', 'onboard-prof-targets',
-    'onboard-prof-excludes', 'onboarding-paste-text'
+    'onboard-prof-excludes', 'onboard-specific-cities', 'onboarding-paste-text'
   ];
   fieldIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
 
-  // 2. Clear Section 3 Mail Mode cards and radio selections (no select)
+  // Preserve email input intact
+  const emailInput = document.getElementById('notif-target-email');
+  if (emailInput && preservedEmail) {
+    emailInput.value = preservedEmail;
+  }
+
+  // 2. Clear Job Type Checkbox Chips
+  ['prof-job-types', 'onboard-job-types'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+      });
+      container.querySelectorAll('.chip-toggle').forEach(chip => {
+        chip.classList.remove('active');
+      });
+    }
+  });
+
+  // 3. Reset Location Preference Radios & hide specific cities input
+  ['prof-location-pref', 'onboard-location-pref'].forEach(radioName => {
+    document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
+      r.checked = (r.value === 'all_india');
+    });
+  });
+  document.querySelectorAll('.location-pref-options .radio-option').forEach(el => {
+    el.classList.remove('active');
+  });
+  const profLocAllIndia = document.getElementById('prof-loc-pref-allindia');
+  if (profLocAllIndia) profLocAllIndia.classList.add('active');
+  const onbLocAllIndia = document.getElementById('loc-pref-allindia');
+  if (onbLocAllIndia) onbLocAllIndia.classList.add('active');
+
+  const profSpecificInput = document.getElementById('prof-specific-cities-input');
+  if (profSpecificInput) profSpecificInput.style.display = 'none';
+  const onbSpecificInput = document.getElementById('specific-cities-input');
+  if (onbSpecificInput) onbSpecificInput.style.display = 'none';
+
+  // 4. Reset Experience Level Radios
+  ['prof-exp', 'onboard-exp'].forEach(radioName => {
+    document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
+      r.checked = false;
+    });
+  });
+  document.querySelectorAll('.exp-level-chips .chip-radio').forEach(el => {
+    el.classList.remove('active');
+  });
+
+  // 5. Clear Section 3 Mail Mode cards and radio selections
   const dailyRadio = document.getElementById('radio-mode-daily');
   const onetimeRadio = document.getElementById('radio-mode-onetime');
   const dailyCard = document.getElementById('mode-card-daily');
@@ -1963,19 +2017,21 @@ function flushUserProfileData() {
     onetimeCard.style.background = '#FFFFFF';
   }
 
-  // 3. Clear Onboarding Notification Mode selection cards (no select)
+  // 6. Clear Onboarding Notification Mode selection cards & alert toggles
   const ondemandCard = document.getElementById('mode-card-ondemand');
   const onbDailyCard = document.getElementById('mode-card-daily');
   const ondemandRadio = document.getElementById('mode-radio-ondemand');
   const onbDailyRadio = document.getElementById('mode-radio-daily');
   const onboardToggle = document.getElementById('onboard-toggle-email-alerts');
+  const profToggle = document.getElementById('toggle-email-alerts');
   if (ondemandCard) ondemandCard.classList.remove('active');
   if (onbDailyCard) onbDailyCard.classList.remove('active');
   if (ondemandRadio) ondemandRadio.innerText = '○';
   if (onbDailyRadio) onbDailyRadio.innerText = '○';
   if (onboardToggle) onboardToggle.checked = false;
+  if (profToggle) profToggle.checked = false;
 
-  // 4. Reset dropzone text, file inputs, and previews
+  // 7. Reset dropzone text, file inputs, and previews
   const dropText = document.getElementById('dropzone-text');
   if (dropText) dropText.innerText = 'Click or drag & drop a new resume PDF / TXT file';
   const fileInput = document.getElementById('resume-file-input');
@@ -1985,23 +2041,34 @@ function flushUserProfileData() {
   if (onbDropText) onbDropText.innerText = 'Click or drag & drop your resume file here (.pdf, .txt)';
   const onbFileInput = document.getElementById('onboarding-file-input');
   if (onbFileInput) onbFileInput.value = '';
+  selectedOnboardingFile = null;
 
   const previewCard = document.getElementById('studio-resume-preview-card');
   if (previewCard) previewCard.style.display = 'none';
   const onbPreviewCard = document.getElementById('onboarding-preview-card');
   if (onbPreviewCard) onbPreviewCard.style.display = 'none';
 
-  const alertEl = document.getElementById('resume-status-alert');
-  if (alertEl) alertEl.style.display = 'none';
-  const onbAlertEl = document.getElementById('onboarding-status-alert');
-  if (onbAlertEl) onbAlertEl.style.display = 'none';
+  const previewElements = [
+    'studio-prev-name', 'studio-prev-title', 'studio-prev-years', 'studio-prev-skills',
+    'preview-name', 'preview-title', 'preview-years'
+  ];
+  previewElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = '—';
+  });
+  const previewSkillsContainer = document.getElementById('preview-skills-container');
+  if (previewSkillsContainer) previewSkillsContainer.innerHTML = '';
 
-  // 5. Reset chips active state
+  const alertEl = document.getElementById('resume-status-alert');
+  if (alertEl) { alertEl.style.display = 'none'; alertEl.innerHTML = ''; }
+  const onbAlertEl = document.getElementById('onboarding-status-alert');
+  if (onbAlertEl) { onbAlertEl.style.display = 'none'; onbAlertEl.innerHTML = ''; }
+
+  // 8. Reset role preset chips active state
   document.querySelectorAll('.btn-preset-chip').forEach(btn => btn.classList.remove('active'));
 
-  // 6. Update in-memory local state (does NOT hit the database until Save is clicked)
+  // 9. Update in-memory local state (preserving only user email)
   activeProfileData = {
-    ...(activeProfileData || {}),
     name: '',
     title: '',
     education: '',
@@ -2011,16 +2078,24 @@ function flushUserProfileData() {
     exclude_keywords: [],
     resume_text: '',
     resume_filename: '',
+    preferred_locations: [],
+    location_preference: 'all_india',
+    job_types: [],
+    experience_level: '',
+    notable_projects: [],
+    domains: [],
     email_notifications_enabled: false,
     min_score_notification: 7.5,
-    notification_email: preservedEmail
+    notification_email: preservedEmail,
+    email: preservedEmail
   };
 
   renderCandidateSummary(activeProfileData);
   updateJobSearchButtonState();
 
-  showToast('All sections emptied. Click "Save Profile" to commit changes to database.', 'info', 3500);
+  showToast('All fields emptied (email preserved). Click "Save Profile" to commit changes.', 'info', 3500);
 }
+
 
 // Profile wizard step navigation
 function profileWizardGoTo(step) {
