@@ -49,11 +49,18 @@ pip install -e .
    ```env
    LLM_PROVIDER=gemini
    GEMINI_API_KEY=your_gemini_api_key_here
+   SCREEN_MODEL=gemini-3.5-flash
+   DRAFT_MODEL=gemini-3.5-flash
+
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
    SMTP_USER=your_email@gmail.com
    SMTP_PASS=your_16_char_gmail_app_password
-   MAIL_TO=your_email@gmail.com
+
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   AUTH_REQUIRED=true
    ```
 
 2. **Generate Profile from Resume**:

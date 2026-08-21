@@ -98,8 +98,8 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-16-char-app-password
-MAIL_TO=your-email@gmail.com
 ```
+
 
 5. Click **Deploy**. Vercel will build and deploy your live dashboard at `https://your-project.vercel.app`!
 

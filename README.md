@@ -215,29 +215,25 @@ jobhunt profile --resume resume.pdf
 Copy `.env.example` to `.env` and insert your credentials:
 
 ```ini
-# LLM Provider Keys
-GEMINI_API_KEY="AIzaSy..."
-ANTHROPIC_API_KEY="sk-ant-..."
-GROQ_API_KEY="gsk_..."
+# AI Intelligence Provider (Google Gemini Free Tier)
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key
+SCREEN_MODEL=gemini-3.5-flash
+DRAFT_MODEL=gemini-3.5-flash
 
-# Model Selection & Provider Overrides
-LLM_PROVIDER="gemini"
-SCREEN_PROVIDER="gemini"
-DRAFT_PROVIDER="gemini"
-SCREEN_MODEL="gemini-3.5-flash"
-DRAFT_MODEL="gemini-3.5-flash"
-
-# Email SMTP Settings (Gmail)
-SMTP_HOST="smtp.gmail.com"
+# Central Outbound SMTP Server (Gmail App Password)
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-gmail-app-password"
-MAIL_TO="your-email@gmail.com"
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-16-char-gmail-app-password
 
-# Supabase Multi-Tenant Memory (Optional)
-SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_ANON_KEY="your-anon-key"
+# Supabase PostgreSQL Multi-Tenant Database & Authentication
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+AUTH_REQUIRED=true
 ```
+
 
 ---
 
