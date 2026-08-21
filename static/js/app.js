@@ -1443,22 +1443,9 @@ async function submitOnboardingResumeParse() {
       }
       if (previewCard) previewCard.style.display = 'block';
 
-      // Auto-fill Step 2 inputs
-      const nameInput = document.getElementById('onboard-prof-name');
-      const titleInput = document.getElementById('onboard-prof-title');
-      const yearsInput = document.getElementById('onboard-prof-years');
-      const eduInput = document.getElementById('onboard-prof-education');
-      const skillsInput = document.getElementById('onboard-prof-skills');
-      const targetsInput = document.getElementById('onboard-prof-targets');
-
-      if (nameInput) nameInput.value = p.name || '';
-      if (titleInput) titleInput.value = p.title || '';
-      if (yearsInput) yearsInput.value = p.experience_years || '';
-      if (eduInput) eduInput.value = p.education || '';
-      if (skillsInput) skillsInput.value = Array.isArray(p.skills) ? p.skills.join(', ') : '';
-      if (targetsInput) targetsInput.value = Array.isArray(p.target_keywords) ? p.target_keywords.join(', ') : '';
-
+      populateSection2FromProfile(activeProfileData);
       renderCandidateSummary(p);
+
 
       // Smoothly advance to Step 2 to verify and complete radar setup
       setTimeout(() => {
@@ -1793,8 +1780,8 @@ async function openProfileModal(tab = 'resume') {
           dropText.innerText = p.resume_filename
             ? `Current resume: ${p.resume_filename} — drop a new file to replace`
             : 'Resume context saved — drop a new file anytime to update';
-        }
-      }
+      // ── Populate Section 2 fields from saved profile
+      populateSection2FromProfile(p);
     } else {
       // No profile yet — pre-fill only auth name and email
       const nameInput  = document.getElementById('prof-name');
@@ -1842,24 +1829,137 @@ function selectMailMode(mode) {
   }
 }
 
+// Comprehensive Section 2 Auto-Fill Helper (covers Name, Target Roles, Excluded Keywords, Experience, Job Types, Locations)
+function populateSection2FromProfile(p) {
+  if (!p) return;
+
+  const authName = (
+    currentAuthSession?.user?.user_metadata?.full_name ||
+    currentAuthSession?.user?.user_metadata?.name ||
+    ''
+  ).trim();
+
+  // 1. Candidate Name
+  const nameVal = (p.name || authName || '').trim();
+  const nameInput = document.getElementById('prof-name');
+  const onbNameInput = document.getElementById('onboard-prof-name');
+  if (nameInput && nameVal) nameInput.value = nameVal;
+  if (onbNameInput && nameVal) onbNameInput.value = nameVal;
+
+  // 2. Target Job Titles
+  let targets = [];
+  if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
+    targets = p.target_keywords;
+  } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
+    targets = p.target_titles;
+  } else if (p.title || p.current_title) {
+    targets = [p.title || p.current_title, 'Software Engineer'];
+  } else {
+    targets = ['Backend Engineer', 'Systems Engineer', 'Software Engineer II', 'AI Engineer'];
+  }
+  const targetsStr = targets.join(', ');
+  const targetsInput = document.getElementById('prof-targets');
+  const onbTargetsInput = document.getElementById('onboard-prof-targets');
+  if (targetsInput) targetsInput.value = targetsStr;
+  if (onbTargetsInput) onbTargetsInput.value = targetsStr;
+
+  // 3. Excluded Keywords
+  const excludes = Array.isArray(p.exclude_keywords) && p.exclude_keywords.length
+    ? p.exclude_keywords
+    : ['Manager', 'Director', 'Sales', 'Recruiter', 'VP'];
+  const excludesStr = excludes.join(', ');
+  const excludesInput = document.getElementById('prof-excludes');
+  const onbExcludesInput = document.getElementById('onboard-prof-excludes');
+  if (excludesInput) excludesInput.value = excludesStr;
+  if (onbExcludesInput) onbExcludesInput.value = excludesStr;
+
+  // 4. Experience Level
+  let expKey = '1-3';
+  const years = p.experience_years != null ? Number(p.experience_years) : (p.years_experience != null ? Number(p.years_experience) : null);
+  const seniority = (p.seniority || '').toLowerCase();
+  if (p.experience_level) {
+    expKey = p.experience_level;
+  } else if (years != null) {
+    if (years <= 0 || seniority === 'student' || seniority === 'entry') expKey = 'fresher';
+    else if (years <= 1) expKey = '0-1';
+    else if (years <= 3) expKey = '1-3';
+    else if (years <= 5) expKey = '3-5';
+    else expKey = '5+';
+  } else if (seniority.includes('lead') || seniority.includes('senior') || seniority.includes('staff')) {
+    expKey = '5+';
+  }
+
+  ['prof-exp', 'onboard-exp'].forEach(nameAttr => {
+    document.querySelectorAll(`input[name="${nameAttr}"]`).forEach(radio => {
+      const isMatch = radio.value === expKey;
+      radio.checked = isMatch;
+      const chip = radio.closest('.chip-radio');
+      if (chip) chip.classList.toggle('active', isMatch);
+    });
+  });
+
+  // 5. Job Type Preferences
+  let jobTypes = ['fulltime', 'remote', 'hybrid', 'onsite'];
+  if (Array.isArray(p.job_types) && p.job_types.length) {
+    jobTypes = p.job_types;
+  } else if (expKey === 'fresher' || seniority === 'student' || (years != null && years === 0)) {
+    jobTypes = ['fulltime', 'internship', 'remote', 'hybrid', 'onsite'];
+  }
+
+  ['prof-job-types', 'onboard-job-types'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        const isMatch = jobTypes.includes(cb.value);
+        cb.checked = isMatch;
+        const toggle = cb.closest('.chip-toggle');
+        if (toggle) toggle.classList.toggle('active', isMatch);
+      });
+    }
+  });
+
+  // 6. Location Preference & Specific Cities
+  let locPref = 'all_india';
+  let citiesList = [];
+  if (p.location_preference) {
+    locPref = typeof p.location_preference === 'object' ? (p.location_preference.type || 'all_india') : p.location_preference;
+    citiesList = Array.isArray(p.location_preference.locations) ? p.location_preference.locations : [];
+  } else if (Array.isArray(p.preferred_locations) && p.preferred_locations.length) {
+    locPref = 'specific_cities';
+    citiesList = p.preferred_locations;
+  }
+
+  ['prof-location-pref', 'onboard-location-pref'].forEach(radioName => {
+    document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
+      const isMatch = r.value === locPref;
+      r.checked = isMatch;
+      const opt = r.closest('.radio-option');
+      if (opt) opt.classList.toggle('active', isMatch);
+    });
+  });
+
+  const isSpecific = locPref === 'specific_cities';
+  const profSpecificInput = document.getElementById('prof-specific-cities-input');
+  if (profSpecificInput) profSpecificInput.style.display = isSpecific ? 'block' : 'none';
+  const onbSpecificInput = document.getElementById('specific-cities-input');
+  if (onbSpecificInput) onbSpecificInput.style.display = isSpecific ? 'block' : 'none';
+
+  if (citiesList.length) {
+    const citiesStr = citiesList.join(', ');
+    const profCities = document.getElementById('prof-specific-cities');
+    if (profCities) profCities.value = citiesStr;
+    const onbCities = document.getElementById('onboard-specific-cities');
+    if (onbCities) onbCities.value = citiesStr;
+  }
+}
+
 async function autoFillRolesFromResume() {
   const resumeText = document.getElementById('prof-resume-text')?.value?.trim() || activeProfileData?.resume_text || '';
-  const targetsInput = document.getElementById('prof-targets') || document.getElementById('onboard-prof-targets');
-  const excludesInput = document.getElementById('prof-excludes') || document.getElementById('onboard-prof-excludes');
 
-  // If activeProfileData already has extracted target roles, populate instantly
-  if (activeProfileData && activeProfileData.target_keywords && activeProfileData.target_keywords.length) {
-    if (targetsInput) {
-      targetsInput.value = Array.isArray(activeProfileData.target_keywords)
-        ? activeProfileData.target_keywords.join(', ')
-        : activeProfileData.target_keywords;
-    }
-    if (excludesInput && activeProfileData.exclude_keywords) {
-      excludesInput.value = Array.isArray(activeProfileData.exclude_keywords)
-        ? activeProfileData.exclude_keywords.join(', ')
-        : activeProfileData.exclude_keywords;
-    }
-    showToast('Roles auto-filled from resume helper! You can customize them freely.', 'success', 3500);
+  // If activeProfileData already has parsed profile info, populate all Section 2 fields instantly
+  if (activeProfileData && (activeProfileData.target_keywords?.length || activeProfileData.skills?.length || activeProfileData.name)) {
+    populateSection2FromProfile(activeProfileData);
+    showToast('All Section 2 criteria (Candidate Name, Target Roles, Excluded Keywords, Experience Level, Job Types & Locations) auto-filled!', 'success', 3500);
     return;
   }
 
@@ -1874,7 +1974,7 @@ async function autoFillRolesFromResume() {
   const btnText = document.getElementById('autofill-roles-btn-text');
   if (btn) btn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
-  if (btnText) btnText.innerText = 'Extracting roles from resume...';
+  if (btnText) btnText.innerText = 'Extracting criteria from resume...';
 
   try {
     const res = await authFetch('/api/resume/upload', {
@@ -1888,20 +1988,10 @@ async function autoFillRolesFromResume() {
       activeProfileData = { ...activeProfileData, ...p, resume_text: resumeText };
       renderCandidateSummary(activeProfileData);
 
-      if (targetsInput) {
-        targetsInput.value = Array.isArray(p.target_keywords) && p.target_keywords.length
-          ? p.target_keywords.join(', ')
-          : 'Backend Engineer, Systems Engineer, Software Engineer II, AI Engineer';
-      }
-      if (excludesInput) {
-        excludesInput.value = Array.isArray(p.exclude_keywords) && p.exclude_keywords.length
-          ? p.exclude_keywords.join(', ')
-          : 'Manager, Director, Sales, Recruiter, VP';
-      }
-
-      showToast('Roles auto-filled from resume helper! You can customize them freely.', 'success', 3500);
+      populateSection2FromProfile(activeProfileData);
+      showToast('All Section 2 criteria (Candidate Name, Target Roles, Excluded Keywords, Experience Level, Job Types & Locations) auto-filled!', 'success', 3500);
     } else {
-      showToast('Auto-fill notice: ' + (data.message || 'could not parse roles'), 'info');
+      showToast('Auto-fill notice: ' + (data.message || 'could not parse criteria'), 'info');
     }
   } catch (err) {
     showToast('Auto-fill notice: ' + err.message, 'info');
@@ -1911,6 +2001,7 @@ async function autoFillRolesFromResume() {
     if (btnText) btnText.innerText = 'Auto-Fill from Resume Context';
   }
 }
+
 
 function closeProfileModal() {
   const modalEl = document.getElementById('profile-modal');
@@ -2240,8 +2331,12 @@ async function handleResumeFileSelectedAndParse(event) {
         previewCard.style.display = 'block';
       }
 
+      // Auto-populate all Section 2 fields immediately
+      populateSection2FromProfile(activeProfileData);
+
       showToast('Resume extracted! Review your extraction preview and click Next when ready.', 'success', 3500);
     } else {
+
       if (dropText) dropText.innerText = `⚠️ ${file.name} — parse failed, click to retry or edit text below`;
       if (alertEl) {
         alertEl.className = 'studio-alert error';
