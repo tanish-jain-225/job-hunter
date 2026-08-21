@@ -6,6 +6,20 @@ import pytest
 from app import app
 
 
+import os
+
+
+@pytest.fixture(autouse=True)
+def bypass_auth_for_app_tests():
+    old_val = os.environ.get("AUTH_REQUIRED")
+    os.environ["AUTH_REQUIRED"] = "false"
+    yield
+    if old_val is None:
+        os.environ.pop("AUTH_REQUIRED", None)
+    else:
+        os.environ["AUTH_REQUIRED"] = old_val
+
+
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
@@ -82,7 +96,17 @@ def test_api_applied_unknown_id(client, tmp_path, monkeypatch):
 
 def test_api_run_mock(client, monkeypatch):
     """Verify /api/run with mock mode executes pipeline cleanly."""
-    monkeypatch.setattr("jobhunt.cli.cmd_run", lambda args: 0)
+    completed_profile = {
+        "name": "Test User",
+        "onboarding_completed": True,
+        "skills": ["Python", "Go"],
+        "target_keywords": ["Backend Engineer"],
+        "email_notifications_enabled": False,
+        "notification_email": "test@example.com",
+        "profile_json": {"name": "Test User", "core_skills": ["Python"]},
+    }
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+    monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
     res = client.post("/api/run", json={"mock": True})
     assert res.status_code == 200
     data = res.get_json()
@@ -223,15 +247,37 @@ def test_api_jobs_ats_and_sorting(client):
 
 
 def test_api_cache_control_headers(client):
-    """Verify dynamic API endpoints include no-store / must-revalidate cache headers."""
+    """Verify dynamic API endpoints include security and cache headers."""
     res_stats = client.get("/api/stats")
     assert res_stats.status_code == 200
     assert "no-store" in res_stats.headers.get("Cache-Control", "")
     assert "no-cache" in res_stats.headers.get("Cache-Control", "")
+    assert res_stats.headers.get("X-Content-Type-Options") == "nosniff"
+    assert res_stats.headers.get("X-Frame-Options") == "SAMEORIGIN"
+    assert res_stats.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
 
     res_jobs = client.get("/api/jobs")
     assert res_jobs.status_code == 200
     assert "no-store" in res_jobs.headers.get("Cache-Control", "")
+
+
+def test_api_health(client, monkeypatch):
+    """Verify /api/health returns valid system diagnostic and health payload."""
+    res = client.get("/api/health")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["status"] == "healthy"
+    assert data["service"] == "job-hunter"
+    assert "version" in data
+    assert "environment" in data
+    assert "timestamp" in data
+    assert "utc_time" in data
+
+    # Test Vercel environment detection
+    monkeypatch.setenv("VERCEL", "1")
+    res_vercel = client.get("/api/health")
+    assert res_vercel.status_code == 200
+    assert res_vercel.get_json()["environment"] == "vercel"
 
 
 def test_app_get_project_root_fallback(monkeypatch):
@@ -302,29 +348,50 @@ def test_api_jobs_filters_more(client):
 
 
 def test_api_run_vercel_mode(client, monkeypatch):
+    completed_profile = {
+        "name": "Test User",
+        "onboarding_completed": True,
+        "skills": ["Python"],
+        "target_keywords": ["Backend Engineer"],
+        "email_notifications_enabled": False,
+        "notification_email": "test@example.com",
+        "profile_json": {"name": "Test User", "core_skills": ["Python"]},
+    }
     monkeypatch.setenv("VERCEL", "1")
-    monkeypatch.setattr("jobhunt.cli.cmd_run", lambda args: 0)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+    monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
     res = client.post("/api/run")
     assert res.status_code == 200
     assert "Fast mode on Vercel" in res.get_json()["message"]
 
 
 def test_api_run_fallback_and_error(client, monkeypatch):
+    completed_profile = {
+        "name": "Test User",
+        "onboarding_completed": True,
+        "skills": ["Python"],
+        "target_keywords": ["Backend Engineer"],
+        "email_notifications_enabled": False,
+        "notification_email": "test@example.com",
+        "profile_json": {"name": "Test User", "core_skills": ["Python"]},
+    }
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+
     # First call fails, second succeeds (fallback to keyword)
     call_count = [0]
-    def mock_cmd_run(args):
+    def mock_run_pipeline(**kw):
         call_count[0] += 1
         if call_count[0] == 1:
             return 1
         return 0
 
-    monkeypatch.setattr("jobhunt.cli.cmd_run", mock_cmd_run)
+    monkeypatch.setattr("jobhunt.cli.run_pipeline", mock_run_pipeline)
     res = client.post("/api/run", json={"mock": False})
     assert res.status_code == 200
     assert call_count[0] == 2
 
     # Both fail -> returns 500
-    monkeypatch.setattr("jobhunt.cli.cmd_run", lambda args: 2)
+    monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 2)
     res_err = client.post("/api/run", json={"mock": False})
     assert res_err.status_code == 500
     assert res_err.get_json()["status"] == "error"

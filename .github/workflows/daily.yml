@@ -1,127 +1,94 @@
-name: daily job digest
+name: Daily Career Intelligence Digest
+run-name: 🏹 Daily Job Hunter Automated Radar (${{ github.event_name }})
 
 on:
-  push:
-    branches: [ main ]
   schedule:
-    # 09:00 IST daily. IST is UTC+5:30, so 09:00 IST == 03:30 UTC.
-    - cron: "30 3 * * *"
+    # 03:30 UTC = 09:00 IST (Monday through Friday)
+    - cron: '30 3 * * 1-5'
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Skip the email, just build the digest artifact"
-        type: boolean
-        default: false
-
-concurrency:
-  group: jobhunt-daily
-  cancel-in-progress: false
+      mode:
+        description: 'Execution Mode: single (Primary Account) or multi (All Supabase Users)'
+        required: true
+        default: 'multi'
+        type: choice
+        options:
+          - multi
+          - single
+          - mock
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  digest:
+  hunt:
+    name: Execute Job Hunter Radar
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout Repository
+        uses: actions/checkout@v7
 
-      - name: Restore dedupe store
-        uses: actions/cache@v6
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
         with:
-          path: seen.json
-          key: jobhunt-seen-${{ runner.os }}-${{ github.run_number }}
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Restore Deduplication Caches
+        uses: actions/cache@v7
+        with:
+          path: |
+            seen.json
+            seen_*.json
+            out/
+          key: jobhunt-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            jobhunt-seen-${{ runner.os }}-
-            jobhunt-seen-
+            jobhunt-cache-${{ runner.os }}-
+            jobhunt-cache-
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install package and dependencies
-        run: pip install -e .
-
-      - name: Verify repository secrets
+      - name: Execute Autonomous Job Hunter Radar
         env:
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-        run: |
-          echo "=== Checking Secret Availability ==="
-          if [ -z "$SMTP_PASS" ]; then
-            echo "::error::SMTP_PASS secret is missing! Emails cannot be sent without this secret."
-          else
-            echo "✓ SMTP_PASS secret is configured."
-          fi
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "::warning::GEMINI_API_KEY secret is missing! Screening will fall back to keyword matcher."
-          else
-            echo "✓ GEMINI_API_KEY secret is configured."
-          fi
-          if [ -z "$SMTP_USER" ]; then
-            echo "::warning::SMTP_USER secret is missing."
-          else
-            echo "✓ SMTP_USER secret is configured ($SMTP_USER)."
-          fi
-
-      - name: Prepare candidate profile
-        env:
-          PROFILE_JSON: ${{ secrets.PROFILE_JSON }}
-        run: |
-          if [ -n "$PROFILE_JSON" ]; then
-            printf '%s' "$PROFILE_JSON" > profile.json
-            if python -c "import json;json.load(open('profile.json'));print('profile.json parsed OK')"; then
-              echo "Using profile.json from repository secret."
-            else
-              echo "::warning::PROFILE_JSON secret is invalid JSON, falling back to local profile.json or example"
-            fi
-          elif [ -f profile.json ]; then
-            echo "Using profile.json from repository."
-          elif [ -f profile.example.json ]; then
-            echo "::warning::PROFILE_JSON secret not set — using profile.example.json fallback"
-            cp profile.example.json profile.json
-          fi
-
-      - name: Run live job search agent & generate digest
-        env:
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
-          SCREEN_PROVIDER: ${{ vars.SCREEN_PROVIDER }}
-          DRAFT_PROVIDER: ${{ vars.DRAFT_PROVIDER }}
-          SCREEN_MODEL: ${{ vars.SCREEN_MODEL }}
-          DRAFT_MODEL: ${{ vars.DRAFT_MODEL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_PROVIDER: gemini
+          SCREEN_MODEL: gemini-3.5-flash
+          DRAFT_MODEL: gemini-3.5-flash
+          SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AUTH_REQUIRED: "false"
+          CI: "true"
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "${{ github.event.inputs.mode }}" = "mock" ]; then
+            echo "Running mock dry run..."
             python -m jobhunt run --mock --scorer keyword
+          elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ "${{ github.event.inputs.mode }}" != "single" ]; then
+            echo "Running Centralized Multi-User Batch Pipeline..."
+            python -m jobhunt multi-run --send
           else
-            python auto.py
+            echo "Running Single-User Pipeline..."
+            python -m jobhunt run --send
           fi
 
-      - name: Upload digest artifact
-        if: always()
+      - name: Save Digest Briefing Artifact
         uses: actions/upload-artifact@v7
-        with:
-          name: digest-${{ github.run_number }}
-          path: out/
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Report dedupe store metrics
         if: always()
-        run: |
-          if [ -f seen.json ]; then
-            python -c "import json;print(f'tracking {len(json.load(open(\"seen.json\")))} postings')"
-          else
-            echo "no seen.json — first run, or cache cleared"
-          fi
+        with:
+          name: daily-digest-briefing
+          path: |
+            out/digest.html
+            out/tracker.csv
+          retention-days: 7

@@ -22,6 +22,7 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 * **Include Titles:** Matches target roles (e.g., `software engineer`, `backend`, `intern`).
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
 * **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`.
+* **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
 * **Date Freshness:** Discards jobs published longer than `max_age_days` (default `28` days) ago.
 
 *Typically, this phase drops ~98% of jobs, reducing a crawl of 2,000 listings down to ~40 candidates for LLM screening.*
@@ -81,7 +82,7 @@ LLM_PROVIDER=gemini # options: gemini, groq, anthropic, openai, ollama
 
 | Provider | Recommended Model | Config Env Var | Notes |
 | :--- | :--- | :--- | :--- |
-| **Google Gemini** | `gemini-2.5-flash` | `GEMINI_API_KEY` | **Recommended:** Extremely fast, large context window, and generous free-tier quotas. |
+| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | **Recommended:** Extremely fast, large context window, and generous free-tier quotas. |
 | **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | Blazing-fast inference speeds. |
 | **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-sonnet` | `ANTHROPIC_API_KEY` | Best-in-class reasoning and writing styles. |
 | **OpenAI** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |

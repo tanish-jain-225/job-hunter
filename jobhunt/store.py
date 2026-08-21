@@ -1,16 +1,24 @@
-"""seen.json doubles as the dedupe index AND the application tracker."""
+"""seen.json doubles as the dedupe index AND the application tracker.
+
+Equipped with persistent Supabase PostgreSQL memory synchronization
+keyed on the user's authenticated email.
+"""
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import urllib.parse
 
 from .fetch import Job
+from .memory import SupabaseMemory
 
 
 def sanitize_job_url(
@@ -53,6 +61,12 @@ def sanitize_job_url(
             return f"https://jobs.smartrecruiters.com/{slug}/{raw_id}"
         elif ats_name == "bamboohr" and slug and raw_id:
             return f"https://{slug}.bamboohr.com/careers/{raw_id}"
+        elif ats_name == "recruitee" and slug and raw_id:
+            return f"https://{slug}.recruitee.com/o/{raw_id}"
+        elif ats_name in ("breezy", "breezyhr") and slug and raw_id:
+            return f"https://{slug}.breezy.hr/p/{raw_id}"
+        elif ats_name == "pinpoint" and slug and raw_id:
+            return f"https://{slug}.pinpoint.work/en/postings/{raw_id}"
 
     query = f"{company} {title}".strip()
     if not query:
@@ -94,7 +108,6 @@ def get_writable_path(path: str | Path) -> Path:
 
 def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
     """Safely replace dst with src, retrying transient Windows file locks."""
-    import time
     for attempt in range(retries):
         try:
             os.replace(src, dst)
@@ -111,13 +124,27 @@ def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05)
 
 
 class Store:
-    def __init__(self, path: str | Path = "seen.json"):
+    def __init__(
+        self,
+        path: str | Path = "seen.json",
+        user_email: Optional[str] = None,
+        token: Optional[str] = None,
+    ):
         self.original_path = Path(path)
-        self.path = get_writable_path(self.original_path)
+        self.user_email = (user_email or "").strip().lower() if user_email else None
+        self.token = token
+        self.memory = SupabaseMemory(token=self.token)
         self.data: dict[str, dict] = {}
 
-        read_target = self.path if self.path.exists() else self.original_path
-        if read_target.exists():
+        if self.user_email:
+            user_hash = hashlib.md5(self.user_email.encode("utf-8")).hexdigest()[:12]
+            self.path = get_writable_path(f"seen_{user_hash}.json")
+        else:
+            self.path = get_writable_path(self.original_path)
+
+        # 1. Load from local cache / JSON file
+        read_target = self.path if self.path.exists() else (self.original_path if not self.user_email else None)
+        if read_target and read_target.exists():
             try:
                 raw_data = json.loads(read_target.read_text(encoding="utf-8"))
                 if isinstance(raw_data, list):
@@ -154,6 +181,17 @@ class Store:
             except json.JSONDecodeError:
                 print(f"  ! {read_target} corrupt, starting fresh")
 
+        # 2. If user_email provided and Supabase is configured, pull from Supabase PostgreSQL memory
+        if self.user_email and self.memory.is_configured:
+            remote_jobs = self.memory.load_user_jobs(self.user_email, token=self.token)
+            if remote_jobs:
+                # Merge remote jobs with local store
+                for jid, rjob in remote_jobs.items():
+                    self.data[jid] = rjob
+            elif self.data:
+                # Initial cloud sync of existing local jobs for this user
+                self.memory.bulk_upsert_user_jobs(self.user_email, list(self.data.values()), token=self.token)
+
         # Ensure all stored jobs have valid, sanitized apply URLs
         changed_urls = False
         for jid, row in list(self.data.items()):
@@ -171,8 +209,8 @@ class Store:
         if changed_urls:
             self.save(auto_export=False)
 
-        # Auto-seed mock jobs on Vercel serverless if store is empty
-        if not self.data and (os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ):
+        # Auto-seed mock jobs on Vercel serverless if store is empty (unauthenticated demo visit)
+        if not self.data and (os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ) and not self.user_email:
             try:
                 from .mock import fetch_all_mock
                 from .llm import keyword_screen
@@ -201,6 +239,7 @@ class Store:
 
     def record(self, jobs: list[Job], emailed: bool = True) -> None:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        new_jobs = []
         for j in jobs:
             clean_url = sanitize_job_url(
                 j.url,
@@ -209,26 +248,43 @@ class Store:
                 company=j.company,
                 title=j.title,
             )
-            self.data.setdefault(j.job_id, {
+            job_dict = {
+                "job_id": j.job_id,
                 "first_seen": now,
                 "company": j.company,
                 "title": j.title,
                 "location": j.location,
                 "url": clean_url,
+                "ats": j.ats or "custom",
                 "score": j.score,
                 "reason": j.reason,
                 "emailed": emailed,
                 "applied": False,
                 "applied_on": None,
-            })
+                "application_stage": "to_apply",
+                "notes": "",
+                "salary_range": j.salary or "",
+                "draft": j.draft or {},
+            }
+            self.data.setdefault(j.job_id, job_dict)
+            new_jobs.append(job_dict)
         self.save()
+
+        # Cloud sync to Supabase PostgreSQL memory
+        if self.user_email and self.memory.is_configured and new_jobs:
+            self.memory.bulk_upsert_user_jobs(self.user_email, new_jobs, token=self.token)
 
     def mark_applied(self, job_id: str) -> bool:
         if job_id not in self.data:
             return False
         self.data[job_id]["applied"] = True
         self.data[job_id]["applied_on"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        self.data[job_id]["application_stage"] = "applied"
         self.save()
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.set_job_applied(self.user_email, job_id, applied=True, token=self.token)
         return True
 
     def unmark_applied(self, job_id: str) -> bool:
@@ -236,7 +292,41 @@ class Store:
             return False
         self.data[job_id]["applied"] = False
         self.data[job_id]["applied_on"] = None
+        self.data[job_id]["application_stage"] = "to_apply"
         self.save()
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.set_job_applied(self.user_email, job_id, applied=False, token=self.token)
+        return True
+
+    def update_stage(self, job_id: str, stage: str) -> bool:
+        if job_id not in self.data or not stage:
+            return False
+        clean_stage = stage.lower().strip()
+        applied = clean_stage in ("applied", "interviewing", "offer", "rejected")
+        self.data[job_id]["application_stage"] = clean_stage
+        self.data[job_id]["applied"] = applied
+        if applied and not self.data[job_id].get("applied_on"):
+            self.data[job_id]["applied_on"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        elif not applied:
+            self.data[job_id]["applied_on"] = None
+        self.save()
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.set_job_stage(self.user_email, job_id, clean_stage, token=self.token)
+        return True
+
+    def update_notes(self, job_id: str, notes: str) -> bool:
+        if job_id not in self.data:
+            return False
+        self.data[job_id]["notes"] = str(notes or "")
+        self.save(auto_export=False)
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.set_job_notes(self.user_email, job_id, notes, token=self.token)
         return True
 
     def delete_job(self, job_id: str) -> bool:
@@ -244,6 +334,10 @@ class Store:
             return False
         del self.data[job_id]
         self.save()
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.delete_user_job(self.user_email, job_id, token=self.token)
         return True
 
     def add_job(
@@ -278,7 +372,8 @@ class Store:
             title=title,
         )
 
-        self.data[job_id] = {
+        job_dict = {
+            "job_id": job_id,
             "first_seen": now,
             "company": company,
             "title": title,
@@ -292,7 +387,13 @@ class Store:
             "applied_on": now if applied else None,
             "draft": draft or {},
         }
+        self.data[job_id] = job_dict
         self.save()
+
+        # Cloud sync to Supabase
+        if self.user_email and self.memory.is_configured:
+            self.memory.save_user_job(self.user_email, job_dict, token=self.token)
+
         return job_id
 
     def stats(self) -> dict:
@@ -331,7 +432,7 @@ class Store:
                 row_copy["score_100"] = score_100
                 row_copy["queue_category"] = cat
                 row_copy["india_eligibility"] = draft.get("india_eligibility", "Verified India-Friendly")
-                row_copy["best_project"] = draft.get("best_project", "Edvanta")
+                row_copy["best_project"] = draft.get("best_project", "Project Match")
                 w.writerow({"job_id": jid, **row_copy})
         _atomic_replace(tmp_csv, target_path)
         return target_path
@@ -349,8 +450,8 @@ class Store:
                 print(f"  ! Store auto-export CSV warning: {e}")
 
 
-def init(path: str | Path = "seen.json") -> Store:
-    return Store(path)
+def init(path: str | Path = "seen.json", user_email: Optional[str] = None, token: Optional[str] = None) -> Store:
+    return Store(path, user_email=user_email, token=token)
 
 
 def unseen(store: Store, jobs: list[Job]) -> list[Job]:
@@ -379,5 +480,3 @@ def add_job(store: Store, **kwargs) -> str:
 
 def export_csv(store: Store, path: str | Path = "out/tracker.csv") -> Path:
     return store.export_csv(path)
-
-

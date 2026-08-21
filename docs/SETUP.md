@@ -123,7 +123,7 @@ Once configured, run the pipeline or launch the interactive dashboard:
   ```bash
   python app.py
   ```
-  *Launches the Executive Web Dashboard on `http://localhost:5000` (Vercel Serverless ready) with 1-click CSV export download, multi-ATS filtering, sorting, kit modal viewer with multi-copy buttons, and search.*
+  *Launches the Executive Web Dashboard on `http://localhost:5000` (Vercel Serverless ready) with visual Kanban boards, multi-ATS filtering, sorting, kit modal viewer with 1-click copy buttons, and search.*
 
 ---
 

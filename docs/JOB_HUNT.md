@@ -35,6 +35,9 @@ One daily run performs the following automated funnel:
 - **Workable**: `GET https://apply.workable.com/api/v2/accounts/{slug}/jobs`
 - **SmartRecruiters**: `GET https://api.smartrecruiters.com/v1/companies/{slug}/postings`
 - **BambooHR**: `GET https://{slug}.bamboohr.com/careers/list`
+- **Recruitee**: `GET https://{slug}.recruitee.com/api/offers/`
+- **Breezy HR**: `GET https://{slug}.breezy.hr/json`
+- **Pinpoint**: `GET https://{slug}.pinpoint.work/en/postings.json`
 
 ### Field Mapping
 - **Greenhouse** $\rightarrow$ `jobs[]` with `id`, `title`, `location.name`, `absolute_url`, `updated_at`, `content` (HTML-entity-escaped HTML).
@@ -43,6 +46,9 @@ One daily run performs the following automated funnel:
 - **Workable** $\rightarrow$ `results[]` or `jobs[]` with `shortcode`, `title`, `location.city`, `url`, `description`, `published`.
 - **SmartRecruiters** $\rightarrow$ `content[]` with `id`, `name`, `location.city`, `refNumber`, `jobAd.sections.jobDescription.text`, `releasedDate`.
 - **BambooHR** $\rightarrow$ `result[]` or `jobs[]` with `id`, `jobOpeningName`, `location`, `description`, `datePosted`.
+- **Recruitee** $\rightarrow$ `offers[]` with `id`, `title`, `location`, `careers_url`, `description`.
+- **Breezy HR** $\rightarrow$ top-level array with `id`, `name`, `location.name`, `url`, `description`.
+- **Pinpoint** $\rightarrow$ `data[]` with `id`, `title`, `location.city`, `url`, `description`.
 
 Normalize all ATS boards into one dataclass with a globally unique `job_id = "{ats}:{slug}:{id}"` for deduplication.
 
@@ -52,16 +58,22 @@ Normalize all ATS boards into one dataclass with a globally unique `job_id = "{a
 
 Keep HTTP separate from parsing — each ATS gets a pure `parse_x(slug, company, body) -> list[Job]` function that takes decoded JSON.
 
-```
+```text
 jobhunt/
-  ├── fetch.py       # Job dataclass, strip_html, ATS parsers, fetch_all
+  ├── fetch.py       # Job dataclass, strip_html, 9 ATS parsers, fetch_all
   ├── prefilter.py   # title include/exclude regex, location, max_age_days
   ├── llm.py         # provider-agnostic screen() + draft() + build_profile()
   ├── digest.py      # HTML email digest builder
   ├── mailer.py      # SMTP email dispatcher
   ├── store.py       # seen.json dedupe + application tracker + CSV export
+  ├── memory.py      # Supabase PostgreSQL client (tenant isolated)
+  ├── multi.py       # Single-pass multi-tenant batch execution engine
   ├── mock.py        # Native ATS fixtures for testing
-  └── cli.py         # argparse: profile / run / applied / stats
+  ├── cli.py         # argparse: profile / run / multi-run / applied / stats / web
+  └── web/           # Modular Flask Web Dashboard & REST API
+      ├── __init__.py # create_app Application Factory & global hooks
+      ├── state.py   # Thread-safe pipeline state & context resolution
+      └── routes/    # Modular Blueprints (views, jobs, profile, pipeline)
 ```
 
 ---
@@ -75,7 +87,7 @@ Two stages for token efficiency:
 
 ### Provider Flexibility
 Make provider swappable via environment variables (`LLM_PROVIDER`):
-- Google Gemini (`gemini-2.5-flash` / `gemini-2.0-flash`)
+- Google Gemini (`gemini-3.5-flash`)
 - Groq (`llama-3.3-70b-versatile`)
 - Anthropic (`claude-3-7-sonnet` / `claude-3-5-sonnet`)
 - OpenAI-compatible endpoints & local Ollama

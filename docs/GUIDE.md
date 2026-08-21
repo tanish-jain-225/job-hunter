@@ -1,6 +1,6 @@
 # 📖 Job Hunter — Personal Utility Setup & Usage Guide
 
-**Job Hunter** is a 100% database-free, zero-cost, private personal utility designed to help individual job seekers discover, score, track, and apply for high-match engineering and tech roles across major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**).
+**Job Hunter** is a 100% database-free, zero-cost, private personal utility designed to help individual job seekers discover, score, track, and apply for high-match engineering and tech roles across 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 
 ---
 
@@ -17,8 +17,8 @@
 ## 🚀 Core Philosophy & Features
 
 - **🔒 100% Data Privacy**: Your resume, job applications, scores, and notes remain completely local on your machine or inside your private repository.
-- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini 2.5 Flash / Groq) and free email dispatches.
-- **⚡ Zero-Database Architecture**: No SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`).
+- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini 3.5 Flash / Groq) and free email dispatches.
+- **⚡ Zero-Database Architecture**: No mandatory SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`), with optional Supabase PostgreSQL sync.
 - **📊 Automatic Excel/Sheets Sync**: All tracked and applied jobs auto-export to `out/tracker.csv` on every action.
 - **🤖 Automated Daily Email Digest**: Delivers personalized HTML career digests straight to your email inbox every morning.
 

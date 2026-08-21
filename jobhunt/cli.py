@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -22,7 +23,11 @@ from .prefilter import prefilter
 from .providers import LLMError, resolve
 from .store import Store
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
+
 
 
 def _resolve_relative(p: str | Path) -> Path:
@@ -181,12 +186,15 @@ def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
 
 
 def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
-                           scored_jobs: list, st, args: argparse.Namespace,
-                           cfg: dict, profile: dict | None = None) -> None:
+                           scored_jobs: list, st: Store, send_or_args: bool | argparse.Namespace,
+                           cfg: dict, profile: dict | None = None,
+                           to_email: str | None = None) -> tuple[str, str]:
     """Stage 5: Build digest HTML, export CSV, and optionally send email."""
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
+
+    send = getattr(send_or_args, "send", False) if isinstance(send_or_args, argparse.Namespace) else bool(send_or_args)
 
     subject, html_content = digest.build(
         shortlist,
@@ -198,47 +206,117 @@ def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
     digest.write(html_content, out_html)
     print(f"  wrote {out_html}")
 
-    st.record(scored_jobs, emailed=args.send)
+    st.record(scored_jobs, emailed=send)
     st.export_csv(tracker_csv)
 
-    if args.send:
+    if send:
         print("\n[mailing digest]")
-        mailer.send(subject, html_content)
+        if to_email:
+            try:
+                mailer.send(subject, html_content, to_email=to_email)
+            except TypeError:
+                mailer.send(subject, html_content)
+        else:
+            mailer.send(subject, html_content)
+
+    return subject, html_content
 
 
-def cmd_run(args: argparse.Namespace) -> int:
-    """Orchestrate the full pipeline: fetch → filter → screen → draft → digest."""
-    cfg = _cfg(getattr(args, "config", None))
-    profile = _load_profile(cfg)
+def run_pipeline(
+    args: argparse.Namespace | None = None,
+    profile: dict | None = None,
+    user_email: str | None = None,
+    token: str | None = None,
+    custom_filters: dict | None = None,
+    store: Store | None = None,
+    to_email: str | None = None,
+    send: bool | None = None,
+    scorer: str | None = None,
+    mock: bool | None = None,
+    config_path: str | Path | None = None,
+) -> int:
+    """Orchestrate the full pipeline dynamically with per-user context."""
+    cfg = _cfg(config_path or (getattr(args, "config", None) if args else None))
+
+    # Load dynamic or fallback profile
+    if profile is None:
+        profile = _load_profile(cfg, raise_on_error=False)
+
+    # Apply dynamic user keywords to filters if available
+    filters = dict(cfg.get("filters", {}))
+    if custom_filters:
+        filters.update(custom_filters)
+    elif profile:
+        # Merge target_keywords / target_titles into include_titles if present
+        target_keys = profile.get("target_keywords") or profile.get("target_titles") or []
+        if target_keys and isinstance(target_keys, list):
+            existing_includes = list(filters.get("include_titles", []))
+            for k in target_keys:
+                clean_k = str(k).strip()
+                if clean_k and clean_k.lower() not in [x.lower() for x in existing_includes]:
+                    existing_includes.insert(0, re.escape(clean_k))
+            filters["include_titles"] = existing_includes
+
+        # Merge exclude_keywords into exclude_titles
+        exclude_keys = profile.get("exclude_keywords") or profile.get("avoid_roles") or []
+        if exclude_keys and isinstance(exclude_keys, list):
+            existing_excludes = list(filters.get("exclude_titles", []))
+            for k in exclude_keys:
+                clean_k = str(k).strip()
+                if clean_k and clean_k.lower() not in [x.lower() for x in existing_excludes]:
+                    existing_excludes.append(r"\b" + re.escape(clean_k) + r"\b")
+            filters["exclude_titles"] = existing_excludes
+
+    # Flags
+    use_mock = mock if mock is not None else (getattr(args, "mock", False) if args else False)
+    use_send = send if send is not None else (getattr(args, "send", False) if args else False)
+    use_scorer = scorer if scorer is not None else (getattr(args, "scorer", "llm") if args else "llm")
+    target_to_email = to_email or (profile.get("notification_email") if profile else None)
+
+    # 1. Fetch
+    fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
+    print("[1/5] fetching boards")
+    if use_mock:
+        raw_jobs = fetch_all_mock()
+    else:
+        companies_file = _resolve_relative(Path(cfg.get("companies_file", "companies.yaml")))
+        raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
+
+    # 2. Filter
+    print("\n[2/5] filtering")
+    candidates = prefilter(raw_jobs, filters)
+
+    # Store
     seen_file = cfg.get("seen_file", "seen.json")
-
-    # 1-2. Fetch + filter
-    raw_jobs, candidates = _fetch_jobs(args, cfg)
-    st = Store(seen_file)
+    st = store or Store(seen_file, user_email=user_email, token=token)
     jobs = st.unseen(candidates)
     print(f"  new since last run: {len(jobs)}")
 
     if not jobs:
         print("\nNo new matching jobs today.")
-        if getattr(args, "send", False):
-            _build_and_send_digest([], raw_jobs, candidates, [], st, args, cfg, profile=profile)
+        if use_send:
+            _build_and_send_digest([], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email)
         return 0
 
     # 3. Screen
+    eval_args = argparse.Namespace(scorer=use_scorer)
     try:
-        _screen_jobs(jobs, profile, args, cfg)
+        _screen_jobs(jobs, profile, eval_args, cfg)
     except LLMError:
         return 1
 
     # 4. Shortlist + draft
     scored_jobs, shortlist = _select_shortlist(jobs, cfg)
-    scorer = getattr(args, "scorer", "llm")
-    _draft_kits(shortlist, profile, scorer, cfg)
+    _draft_kits(shortlist, profile, use_scorer, cfg)
 
     # 5. Digest + mail
-    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, args, cfg, profile=profile)
+    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email)
 
     return 0
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    return run_pipeline(args=args)
 
 
 def cmd_applied(args: argparse.Namespace) -> int:
@@ -294,22 +372,41 @@ def cmd_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_multi_run(args: argparse.Namespace) -> int:
+    from .multi import run_multi_user_pipeline
+    res = run_multi_user_pipeline(
+        config_path=getattr(args, "config", None),
+        mock=bool(getattr(args, "mock", False)),
+        scorer=getattr(args, "scorer", "llm"),
+        force_send=bool(getattr(args, "send", False)),
+    )
+    return 0 if res.get("status") == "success" else 1
+
+
 def json_dumps_pretty(obj: dict) -> str:
     import json
     return json.dumps(obj, indent=2, ensure_ascii=False)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="jobhunt", description="Personal job-search agent.")
+    parser = argparse.ArgumentParser(prog="jobhunt", description="Personal & Multi-User job search intelligence agent.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # run
-    p_run = subparsers.add_parser("run", help="Fetch, filter, score, and draft digest.")
+    p_run = subparsers.add_parser("run", help="Fetch, filter, score, and draft digest for primary account.")
     p_run.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
     p_run.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
     p_run.add_argument("--send", action="store_true", help="Send digest email via SMTP.")
     p_run.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
                        help="Scorer to use (default: llm).")
+
+    # multi-run
+    p_multi = subparsers.add_parser("multi-run", help="Single-pass batch run across all active multi-tenant user accounts.")
+    p_multi.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
+    p_multi.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
+    p_multi.add_argument("--send", action="store_true", help="Force send digest emails via SMTP.")
+    p_multi.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
+                         help="Scorer to use (default: llm).")
 
     # applied
     p_applied = subparsers.add_parser("applied", help="Mark a job ID as applied.")
@@ -329,6 +426,8 @@ def main() -> None:
 
     if args.command == "run":
         sys.exit(cmd_run(args))
+    elif args.command == "multi-run":
+        sys.exit(cmd_multi_run(args))
     elif args.command == "applied":
         sys.exit(cmd_applied(args))
     elif args.command == "stats":

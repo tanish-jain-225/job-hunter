@@ -41,13 +41,13 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## 🧪 Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full test suite without any network requests or API keys (191 tests with 98%+ coverage):
+Run the full test suite without any network requests or API keys (262 tests with 94%+ coverage):
 ```bash
 pytest
 ```
-Run with complete coverage:
+Run with complete coverage reporting:
 ```bash
-pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
+pytest --cov=jobhunt --cov-report=term-missing --cov-fail-under=90
 ```
 
 ### 2. Linting & Code Style (Ruff)
@@ -57,7 +57,7 @@ ruff check .
 
 ### 3. Static Type Checking (Mypy)
 ```bash
-mypy jobhunt app.py auto.py
+mypy jobhunt
 ```
 
 ### 4. Dry Run Verification
@@ -70,18 +70,29 @@ jobhunt run --mock --scorer keyword
 
 ## 🏗️ Architecture & Layout
 
-```
+```text
 jobhunt/
   ├── __init__.py       # Package version & public symbols
-  ├── fetch.py          # Job dataclass & ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR)
-  ├── prefilter.py      # Pre-LLM deterministic title/location/age filtering
-  ├── providers.py      # Swappable LLM clients (Anthropic, Gemini, Groq, OpenAI-compat, Ollama)
-  ├── llm.py            # Screening, drafting, profile generation & forgiving JSON parser
-  ├── store.py          # seen.json state management & CSV exporter
+  ├── auth.py           # Supabase Auth, JWT verification & @require_auth decorator
+  ├── cli.py            # CLI argument parsing and subcommand dispatcher
   ├── digest.py         # Responsive HTML email digest generator
-  ├── mailer.py         # SMTP email delivery
+  ├── fetch.py          # Job dataclass & 9 ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
+  ├── llm.py            # Screening, drafting, profile generation & forgiving JSON parser
+  ├── mailer.py         # SMTP email delivery client
+  ├── memory.py         # Supabase PostgreSQL client with strict tenant isolation (RLS)
   ├── mock.py           # Native ATS fixtures for testing & offline dry runs
-  └── cli.py            # Argument parsing and main entry point
+  ├── multi.py          # Single-pass multi-tenant batch execution engine
+  ├── prefilter.py      # Pre-LLM deterministic title/location/age filtering
+  ├── providers.py      # Swappable LLM clients (Gemini, Anthropic, Groq, OpenAI-compat, Ollama)
+  ├── store.py          # seen.json state management & CSV exporter
+  └── web/              # Modular Flask Web Dashboard & REST API
+      ├── __init__.py   # Application Factory (create_app), error handlers & security headers
+      ├── state.py      # Thread-safe pipeline execution state & context resolution
+      └── routes/       # Modular Flask Blueprints
+          ├── views.py  # Landing UI, dashboard, health check, logo, auth config
+          ├── jobs.py   # Jobs API, Kanban stage transitions, custom job additions, CSV export
+          ├── profile.py # Candidate profile, notification settings & Resume Studio PDF/TXT parser
+          └── pipeline.py # Trigger run, sync heartbeat, execution history, HTML digest
 ```
 
 ---

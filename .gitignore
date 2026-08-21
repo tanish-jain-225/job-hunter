@@ -17,6 +17,7 @@ profile.json
 
 seen.json
 seen.tmp
+seen_*.json
 *.json.tmp
 
 # --- Generated Output & Artifacts ---------------------------------------------

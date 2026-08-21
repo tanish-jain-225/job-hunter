@@ -112,7 +112,7 @@ class GeminiProvider(Provider):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def _post(self, model: str, body: dict) -> str:
-        max_retries = 5
+        max_retries = 3
         url = f"{self.BASE}/{model}:generateContent"
         key = self._env("GEMINI_API_KEY")
         for attempt in range(max_retries):
@@ -124,7 +124,7 @@ class GeminiProvider(Provider):
                     timeout=TIMEOUT,
                 )
                 if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 5 * (attempt + 1)
+                    delay = 2 * (attempt + 1)
                     print(f"  ! gemini HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
@@ -285,7 +285,7 @@ PROVIDERS = {
 
 DEFAULT_MODELS = {
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
-    "gemini": {"screen": "gemini-2.0-flash", "draft": "gemini-2.0-flash"},
+    "gemini": {"screen": "gemini-3.5-flash", "draft": "gemini-3.5-flash"},
     "groq": {"screen": "llama-3.3-70b-versatile", "draft": "llama-3.3-70b-versatile"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
     "ollama": {"screen": "llama3.1", "draft": "llama3.1"},
@@ -304,15 +304,9 @@ def get_provider(name: str) -> Provider:
 def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
     """Which provider + model handles this stage ("screen" or "draft")?
 
-    Precedence: stage-specific env var -> global env var -> auto-detected API key -> built-in default.
+    Precedence: stage-specific env var -> global env var -> auto-detected API key -> built-in default (gemini).
     """
-    default_provider = "anthropic"
-    if os.getenv("GEMINI_API_KEY"):
-        default_provider = "gemini"
-    elif os.getenv("GROQ_API_KEY"):
-        default_provider = "groq"
-    elif os.getenv("ANTHROPIC_API_KEY"):
-        default_provider = "anthropic"
+    default_provider = "gemini" if os.getenv("GEMINI_API_KEY") else ("groq" if os.getenv("GROQ_API_KEY") else ("anthropic" if os.getenv("ANTHROPIC_API_KEY") else "gemini"))
 
     name = (os.getenv(f"{stage.upper()}_PROVIDER")
             or os.getenv("LLM_PROVIDER")

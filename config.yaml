@@ -1,101 +1,52 @@
-# jobhunt configuration. Everything tunable lives here — no editing Python.
+# jobhunt configuration — India-First, Open Platform
 #
-# Tune `filters` first. It is deterministic, free, and it is what keeps the
-# LLM bill small: roughly 2000 raw postings -> 40 candidates before a single
-# token is spent.
+# This config is the DEFAULT base. Users override everything through their
+# profile & preferences in the web UI. No editing Python needed.
 #
-# Profile: Full Stack / Backend / API / AI web engineer (0-2 YoE)
-# Target: India (Mumbai, Bangalore, Pune, Hyderabad, NCR / Remote), NO senior/staff/management
+# Philosophy: Cast the widest possible net. Let the LLM scorer (0–10) decide
+# what fits the user — not hard-coded regex exclusions.
 
 filters:
-  include_titles:
-    # Core engineering titles & internships
-    - 'software engineer'
-    - 'software engineering'
-    - '\bsde\b'
-    - '\bsde\s*-?\s*(i{1,3}|[123])\b'
-    - 'software development engineer'
-    - 'site reliability engineer'
-    - '\bsre\b'
-    - 'member of technical staff'
-    - 'associate software engineer'
-    - 'junior software engineer'
-    - 'graduate engineer'
-    - 'engineer intern'
-    - 'developer intern'
-    - 'software intern'
-    - 'engineering intern'
-    - '\bintern\b'
+  # include_titles: Leave empty to match ALL job titles (recommended).
+  # Add patterns here only if you want to HARD-LIMIT to specific roles.
+  # Users set their own target roles via the Profile Settings wizard.
+  include_titles: []
 
-    # Backend / API / Full-Stack / Web / Frontend variants
-    - '\b(backend|back-end|server|platform|api)\b.*\bengineer\b'
-    - '\bengineer\b.*\b(backend|back-end|platform|api)\b'
-    - 'full.?stack engineer'
-    - 'full.?stack developer'
-    - 'frontend engineer'
-    - 'frontend developer'
-    - 'web developer'
-    - 'web engineer'
-
-    # Node.js / Python / JavaScript / TypeScript / React / Next.js specific
-    - '\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b.*\b(engineer|developer)\b'
-    - '\b(engineer|developer)\b.*\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b'
-
-    # AI/ML engineering (integrations/applications)
-    - '\b(ai|ml|llm|genai|generative)\b.*\bengineer\b'
-    - '\bengineer\b.*\b(ai|llm|genai|generative)\b'
-    - 'ai application(s)? engineer'
-    - 'ai software engineer'
-
-  # Anything matching these is dropped even if an include matched.
+  # exclude_titles: Leave empty — let users decide what to exclude.
+  # Only add truly universal noise (internal roles, ghost postings).
   exclude_titles:
-    - '\b(staff|principal|distinguished|fellow|architect)\b'   # too senior
-    - '\bsenior\b'                                             # too senior (< 2 YoE)
-    - '\b(director|vp|vice president|head of|chief|cto)\b'
-    - '\b(manager|management|lead)\b'
-    - '\b(sales|account executive|marketing|recruit|support|success)\b'
-    - '\b(ios|android|mobile|game|designer|design|ux|ui)\b'
-    - '\b(data scientist|machine learning scientist|research scientist)\b'
-    - '\b(devops|devsecops)\b'
-    - '\b(kernel|embedded|firmware|driver|packet|dataplane|data plane|dpdk)\b'
+    - '\b(ceo|coo|cfo|cto|ciso|vp|svp|evp|c-suite)\b'
+    - '\b(intern.*recruiter|talent.*acquisition|hr.*intern)\b'
 
-  # Substrings matched against "<location> <title>", case-insensitive.
-  # Leave empty to accept every location.
-  locations:
-    - india
-    - mumbai 
-    - bengaluru
-    - bangalore
-    - pune 
-    - thane 
-    - hyderabad
-    - gurugram
-    - gurgaon
-    - delhi 
-    - chennai
-    - noida
-    - ahmedabad
-    - surat
+  # locations: Leave empty = accept ALL locations worldwide (India + Remote + Global).
+  # Users set their preferred cities/regions in the Profile Settings wizard.
+  # To restrict globally, add Indian cities or 'remote' here.
+  locations: []
 
-  # If true, anything reading as remote passes the location gate.
+  # allow_remote: true = remote jobs always pass the location gate.
   allow_remote: true
 
-  # Drop postings older than this. Set to 28 days for fresh weekly/daily runs.
-  max_age_days: 28
+  # job_types: Accept all employment types by default.
+  # Users can restrict via profile: [fulltime, internship, contract, parttime, remote, hybrid, onsite]
+  job_types: []
 
-# --- LLM stages & concurrency -----------------------------------------------
-screen_batch_size: 7      # jobs per screening call. Higher = cheaper, sloppier.
-screen_jd_chars: 1400     # JD truncation for screening
-draft_jd_chars: 7000      # JD truncation for drafting
-score_threshold: 7.0      # 7.0 score bar: catches genuine matches while dropping poor fits
-max_per_digest: 7         # hard cap on drafted kits per run
+  # max_age_days: Accept jobs posted in the last 60 days.
+  # Wider window for Indian boards that post less frequently.
+  max_age_days: 60
+
+# --- LLM scoring & concurrency -------------------------------------------
+screen_batch_size: 8        # jobs per screening call
+screen_jd_chars: 1800       # JD truncation for screening (increased for richer context)
+draft_jd_chars: 8000        # JD truncation for drafting
+score_threshold: 5.0        # Lower bar: 5.0 catches more matches (users filter via UI)
+max_per_digest: 10          # hard cap on drafted kits per run (increased from 7)
 
 # Concurrency & rate-limit tuning
-fetch_max_workers: 8      # parallel HTTP requests across ATS boards
-llm_max_workers: 2        # concurrent LLM batch workers
-llm_delay_seconds: 2      # delay between LLM calls to respect API rate limits
+fetch_max_workers: 12       # parallel HTTP requests across 200+ ATS boards
+llm_max_workers: 3          # concurrent LLM batch workers
+llm_delay_seconds: 1.5      # delay between LLM calls
 
-# --- paths ------------------------------------------------------------------
+# --- paths ----------------------------------------------------------------
 companies_file: companies.yaml
 profile_file: profile.json
 seen_file: seen.json

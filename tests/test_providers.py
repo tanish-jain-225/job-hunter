@@ -410,5 +410,20 @@ def test_resolve_auto_detect_anthropic(monkeypatch: pytest.MonkeyPatch):
     assert provider.name == "anthropic"
 
 
+def test_gemini_35_flash_default_model(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
+    monkeypatch.delenv("SCREEN_MODEL", raising=False)
+    monkeypatch.delenv("DRAFT_MODEL", raising=False)
+
+    p_screen, m_screen = resolve("screen", check=True)
+    assert p_screen.name == "gemini"
+    assert m_screen == "gemini-3.5-flash"
+
+    p_draft, m_draft = resolve("draft", check=True)
+    assert p_draft.name == "gemini"
+    assert m_draft == "gemini-3.5-flash"
+
+
 
 

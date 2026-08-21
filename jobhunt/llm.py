@@ -24,6 +24,8 @@ _FENCE_CLOSE = re.compile(r"\s*```\s*$", re.M)
 DRAFT_KEYS = (
     "fit_summary",
     "india_eligibility",
+    "job_type",
+    "salary_range_inr",
     "best_project",
     "tailored_bullets",
     "matching_skills",
@@ -98,6 +100,24 @@ Return ONLY a JSON object, no prose, no markdown fences:
 }"""
 
 
+def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
+    """Extract plain text from PDF bytes locally using pypdf if available."""
+    if not pdf_bytes:
+        return ""
+    try:
+        import io
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        pages_text = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pages_text.append(text.strip())
+        return "\n\n".join(pages_text).strip()
+    except Exception:
+        return ""
+
+
 def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = None,
                   is_pdf: bool = False, provider: Provider | None = None,
                   model: str | None = None) -> dict:
@@ -105,7 +125,17 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
     if provider is None or model is None:
         provider, model = resolve("draft")
 
+    extracted_pdf_text = ""
     if is_pdf and resume_bytes:
+        extracted_pdf_text = extract_text_from_pdf(resume_bytes)
+
+    effective_text = (resume_text or extracted_pdf_text).strip()
+
+    if effective_text:
+        raw = provider.complete(
+            model, "", f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}",
+            PROFILE_MAX_TOKENS, json_mode=True)
+    elif is_pdf and resume_bytes:
         try:
             raw = provider.complete_document(
                 model, PROFILE_PROMPT, resume_bytes, PROFILE_MAX_TOKENS)
@@ -130,36 +160,51 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
 def _get_candidate_name(profile: dict | None) -> str:
     if profile and profile.get("name"):
         return str(profile["name"]).strip()
-    return "Tanish Sanghvi"
+    if profile and profile.get("email"):
+        username = str(profile["email"]).split("@")[0]
+        return " ".join(part.capitalize() for part in username.replace(".", " ").replace("_", " ").split())
+    return "Candidate"
 
 
 def _build_screen_system(profile: dict | None = None) -> str:
     name = _get_candidate_name(profile)
     edu = (profile or {}).get("education", "")
     yoe = (profile or {}).get("years_experience")
-    context = f"candidate {name}"
+    seniority = (profile or {}).get("seniority", "software engineer")
+    target_titles = (profile or {}).get("target_titles") or (profile or {}).get("target_keywords") or []
+    titles_str = ", ".join(target_titles) if target_titles else "Software Engineering / Technical Roles"
+    domains = (profile or {}).get("domains") or []
+    domains_str = ", ".join(domains) if domains else "Software Engineering"
+
     details = []
     if edu:
         details.append(str(edu))
     if yoe is not None:
         details.append(f"{yoe} YoE")
+    if seniority:
+        details.append(f"Level: {seniority}")
+
+    context = f"candidate {name}"
     if details:
         context += f" ({', '.join(details)})"
 
-    return f"""You screen job postings for {context}. You are strict.
+    return f"""You screen job postings for {context}. You are strict and objective.
+Note: This platform is India-first. Consider Indian salary norms (LPA), Indian cities, Indian company names. If a job location mentions Indian cities or 'remote' it is highly relevant for Indian candidates.
+Target Roles: {titles_str}
+Domains: {domains_str}
 
 Score 0-10 on genuine fit:
-  9-10  strong match, candidate clears the bar (Full Stack, Backend, AI Engineer, 0-2 YoE / Intern)
+  9-10  strong match, candidate background directly satisfies core requirements and target titles
   7-8   good match, worth applying
-  5-6   plausible but real gaps or minor location ambiguity
-  0-4   wrong seniority (Staff/Senior/Lead), restricted location (US/EU residency required), wrong stack, or missing core requirements
+  5-6   plausible but real gaps or minor experience/location mismatch
+  0-4   incompatible seniority, restricted work authorization, wrong tech stack, or missing non-negotiable requirements
 
-Check India / Timezone eligibility:
-  - Is India explicitly allowed or Worldwide remote? Mark as Verified India-Friendly.
-  - Does it require US/EU citizenship or local work authorization? If yes, score 0-3 and mark as Restricted.
+Check Location & Remote eligibility:
+  - Is the posting remote-friendly or located in the candidate's target region? If yes, score on technical fit.
+  - Does it require strict local citizenship/residency not supported by the candidate? If yes, score 0-3 and mark as Restricted.
 
 Return ONLY a JSON array, one object per job, no prose:
-[{{\"job_id\": str, \"score\": number, \"reason\": str}}]
+[{{"job_id": str, "score": number, "reason": str}}]
 Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, concrete about the deciding factor."""
 
 
@@ -203,14 +248,16 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
 
     if max_workers > 1 and len(batches) > 1:
         from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def throttled_process_batch(n: int, b: list[Job]) -> tuple[int, list[Job], dict[str, dict[str, Any]]]:
+            if delay_seconds > 0 and n > 1:
+                time.sleep(min(delay_seconds, 1.0) * ((n - 1) % max_workers))
+            return n, b, process_batch(n, b)
+
         with ThreadPoolExecutor(max_workers=min(max_workers, len(batches))) as executor:
-            future_to_batch = {
-                executor.submit(process_batch, idx + 1, batch): (idx + 1, batch)
-                for idx, batch in enumerate(batches)
-            }
-            for future in as_completed(future_to_batch):
-                n, batch = future_to_batch[future]
-                results = future.result()
+            futures = [executor.submit(throttled_process_batch, idx + 1, batch) for idx, batch in enumerate(batches)]
+            for future in as_completed(futures):
+                n, batch, results = future.result()
                 for j in batch:
                     rec = results.get(j.job_id)
                     if rec is None:
@@ -246,17 +293,18 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
 
 def _build_draft_system(profile: dict | None = None) -> str:
     name = _get_candidate_name(profile)
-    edu = (profile or {}).get("education", "B.E. Automation & Robotics Engineering, VESIT Mumbai (2027 Grad, CGPA 7.33)")
-    skills = ", ".join(profile.get("core_skills", [])) if (profile and profile.get("core_skills")) else (
-        "React.js, Next.js, Node.js, Express.js, Python, Flask, MongoDB, Firestore, REST APIs, Firebase Auth, Gemini AI API, Jest, Playwright, Tailwind CSS"
-    )
-    projects = profile.get("notable_projects", []) if (profile and profile.get("notable_projects")) else [
-        "Edvanta — AI-Powered Educational Platform (33 Flask/MongoDB API routes, Gemini AI integration, Hack Celestial 2.0 National Finalist)",
-        "Department Ledger Portal — Academic Record System (Next.js, Firebase Auth/Firestore, Gemini API, 77 Jest tests, 5 Playwright E2E gates, rate limiting)",
-        "DineEase — Full-Stack Menu & Order System (React, Node.js, Express, MongoDB, 14 REST APIs)",
-    ]
-    projects_str = "\n".join(f"  {idx + 1}. {p}" for idx, p in enumerate(projects))
-    github = (profile or {}).get("github", "https://github.com/tanish-jain-225")
+    edu = (profile or {}).get("education") or "Technical Degree / Professional Experience"
+    raw_skills = (profile or {}).get("skills") or (profile or {}).get("core_skills") or []
+    skills = ", ".join(raw_skills) if raw_skills else "Software Engineering, Full Stack Development, REST APIs, Git"
+
+    projects = (profile or {}).get("notable_projects") or []
+    if projects:
+        projects_str = "\n".join(f"  {idx + 1}. {p}" for idx, p in enumerate(projects))
+    else:
+        projects_str = "  1. Production software applications and engineering deliverables"
+
+    github = (profile or {}).get("github", "")
+    github_ref = f" ({github})" if github else ""
 
     return f"""You prepare an application kit for candidate {name} based strictly on their resume/profile:
 - Education: {edu}
@@ -269,13 +317,15 @@ Hard rule: NEVER invent experience. Every claim must trace to {name}'s real back
 Return ONLY a JSON object:
 {{
   "fit_summary": str,          // 2 sentences: why this role is a strong match for candidate
-  "india_eligibility": str,    // "Verified India-Friendly" | "Asia Remote / IST Overlap" | "India Eligibility Unverified"
+  "india_eligibility": str,    // MUST be one of: '🇮🇳 India-Based Role' (if job location mentions India/Indian city), '🌐 Remote-Friendly' (if job is remote/WFH), '🔀 Hybrid India' (if hybrid in India), '🌍 Global (Verify Location)' (if location is unclear or outside India). Base this on the job location field, not assumptions.
+  "job_type": str,             // "remote" | "hybrid" | "onsite" | "internship"
+  "salary_range_inr": str,     // Extract salary if mentioned in JD. Format as '₹X-Y LPA' for Indian roles or 'USD $X-Y' for US. Empty string if not mentioned.
   "best_project": str,         // Best project to highlight from candidate's profile + 1 sentence rationale
   "tailored_bullets": [str],   // 3-4 resume bullets dynamically rewritten from candidate's background for THIS job
   "matching_skills": [str],    // 4-8 matching skills candidate possesses for this role
   "gaps": [str],               // 1-3 honest missing requirements and how to address them
   "cover_note": str,           // 120-160 words. Plain, direct cover note with zero fluff or generic flattery.
-  "cold_outreach": str,        // Under 80 words. Concise cold message referencing role title, key project, technical match, and GitHub link ({github}).
+  "cold_outreach": str,        // Under 80 words. Concise cold message referencing role title, key project, technical match{github_ref}.
   "questions_to_ask": [str]    // 2 sharp technical questions showing thorough reading of the JD
 }}"""
 
@@ -291,6 +341,8 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
         provider, model = resolve("draft")
     profile_blob = json.dumps(profile, ensure_ascii=False)
     system_prompt = _build_draft_system(profile)
+    cand_projects = (profile or {}).get("notable_projects") or []
+    default_proj = cand_projects[0] if cand_projects else "Key Engineering Project"
 
     for i, j in enumerate(jobs):
         try:
@@ -307,7 +359,9 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
             j.draft = {
                 "fit_summary": str(kit.get("fit_summary") or ""),
                 "india_eligibility": str(kit.get("india_eligibility") or "Verified India-Friendly"),
-                "best_project": str(kit.get("best_project") or "Edvanta (AI-Powered Educational Platform)"),
+                "job_type": str(kit.get("job_type") or "onsite"),
+                "salary_range_inr": str(kit.get("salary_range_inr") or ""),
+                "best_project": str(kit.get("best_project") or default_proj),
                 "tailored_bullets": [str(b) for b in (kit.get("tailored_bullets") or [])],
                 "matching_skills": [str(s) for s in (kit.get("matching_skills") or [])],
                 "gaps": [str(g) for g in (kit.get("gaps") or [])],
@@ -330,9 +384,11 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
 
 def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
     """DEV ONLY. High-fidelity offline keyword stand-in for testing/dry-runs."""
-    skills = {s.lower() for s in profile.get("core_skills", []) if s}
-    titles = [t.lower() for t in profile.get("target_titles", []) if t]
-    domains = [d.lower() for d in profile.get("domains", []) if d]
+    raw_skills = profile.get("skills") or profile.get("core_skills") or []
+    skills = {s.lower() for s in raw_skills if s}
+    raw_titles = profile.get("target_titles") or profile.get("target_keywords") or []
+    titles = [t.lower() for t in raw_titles if t]
+    domains = [d.lower() for d in (profile.get("domains") or []) if d]
     cand_sen = (profile.get("seniority") or "").lower()
 
     high_seniority = ("staff", "principal", "director", "vp", "lead", "architect")
@@ -344,7 +400,7 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         hits = sorted(s for s in skills if s in blob)
         domain_hits = [d for d in domains if d in blob]
 
-        overlap = len(hits) / max(len(skills), 1)
+        overlap = len(hits) / max(len(skills), 1) if skills else 0.5
         title_match = any(t in title_lower for t in titles)
         title_bonus = 2.5 if title_match else 0.0
         domain_bonus = 1.0 if domain_hits else 0.0
@@ -356,38 +412,40 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
 
         j.score = round(max(0.0, min(10.0, score)), 1)
 
-        matched_str = ", ".join(hits[:5]) if hits else "none"
-        j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] no skill overlap"
+        matched_str = ", ".join(hits[:5]) if hits else "relevant technical stack"
+        j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] general technical match"
 
         # Populate offline draft stand-in for dry-run rendering
         cand_name = _get_candidate_name(profile)
-        edu_str = str((profile or {}).get("education") or "VESIT 2027 Grad")
+        edu_str = str((profile or {}).get("education") or "Technical Degree")
         cand_projects = (profile or {}).get("notable_projects") or []
-        first_project = cand_projects[0] if cand_projects else "Edvanta (AI Platform)"
-        github_link = str((profile or {}).get("github") or "https://github.com/tanish-jain-225")
+        first_project = cand_projects[0] if cand_projects else "Key Engineering Project"
+        github_link = str((profile or {}).get("github") or "")
+        github_suffix = f"\nGitHub: {github_link}" if github_link else ""
 
         project_highlight = first_project
-        if any(p for p in cand_projects if "ai" in p.lower() or "python" in p.lower()) and ("ai" in blob or "python" in blob):
-            project_highlight = next(p for p in cand_projects if "ai" in p.lower() or "python" in p.lower())
-        elif any(p for p in cand_projects if "next" in p.lower() or "test" in p.lower()) and ("next" in blob or "test" in blob):
-            project_highlight = next(p for p in cand_projects if "next" in p.lower() or "test" in p.lower())
+        for p in cand_projects:
+            p_words = [w.lower() for w in p.split() if len(w) > 2]
+            if any(w in blob for w in p_words):
+                project_highlight = p
+                break
 
-        lead_skill_1 = hits[0] if len(hits) > 0 else (profile.get("core_skills", ["React.js"])[0] if profile.get("core_skills") else "React.js")
-        lead_skill_2 = hits[1] if len(hits) > 1 else (profile.get("core_skills", ["", "Node.js"])[1] if len(profile.get("core_skills", [])) > 1 else "Node.js")
+        lead_skill_1 = hits[0] if len(hits) > 0 else (raw_skills[0] if raw_skills else "Core Technologies")
+        lead_skill_2 = hits[1] if len(hits) > 1 else (raw_skills[1] if len(raw_skills) > 1 else "Software Engineering")
 
         j.draft = {
-            "fit_summary": f"Strong alignment for {j.title} at {j.company} with core stack match ({matched_str}).",
-            "india_eligibility": "Verified India-Friendly" if "india" in blob or "remote" in blob else "India Eligibility Unverified",
+            "fit_summary": f"Strong alignment for {j.title} at {j.company} with matching background ({matched_str}).",
+            "india_eligibility": "Verified India-Friendly" if "india" in blob or "remote" in blob else "Remote Friendly",
             "best_project": project_highlight,
             "tailored_bullets": [
-                f"Built scalable web applications utilizing {lead_skill_1} and {lead_skill_2}.",
-                "Developed RESTful backend API routes with robust authentication and structured data stores.",
-                "Integrated automated testing pipelines and modern software engineering workflows."
+                f"Engineered software solutions utilizing {lead_skill_1} and {lead_skill_2}.",
+                "Developed scalable backend workflows, APIs, and robust data layers.",
+                "Implemented automated testing, monitoring, and continuous integration practices."
             ],
-            "matching_skills": hits[:6] if hits else (profile.get("core_skills", ["React.js", "Node.js", "Python", "REST APIs"])[:6]),
+            "matching_skills": hits[:6] if hits else (raw_skills[:6] if raw_skills else ["Software Engineering", "REST APIs", "Git"]),
             "gaps": ["Verify specific domain/experience requirements mentioned in the job description."],
-            "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with background in {edu_str}. I built {project_highlight}. My technical skills in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
-            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and built {project_highlight} using {matched_str}. Would love to connect!\nGitHub: {github_link}",
+            "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with a background in {edu_str}. I built {project_highlight}. My technical skills in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
+            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and built {project_highlight} with {matched_str}. Would love to connect!{github_suffix}",
             "questions_to_ask": [
                 f"What are the primary technical milestones for the {j.title} in their first 90 days?",
                 "How does your engineering team approach architecture reviews and deployment testing?"
@@ -395,5 +453,3 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         }
 
     return jobs
-
-

@@ -1,0 +1,416 @@
+"""Job tracking, stage transitions, manual job creation, stats, and CSV export routes."""
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from flask import Blueprint, jsonify, request, send_file
+
+from ... import cli, llm
+from ...auth import require_auth
+from ...store import Store
+from ..state import ROOT, get_current_user_context, get_store_version
+
+logger = logging.getLogger(__name__)
+
+jobs_bp = Blueprint("jobs", __name__)
+
+
+@jobs_bp.route("/api/config")
+@require_auth
+def api_config():
+    """Return summary of active configuration and ATS boards."""
+    cfg = cli._cfg(raise_on_error=False)
+    filters = cfg.get("filters", {})
+    companies_file = ROOT / cfg.get("companies_file", "companies.yaml")
+    company_count = 0
+    if companies_file.is_file():
+        try:
+            import yaml
+            data = yaml.safe_load(companies_file.read_text(encoding="utf-8")) or {}
+            company_count = len(data.get("companies", [])) if isinstance(data, dict) else len(data)
+        except Exception:
+            pass
+
+    return jsonify({
+        "status": "success",
+        "companies_count": company_count,
+        "filters": {
+            "include_titles_count": len(filters.get("include_titles", [])),
+            "exclude_titles_count": len(filters.get("exclude_titles", [])),
+            "locations": filters.get("locations", []),
+            "allow_remote": bool(filters.get("allow_remote", True)),
+            "max_age_days": filters.get("max_age_days", 28),
+        },
+        "score_threshold": cfg.get("score_threshold", 7.0),
+        "max_per_digest": cfg.get("max_per_digest", 7),
+    })
+
+
+@jobs_bp.route("/api/companies")
+@require_auth
+def api_companies():
+    """Return parsed list of all supported company boards with ATS and category info."""
+    cfg = cli._cfg(raise_on_error=False)
+    companies_file = ROOT / cfg.get("companies_file", "companies.yaml")
+    companies = []
+    if companies_file.is_file():
+        try:
+            import yaml
+            data = yaml.safe_load(companies_file.read_text(encoding="utf-8")) or {}
+            companies = data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+        except Exception as e:
+            logger.warning(f"Failed to load companies.yaml: {e}")
+
+    search = request.args.get("search", "").lower().strip()
+    ats_filter = request.args.get("ats", "all").lower().strip()
+
+    filtered = []
+    for c in companies:
+        name = str(c.get("name", ""))
+        slug = str(c.get("slug", ""))
+        ats = str(c.get("ats", ""))
+
+        if ats_filter != "all" and ats.lower() != ats_filter:
+            continue
+        if search and (search not in name.lower() and search not in slug.lower() and search not in ats.lower()):
+            continue
+        filtered.append(c)
+
+    return jsonify({
+        "status": "success",
+        "total": len(companies),
+        "count": len(filtered),
+        "companies": filtered,
+    })
+
+
+@jobs_bp.route("/api/stats")
+@require_auth
+def api_stats():
+    """Return tracker stats JSON with complete count breakdown."""
+    email, token = get_current_user_context()
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file, user_email=email, token=token)
+
+    score_threshold = float(cfg.get("score_threshold", 7.0))
+    shortlisted_count = sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold)
+    applied_count = sum(1 for v in st.data.values() if v.get("applied"))
+    unapplied_count = len(st.data) - applied_count
+
+    stats = {
+        **st.stats(),
+        "shortlisted": shortlisted_count,
+        "unapplied": unapplied_count,
+        "version": get_store_version(st)
+    }
+    return jsonify(stats)
+
+
+@jobs_bp.route("/api/export/csv")
+@require_auth
+def api_export_csv():
+    """Serve job tracker data exported as CSV file download (strictly user isolated)."""
+    email, token = get_current_user_context()
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file, user_email=email, token=token)
+    csv_path = Path(st.export_csv(tracker_csv)).resolve()
+    return send_file(
+        str(csv_path),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="tracker.csv"
+    )
+
+
+@jobs_bp.route("/api/jobs")
+@require_auth
+def api_jobs():
+    """Return list of all tracked jobs with filtering and sorting support (strictly user isolated)."""
+    email, token = get_current_user_context()
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file, user_email=email, token=token)
+
+    status = request.args.get("status", "all").lower()
+    ats_filter = request.args.get("ats", "all").lower().strip()
+    search = request.args.get("search", "").lower().strip()
+    min_score = request.args.get("min_score", type=float)
+    sort_by = request.args.get("sort", "date").lower().strip()
+
+    jobs_list = []
+    for job_id, data in st.data.items():
+        item = {"job_id": job_id, **data}
+        job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
+
+        # Filter status
+        if status == "shortlisted" and (item.get("score") or 0) < 7.0:
+            continue
+        elif status == "applied" and not item.get("applied"):
+            continue
+        elif status == "unapplied" and item.get("applied"):
+            continue
+
+        # Filter ATS provider
+        if ats_filter != "all" and job_ats != ats_filter:
+            continue
+
+        # Filter min_score
+        if min_score is not None and (item.get("score") or 0) < min_score:
+            continue
+
+        # Filter search text
+        if search:
+            searchable = f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats}".lower()
+            if search not in searchable:
+                continue
+
+        jobs_list.append(item)
+
+    # Sort logic
+    if sort_by == "score":
+        jobs_list.sort(key=lambda j: (j.get("score") if j.get("score") is not None else -1.0, j.get("first_seen", "")), reverse=True)
+    elif sort_by == "company":
+        jobs_list.sort(key=lambda j: j.get("company", "").lower())
+    else:  # default: date
+        jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
+
+    return jsonify({
+        "status": "success",
+        "count": len(jobs_list),
+        "jobs": jobs_list
+    })
+
+
+@jobs_bp.route("/api/applied", methods=["POST"])
+@require_auth
+def api_applied():
+    """Mark or unmark a job as applied with immediate version bump."""
+    email, token = get_current_user_context()
+    data = request.get_json(silent=True) or {}
+    job_id = data.get("job_id", "").strip()
+    action = data.get("action", "mark").lower().strip()
+
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file, user_email=email, token=token)
+
+    if action == "unmark":
+        success = st.unmark_applied(job_id)
+        msg_str = f"Unmarked '{job_id}' as applied."
+    else:
+        success = st.mark_applied(job_id)
+        msg_str = f"Marked '{job_id}' as applied."
+
+    if success:
+        st.export_csv(tracker_csv)
+        version = get_store_version(st)
+        return jsonify({
+            "status": "success",
+            "message": msg_str,
+            "job_id": job_id,
+            "applied": action != "unmark",
+            "version": version,
+            "stats": st.stats()
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "message": f"Job ID '{job_id}' not found in tracking store."
+        }), 404
+
+
+@jobs_bp.route("/api/delete", methods=["POST", "DELETE"])
+@require_auth
+def api_delete():
+    """Delete a job entry from the tracking store with immediate version bump."""
+    email, token = get_current_user_context()
+    data = request.get_json(silent=True) or {}
+    job_id = data.get("job_id", "").strip()
+
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file, user_email=email, token=token)
+
+    if st.delete_job(job_id):
+        st.export_csv(tracker_csv)
+        version = get_store_version(st)
+        return jsonify({
+            "status": "success",
+            "message": f"Job '{job_id}' removed from tracking store.",
+            "job_id": job_id,
+            "version": version,
+            "stats": st.stats()
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "message": f"Job ID '{job_id}' not found in tracking store."
+        }), 404
+
+
+@jobs_bp.route("/api/jobs/stage", methods=["POST"])
+@require_auth
+def api_jobs_stage():
+    """Update Kanban pipeline application stage (to_apply, applied, interviewing, offer, rejected)."""
+    email, token = get_current_user_context()
+    data = request.get_json(silent=True) or {}
+    job_id = data.get("job_id", "").strip()
+    stage = data.get("stage", "to_apply").lower().strip()
+
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file, user_email=email, token=token)
+
+    if st.update_stage(job_id, stage):
+        st.export_csv(tracker_csv)
+        version = get_store_version(st)
+        return jsonify({
+            "status": "success",
+            "message": f"Updated stage for '{job_id}' to '{stage}'.",
+            "job_id": job_id,
+            "stage": stage,
+            "applied": st.data.get(job_id, {}).get("applied", False),
+            "version": version,
+            "stats": st.stats()
+        })
+    else:
+        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+
+
+@jobs_bp.route("/api/jobs/notes", methods=["POST"])
+@require_auth
+def api_jobs_notes():
+    """Update private candidate notes for a tracked job."""
+    email, token = get_current_user_context()
+    data = request.get_json(silent=True) or {}
+    job_id = data.get("job_id", "").strip()
+    notes = data.get("notes", "")
+
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    st = Store(seen_file, user_email=email, token=token)
+
+    if st.update_notes(job_id, notes):
+        return jsonify({
+            "status": "success",
+            "message": "Notes saved.",
+            "job_id": job_id,
+            "notes": notes,
+        })
+    else:
+        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+
+
+@jobs_bp.route("/api/add", methods=["POST"])
+@jobs_bp.route("/api/jobs/add", methods=["POST"])
+@require_auth
+def api_add():
+    """Manually add a custom job entry to store with optional on-demand AI scoring."""
+    email, token = get_current_user_context()
+    data = request.get_json(silent=True) or {}
+    title = data.get("title", "").strip()
+    company = data.get("company", "").strip()
+
+    if not title or not company:
+        return jsonify({"status": "error", "message": "Title and Company are required."}), 400
+
+    location = data.get("location", "Remote/Unspecified").strip()
+    url = data.get("url", "#").strip()
+    ats = data.get("ats", "custom").strip()
+    description = data.get("description", "").strip()
+    reason = data.get("reason", "Custom opportunity added via Dashboard").strip()
+    applied = bool(data.get("applied", False))
+    stage = data.get("stage", "applied" if applied else "to_apply")
+
+    try:
+        score = float(data.get("score", 7.5))
+    except (TypeError, ValueError):
+        score = 7.5
+
+    draft = data.get("draft") or {}
+
+    # On-demand AI scoring if description provided and score not explicitly set
+    if description and (data.get("run_ai") or not data.get("score")):
+        cfg_temp = cli._cfg(raise_on_error=False)
+        user_prof = cli._load_profile(cfg_temp, raise_on_error=False) or {}
+        from ...fetch import Job
+        temp_job = Job(
+            job_id="custom:temp:1",
+            ats=ats,
+            company=company,
+            title=title,
+            location=location,
+            url=url,
+            description=description,
+        )
+        try:
+            provider, model = llm.resolve("screen")
+            llm.screen([temp_job], user_prof, provider=provider, model=model, delay_seconds=0)
+            if temp_job.score is not None:
+                score = temp_job.score
+                reason = temp_job.reason or reason
+        except Exception:
+            llm.keyword_screen([temp_job], user_prof)
+            if temp_job.score is not None:
+                score = temp_job.score
+                reason = temp_job.reason or reason
+
+        # Draft kit
+        try:
+            d_provider, d_model = llm.resolve("draft")
+            llm.draft([temp_job], user_prof, provider=d_provider, model=d_model, delay_seconds=0)
+            if temp_job.draft:
+                draft = temp_job.draft
+        except Exception:
+            pass
+
+    cfg = cli._cfg(raise_on_error=False)
+    seen_file = cfg.get("seen_file", "seen.json")
+    tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
+    st = Store(seen_file, user_email=email, token=token)
+
+    job_id = st.add_job(
+        title=title,
+        company=company,
+        location=location,
+        url=url,
+        ats=ats,
+        score=score,
+        reason=reason,
+        applied=applied,
+        draft=draft,
+    )
+    if stage and stage != "to_apply":
+        st.update_stage(job_id, stage)
+
+    st.export_csv(tracker_csv)
+    version = get_store_version(st)
+
+    new_job_data = st.data.get(job_id, {})
+
+    return jsonify({
+        "status": "success",
+        "message": f"Added job '{title}' ({job_id}).",
+        "job_id": job_id,
+        "job": {"job_id": job_id, **new_job_data},
+        "version": version,
+        "stats": st.stats()
+    })

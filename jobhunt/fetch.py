@@ -5,7 +5,7 @@ import html
 import re
 import time
 from dataclasses import dataclass, asdict, field
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import requests
 
@@ -76,8 +76,6 @@ class Job:
 # Adapters & ATS Registry. Each takes raw JSON body and returns list[Job].
 # Keeping parse separate from HTTP is what makes offline testing possible.
 # --------------------------------------------------------------------------
-
-from typing import Callable
 
 ParserFunc = Callable[[str, str, Any], list[Job]]
 REGISTERED_ATS: dict[str, tuple[str, ParserFunc]] = {}
@@ -197,7 +195,7 @@ def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
-@register_ats("smartrecruiters", "https://api.smartrecruiters.com/v1/companies/{slug}/postings")
+@register_ats("smartrecruiters", "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100")
 def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
     out: list[Job] = []
     jobs_list: list[Any] = []
@@ -229,7 +227,7 @@ def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
 @register_ats("bamboohr", "https://{slug}.bamboohr.com/careers/list")
 def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
     out: list[Job] = []
-    jobs_list = (body or {}).get("result") or (body or {}).get("jobs") or (body if isinstance(body, list) else [])
+    jobs_list = (body.get("result") or body.get("jobs") or []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
@@ -250,32 +248,142 @@ def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
+@register_ats("recruitee", "https://{slug}.recruitee.com/api/offers/")
+def parse_recruitee(slug: str, company: str, body: Any) -> list[Job]:
+    out: list[Job] = []
+    offers = body.get("offers", []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
+    for j in offers:
+        if not isinstance(j, dict):
+            continue
+        jid = j.get("id")
+        loc_str = j.get("location") or j.get("city") or j.get("country") or ("Remote" if j.get("remote") else "Unspecified")
+        raw_url = j.get("careers_url") or j.get("url")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://{slug}.recruitee.com/o/{jid}"
+        out.append(Job(
+            job_id=f"recruitee:{slug}:{jid}",
+            ats="recruitee",
+            company=company,
+            title=(j.get("title") or "").strip(),
+            location=str(loc_str).strip(),
+            url=url,
+            description=strip_html(j.get("description") or j.get("requirements")),
+            posted_at=j.get("created_at") or j.get("published_at"),
+            salary=j.get("salary_range") or j.get("compensation"),
+        ))
+    return out
+
+
+@register_ats("breezy", "https://{slug}.breezy.hr/json")
+@register_ats("breezyhr", "https://{slug}.breezy.hr/json")
+def parse_breezy(slug: str, company: str, body: Any) -> list[Job]:
+    out: list[Job] = []
+    positions = body.get("positions", []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
+    for j in positions:
+        if not isinstance(j, dict):
+            continue
+        jid = j.get("id") or j.get("friendly_id")
+        loc = j.get("location") or {}
+        loc_name = loc.get("name") if isinstance(loc, dict) else str(loc)
+        if isinstance(loc, dict) and loc.get("is_remote"):
+            loc_name = f"{loc_name} (Remote)" if loc_name else "Remote"
+        raw_url = j.get("url")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://{slug}.breezy.hr/p/{jid}"
+        out.append(Job(
+            job_id=f"breezy:{slug}:{jid}",
+            ats="breezy",
+            company=company,
+            title=(j.get("name") or j.get("title") or "").strip(),
+            location=str(loc_name or "Remote/Unspecified").strip(),
+            url=url,
+            description=strip_html(j.get("description") or j.get("summary")),
+            posted_at=j.get("published_date") or j.get("updated_at"),
+            salary=j.get("type", {}).get("name") if isinstance(j.get("type"), dict) else None,
+        ))
+    return out
+
+
+@register_ats("pinpoint", "https://{slug}.pinpoint.work/en/postings.json")
+def parse_pinpoint(slug: str, company: str, body: Any) -> list[Job]:
+    out: list[Job] = []
+    data_list = body.get("data", []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
+    for j in data_list:
+        if not isinstance(j, dict):
+            continue
+        jid = j.get("id")
+        loc = j.get("location") or {}
+        loc_str = loc.get("city") or loc.get("country") or j.get("location_name") or ("Remote" if j.get("workplace_type") == "remote" else "Unspecified")
+        raw_url = j.get("url")
+        url = raw_url if raw_url and str(raw_url).startswith(("http://", "https://")) else f"https://{slug}.pinpoint.work/en/postings/{jid}"
+        out.append(Job(
+            job_id=f"pinpoint:{slug}:{jid}",
+            ats="pinpoint",
+            company=company,
+            title=(j.get("title") or "").strip(),
+            location=str(loc_str).strip(),
+            url=url,
+            description=strip_html(j.get("description") or j.get("summary")),
+            posted_at=j.get("published_at") or j.get("created_at"),
+            salary=j.get("salary_range"),
+        ))
+    return out
+
+
 # Dict compatibility wrapper pointing to the registry
 ENDPOINTS = REGISTERED_ATS
 
+# Global in-memory cache for high-throughput ATS job pooling (TTL: 30 minutes)
+_GLOBAL_ATS_CACHE: dict[str, tuple[float, list[Job]]] = {}
+
+
+def clear_ats_cache() -> None:
+    """Clear all pre-cached ATS results."""
+    _GLOBAL_ATS_CACHE.clear()
 
 
 def fetch_board(ats: str, slug: str, company: str | None = None,
-                session: requests.Session | None = None) -> list[Job]:
-    """Hit one company's public board. Returns [] on any failure (never raises)."""
+                session: requests.Session | None = None,
+                use_cache: bool = True,
+                cache_ttl: float = 1800.0) -> list[Job]:
+    """Hit one company's public board with caching and retries. Returns [] on failure."""
     ats_lower = ats.lower()
     if ats_lower not in REGISTERED_ATS:
         raise ValueError(f"unknown ATS: {ats}")
+
+    cache_key = f"{ats_lower}:{slug}"
+    now = time.time()
+    if use_cache and cache_key in _GLOBAL_ATS_CACHE:
+        ts, cached_jobs = _GLOBAL_ATS_CACHE[cache_key]
+        if now - ts < cache_ttl:
+            return list(cached_jobs)
+
     url_tpl, parser = REGISTERED_ATS[ats_lower]
     sess = session or requests
-    try:
-        r = sess.get(url_tpl.format(slug=slug), headers=UA, timeout=TIMEOUT)
-        if r.status_code != 200:
-            print(f"  ! {ats}/{slug} -> HTTP {r.status_code}")
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            r = sess.get(url_tpl.format(slug=slug), headers=UA, timeout=TIMEOUT)
+            if r.status_code == 200:
+                jobs = parser(slug, company or slug, r.json())
+                if use_cache:
+                    _GLOBAL_ATS_CACHE[cache_key] = (now, list(jobs))
+                return jobs
+            elif r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
+                time.sleep(1.0 * (attempt + 1))
+                continue
+            else:
+                print(f"  ! {ats}/{slug} -> HTTP {r.status_code}")
+                return []
+        except (requests.RequestException, KeyError, ValueError, TypeError) as e:
+            if attempt < max_retries - 1:
+                time.sleep(1.0 * (attempt + 1))
+                continue
+            print(f"  ! {ats}/{slug} -> {type(e).__name__}: {e}")
             return []
-        return parser(slug, company or slug, r.json())
-    except (requests.RequestException, KeyError, ValueError, TypeError) as e:
-        print(f"  ! {ats}/{slug} -> {type(e).__name__}: {e}")
-        return []
+    return []
 
 
 def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
-              max_workers: int = 8) -> list[Job]:
+              max_workers: int = 8, use_cache: bool = True) -> list[Job]:
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from pathlib import Path
     import yaml
@@ -298,7 +406,10 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
     with requests.Session() as session:
         if max_workers > 1 and len(company_list) > 1:
             def worker(c: dict) -> tuple[dict, list[Job]]:
-                res = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
+                try:
+                    res = fetch_board(c["ats"], c["slug"], c.get("name"), session=session, use_cache=use_cache)
+                except TypeError:
+                    res = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
                 return c, res
 
             with ThreadPoolExecutor(max_workers=min(max_workers, len(company_list))) as executor:
@@ -313,7 +424,10 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
                         print(f"  ! worker error: {e}")
         else:
             for c in company_list:
-                got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
+                try:
+                    got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session, use_cache=use_cache)
+                except TypeError:
+                    got = fetch_board(c["ats"], c["slug"], c.get("name"), session=session)
                 if got:
                     print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
                 jobs.extend(got)
@@ -321,4 +435,3 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
                     time.sleep(sleep)
 
     return jobs
-

@@ -53,11 +53,12 @@ This guide covers solutions to common errors, configurations, and questions enco
 ## ⚡ API Quotas & Rate Limiting
 
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
-* **Why it happens:** You are using the Google Gemini free tier API and have exceeded the requests-per-minute (RPM) limit.
+* **Why it happens:** You are using the Google Gemini free tier API (15 RPM ceiling) and high-concurrency requests or multiple fast runs exceeded the rate limit.
 * **The Solution:** 
-  * Open your `config.yaml` and reduce `llm_max_workers` to `1` (which disables parallel LLM screening calls).
-  * Increase `llm_delay_seconds` (e.g., `4` or `5`) to insert a larger pause between API calls.
-  * Increase `screen_batch_size` (e.g., to `10` or `12`) to process more jobs per API call and save overall requests.
+  * Job Hunter includes automatic parallel worker pacing (`min(delay_seconds, 1.0) * worker_idx`) to prevent burst collisions.
+  * In `config.yaml`, set `llm_max_workers` to `1` or `2` for free-tier keys.
+  * Increase `llm_delay_seconds` (e.g., `3.0` or `4.0`) to insert a larger pause between batches.
+  * Increase `screen_batch_size` (e.g., to `8` or `10`) to evaluate more jobs per API call and save overall requests.
 
 ---
 

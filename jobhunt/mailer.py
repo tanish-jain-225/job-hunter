@@ -6,13 +6,13 @@ import smtplib
 from email.message import EmailMessage
 
 
-def send(subject: str, html_body: str) -> None:
+def send(subject: str, html_body: str, to_email: str | None = None) -> None:
     host = (os.getenv("SMTP_HOST") or "smtp.gmail.com").strip()
     raw_port = (os.getenv("SMTP_PORT") or "587").strip()
     port = int(raw_port) if raw_port.isdigit() else 587
     user = os.environ["SMTP_USER"].strip()
     password = os.environ["SMTP_PASS"].strip()
-    to_addr = (os.getenv("MAIL_TO") or user).strip()
+    to_addr = (to_email or os.getenv("MAIL_TO") or user).strip()
 
     msg = EmailMessage()
     msg["Subject"] = subject

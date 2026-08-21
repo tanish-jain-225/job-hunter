@@ -2,129 +2,414 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>Job Hunter — Executive AI Career Dashboard</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="shortcut icon" type="image/png" href="/logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Job Hunter — Autonomous AI Career Intelligence</title>
+  
+  <!-- Modern Clean Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;850&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toast-container"></div>
+  <!-- ========================================================================== -->
+  <!-- GLOBAL NAVBAR (Pure Flexbox Navigation & State Engine) -->
+  <!-- ========================================================================== -->
+  <header class="navbar" id="main-navbar">
+    <div class="navbar-container">
+      
+      <!-- Brand & Live State Indicator -->
+      <div class="nav-brand-cluster">
+        <a href="/" class="brand-link" title="Job Hunter Home">
+          <div class="brand-logo-frame">
+            <img src="/logo.png" alt="Job Hunter" class="brand-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='flex';">
+            <div class="brand-fallback-icon" id="brand-fallback" style="display:none;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+            </div>
+          </div>
+          <div class="brand-text-block">
+            <span class="brand-title">Job Hunter</span>
+            <span class="brand-badge">Career Intelligence</span>
+          </div>
+        </a>
 
-  <!-- Top Navigation Header -->
-  <header>
-    <div class="brand">
-      <img src="/logo.png" alt="Job Hunter Logo" class="brand-icon">
-      <div class="brand-text">
-        <h1>Job Hunter</h1>
-        <p>Autonomous AI Job-Search Web Board</p>
-      </div>
-    </div>
-    <div class="header-actions">
-      <!-- Live Real-Time Sync Indicator -->
-      <div class="sync-status-pill" id="sync-status-indicator" title="Real-time sync active — changes automatically sync across all tabs and devices" onclick="manualSync()">
-        <span class="sync-dot" id="sync-dot"></span>
-        <span class="sync-text" id="sync-text">Live Synced</span>
-        <button class="btn-sync-icon" id="btn-sync-icon" title="Force sync now" aria-label="Sync Now" type="button">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        </button>
+        <div class="sync-indicator" id="sync-status" title="Real-time synchronization status (Click to refresh)" onclick="manualSync()" role="button" tabindex="0">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="sync-text">Radar: Online</span>
+        </div>
       </div>
 
-      <div class="metrics">
-        <div class="metric-pill" title="Total jobs stored in database">
-          <div class="metric-label">Tracked</div>
-          <div class="metric-val" id="metric-tracked">--</div>
-        </div>
-        <div class="metric-pill" title="Total matches dispatched to email">
-          <div class="metric-label">Emailed</div>
-          <div class="metric-val" id="metric-emailed">--</div>
-        </div>
-        <div class="metric-pill" title="Total jobs marked as applied">
-          <div class="metric-label">Applied</div>
-          <div class="metric-val" id="metric-applied">--</div>
+      <!-- Landing Page Navigation Links & CTA (Shown when Unauthenticated) -->
+      <div class="landing-nav-links" id="landing-nav-links">
+        <a href="#pipeline-section" class="nav-link">How It Works</a>
+        <a href="#ats-section" class="nav-link">200+ Companies</a>
+        <div class="landing-nav-btns">
+          <button class="btn btn-secondary btn-sm" onclick="scrollToAuth('signin')">Sign In</button>
+          <button class="btn btn-primary btn-sm" onclick="scrollToAuth('signup')">
+            <span>Get Started</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
         </div>
       </div>
-      <a href="/api/export/csv" class="btn btn-secondary btn-sm btn-export-csv" download="tracker.csv" title="Download job tracking data as CSV">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        <span>Export CSV</span>
-      </a>
+
+      <!-- Action & Metrics Group (Shown in Authenticated Dashboard Mode) -->
+      <div class="nav-actions-cluster" id="header-metrics" style="display:none;">
+        
+        <!-- Live Global Metrics Summary -->
+        <div class="metrics-bar">
+          <div class="metric-item" title="Total jobs tracked across ATS endpoints">
+            <span class="metric-lbl">Tracked</span>
+            <span class="metric-val" id="metric-tracked">--</span>
+          </div>
+          <div class="metric-divider"></div>
+          <div class="metric-item" title="Jobs dispatched in daily briefings">
+            <span class="metric-lbl">Emailed</span>
+            <span class="metric-val" id="metric-emailed">--</span>
+          </div>
+          <div class="metric-divider"></div>
+          <div class="metric-item" title="Applications completed and submitted">
+            <span class="metric-lbl">Applied</span>
+            <span class="metric-val" id="metric-applied">--</span>
+          </div>
+        </div>
+
+        <!-- Studio & Settings Action Buttons -->
+        <div class="nav-btn-group">
+          <button class="btn btn-secondary btn-sm btn-nav-settings" id="btn-open-settings" onclick="openProfileModal()" title="Open Candidate Profile & Search Settings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Settings</span>
+          </button>
+        </div>
+
+        <!-- User Authentication Status Pill -->
+        <div class="user-auth-pill" id="user-auth-pill">
+          <div class="user-avatar" id="user-avatar" title="Candidate Profile Settings" onclick="openProfileModal()">U</div>
+          <div class="user-info-text" onclick="openProfileModal()" role="button" tabindex="0" title="Click to open Candidate Profile & Settings">
+            <span class="user-email" id="user-email">user@domain.com</span>
+            <span class="user-status-badge">Authenticated</span>
+          </div>
+          <button class="btn-auth-signout" id="btn-signout" title="Sign Out from Supabase" onclick="handleSignOut()" aria-label="Sign Out" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </header>
 
-  <!-- Main Flexbox Dashboard Layout -->
-  <div class="dashboard-layout grid">
+  <!-- ========================================================================== -->
+  <!-- 1. LANDING VIEW (Shown when unauthenticated) -->
+  <!-- ========================================================================== -->
+  <section class="landing-view" id="landing-view">
+    
+    <!-- Hero Section with Integrated Sign In / Sign Up Card -->
+    <div class="landing-hero-grid">
+      
+      <!-- Hero Copy Column -->
+      <div class="landing-hero-copy">
+        <div class="landing-tag">
+          <span>Autonomous Career Intelligence</span>
+        </div>
+        <h1 class="landing-hero-title">
+          Stop sifting through job spam.<br>
+          Let AI scout your dream roles.
+        </h1>
+        <p class="landing-hero-desc">
+          <strong>Job Hunter</strong> directly crawls 6 major ATS platforms across target companies, eliminates irrelevant noise deterministically, scores technical fit against your exact career experience with frontier LLMs, and crafts tailored application kits automatically.
+        </p>
+        <div class="landing-hero-features">
+          <div class="hero-feat-card">
+            <div class="feat-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="feat-content">
+              <strong>Isolated Account Memory</strong>
+              <p>Upload your resume to extract candidate criteria strictly isolated to your private account.</p>
+            </div>
+          </div>
+          <div class="hero-feat-card">
+            <div class="feat-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </div>
+            <div class="feat-content">
+              <strong>Precision Fit Evaluation</strong>
+              <p>State-of-the-art LLMs evaluate technical alignment, highlight strengths, and identify skill gaps.</p>
+            </div>
+          </div>
+          <div class="hero-feat-card">
+            <div class="feat-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <div class="feat-content">
+              <strong>Daily Briefing Digests</strong>
+              <p>Receive tailored HTML morning briefings with instant cold outreach notes and tailored bullets.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Interactive Auth Card Column -->
+      <div class="landing-auth-card" id="auth-card-anchor">
+        <div class="auth-card-inner">
+          <div class="auth-card-header">
+            <h2 class="auth-card-title">Welcome to Job Hunter</h2>
+            <p class="auth-card-subtitle">Sign in or create an account to activate your autonomous radar</p>
+          </div>
+
+          <div class="auth-tabs">
+            <button class="auth-tab-btn active" id="tab-signin" onclick="switchAuthTab('signin')" type="button">Sign In</button>
+            <button class="auth-tab-btn" id="tab-signup" onclick="switchAuthTab('signup')" type="button">Create Account</button>
+          </div>
+
+          <!-- Sign In Form -->
+          <form class="auth-form" id="form-signin" onsubmit="handleSignInSubmit(event)">
+            <div class="form-group">
+              <label class="form-label" for="signin-email">Email Address</label>
+              <input type="email" class="form-input" id="signin-email" placeholder="you@company.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label" for="signin-password">Password</label>
+                <a href="javascript:void(0)" onclick="handleForgotPassword()" class="auth-forgot-link">Forgot password?</a>
+              </div>
+              <input type="password" class="form-input" id="signin-password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-submit-signin">
+              <span class="spinner" id="signin-spinner" style="display:none;"></span>
+              <span id="signin-submit-text">Sign In to Dashboard</span>
+            </button>
+          </form>
+
+          <!-- Sign Up Form -->
+          <form class="auth-form" id="form-signup" style="display:none;" onsubmit="handleSignUpSubmit(event)">
+            <div class="form-group">
+              <label class="form-label" for="signup-email">Email Address</label>
+              <input type="email" class="form-input" id="signup-email" placeholder="you@company.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-password">Create Password (min. 6 characters)</label>
+              <input type="password" class="form-input" id="signup-password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-submit-signup">
+              <span class="spinner" id="signup-spinner" style="display:none;"></span>
+              <span id="signup-submit-text">Create Account & Start</span>
+            </button>
+          </form>
+
+          <div class="auth-divider"><span>or continue with</span></div>
+
+          <!-- Google Social Sign-In -->
+          <button type="button" class="btn btn-secondary btn-social-auth" id="btn-google-auth" onclick="handleGoogleSignIn()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <div class="auth-feedback" id="auth-feedback" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Section -->
+    <div class="landing-section" id="pipeline-section">
+      <div class="section-header">
+        <h2 class="section-title">The 4-Stage Autonomous Pipeline</h2>
+        <p class="section-subtitle">How Job Hunter automates your search overhead while keeping you in total control</p>
+      </div>
+
+      <div class="pipeline-grid">
+        <div class="pipeline-card">
+          <div class="pipeline-card-top">
+            <span class="pipeline-step-badge">Stage 01</span>
+            <div class="pipeline-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+          </div>
+          <h3>Scout ATS Boards</h3>
+          <p>Directly queries public ATS endpoints from Greenhouse, Lever, Ashby, Workable, SmartRecruiters, and BambooHR at high concurrency.</p>
+        </div>
+
+        <div class="pipeline-card">
+          <div class="pipeline-card-top">
+            <span class="pipeline-step-badge">Stage 02</span>
+            <div class="pipeline-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            </div>
+          </div>
+          <h3>Stealth Pre-Filter</h3>
+          <p>Deterministic regex matching removes ~99% of junk titles, out-of-region postings, and stale listings with zero API waste.</p>
+        </div>
+
+        <div class="pipeline-card">
+          <div class="pipeline-card-top">
+            <span class="pipeline-step-badge">Stage 03</span>
+            <div class="pipeline-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"></path></svg>
+            </div>
+          </div>
+          <h3>Precision Fit Scoring</h3>
+          <p>Surviving roles are scored (0.0–10.0) against your uploaded resume and criteria with detailed match reasoning.</p>
+        </div>
+
+        <div class="pipeline-card">
+          <div class="pipeline-card-top">
+            <span class="pipeline-step-badge">Stage 04</span>
+            <div class="pipeline-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </div>
+          </div>
+          <h3>Application Kits & Alerts</h3>
+          <p>Top matches (7.0+) are compiled into a responsive HTML briefing with custom outreach notes and tailored resume highlights.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported ATS Platforms Section -->
+    <div class="landing-section" id="ats-section">
+      <div class="section-header">
+        <h2 class="section-title">Supported ATS Platforms</h2>
+        <p class="section-subtitle">Seamlessly connects to enterprise hiring systems with zero scraping overhead</p>
+      </div>
+
+      <div class="ats-grid">
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">Greenhouse</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>High-throughput JSON parsing with department filtering and compensation parsing.</p>
+        </div>
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">Lever</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>Direct API integration with epoch millisecond freshness checks and team categorization.</p>
+        </div>
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">Ashby</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>Compensation range extraction, HTML fallback parsing, and draft exclusion gates.</p>
+        </div>
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">Workable</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>Structured listing discovery with department, city, and remote criteria evaluation.</p>
+        </div>
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">SmartRecruiters</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>Enterprise board parsing with direct apply URLs and posting freshness verification.</p>
+        </div>
+        <div class="ats-card">
+          <div class="ats-card-header">
+            <span class="ats-logo-tag">BambooHR</span>
+            <span class="ats-status-live">Live</span>
+          </div>
+          <p>High-speed department directory crawling and location filtering support.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landing Footer -->
+    <footer class="landing-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="footer-brand-title">Job Hunter</span>
+          <span class="footer-brand-sep">·</span>
+          <span>Autonomous AI Career Intelligence</span>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/tanish-jain-225/job-hunter" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+          <span>·</span>
+          <span>Open Source (MIT)</span>
+          <span>·</span>
+          <span>Supabase Auth Secured</span>
+        </div>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ========================================================================== -->
+  <!-- 2. AUTHENTICATED CAREER DASHBOARD VIEW (Shown when logged in) -->
+  <!-- ========================================================================== -->
+  <div class="dashboard-layout" id="dashboard-view" style="display:none;">
 
     <!-- Sidebar Controls Pane -->
     <aside class="sidebar-pane">
 
+      <!-- Candidate Profile Summary Card -->
+      <div class="card card-studio-summary">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span>Candidate Profile & Radar</span>
+        </div>
+        <div class="studio-summary-body">
+          <div class="studio-profile-name profile-incomplete-label" id="summary-candidate-name">Setup required</div>
+          <div class="studio-profile-title profile-incomplete-label" id="summary-candidate-title">Complete your profile to begin</div>
+          <div class="studio-tags-row" id="summary-skills-tags">
+            <span class="studio-skill-tag studio-skill-placeholder">No skills yet</span>
+          </div>
+          <div class="studio-notif-status" id="summary-notif-status">
+            <span class="notif-badge-off" id="notif-badge-indicator">Email Alerts: Off</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm studio-btn-manage" id="btn-sidebar-settings" onclick="openProfileModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Edit Profile & Search Criteria</span>
+        </button>
+      </div>
+
       <!-- Run Pipeline Card -->
       <div class="card">
         <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <span>On-Demand Pipeline Trigger</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>On-Demand Pipeline Scout</span>
         </div>
-        <button class="btn" id="btn-run" onclick="runPipeline()">
-          <span class="spinner" id="run-spinner"></span>
+        <button class="btn btn-primary" id="btn-run" onclick="runPipeline()">
+          <span class="spinner" id="run-spinner" style="display:none;"></span>
           <span id="run-text">Run Job Hunt Now</span>
         </button>
-        <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning.</div>
+        <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning target ATS endpoints.</div>
       </div>
 
-      <!-- Quick Mark Applied Card -->
-      <div class="card">
+      <!-- Quick Actions Module -->
+      <div class="card card-tools">
         <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-          <span>Quick Mark Applied</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          <span>Tracker Quick Tools</span>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
-          <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
-        </div>
-        <div class="btn-group-dual">
-          <button class="btn btn-secondary" onclick="markAppliedFromInput('mark')">Mark Applied</button>
-          <button class="btn btn-secondary" onclick="markAppliedFromInput('unmark')">Unmark</button>
-        </div>
-        <div id="applied-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
-      </div>
 
-      <!-- Add Custom Job Card -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>Add Custom Job</span>
+        <!-- Tool 1: Mark Applied -->
+        <div class="tool-section">
+          <div class="tool-subtitle">Quick Mark Applied</div>
+          <div class="form-group">
+            <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
+            <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
+          </div>
+          <div class="btn-group-dual">
+            <button class="btn btn-secondary btn-sm" onclick="markAppliedFromInput('mark')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Mark Applied</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="markAppliedFromInput('unmark')">
+              <span>Unmark</span>
+            </button>
+          </div>
+          <div id="applied-status" class="tool-status-msg"></div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="add-title">Job Title *</label>
-          <input type="text" class="form-input" id="add-title" placeholder="e.g. Senior Backend Engineer">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-company">Company *</label>
-          <input type="text" class="form-input" id="add-company" placeholder="e.g. Stripe">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-location">Location</label>
-          <input type="text" class="form-input" id="add-location" placeholder="e.g. San Francisco / Remote">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-url">Job URL</label>
-          <input type="url" class="form-input" id="add-url" placeholder="https://...">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="add-score">Match Score (0-10)</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-input" id="add-score" value="8.0">
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="add-applied"> Mark as already applied
-          </label>
-        </div>
-        <button class="btn btn-secondary" style="width:100%;" onclick="addCustomJobFromInput()">Add Job to Store</button>
-        <div id="add-job-status" style="font-size:12px; margin-top:8px; color:var(--text-muted);"></div>
       </div>
 
     </aside>
@@ -133,11 +418,11 @@
     <main class="main-viewport-pane">
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-btn-digest" onclick="switchTab('digest')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
           <span>Daily Digest Briefing</span>
         </button>
         <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
           <span>Interactive Job Board</span>
         </button>
       </div>
@@ -150,11 +435,13 @@
             <span class="badge-live-sync" id="digest-sync-tag">Auto-Synced</span>
           </div>
           <div class="digest-header-actions">
-            <button class="btn btn-secondary btn-sm" onclick="refreshDigest(true)">🔄 Refresh Digest</button>
-            <a href="/api/digest" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">↗ Open Full Tab</a>
+            <button class="btn btn-secondary btn-sm" onclick="refreshDigest(true)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>Refresh Digest</span>
+            </button>
           </div>
         </div>
-        <iframe class="viewport-frame" id="digest-frame" src="/api/digest"></iframe>
+        <div class="viewport-frame" id="digest-frame" role="region" aria-label="Executive Career Digest Briefing"></div>
       </div>
 
       <!-- Tab 2: Tracker Board -->
@@ -162,14 +449,17 @@
         <div class="tracker-bar">
           <div class="tracker-controls-row">
             <div class="search-input-wrapper">
-              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <label for="tracker-search-input" class="sr-only">Search Jobs</label>
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               <input type="text" class="form-input tracker-search" id="tracker-search-input"
-                     placeholder="Search company, title, location... (Press '/' to search)" oninput="handleSearchInput()">
-              <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;">✕</button>
+                     placeholder="Search company, title, location... (Press '/' to search)" oninput="handleSearchInput()"
+                     aria-label="Search company, title, location">
+              <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;" aria-label="Clear search">✕</button>
               <span class="search-kbd-hint" title="Press '/' to focus search">/</span>
             </div>
             
-            <select class="form-input tracker-select" id="tracker-ats-select" onchange="fetchAndRenderJobs()">
+            <label for="tracker-ats-select" class="sr-only">Filter by ATS Board</label>
+            <select class="form-input tracker-select" id="tracker-ats-select" onchange="fetchAndRenderJobs()" aria-label="Filter by ATS Board">
               <option value="all">All ATS Boards</option>
               <option value="greenhouse">Greenhouse</option>
               <option value="lever">Lever</option>
@@ -177,17 +467,37 @@
               <option value="workable">Workable</option>
               <option value="smartrecruiters">SmartRecruiters</option>
               <option value="bamboohr">BambooHR</option>
+              <option value="recruitee">Recruitee</option>
+              <option value="breezy">Breezy HR</option>
+              <option value="pinpoint">Pinpoint</option>
               <option value="custom">Custom</option>
             </select>
 
-            <select class="form-input tracker-select" id="tracker-sort-select" onchange="fetchAndRenderJobs()">
+            <label for="tracker-sort-select" class="sr-only">Sort Jobs By</label>
+            <select class="form-input tracker-select" id="tracker-sort-select" onchange="fetchAndRenderJobs()" aria-label="Sort Jobs By">
               <option value="date">Sort: Date</option>
               <option value="score">Sort: Match Score</option>
               <option value="company">Sort: Company</option>
             </select>
+
+            <div class="view-mode-toggle">
+              <button class="btn btn-secondary btn-sm active" id="btn-view-table" onclick="switchTrackerView('table')" title="Table List View">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <span>List</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-view-kanban" onclick="switchTrackerView('kanban')" title="Kanban Pipeline Board">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="12" rx="1"></rect></svg>
+                <span>Kanban</span>
+              </button>
+            </div>
+
+            <button class="btn btn-secondary btn-sm btn-add-custom-job" onclick="openCustomJobModal()" title="Add Custom Job Lead">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add Job</span>
+            </button>
           </div>
 
-          <div class="filter-pills" style="margin-top: 10px;">
+          <div class="filter-pills">
             <button class="pill active" id="pill-all" onclick="setFilter('all')">
               <span>All Jobs</span>
               <span class="pill-count" id="count-all">0</span>
@@ -204,14 +514,600 @@
               <span>Unapplied</span>
               <span class="pill-count" id="count-unapplied">0</span>
             </button>
+            <button class="pill" id="pill-internship" onclick="setFilter('internship')">
+              <span>🎓 Internships</span>
+              <span class="pill-count" id="count-internship">0</span>
+            </button>
+            <button class="pill" id="pill-remote" onclick="setFilter('remote')">
+              <span>🌐 Remote/Hybrid</span>
+              <span class="pill-count" id="count-remote">0</span>
+            </button>
           </div>
         </div>
+
         <div class="job-list" id="job-list-container">
-          <div style="text-align:center; padding:40px; color:var(--text-muted);">Loading job board data...</div>
+          <div class="job-list-loading">
+            <span class="spinner" style="display:inline-block;"></span>
+            <span>Loading job board data...</span>
+          </div>
         </div>
       </div>
 
     </main>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- 2.5. ONBOARDING SETUP WIZARD (Step 1: Resume -> Step 2: Preferences) -->
+  <!-- ========================================================================== -->
+  <div class="modal-overlay" id="onboarding-modal" onclick="if(event.target===this) closeOnboardingModal(true);">
+    <div class="modal-content modal-content-wizard">
+      
+      <!-- Wizard Header -->
+      <div class="wizard-header">
+        <button class="modal-close" onclick="closeOnboardingModal(true)" aria-label="Close modal" title="Close / Decide Later">×</button>
+        <div class="wizard-tag">Setup Wizard</div>
+        <h2 class="wizard-title">Personalize Your AI Job Hunter</h2>
+        <p class="wizard-subtitle">Upload your resume and set search preferences so our autonomous agent matches opportunities accurately.</p>
+      </div>
+
+      <!-- Progress Stepper -->
+      <div class="wizard-stepper">
+        <div class="step-node active" id="onboarding-step-indicator-1">
+          <div class="step-circle" id="step-circle-1">1</div>
+          <div class="step-text">
+            <span class="step-label">Resume & Profile</span>
+            <span class="step-sub">Upload or Paste</span>
+          </div>
+        </div>
+        <div class="step-connector" id="step-connector-1"></div>
+        <div class="step-node" id="onboarding-step-indicator-2">
+          <div class="step-circle" id="step-circle-2">2</div>
+          <div class="step-text">
+            <span class="step-label">Search Criteria</span>
+            <span class="step-sub">Roles & Alerts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wizard Step 1: Resume Upload, Text Context & 1-Click Role Presets -->
+      <div class="wizard-body" id="onboarding-step-1">
+        <div class="wizard-section-desc">
+          Upload your resume (PDF/TXT) to extract text once in-memory, or pick a 1-click role preset below. Your text context can be edited freely before saving.
+        </div>
+
+        <!-- 1-Click Role Presets (Zero Friction Setup) -->
+        <div class="role-presets-cluster">
+          <div class="role-presets-label">⚡ 1-Click Role Presets (Quick Start):</div>
+          <div class="role-presets-tags">
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('fullstack')">💻 Full Stack</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('backend')">⚙️ Backend</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('frontend')">🎨 Frontend</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('ai_ml')">🧠 AI / ML</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('devops')">☁️ DevOps / SRE</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('data_engineer')">📊 Data Eng</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('mobile_dev')">📱 Mobile Dev</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('qa_engineer')">🧪 QA / SDET</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('security')">🔒 Security</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('blockchain')">⛓️ Web3</button>
+            <button type="button" class="btn-preset-chip" onclick="applyRolePreset('product_manager')">🚀 Product</button>
+          </div>
+        </div>
+
+        <div class="resume-dropzone" id="onboarding-dropzone" onclick="document.getElementById('onboarding-file-input').click()" style="margin-top:14px;">
+          <label for="onboarding-file-input" class="sr-only">Upload Resume File</label>
+          <input type="file" id="onboarding-file-input" accept=".pdf,.txt,.docx" style="display:none;" onchange="handleOnboardingFileSelected(event)" aria-label="Upload resume file (.pdf, .txt, .docx)">
+          <div class="dropzone-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </div>
+          <div class="dropzone-text" id="onboarding-dropzone-text">Click or drag &amp; drop your resume file here (.pdf, .txt)</div>
+          <div class="dropzone-sub">One-time text extraction · No binary files stored · Plain text only</div>
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="onboarding-paste-text">
+            <span>Resume Text Context</span>
+            <span class="form-hint-inline">(Extracted text appears here — edit or alter freely before saving)</span>
+          </label>
+          <textarea class="form-input form-textarea" id="onboarding-paste-text" rows="4" placeholder="Upload a file to extract text once, or type/paste and edit your resume context directly here..."></textarea>
+        </div>
+
+        <button class="btn btn-primary btn-studio-action" id="btn-onboarding-parse" onclick="submitOnboardingResumeParse()">
+          <span class="spinner" id="onboarding-spinner" style="display:none;"></span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span id="onboarding-parse-btn-text">Extract Candidate Profile with AI</span>
+        </button>
+
+        <div class="studio-alert" id="onboarding-status-alert" style="display:none;"></div>
+
+        <!-- Live Parsed Resume Preview Card -->
+        <div class="onboarding-preview-card" id="onboarding-preview-card" style="display:none;">
+          <div class="preview-card-header">
+            <span class="preview-card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Extracted Profile Preview</span>
+            </span>
+            <span class="preview-badge-status">AI Parsed</span>
+          </div>
+          <div class="preview-meta-row">
+            <div class="preview-meta-item">
+              <span class="preview-meta-lbl">Candidate</span>
+              <span class="preview-meta-val" id="preview-name">--</span>
+            </div>
+            <div class="preview-meta-item">
+              <span class="preview-meta-lbl">Current Title</span>
+              <span class="preview-meta-val" id="preview-title">--</span>
+            </div>
+            <div class="preview-meta-item">
+              <span class="preview-meta-lbl">Experience</span>
+              <span class="preview-meta-val" id="preview-years">--</span>
+            </div>
+          </div>
+          <div class="preview-meta-item">
+            <span class="preview-meta-lbl">Extracted Skills</span>
+            <div class="preview-tags-container" id="preview-skills-container"></div>
+          </div>
+        </div>
+
+        <div class="wizard-actions-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Empty</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-sm" onclick="closeOnboardingModal(true)">
+              <span>Decide Later</span>
+            </button>
+            <button class="btn btn-primary btn-wizard-next" id="btn-onboarding-to-step-2" onclick="switchOnboardingStep(2)">
+              <span>Continue to Search Criteria</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wizard Step 2: Job Preferences & Notification Mode -->
+      <div class="wizard-body" id="onboarding-step-2" style="display:none;">
+        <div class="wizard-section-desc">
+          Tell us what kind of jobs you're looking for. Leave preferences open to see all opportunities.
+        </div>
+
+        <!-- Job Type Preferences -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Job Type <span class="form-hint-inline">(Select all that apply — leave all checked for maximum results)</span></div>
+          <div class="job-type-chips" id="onboard-job-types">
+            <label class="chip-toggle active"><input type="checkbox" value="fulltime" checked> Full-Time</label>
+            <label class="chip-toggle active"><input type="checkbox" value="internship" checked> 🎓 Internship</label>
+            <label class="chip-toggle active"><input type="checkbox" value="remote" checked> 🌐 Remote</label>
+            <label class="chip-toggle active"><input type="checkbox" value="hybrid" checked> 🔀 Hybrid</label>
+            <label class="chip-toggle active"><input type="checkbox" value="onsite" checked> 🏢 On-Site</label>
+            <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
+            <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
+          </div>
+        </div>
+
+        <!-- Location Preference -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Location Preference</div>
+          <div class="location-pref-options">
+            <label class="radio-option active" id="loc-pref-allindia">
+              <input type="radio" name="onboard-location-pref" value="all_india" checked>
+              <span>🇮🇳 All India (Any City)</span>
+            </label>
+            <label class="radio-option" id="loc-pref-remote">
+              <input type="radio" name="onboard-location-pref" value="remote_only">
+              <span>🌐 Remote Only</span>
+            </label>
+            <label class="radio-option" id="loc-pref-specific">
+              <input type="radio" name="onboard-location-pref" value="specific_cities">
+              <span>📍 Specific Cities</span>
+            </label>
+            <label class="radio-option" id="loc-pref-global">
+              <input type="radio" name="onboard-location-pref" value="global">
+              <span>🌍 Global</span>
+            </label>
+          </div>
+          <div id="specific-cities-input" style="display:none; margin-top:10px;">
+            <input type="text" class="form-input" id="onboard-specific-cities"
+                   placeholder="e.g. Bangalore, Mumbai, Pune, Hyderabad, Remote">
+            <span class="form-hint">Comma-separated. Add 'Remote' to also include remote roles.</span>
+          </div>
+        </div>
+
+        <!-- Experience Level -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Experience Level</div>
+          <div class="exp-level-chips" id="onboard-exp-level">
+            <label class="chip-radio"><input type="radio" name="onboard-exp" value="fresher"> Fresher / Final Year</label>
+            <label class="chip-radio"><input type="radio" name="onboard-exp" value="0-1"> 0–1 Year</label>
+            <label class="chip-radio active"><input type="radio" name="onboard-exp" value="1-3" checked> 1–3 Years</label>
+            <label class="chip-radio"><input type="radio" name="onboard-exp" value="3-5"> 3–5 Years</label>
+            <label class="chip-radio"><input type="radio" name="onboard-exp" value="5+"> 5+ Years</label>
+          </div>
+        </div>
+
+        <!-- Candidate Name -->
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="onboard-prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span></label>
+          <input type="text" class="form-input" id="onboard-prof-name" placeholder="e.g. Rahul Sharma">
+        </div>
+
+        <!-- Target Roles -->
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="onboard-prof-targets">Target Job Titles <span class="form-hint-inline">(comma separated — leave blank for all roles)</span></label>
+          <input type="text" class="form-input" id="onboard-prof-targets" placeholder="Backend Engineer, Software Engineer, Full Stack Developer, AI Engineer">
+        </div>
+
+        <!-- Excluded Keywords -->
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="onboard-prof-excludes">Excluded Keywords <span class="form-hint-inline">(comma separated — leave blank to see everything)</span></label>
+          <input type="text" class="form-input" id="onboard-prof-excludes" placeholder="Manager, Director, Sales, Recruiter">
+        </div>
+
+        <!-- Email Notification Mode -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label"><span>Email Briefing Mode</span></div>
+          <div class="notification-modes-grid">
+            <div class="mode-card active" id="mode-card-ondemand" onclick="selectNotificationMode(false)">
+              <div class="mode-card-header">
+                <div class="mode-card-badge">⚡ Instant On-Demand</div>
+                <div class="mode-card-radio" id="mode-radio-ondemand">●</div>
+              </div>
+              <div class="mode-card-desc">Receive an on-the-spot email briefing whenever you click "Run Job Hunt Now" in the app.</div>
+            </div>
+            <div class="mode-card" id="mode-card-daily" onclick="selectNotificationMode(true)">
+              <div class="mode-card-header">
+                <div class="mode-card-badge">📬 Daily 9:00 AM Radar</div>
+                <div class="mode-card-radio" id="mode-radio-daily">○</div>
+              </div>
+              <div class="mode-card-desc">Automated career intelligence briefing dispatched to your email every morning with fresh matches.</div>
+            </div>
+          </div>
+          <input type="checkbox" id="onboard-toggle-email-alerts" style="display:none;" aria-label="Receive Daily Email Alerts">
+        </div>
+
+        <div class="wizard-actions-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Empty</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-wizard-back" onclick="switchOnboardingStep(1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              <span>Back</span>
+            </button>
+            <button class="btn btn-primary btn-wizard-finish" id="btn-onboard-finish" onclick="saveOnboardingProfile(true)">
+              <span class="spinner" id="onboard-finish-spinner" style="display:none;"></span>
+              <span>Complete &amp; Launch First Hunt 🚀</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- 3. MODAL: Candidate Settings & Profile — Step Wizard -->
+  <!-- ========================================================================== -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal-content modal-content-studio">
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-title">Profile &amp; Search Settings</div>
+          <div class="modal-subtitle" id="profile-wizard-subtitle">Step 1 of 3 — Resume Upload</div>
+        </div>
+        <button class="modal-close" onclick="closeProfileModal()" aria-label="Close modal">×</button>
+      </div>
+
+      <!-- Step Progress Bar -->
+      <div class="wizard-progress-bar">
+        <div class="wizard-step-node active" id="pws-node-1" onclick="profileWizardGoTo(1)" role="button" tabindex="0" title="Go to Step 1: Resume Upload">
+          <div class="wizard-step-circle">1</div>
+          <div class="wizard-step-label">Resume</div>
+        </div>
+        <div class="wizard-step-connector" id="pws-conn-1"></div>
+        <div class="wizard-step-node" id="pws-node-2" onclick="profileWizardGoTo(2)" role="button" tabindex="0" title="Go to Step 2: Target Roles">
+          <div class="wizard-step-circle">2</div>
+          <div class="wizard-step-label">Roles</div>
+        </div>
+        <div class="wizard-step-connector" id="pws-conn-2"></div>
+        <div class="wizard-step-node" id="pws-node-3" onclick="profileWizardGoTo(3)" role="button" tabindex="0" title="Go to Step 3: Alert Settings">
+          <div class="wizard-step-circle">3</div>
+          <div class="wizard-step-label">Alerts</div>
+        </div>
+      </div>
+
+      <div class="modal-body modal-body-studio">
+
+        <!-- Step 1: Resume PDF Upload & Auto-Parse -->
+        <div class="studio-wizard-step" id="profile-step-1">
+          <div class="studio-section-desc">
+            Upload your resume (PDF/TXT) to extract text once in-memory, or edit your text context directly below. Text alterations in the editor are what get saved.
+          </div>
+
+          <div class="resume-dropzone" id="resume-dropzone" onclick="document.getElementById('resume-file-input').click()">
+            <label for="resume-file-input" class="sr-only">Upload Resume File</label>
+            <input type="file" id="resume-file-input" accept=".pdf,.txt" style="display:none;" onchange="handleResumeFileSelectedAndParse(event)" aria-label="Upload resume file (.pdf, .txt)">
+            <div class="dropzone-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            </div>
+            <div class="dropzone-text" id="dropzone-text">Click or drag &amp; drop a new resume PDF / TXT file</div>
+            <div class="dropzone-sub">One-time text extraction · No binary files stored · Plain text only</div>
+          </div>
+
+          <!-- Direct Resume Text Context Editor -->
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label" for="prof-resume-text">
+              <span>Resume Text Context</span>
+              <span class="form-hint-inline">(Extracted text appears here — edit or alter freely before saving)</span>
+            </label>
+            <textarea class="form-input form-textarea" id="prof-resume-text" rows="5" placeholder="Resume text context is stored here. You can paste, edit, or customize your background text directly before saving..."></textarea>
+          </div>
+
+          <!-- Inline parse status -->
+          <div class="studio-alert" id="resume-status-alert" style="display:none;"></div>
+
+          <!-- Parsed preview card (hidden until parse completes) -->
+          <div class="studio-preview-card" id="studio-resume-preview-card" style="display:none;">
+            <div class="studio-preview-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Extracted Profile Preview</span>
+            </div>
+            <div class="studio-preview-row"><span class="preview-label">Name</span><span class="preview-value" id="studio-prev-name">—</span></div>
+            <div class="studio-preview-row"><span class="preview-label">Title</span><span class="preview-value" id="studio-prev-title">—</span></div>
+            <div class="studio-preview-row"><span class="preview-label">Experience</span><span class="preview-value" id="studio-prev-years">—</span></div>
+            <div class="studio-preview-row">
+              <span class="preview-label">Skills</span>
+              <span class="preview-value" id="studio-prev-skills">—</span>
+            </div>
+          </div>
+
+          <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <span>Empty</span>
+            </button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+                <span>Cancel</span>
+              </button>
+              <button type="button" class="btn btn-primary" id="profile-next-1" onclick="profileWizardNext(1)">
+                <span>Next: Target Roles →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Target Roles & Excluded Keywords Only with Single Auto-Fill Button -->
+        <div class="studio-wizard-step" id="profile-step-2" style="display:none;">
+          <div class="studio-section-desc">
+            Define your included and excluded job titles, or auto-fill them from your resume text context.
+          </div>
+
+          <div style="margin-top:14px; margin-bottom:16px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
+              <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
+            </button>
+          </div>
+
+          <!-- Job Type Preferences -->
+          <div class="form-group" style="margin-top:16px;">
+            <div class="form-label">Job Type Preferences <span class="form-hint-inline">(Select all that apply)</span></div>
+            <div class="job-type-chips" id="prof-job-types">
+              <label class="chip-toggle active"><input type="checkbox" value="fulltime" checked> Full-Time</label>
+              <label class="chip-toggle active"><input type="checkbox" value="internship" checked> 🎓 Internship</label>
+              <label class="chip-toggle active"><input type="checkbox" value="remote" checked> 🌐 Remote</label>
+              <label class="chip-toggle active"><input type="checkbox" value="hybrid" checked> 🔀 Hybrid</label>
+              <label class="chip-toggle active"><input type="checkbox" value="onsite" checked> 🏢 On-Site</label>
+              <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
+              <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
+            </div>
+          </div>
+
+          <!-- Location Preference -->
+          <div class="form-group" style="margin-top:16px;">
+            <div class="form-label">Location Preference</div>
+            <div class="location-pref-options">
+              <label class="radio-option active" id="prof-loc-pref-allindia">
+                <input type="radio" name="prof-location-pref" value="all_india" checked>
+                <span>🇮🇳 All India</span>
+              </label>
+              <label class="radio-option" id="prof-loc-pref-remote">
+                <input type="radio" name="prof-location-pref" value="remote_only">
+                <span>🌐 Remote Only</span>
+              </label>
+              <label class="radio-option" id="prof-loc-pref-specific">
+                <input type="radio" name="prof-location-pref" value="specific_cities">
+                <span>📍 Specific Cities</span>
+              </label>
+              <label class="radio-option" id="prof-loc-pref-global">
+                <input type="radio" name="prof-location-pref" value="global">
+                <span>🌍 Global</span>
+              </label>
+            </div>
+            <div id="prof-specific-cities-input" style="display:none; margin-top:10px;">
+              <input type="text" class="form-input" id="prof-specific-cities"
+                     placeholder="e.g. Bangalore, Mumbai, Pune, Hyderabad, Remote">
+            </div>
+          </div>
+
+          <!-- Experience Level -->
+          <div class="form-group" style="margin-top:16px;">
+            <div class="form-label">Experience Level</div>
+            <div class="exp-level-chips" id="prof-exp-level">
+              <label class="chip-radio"><input type="radio" name="prof-exp" value="fresher"> Fresher</label>
+              <label class="chip-radio"><input type="radio" name="prof-exp" value="0-1"> 0–1 Yr</label>
+              <label class="chip-radio active"><input type="radio" name="prof-exp" value="1-3" checked> 1–3 Yrs</label>
+              <label class="chip-radio"><input type="radio" name="prof-exp" value="3-5"> 3–5 Yrs</label>
+              <label class="chip-radio"><input type="radio" name="prof-exp" value="5+"> 5+ Yrs</label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label" for="prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span></label>
+            <input type="text" class="form-input" id="prof-name" placeholder="e.g. Alex Morgan">
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
+            <input type="text" class="form-input" id="prof-targets" placeholder="Backend Engineer, Systems Engineer, Software Engineer II, AI Engineer">
+            <span class="form-hint">Only jobs matching at least one target title pattern will be screened.</span>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label" for="prof-excludes">Excluded Title Keywords (roles to automatically reject) <span class="form-hint-inline">(comma separated)</span></label>
+            <input type="text" class="form-input" id="prof-excludes" placeholder="Manager, Director, Sales, Recruiter, VP">
+            <span class="form-hint">Any job with these keywords in the title will be immediately filtered out.</span>
+          </div>
+
+          <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
+            <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <span>Empty</span>
+            </button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn btn-secondary" onclick="profileWizardBack(2)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>Previous</span>
+              </button>
+              <button class="btn btn-primary" onclick="profileWizardNext(2)">
+                <span>Next: Mail Settings →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Alert Score & Selectable Mail Modes -->
+        <div class="studio-wizard-step" id="profile-step-3" style="display:none;">
+          <div class="studio-section-desc">
+            Set your AI qualification threshold and select your email briefing mode.
+          </div>
+
+          <!-- 1. Minimum AI Match Score Input -->
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label" for="notif-min-score">Minimum AI Match Score <span class="form-hint-inline">(0.0 – 10.0)</span></label>
+            <input type="number" step="0.1" min="1.0" max="10.0" class="form-input" id="notif-min-score" value="7.5" placeholder="7.5">
+            <span class="form-hint">Only job matches scoring at or above this threshold will trigger briefings (Default: 7.5).</span>
+          </div>
+
+          <!-- 2. Selectable Mail Mode (Only One Active) -->
+          <div class="form-group" style="margin-top:20px;">
+            <div class="form-label" id="label-email-briefing-mode">Email Briefing Mode (Select One)</div>
+            
+            <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+              <!-- Option 1: Daily Mail Mode -->
+              <label class="mail-mode-card" id="mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')" style="border:1.5px solid #0F172A; background:#F8FAFC; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
+                <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" checked aria-label="Daily Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
+                <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">Daily Mail Mode</div>
+                <div style="font-size:12px; color:#64748B; line-height:1.4;">Automated daily executive briefings sent when matching roles are found.</div>
+              </label>
+
+              <!-- Option 2: One-Time Mail Mode -->
+              <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" onclick="selectMailMode('onetime')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
+                <input type="radio" name="email_briefing_mode" id="radio-mode-onetime" value="onetime" aria-label="One-Time Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
+                <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">One-Time Mail Mode</div>
+                <div style="font-size:12px; color:#64748B; line-height:1.4;">No recurring emails. Only send an on-demand briefing when you request it.</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Final Save Profile Button -->
+          <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
+            <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <span>Empty</span>
+            </button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn btn-secondary" onclick="profileWizardBack(3)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>Previous</span>
+              </button>
+              <button class="btn btn-primary" id="btn-profile-save" onclick="saveProfilePreferences()">
+                <span class="spinner" id="profile-save-spinner" style="display:none;"></span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span id="profile-save-btn-text">Save Profile</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================== -->
+  <!-- 4. MODAL: Add Custom Job Opportunity -->
+  <!-- ========================================================================== -->
+  <div class="modal-overlay" id="custom-job-modal">
+    <div class="modal-content modal-content-custom-job">
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-title">Track Custom Job Opportunity</div>
+          <div class="modal-subtitle">Add external job leads from LinkedIn, referrals, or direct company sites</div>
+        </div>
+        <button class="modal-close" onclick="closeCustomJobModal()" aria-label="Close modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="custom-job-form" onsubmit="handleCustomJobSubmit(event)">
+          <div class="studio-form-grid">
+            <div class="form-group">
+              <label class="form-label" for="custom-job-title">Job Title *</label>
+              <input type="text" class="form-input" id="custom-job-title" placeholder="e.g. Backend Software Engineer" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-job-company">Company Name *</label>
+              <input type="text" class="form-input" id="custom-job-company" placeholder="e.g. Stripe, Razorpay, Figma" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-job-location">Location</label>
+              <input type="text" class="form-input" id="custom-job-location" placeholder="e.g. Bangalore, India / Remote">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-job-stage">Initial Stage</label>
+              <select class="form-input" id="custom-job-stage">
+                <option value="to_apply">To Apply</option>
+                <option value="applied">Applied</option>
+                <option value="interviewing">Interviewing</option>
+                <option value="offer">Offer</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="custom-job-url">Application / Posting URL</label>
+            <input type="url" class="form-input" id="custom-job-url" placeholder="https://...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="custom-job-desc">Job Description / Requirements (Optional for AI Scoring &amp; Kit Generation)</label>
+            <textarea class="form-input form-textarea" id="custom-job-desc" rows="4" placeholder="Paste the job description text to automatically calculate match fit score and draft tailored outreach notes..."></textarea>
+          </div>
+
+          <div class="toggle-card" style="margin-top:12px;">
+            <div class="toggle-info">
+              <div class="toggle-title">Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)</div>
+              <div class="toggle-desc">Automatically evaluate fit score and generate custom cover notes.</div>
+            </div>
+            <label class="switch" for="custom-job-run-ai">
+              <span class="sr-only">Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)</span>
+              <input type="checkbox" id="custom-job-run-ai" aria-label="Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+            <button type="button" class="btn btn-secondary" onclick="closeCustomJobModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-custom-job">
+              <span class="spinner" id="custom-job-spinner" style="display:none;"></span>
+              <span>Save &amp; Track Opportunity</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Modal for Inspecting Application Kit -->
@@ -227,11 +1123,14 @@
           <button class="modal-close" onclick="closeKitModal()" aria-label="Close modal">×</button>
         </div>
       </div>
-      <div id="modal-body">
+      <div id="modal-body" class="kit-modal-body">
         <!-- Kit Details populated dynamically -->
       </div>
     </div>
   </div>
+
+  <!-- Toast Notification Portal Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- Client-side JavaScript -->
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
