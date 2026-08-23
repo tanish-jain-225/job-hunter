@@ -231,7 +231,10 @@ def api_run():
     st = Store(seen_file, user_email=email, token=token)
 
     gh_token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or "").strip()
-    repo_name = (os.environ.get("GITHUB_REPOSITORY") or "tanish-jain-225/job-hunter").strip()
+    v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
+    v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
+    v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
+    repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
 
     # Option 1: If on Vercel and GH_TOKEN is provided, trigger GitHub Actions workflow directly
     if is_vercel and gh_token and not use_mock:
