@@ -573,10 +573,12 @@ function updatePipelineConsole(pipeline) {
     appState.pipelineRunning = false;
     if (spinner) spinner.style.display = 'none';
     if (text) text.innerText = 'Run Job Hunt Now';
-    if (pipeline.step === 'completed' && consoleBox && pipeline.message) {
-      consoleBox.innerText = pipeline.message;
-    } else if (pipeline.step === 'error' && consoleBox && pipeline.message) {
-      consoleBox.innerText = `Error: ${pipeline.message}`;
+    if (consoleBox && pipeline.message) {
+      if (pipeline.step === 'error') {
+        consoleBox.innerText = `Error: ${pipeline.message}`;
+      } else {
+        consoleBox.innerText = pipeline.message;
+      }
     }
     updateJobSearchButtonState();
 

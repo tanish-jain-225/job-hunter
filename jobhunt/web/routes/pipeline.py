@@ -77,16 +77,18 @@ def api_sync():
 
     # Fetch active in-memory pipeline state or sync latest remote run from Supabase
     pipe_state = get_user_pipeline_state(email)
-    if not pipe_state.get("running") and email and memory.is_configured:
+    if email and memory.is_configured:
         try:
             recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
             if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
                 last_run = recent_runs[0]
                 run_logs = last_run.get("logs") or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
                 pipe_state["last_remote_run"] = last_run.get("run_timestamp")
-                if "dispatched" in pipe_state.get("message", "").lower():
-                    pipe_state["message"] = run_logs
+                if pipe_state.get("running") or "dispatched" in pipe_state.get("message", "").lower():
+                    pipe_state["running"] = False
                     pipe_state["step"] = "completed"
+                    pipe_state["message"] = run_logs
+                    set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
         except Exception:
             pass
 
