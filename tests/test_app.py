@@ -382,6 +382,9 @@ def test_api_run_vercel_mode(client, monkeypatch):
     monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
 
     # 1. Unset token -> guides to GitHub Actions
+    monkeypatch.setenv("GH_TOKEN", "")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
+    monkeypatch.setenv("GITHUB_PAT", "")
     res_guide = client.post("/api/run")
     assert res_guide.status_code == 200
     assert res_guide.get_json()["status"] == "need_github_dispatch"

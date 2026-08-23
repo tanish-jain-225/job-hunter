@@ -98,8 +98,10 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-16-char-app-password
-```
 
+# Optional: GitHub Personal Access Token (for 1-click cloud on-demand radar from web UI)
+GH_TOKEN=github_pat_...
+```
 
 5. Click **Deploy**. Vercel will build and deploy your live dashboard at `https://your-project.vercel.app`!
 
