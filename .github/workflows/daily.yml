@@ -83,7 +83,7 @@ jobs:
             python -m jobhunt run --send
           fi
 
-      - name: Save Digest Briefing Artifact
+      - name: Save Digest Briefing Artifact (Single-User Mode)
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -91,4 +91,5 @@ jobs:
           path: |
             out/digest.html
             out/tracker.csv
+          if-no-files-found: ignore
           retention-days: 7
