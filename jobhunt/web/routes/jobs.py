@@ -138,7 +138,6 @@ def api_jobs():
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
-    score_threshold = float(cfg.get("score_threshold", 7.0))
     status = request.args.get("status", "all").lower()
     ats_filter = request.args.get("ats", "all").lower().strip()
     search = request.args.get("search", "").lower().strip()
