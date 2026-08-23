@@ -385,32 +385,7 @@
         <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning target ATS endpoints.</div>
       </div>
 
-      <!-- Quick Actions Module -->
-      <div class="card card-tools">
-        <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-          <span>Tracker Quick Tools</span>
-        </div>
 
-        <!-- Tool 1: Mark Applied -->
-        <div class="tool-section">
-          <div class="tool-subtitle">Quick Mark Applied</div>
-          <div class="form-group">
-            <label class="form-label" for="txt-job-id">Job ID (ats:company:id)</label>
-            <input type="text" class="form-input" id="txt-job-id" placeholder="e.g. greenhouse:stripe:5501001">
-          </div>
-          <div class="btn-group-dual">
-            <button class="btn btn-secondary btn-sm" onclick="markAppliedFromInput('mark')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Mark Applied</span>
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="markAppliedFromInput('unmark')">
-              <span>Unmark</span>
-            </button>
-          </div>
-          <div id="applied-status" class="tool-status-msg"></div>
-        </div>
-      </div>
 
     </aside>
 
@@ -470,7 +445,6 @@
               <option value="recruitee">Recruitee</option>
               <option value="breezy">Breezy HR</option>
               <option value="pinpoint">Pinpoint</option>
-              <option value="custom">Custom</option>
             </select>
 
             <label for="tracker-sort-select" class="sr-only">Sort Jobs By</label>
@@ -479,32 +453,12 @@
               <option value="score">Sort: Match Score</option>
               <option value="company">Sort: Company</option>
             </select>
-
-            <div class="view-mode-toggle">
-              <button class="btn btn-secondary btn-sm active" id="btn-view-table" onclick="switchTrackerView('table')" title="Table List View">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                <span>List</span>
-              </button>
-              <button class="btn btn-secondary btn-sm" id="btn-view-kanban" onclick="switchTrackerView('kanban')" title="Kanban Pipeline Board">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="12" rx="1"></rect></svg>
-                <span>Kanban</span>
-              </button>
-            </div>
-
-            <button class="btn btn-secondary btn-sm btn-add-custom-job" onclick="openCustomJobModal()" title="Add Custom Job Lead">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              <span>Add Job</span>
-            </button>
           </div>
 
           <div class="filter-pills">
             <button class="pill active" id="pill-all" onclick="setFilter('all')">
               <span>All Jobs</span>
               <span class="pill-count" id="count-all">0</span>
-            </button>
-            <button class="pill" id="pill-shortlisted" onclick="setFilter('shortlisted')">
-              <span>Shortlisted (7.0+)</span>
-              <span class="pill-count" id="count-shortlisted">0</span>
             </button>
             <button class="pill" id="pill-applied" onclick="setFilter('applied')">
               <span>Applied</span>
@@ -513,14 +467,6 @@
             <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">
               <span>Unapplied</span>
               <span class="pill-count" id="count-unapplied">0</span>
-            </button>
-            <button class="pill" id="pill-internship" onclick="setFilter('internship')">
-              <span>🎓 Internships</span>
-              <span class="pill-count" id="count-internship">0</span>
-            </button>
-            <button class="pill" id="pill-remote" onclick="setFilter('remote')">
-              <span>🌐 Remote/Hybrid</span>
-              <span class="pill-count" id="count-remote">0</span>
             </button>
           </div>
         </div>
@@ -668,18 +614,25 @@
       <!-- Wizard Step 2: Job Preferences & Notification Mode -->
       <div class="wizard-body" id="onboarding-step-2" style="display:none;">
         <div class="wizard-section-desc">
-          Tell us what kind of jobs you're looking for. Leave preferences open to see all opportunities.
+          Tell us what kind of jobs you're looking for, or click Auto-Fill to populate criteria from your resume.
+        </div>
+
+        <div style="margin-top:14px; margin-bottom:12px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-onboard-autofill" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Auto-Fill from Resume Context</span>
+          </button>
         </div>
 
         <!-- Job Type Preferences -->
         <div class="form-group" style="margin-top:16px;">
           <div class="form-label">Job Type <span class="form-hint-inline">(Select all that apply — leave all checked for maximum results)</span></div>
           <div class="job-type-chips" id="onboard-job-types">
-            <label class="chip-toggle active"><input type="checkbox" value="fulltime" checked> Full-Time</label>
-            <label class="chip-toggle active"><input type="checkbox" value="internship" checked> 🎓 Internship</label>
-            <label class="chip-toggle active"><input type="checkbox" value="remote" checked> 🌐 Remote</label>
-            <label class="chip-toggle active"><input type="checkbox" value="hybrid" checked> 🔀 Hybrid</label>
-            <label class="chip-toggle active"><input type="checkbox" value="onsite" checked> 🏢 On-Site</label>
+            <label class="chip-toggle"><input type="checkbox" value="fulltime"> Full-Time</label>
+            <label class="chip-toggle"><input type="checkbox" value="internship"> 🎓 Internship</label>
+            <label class="chip-toggle"><input type="checkbox" value="remote"> 🌐 Remote</label>
+            <label class="chip-toggle"><input type="checkbox" value="hybrid"> 🔀 Hybrid</label>
+            <label class="chip-toggle"><input type="checkbox" value="onsite"> 🏢 On-Site</label>
             <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
             <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
           </div>
@@ -689,8 +642,8 @@
         <div class="form-group" style="margin-top:16px;">
           <div class="form-label">Location Preference</div>
           <div class="location-pref-options">
-            <label class="radio-option active" id="loc-pref-allindia">
-              <input type="radio" name="onboard-location-pref" value="all_india" checked>
+            <label class="radio-option" id="loc-pref-allindia">
+              <input type="radio" name="onboard-location-pref" value="all_india">
               <span>🇮🇳 All India (Any City)</span>
             </label>
             <label class="radio-option" id="loc-pref-remote">
@@ -719,7 +672,7 @@
           <div class="exp-level-chips" id="onboard-exp-level">
             <label class="chip-radio"><input type="radio" name="onboard-exp" value="fresher"> Fresher / Final Year</label>
             <label class="chip-radio"><input type="radio" name="onboard-exp" value="0-1"> 0–1 Year</label>
-            <label class="chip-radio active"><input type="radio" name="onboard-exp" value="1-3" checked> 1–3 Years</label>
+            <label class="chip-radio"><input type="radio" name="onboard-exp" value="1-3"> 1–3 Years</label>
             <label class="chip-radio"><input type="radio" name="onboard-exp" value="3-5"> 3–5 Years</label>
             <label class="chip-radio"><input type="radio" name="onboard-exp" value="5+"> 5+ Years</label>
           </div>
@@ -747,10 +700,10 @@
         <div class="form-group" style="margin-top:16px;">
           <div class="form-label"><span>Email Briefing Mode</span></div>
           <div class="notification-modes-grid">
-            <div class="mode-card active" id="mode-card-ondemand" onclick="selectNotificationMode(false)">
+            <div class="mode-card" id="mode-card-ondemand" onclick="selectNotificationMode(false)">
               <div class="mode-card-header">
                 <div class="mode-card-badge">⚡ Instant On-Demand</div>
-                <div class="mode-card-radio" id="mode-radio-ondemand">●</div>
+                <div class="mode-card-radio" id="mode-radio-ondemand">○</div>
               </div>
               <div class="mode-card-desc">Receive an on-the-spot email briefing whenever you click "Run Job Hunt Now" in the app.</div>
             </div>
@@ -896,11 +849,11 @@
           <div class="form-group" style="margin-top:16px;">
             <div class="form-label">Job Type Preferences <span class="form-hint-inline">(Select all that apply)</span></div>
             <div class="job-type-chips" id="prof-job-types">
-              <label class="chip-toggle active"><input type="checkbox" value="fulltime" checked> Full-Time</label>
-              <label class="chip-toggle active"><input type="checkbox" value="internship" checked> 🎓 Internship</label>
-              <label class="chip-toggle active"><input type="checkbox" value="remote" checked> 🌐 Remote</label>
-              <label class="chip-toggle active"><input type="checkbox" value="hybrid" checked> 🔀 Hybrid</label>
-              <label class="chip-toggle active"><input type="checkbox" value="onsite" checked> 🏢 On-Site</label>
+              <label class="chip-toggle"><input type="checkbox" value="fulltime"> Full-Time</label>
+              <label class="chip-toggle"><input type="checkbox" value="internship"> 🎓 Internship</label>
+              <label class="chip-toggle"><input type="checkbox" value="remote"> 🌐 Remote</label>
+              <label class="chip-toggle"><input type="checkbox" value="hybrid"> 🔀 Hybrid</label>
+              <label class="chip-toggle"><input type="checkbox" value="onsite"> 🏢 On-Site</label>
               <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
               <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
             </div>
@@ -910,8 +863,8 @@
           <div class="form-group" style="margin-top:16px;">
             <div class="form-label">Location Preference</div>
             <div class="location-pref-options">
-              <label class="radio-option active" id="prof-loc-pref-allindia">
-                <input type="radio" name="prof-location-pref" value="all_india" checked>
+              <label class="radio-option" id="prof-loc-pref-allindia">
+                <input type="radio" name="prof-location-pref" value="all_india">
                 <span>🇮🇳 All India</span>
               </label>
               <label class="radio-option" id="prof-loc-pref-remote">
@@ -939,7 +892,7 @@
             <div class="exp-level-chips" id="prof-exp-level">
               <label class="chip-radio"><input type="radio" name="prof-exp" value="fresher"> Fresher</label>
               <label class="chip-radio"><input type="radio" name="prof-exp" value="0-1"> 0–1 Yr</label>
-              <label class="chip-radio active"><input type="radio" name="prof-exp" value="1-3" checked> 1–3 Yrs</label>
+              <label class="chip-radio"><input type="radio" name="prof-exp" value="1-3"> 1–3 Yrs</label>
               <label class="chip-radio"><input type="radio" name="prof-exp" value="3-5"> 3–5 Yrs</label>
               <label class="chip-radio"><input type="radio" name="prof-exp" value="5+"> 5+ Yrs</label>
             </div>
@@ -988,7 +941,7 @@
           <!-- 1. Minimum AI Match Score Input -->
           <div class="form-group" style="margin-top:16px;">
             <label class="form-label" for="notif-min-score">Minimum AI Match Score <span class="form-hint-inline">(0.0 – 10.0)</span></label>
-            <input type="number" step="0.1" min="1.0" max="10.0" class="form-input" id="notif-min-score" value="7.5" placeholder="7.5">
+            <input type="number" step="0.1" min="1.0" max="10.0" class="form-input" id="notif-min-score" placeholder="7.5">
             <span class="form-hint">Only job matches scoring at or above this threshold will trigger briefings (Default: 7.5).</span>
           </div>
 
@@ -998,8 +951,8 @@
             
             <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
               <!-- Option 1: Daily Mail Mode -->
-              <label class="mail-mode-card" id="mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')" style="border:1.5px solid #0F172A; background:#F8FAFC; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
-                <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" checked aria-label="Daily Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
+              <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
+                <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" aria-label="Daily Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
                 <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">Daily Mail Mode</div>
                 <div style="font-size:12px; color:#64748B; line-height:1.4;">Automated daily executive briefings sent when matching roles are found.</div>
               </label>
@@ -1037,78 +990,7 @@
     </div>
   </div>
 
-  <!-- ========================================================================== -->
-  <!-- 4. MODAL: Add Custom Job Opportunity -->
-  <!-- ========================================================================== -->
-  <div class="modal-overlay" id="custom-job-modal">
-    <div class="modal-content modal-content-custom-job">
-      <div class="modal-header">
-        <div class="modal-header-info">
-          <div class="modal-title">Track Custom Job Opportunity</div>
-          <div class="modal-subtitle">Add external job leads from LinkedIn, referrals, or direct company sites</div>
-        </div>
-        <button class="modal-close" onclick="closeCustomJobModal()" aria-label="Close modal">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="custom-job-form" onsubmit="handleCustomJobSubmit(event)">
-          <div class="studio-form-grid">
-            <div class="form-group">
-              <label class="form-label" for="custom-job-title">Job Title *</label>
-              <input type="text" class="form-input" id="custom-job-title" placeholder="e.g. Backend Software Engineer" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="custom-job-company">Company Name *</label>
-              <input type="text" class="form-input" id="custom-job-company" placeholder="e.g. Stripe, Razorpay, Figma" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="custom-job-location">Location</label>
-              <input type="text" class="form-input" id="custom-job-location" placeholder="e.g. Bangalore, India / Remote">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="custom-job-stage">Initial Stage</label>
-              <select class="form-input" id="custom-job-stage">
-                <option value="to_apply">To Apply</option>
-                <option value="applied">Applied</option>
-                <option value="interviewing">Interviewing</option>
-                <option value="offer">Offer</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label" for="custom-job-url">Application / Posting URL</label>
-            <input type="url" class="form-input" id="custom-job-url" placeholder="https://...">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="custom-job-desc">Job Description / Requirements (Optional for AI Scoring &amp; Kit Generation)</label>
-            <textarea class="form-input form-textarea" id="custom-job-desc" rows="4" placeholder="Paste the job description text to automatically calculate match fit score and draft tailored outreach notes..."></textarea>
-          </div>
-
-          <div class="toggle-card" style="margin-top:12px;">
-            <div class="toggle-info">
-              <div class="toggle-title">Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)</div>
-              <div class="toggle-desc">Automatically evaluate fit score and generate custom cover notes.</div>
-            </div>
-            <label class="switch" for="custom-job-run-ai">
-              <span class="sr-only">Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)</span>
-              <input type="checkbox" id="custom-job-run-ai" aria-label="Run AI Fit Scoring &amp; Draft Kit (gemini-3.5-flash)" checked>
-              <span class="slider round"></span>
-            </label>
-          </div>
-
-          <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
-            <button type="button" class="btn btn-secondary" onclick="closeCustomJobModal()">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="btn-submit-custom-job">
-              <span class="spinner" id="custom-job-spinner" style="display:none;"></span>
-              <span>Save &amp; Track Opportunity</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- Modal for Inspecting Application Kit -->
   <div class="modal-overlay" id="kit-modal">

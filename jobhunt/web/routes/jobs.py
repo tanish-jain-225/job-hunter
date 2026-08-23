@@ -52,7 +52,7 @@ def api_companies():
     """Return parsed list of all supported company boards with ATS and category info."""
     cfg = cli._cfg(raise_on_error=False)
     companies_file = ROOT / cfg.get("companies_file", "companies.yaml")
-    companies = []
+    companies: list[dict] = []
     if companies_file.is_file():
         try:
             import yaml
@@ -94,14 +94,17 @@ def api_stats():
     st = Store(seen_file, user_email=email, token=token)
 
     score_threshold = float(cfg.get("score_threshold", 7.0))
-    shortlisted_count = sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold)
-    applied_count = sum(1 for v in st.data.values() if v.get("applied"))
-    unapplied_count = len(st.data) - applied_count
+    matching_jobs = [v for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold]
+    shortlisted_count = len(matching_jobs)
+    applied_count = sum(1 for v in matching_jobs if v.get("applied"))
+    unapplied_count = shortlisted_count - applied_count
 
     stats = {
-        **st.stats(),
-        "shortlisted": shortlisted_count,
+        "tracked": shortlisted_count,
+        "emailed": sum(1 for v in matching_jobs if v.get("emailed")),
+        "applied": applied_count,
         "unapplied": unapplied_count,
+        "shortlisted": shortlisted_count,
         "version": get_store_version(st)
     }
     return jsonify(stats)
@@ -134,6 +137,7 @@ def api_jobs():
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
+    score_threshold = float(cfg.get("score_threshold", 7.0))
     status = request.args.get("status", "all").lower()
     ats_filter = request.args.get("ats", "all").lower().strip()
     search = request.args.get("search", "").lower().strip()
@@ -144,6 +148,11 @@ def api_jobs():
     for job_id, data in st.data.items():
         item = {"job_id": job_id, **data}
         job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
+
+        # Only include matching jobs that clear score_threshold
+        score_val = item.get("score")
+        if score_val is None or score_val < score_threshold:
+            continue
 
         # Filter status
         if status == "shortlisted" and (item.get("score") or 0) < 7.0:

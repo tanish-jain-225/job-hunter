@@ -47,6 +47,26 @@ def main(argv: list[str] | None = None) -> int:
 
     os.chdir(ROOT)
 
+    # Safety Check: Warn if credentials are committed in git
+    if (ROOT / ".git").exists():
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", ".env"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=str(ROOT),
+            )
+            if result.returncode == 0:
+                print("\n" + "!" * 65)
+                print(" WARNING: Your sensitive .env file is currently tracked in Git!")
+                print(" Storing API keys and passwords in Git is a critical security risk.")
+                print(" Please untrack it immediately by running:")
+                print("     git rm --cached .env")
+                print("!" * 65)
+        except Exception:
+            pass
+
     # 1. Check profile.json
     profile_path = ROOT / "profile.json"
     resume_path = Path(parsed_args.resume) if parsed_args.resume else (ROOT / "resume.pdf")
@@ -57,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n[1/3] Generating profile.json from {resume_path}...")
         try:
             cli.cmd_profile(argparse.Namespace(resume=str(resume_path), yaml=False))
-        except Exception as e:
+        except (Exception, SystemExit) as e:
             print(f"  ! Warning: Profile generation error ({e}). Continuing with existing settings...")
     else:
         print("\n[1/3] Warning: Neither profile.json nor resume.pdf found!")

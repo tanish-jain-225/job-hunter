@@ -54,7 +54,11 @@ def _load_env() -> None:
             continue
         key, val = line.split("=", 1)
         key = key.strip()
-        val = val.strip().strip('"').strip("'")
+        val = val.strip()
+        if (val.startswith('"') and val.endswith('"') and len(val) >= 2) or (val.startswith("'") and val.endswith("'") and len(val) >= 2):
+            val = val[1:-1]
+        else:
+            val = val.split("#", 1)[0].strip().strip('"').strip("'")
         if key and key not in os.environ:
             os.environ[key] = val
 
@@ -158,7 +162,7 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
               f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run).")
 
     threshold = float(cfg.get("score_threshold", 7.0))
-    top_n = int(cfg.get("max_per_digest", 7))
+    top_n = int(os.environ.get("MAX_PER_DIGEST") or cfg.get("max_per_digest", 7))
 
     scored_jobs = [j for j in jobs if j.score is not None]
     shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
@@ -290,6 +294,10 @@ def run_pipeline(
     seen_file = cfg.get("seen_file", "seen.json")
     st = store or Store(seen_file, user_email=user_email, token=token)
     jobs = st.unseen(candidates)
+    max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))
+    if len(jobs) > max_jobs_to_screen:
+        print(f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits.")
+        jobs = jobs[:max_jobs_to_screen]
     print(f"  new since last run: {len(jobs)}")
 
     if not jobs:

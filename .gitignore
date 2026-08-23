@@ -1,85 +1,42 @@
-# ==============================================================================
-# jobhunt - End-to-End .gitignore
-# ==============================================================================
-
-# --- Secrets & Personal Data  --------------------------------------------------
-.env
-.env.local
-.env.*.local
-*.env
-
-resume.*
-my_resume.*
-*.pdf
-*.docx
-profile.json
-!profile.example.json
-
-seen.json
-seen.tmp
-seen_*.json
-*.json.tmp
-
-# --- Generated Output & Artifacts ---------------------------------------------
-out/
-*.html
-!templates/*.html
-!templates/**/*.html
-!jobhunt/templates/*.html
-digest.html
-*.csv
-
-# --- Python Bytecode & Environments -------------------------------------------
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
 .venv/
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
 
-# --- Build, Distribution & Packaging ------------------------------------------
-*.egg-info/
-.egg-info/
-dist/
-build/
-eggs/
-.eggs/
-sdist/
-wheels/
-share/python-wheels/
-MANIFEST
-
-# --- Testing, Coverage & Quality Caches ---------------------------------------
+# Pytest / Coverage caches
 .pytest_cache/
+.coverage
+htmlcov/
 .mypy_cache/
 .ruff_cache/
-.coverage
-.coverage.*
-coverage.xml
-htmlcov/
-.cache/
 
-# --- Editors, IDEs & OS Files -------------------------------------------------
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Local configuration / environment secrets
+.env
+.env.*
+config.yaml
+!config.example.yaml
+
+# Local data & caches
+seen.json
+seen_*.json
+out/
+*.csv
+tracker.csv
+
+# User profiles and resume files
+profile.json
+!profile.example.json
+resume.pdf
+
+# OS-generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-Desktop.ini
-
-# --- AI Assistants & Temporary Workspace Files --------------------------------
-.claude/
-.gemini/
-*.log
-tmp/
-temp/
+*.bak
+*.tmp

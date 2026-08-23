@@ -140,10 +140,9 @@ def test_digest_card_with_outreach_and_cover():
         }
     )
     card_html = digest._card(job)
-    assert "Cold Outreach" in card_html
-    assert "Cover Note" in card_html
+    assert "Why It Fits" in card_html
     assert "Verified India-Friendly" in card_html
-    assert "Edvanta AI" in card_html
+    assert "OpenAI" in card_html
 
 
 def test_digest_write(tmp_path: Path):

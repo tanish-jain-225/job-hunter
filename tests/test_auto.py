@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -171,6 +171,28 @@ def test_auto_cli_custom_flags(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert passed_args[0].mock is True
     assert passed_args[0].scorer == "keyword"
     assert passed_args[0].send is True
+
+
+def test_auto_staged_env_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+    """When .env is tracked in git, auto.py prints a security warning."""
+    monkeypatch.setattr(auto, "ROOT", tmp_path)
+    (tmp_path / "profile.json").write_text('{"name": "Auto"}', encoding="utf-8")
+    (tmp_path / ".git").mkdir() # Mock that git folder exists
+    monkeypatch.chdir(tmp_path)
+
+    # Mock subprocess.run to return exit code 0 (meaning .env is tracked)
+    mock_run = MagicMock()
+    mock_run.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_run):
+        monkeypatch.setattr(cli, "cmd_run", lambda args: 0)
+        with patch.object(auto, "webbrowser", create=True) as mock_wb:
+            mock_wb.open = lambda *a: None
+            auto.main([])
+
+    out = capsys.readouterr().out
+    assert "WARNING: Your sensitive .env file is currently tracked in Git!" in out
+
 
 
 

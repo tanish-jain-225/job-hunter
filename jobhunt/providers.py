@@ -65,13 +65,16 @@ class AnthropicProvider(Provider):
 
     name = "anthropic"
     required_env = "ANTHROPIC_API_KEY"
+    _client_instance: Any = None
 
     def _client(self):
-        try:
-            from anthropic import Anthropic
-        except ImportError:
-            raise LLMError("pip install anthropic") from None
-        return Anthropic(api_key=self._env("ANTHROPIC_API_KEY"))
+        if not hasattr(self, "_client_instance") or self._client_instance is None:
+            try:
+                from anthropic import Anthropic
+            except ImportError:
+                raise LLMError("pip install anthropic") from None
+            self._client_instance = Anthropic(api_key=self._env("ANTHROPIC_API_KEY"))
+        return self._client_instance
 
     @staticmethod
     def _text(msg) -> str:
@@ -79,29 +82,51 @@ class AnthropicProvider(Provider):
 
     def complete(self, model: str, system: str, user: str, max_tokens: int,
                  json_mode: bool = False) -> str:
-        msg = self._client().messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
-        return self._text(msg)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                msg = self._client().messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=[{"role": "user", "content": user}],
+                )
+                return self._text(msg)
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! anthropic rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                raise LLMError(f"anthropic error: {e}") from e
+        raise LLMError("anthropic failed after maximum retries")
 
     def complete_document(self, model: str, prompt: str, pdf: bytes,
-                          max_tokens: int) -> str:
-        msg = self._client().messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": [
-                {"type": "document", "source": {
-                    "type": "base64",
-                    "media_type": "application/pdf",
-                    "data": base64.b64encode(pdf).decode(),
-                }},
-                {"type": "text", "text": prompt},
-            ]}],
-        )
-        return self._text(msg)
+                           max_tokens: int) -> str:
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                msg = self._client().messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    messages=[{"role": "user", "content": [
+                        {"type": "document", "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": base64.b64encode(pdf).decode(),
+                        }},
+                        {"type": "text", "text": prompt},
+                    ]}],
+                )
+                return self._text(msg)
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = 3 * (attempt + 1)
+                    print(f"  ! anthropic document rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                raise LLMError(f"anthropic document error: {e}") from e
+        raise LLMError("anthropic document failed after maximum retries")
 
 
 class GeminiProvider(Provider):

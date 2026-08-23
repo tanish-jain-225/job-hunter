@@ -66,6 +66,13 @@ def create_app(
         static_folder=stat,
     )
 
+    import os
+    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24).hex()
+    is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
+    app.config["SESSION_COOKIE_SECURE"] = is_prod
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
     # Register global hooks & error handlers
     app.after_request(add_cache_headers)
     app.errorhandler(Exception)(handle_exception)

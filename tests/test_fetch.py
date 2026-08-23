@@ -224,3 +224,23 @@ def test_parsers_non_dict_elements():
     assert b_jobs == []
 
 
+def test_fetch_all_session_retry_setup(monkeypatch):
+    import requests
+    from unittest.mock import MagicMock
+
+    mock_session = MagicMock()
+    monkeypatch.setattr(requests, "Session", lambda: mock_session)
+    monkeypatch.setattr(fetch, "fetch_board", lambda *args, **kwargs: [])
+
+    fetch_all([{"ats": "greenhouse", "slug": "test"}], max_workers=1)
+
+    session_mock = mock_session.__enter__.return_value
+    assert session_mock.mount.call_count == 2
+    # Verify adapter properties from the first mount call
+    adapter = session_mock.mount.call_args_list[0][0][1]
+    assert adapter.max_retries.total == 3
+    assert adapter.max_retries.backoff_factor == 0.3
+    assert 502 in adapter.max_retries.status_forcelist
+
+
+

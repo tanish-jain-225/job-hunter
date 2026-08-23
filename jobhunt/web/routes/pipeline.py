@@ -53,11 +53,14 @@ def api_sync():
 
     for jid, item in st.data.items():
         score = item.get("score") or 0.0
+        # Only count/consider matching jobs that clear score_threshold
+        if score < score_threshold:
+            continue
+
         applied = bool(item.get("applied"))
         job_ats = (item.get("ats") or (jid.split(":")[0] if ":" in jid else "custom")).lower()
 
-        if score >= score_threshold:
-            shortlisted_count += 1
+        shortlisted_count += 1
         if applied:
             applied_count += 1
         else:
@@ -66,8 +69,8 @@ def api_sync():
         ats_counts[job_ats] = ats_counts.get(job_ats, 0) + 1
 
     stats = {
-        "tracked": len(st.data),
-        "emailed": sum(1 for v in st.data.values() if v.get("emailed")),
+        "tracked": shortlisted_count,
+        "emailed": sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold and v.get("emailed")),
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
@@ -205,24 +208,16 @@ def api_run():
     if user_profile:
         target_email = user_profile.get("notification_email") or email or ""
 
-    profile_dict = (user_profile.get("profile_json") or {}) if user_profile else {}
+    profile_dict = dict(user_profile) if user_profile else {}
     if user_profile:
-        if user_profile.get("name"):
-            profile_dict["name"] = user_profile["name"]
-        if user_profile.get("title"):
-            profile_dict["current_title"] = user_profile["title"]
-        if user_profile.get("skills"):
-            profile_dict["core_skills"] = user_profile["skills"]
-        if user_profile.get("target_keywords"):
-            profile_dict["target_keywords"] = user_profile["target_keywords"]
-            profile_dict["target_titles"] = user_profile["target_keywords"]
-        if user_profile.get("exclude_keywords"):
-            profile_dict["exclude_keywords"] = user_profile["exclude_keywords"]
-            profile_dict["exclude_titles"] = user_profile["exclude_keywords"]
-        if user_profile.get("education"):
-            profile_dict["education"] = user_profile["education"]
-        if user_profile.get("experience_years"):
-            profile_dict["years_experience"] = user_profile["experience_years"]
+        profile_dict["current_title"] = user_profile.get("title") or ""
+        profile_dict["core_skills"] = user_profile.get("skills") or []
+        profile_dict["target_keywords"] = user_profile.get("target_keywords") or []
+        profile_dict["target_titles"] = user_profile.get("target_keywords") or []
+        profile_dict["exclude_keywords"] = user_profile.get("exclude_keywords") or []
+        profile_dict["exclude_titles"] = user_profile.get("exclude_keywords") or []
+        profile_dict["education"] = user_profile.get("education") or ""
+        profile_dict["years_experience"] = user_profile.get("experience_years") or 0.0
         if email:
             profile_dict["email"] = email
 
@@ -235,48 +230,36 @@ def api_run():
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
-    try:
-        # Build custom_filters from user's search preferences
-        custom_filters = {}
-        if user_profile:
-            preferred_locs = user_profile.get("preferred_locations") or []
-            job_types = user_profile.get("job_types") or []
-            exp_level = user_profile.get("experience_level") or ""
+    # Build custom_filters from user's search preferences
+    custom_filters = {}
+    if user_profile:
+        preferred_locs = user_profile.get("preferred_locations") or []
+        job_types = user_profile.get("job_types") or []
+        exp_level = user_profile.get("experience_level") or ""
 
-            # Location filter: if user set preferred locations, use them; otherwise all-India open
-            if preferred_locs:
-                custom_filters["locations"] = preferred_locs
-            # else: leave empty = accept all locations
+        # Location filter: if user set preferred locations, use them; otherwise all-India open
+        if preferred_locs:
+            custom_filters["locations"] = preferred_locs
+        # else: leave empty = accept all locations
 
-            # Job types filter
-            if job_types:
-                custom_filters["job_types"] = job_types
-            # else: accept all types
+        # Job types filter
+        if job_types:
+            custom_filters["job_types"] = job_types
+        # else: accept all types
 
-            # Experience level → inject into include/exclude patterns
-            if exp_level == "fresher" or exp_level == "0-1":
-                # Only include entry-level / fresher / internship roles
-                existing_inc = list(custom_filters.get("include_titles", []))
-                existing_inc.extend([r"\b(fresher|entry.level|graduate|junior|intern|trainee|associate|0.1.year)\b"])
-                custom_filters["include_titles"] = existing_inc
-            elif exp_level == "1-3":
-                existing_exc = list(custom_filters.get("exclude_titles", []))
-                existing_exc.append(r"\b(senior|staff|principal|lead|head|director|vp)\b")
-                custom_filters["exclude_titles"] = existing_exc
-            # For 3-5 and 5+ levels: no additional filter (already wide open)
+        # Experience level → inject into include/exclude patterns
+        if exp_level == "fresher" or exp_level == "0-1":
+            # Only include entry-level / fresher / internship roles
+            existing_inc = list(custom_filters.get("include_titles", []))
+            existing_inc.extend([r"\b(fresher|entry.level|graduate|junior|intern|trainee|associate|0.1.year)\b"])
+            custom_filters["include_titles"] = existing_inc
+        elif exp_level == "1-3":
+            existing_exc = list(custom_filters.get("exclude_titles", []))
+            existing_exc.append(r"\b(senior|staff|principal|lead|head|director|vp)\b")
+            custom_filters["exclude_titles"] = existing_exc
 
-        exit_code = cli.run_pipeline(
-            profile=profile_dict,
-            user_email=email,
-            token=token,
-            store=st,
-            to_email=target_email,
-            send=send_email,
-            scorer="keyword" if use_mock else "llm",
-            mock=use_mock,
-            custom_filters=custom_filters if custom_filters else None,
-        )
-        if exit_code != 0 and not use_mock:
+    def worker():
+        try:
             exit_code = cli.run_pipeline(
                 profile=profile_dict,
                 user_email=email,
@@ -284,74 +267,99 @@ def api_run():
                 store=st,
                 to_email=target_email,
                 send=send_email,
-                scorer="keyword",
+                scorer="keyword" if use_mock else "llm",
                 mock=use_mock,
                 custom_filters=custom_filters if custom_filters else None,
             )
-    except Exception as e:
-        exit_code = 1
-        p_state = set_user_pipeline_state(
-            email,
-            running=False,
-            step="error",
-            message=f"Execution error: {str(e)}",
-            exit_code=1,
-        )
-        return jsonify({
-            "status": "error",
-            "message": f"Pipeline failed: {str(e)}",
-            "pipeline": p_state,
-        }), 500
+            if exit_code != 0 and not use_mock:
+                exit_code = cli.run_pipeline(
+                    profile=profile_dict,
+                    user_email=email,
+                    token=token,
+                    store=st,
+                    to_email=target_email,
+                    send=send_email,
+                    scorer="keyword",
+                    mock=use_mock,
+                    custom_filters=custom_filters if custom_filters else None,
+                )
+        except Exception as e:
+            exit_code = 1
+            set_user_pipeline_state(
+                email,
+                running=False,
+                step="error",
+                message=f"Pipeline failed: {str(e)}",
+                exit_code=1,
+            )
+            return
 
-    version = get_store_version(st)
+        if exit_code == 0:
+            msg = "Pipeline completed successfully!"
+            if is_vercel:
+                msg += " (Fast mode on Vercel)"
+            set_user_pipeline_state(
+                email,
+                running=False,
+                step="completed",
+                message=msg,
+                exit_code=0,
+            )
+            try:
+                st.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
+            except Exception:
+                pass
 
-    if exit_code == 0:
-        msg = "Pipeline completed successfully!"
-        if is_vercel:
-            msg += " (Fast mode on Vercel)"
-        p_state = set_user_pipeline_state(
-            email,
-            running=False,
-            step="completed",
-            message=msg,
-            exit_code=0,
-        )
+            if email and memory.is_configured:
+                memory.record_pipeline_run(email, {
+                    "scanned": len(st.data),
+                    "matched": len(st.data),
+                    "shortlisted": sum(1 for v in st.data.values() if (v.get("score") or 0) >= 7.0),
+                    "status": "completed",
+                    "logs": msg,
+                }, token=token)
+        else:
+            set_user_pipeline_state(
+                email,
+                running=False,
+                step="error",
+                message=f"Pipeline exited with code {exit_code}",
+                exit_code=exit_code,
+            )
 
-        try:
-            st.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
-        except Exception:
-            pass
+    from flask import current_app
+    import threading
 
-        if email and memory.is_configured:
-            memory.record_pipeline_run(email, {
-                "scanned": len(st.data),
-                "matched": len(st.data),
-                "shortlisted": sum(1 for v in st.data.values() if (v.get("score") or 0) >= 7.0),
-                "status": "completed",
-                "logs": msg,
-            }, token=token)
-
+    is_testing = current_app.testing or bool(data.get("sync")) or is_vercel
+    if is_testing:
+        worker()
+        version = get_store_version(st)
+        p_state = get_user_pipeline_state(email)
+        if p_state.get("exit_code") == 0:
+            return jsonify({
+                "status": "success",
+                "message": p_state.get("message"),
+                "version": version,
+                "stats": st.stats(),
+                "pipeline": p_state,
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": p_state.get("message"),
+                "version": version,
+                "pipeline": p_state,
+            }), 500
+    else:
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
         return jsonify({
             "status": "success",
-            "message": msg,
-            "version": version,
+            "message": "Pipeline execution started in background.",
+            "version": get_store_version(st),
             "stats": st.stats(),
-            "pipeline": p_state,
-        })
-    else:
-        p_state = set_user_pipeline_state(
-            email,
-            running=False,
-            step="error",
-            message=f"Pipeline exited with code {exit_code}",
-            exit_code=exit_code,
-        )
-        return jsonify({
-            "status": "error",
-            "message": f"Pipeline exited with code {exit_code}",
-            "version": version,
-            "pipeline": p_state,
-        }), 500
+            "pipeline": get_user_pipeline_state(email),
+        }), 202
 
 
 @pipeline_bp.route("/api/history")

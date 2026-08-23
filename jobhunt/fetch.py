@@ -402,8 +402,24 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
     if not company_list:
         return []
 
+    import os
+    if os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ:
+        company_list = company_list[:10]
+        print(f"  [vercel] serverless environment detected — throttling crawl to first {len(company_list)} companies to prevent timeout.")
+
     jobs: list[Job] = []
+    from urllib3.util import Retry
+    from requests.adapters import HTTPAdapter
     with requests.Session() as session:
+        retries = Retry(
+            total=3,
+            backoff_factor=0.3,
+            status_forcelist=[502, 503, 504],
+            raise_on_status=False
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
         if max_workers > 1 and len(company_list) > 1:
             def worker(c: dict) -> tuple[dict, list[Job]]:
                 try:

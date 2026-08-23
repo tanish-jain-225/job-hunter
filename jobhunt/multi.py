@@ -25,6 +25,23 @@ from .store import Store
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def merge_user_profile(row: dict) -> dict:
+    pjson = row.get("profile_json") or {}
+    if not isinstance(pjson, dict):
+        pjson = {}
+    res = {**pjson, **row}
+    res["name"] = row.get("name") if row.get("name") is not None else (pjson.get("name") or "")
+    res["title"] = row.get("title") if row.get("title") is not None else (pjson.get("title") or pjson.get("current_title") or "")
+    res["skills"] = row.get("skills") if row.get("skills") is not None else (pjson.get("skills") if pjson.get("skills") is not None else (pjson.get("core_skills") or []))
+    res["target_keywords"] = row.get("target_keywords") if row.get("target_keywords") is not None else (pjson.get("target_keywords") if pjson.get("target_keywords") is not None else (pjson.get("target_titles") or []))
+    res["exclude_keywords"] = row.get("exclude_keywords") if row.get("exclude_keywords") is not None else (pjson.get("exclude_keywords") if pjson.get("exclude_keywords") is not None else [])
+    res["resume_text"] = row.get("resume_text") if row.get("resume_text") is not None else (pjson.get("resume_text") or "")
+    res["resume_filename"] = row.get("resume_filename") if row.get("resume_filename") is not None else (pjson.get("resume_filename") or "")
+    res["email_notifications_enabled"] = bool(row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False)))
+    res["onboarding_completed"] = bool(row.get("onboarding_completed", pjson.get("onboarding_completed", False)))
+    return res
+
+
 def run_multi_user_pipeline(
     config_path: str | Path | None = None,
     mock: bool = False,
@@ -71,9 +88,10 @@ def run_multi_user_pipeline(
                 data = resp.json()
                 if isinstance(data, list):
                     for u in data:
+                        merged_u = merge_user_profile(u)
                         # Include users who completed onboarding or have non-empty profile
-                        if u.get("onboarding_completed") or u.get("name") or u.get("skills"):
-                            users_to_process.append(u)
+                        if merged_u.get("onboarding_completed") or merged_u.get("name") or merged_u.get("skills"):
+                            users_to_process.append(merged_u)
         except Exception as e:
             print(f"  ! Supabase user query error: {e}")
 
@@ -108,22 +126,17 @@ def run_multi_user_pipeline(
 
         try:
             # Prepare user profile dictionary
-            profile_dict = user.get("profile_json") or {}
+            profile_dict = dict(user) if user else {}
             profile_dict.setdefault("name", user_name)
-            if user.get("title"):
-                profile_dict["current_title"] = user["title"]
-            if user.get("skills"):
-                profile_dict["core_skills"] = user["skills"]
-            if user.get("target_keywords"):
-                profile_dict["target_keywords"] = user["target_keywords"]
-                profile_dict["target_titles"] = user["target_keywords"]
-            if user.get("exclude_keywords"):
-                profile_dict["exclude_keywords"] = user["exclude_keywords"]
-                profile_dict["exclude_titles"] = user["exclude_keywords"]
-            if user.get("education"):
-                profile_dict["education"] = user["education"]
-            if user.get("experience_years"):
-                profile_dict["years_experience"] = user["experience_years"]
+            if user:
+                profile_dict["current_title"] = user.get("title") or ""
+                profile_dict["core_skills"] = user.get("skills") or []
+                profile_dict["target_keywords"] = user.get("target_keywords") or []
+                profile_dict["target_titles"] = user.get("target_keywords") or []
+                profile_dict["exclude_keywords"] = user.get("exclude_keywords") or []
+                profile_dict["exclude_titles"] = user.get("exclude_keywords") or []
+                profile_dict["education"] = user.get("education") or ""
+                profile_dict["years_experience"] = user.get("experience_years") or 0.0
 
             # Build dynamic per-user filters
             user_filters = dict(cfg.get("filters", {}))
@@ -205,11 +218,11 @@ def run_multi_user_pipeline(
                 profile=profile_dict,
             )
 
-            st.record(scored_jobs, emailed=bool(email_enabled and shortlist))
+            st.record(scored_jobs, emailed=email_enabled)
 
             # Stage F: Dispatch email briefing if enabled
             dispatched = False
-            if email_enabled and has_smtp and shortlist and not os.environ.get("VERCEL"):
+            if email_enabled and has_smtp and not os.environ.get("VERCEL"):
                 try:
                     print(f"  Dispatching daily briefing email to {target_email}...")
                     mailer.send(subject, html_content, to_email=target_email)

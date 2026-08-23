@@ -181,3 +181,23 @@ def test_store_integration_with_supabase_memory(mock_supabase_env, tmp_path):
         st.mark_applied("greenhouse:stripe:999")
         assert st.data["greenhouse:stripe:999"]["applied"] is True
         mock_patch.assert_called_once()
+
+
+def test_supabase_memory_session_retry_setup(monkeypatch):
+    import sys
+    import jobhunt.memory as mem_mod
+
+    # Temporarily delete pytest from sys.modules check to trigger real session creation
+    monkeypatch.delitem(sys.modules, "pytest", raising=False)
+    monkeypatch.setattr(mem_mod, "_SESSION", None)
+
+    sess = mem_mod._get_session()
+
+    import requests
+    assert isinstance(sess, requests.Session)
+    assert "https://" in sess.adapters
+    adapter = sess.adapters["https://"]
+    assert adapter.max_retries.total == 3
+    assert adapter.max_retries.backoff_factor == 0.5
+    assert 502 in adapter.max_retries.status_forcelist
+

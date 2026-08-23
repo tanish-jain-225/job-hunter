@@ -96,7 +96,7 @@ def test_digest_build_dynamic_rendering():
     assert "Alex Mercer" in subject
     assert "Alex Mercer" in html_content
     assert "B.Tech Computer Science" in html_content
-    assert "Distributed Matrix Multiplier" in html_content
+    assert "Exceptional fit for AI training infrastructure." in html_content
     assert "Tanish" not in html_content
 
 
@@ -179,3 +179,140 @@ def test_flask_per_user_pipeline_state():
     # Verify retrieval
     assert flask_app._get_user_pipeline_state("user1@site.com")["message"] == "User 1 Scanning"
     assert flask_app._get_user_pipeline_state("user2@site.com")["message"] == "User 2 Idle"
+
+
+def test_store_supabase_purge_deleted_jobs(tmp_path, monkeypatch):
+    """Verify that pulling remote jobs from Supabase purges deleted local cache jobs."""
+    # Seed local cache file with 3 jobs
+    cache_file = tmp_path / "seen_purge.json"
+    st = Store(cache_file, user_email="purge_user@test.com")
+    st.data = {
+        "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0},
+        "ashby:ramp:2": {"job_id": "ashby:ramp:2", "company": "Ramp", "score": 8.0},
+        "lever:warp:3": {"job_id": "lever:warp:3", "company": "Warp", "score": 7.0},
+    }
+    st.save()
+
+    # Mock remote db to only return greenhouse:stripe:1 and lever:warp:3 (ashby:ramp:2 is deleted/missing)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.load_user_jobs",
+        lambda self, email, token=None: {
+            "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0},
+            "lever:warp:3": {"job_id": "lever:warp:3", "company": "Warp", "score": 7.0},
+        }
+    )
+
+    # Initialize store again to trigger cloud sync pull & check for purging
+    st2 = Store(cache_file, user_email="purge_user@test.com")
+    
+    # Assert missing job is purged
+    assert "ashby:ramp:2" not in st2.data
+    assert "greenhouse:stripe:1" in st2.data
+    assert "lever:warp:3" in st2.data
+
+
+import pytest
+
+@pytest.fixture
+def client():
+    from app import app
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        yield client
+
+
+def test_api_run_async_endpoint(client, monkeypatch):
+    """Verify that /api/run endpoint starts execution asynchronously and returns HTTP 202."""
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("async_user@test.com", "token123"))
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile",
+        lambda *a, **kw: {
+            "onboarding_completed": True,
+            "name": "Tester",
+            "title": "Engineer",
+            "skills": ["Python"],
+            "target_keywords": ["Engineer"],
+            "education": "BS",
+            "experience_years": 3,
+            "exclude_keywords": ["Manager"],
+        }
+    )
+
+    # Mock threading.Thread to assert it gets spawned but don't actually run it to save time
+    mock_start = MagicMock()
+    monkeypatch.setattr("threading.Thread.start", mock_start)
+
+    # Call /api/run in production-like non-testing mode by patching app.testing
+    from app import app
+    monkeypatch.setattr(app, "testing", False)
+
+    res = client.post("/api/run", json={"mock": True})
+    assert res.status_code == 202
+    assert res.get_json()["status"] == "success"
+    assert "started in background" in res.get_json()["message"]
+    assert mock_start.called
+
+
+def test_store_auto_pruning_limits(tmp_path, monkeypatch):
+    """Verify that Store.save() automatically prunes old inactive jobs while preserving active ones."""
+    cache_file = tmp_path / "seen_pruning_limit.json"
+    st = Store(cache_file)
+    
+    # Setup 5 jobs
+    st.data = {
+        "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0, "applied": True, "application_stage": "applied", "first_seen": "2026-08-01T10:00:00"},
+        "ashby:ramp:2": {"job_id": "ashby:ramp:2", "company": "Ramp", "score": 8.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-02T10:00:00"},
+        "lever:warp:3": {"job_id": "lever:warp:3", "company": "Warp", "score": 7.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-03T10:00:00"},
+        "ashby:warp:4": {"job_id": "ashby:warp:4", "company": "Warp", "score": 6.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-04T10:00:00"},
+        "greenhouse:warp:5": {"job_id": "greenhouse:warp:5", "company": "Warp", "score": 5.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-05T10:00:00"},
+    }
+
+    # Restrict limit to 3 tracked jobs
+    monkeypatch.setenv("MAX_TRACKED_JOBS_COUNT", "3")
+    
+    # Save (which triggers prune_old_jobs)
+    st.save(auto_export=False)
+    
+    # Should keep Stripe (since it's applied), Warp 5 (newest timestamp), and Warp 4 (next newest)
+    # Ramp 2 and Warp 3 (oldest inactive jobs) should be pruned
+    assert "greenhouse:stripe:1" in st.data
+    assert "greenhouse:warp:5" in st.data
+    assert "ashby:warp:4" in st.data
+    assert "ashby:ramp:2" not in st.data
+    assert "lever:warp:3" not in st.data
+
+
+def test_run_pipeline_jobs_throttling(tmp_path, monkeypatch):
+    """Verify that run_pipeline throttles LLM screening by MAX_JOBS_TO_SCREEN limit."""
+    monkeypatch.setenv("MAX_JOBS_TO_SCREEN", "2")
+    user_store = Store(tmp_path / "seen_throttle.json")
+    
+    # Mock prefilter to return 5 jobs
+    mock_jobs = [
+        Job("greenhouse:stripe:1", "greenhouse", "Stripe", "SE", "Remote", "http://stripe.com", "JD1"),
+        Job("ashby:ramp:2", "ashby", "Ramp", "SE", "Remote", "http://ramp.com", "JD2"),
+        Job("lever:warp:3", "lever", "Warp", "SE", "Remote", "http://warp.com", "JD3"),
+        Job("ashby:warp:4", "ashby", "Warp", "SE", "Remote", "http://warp4.com", "JD4"),
+        Job("greenhouse:warp:5", "greenhouse", "Warp", "SE", "Remote", "http://warp5.com", "JD5"),
+    ]
+    monkeypatch.setattr("jobhunt.cli.fetch_all_mock", lambda: mock_jobs)
+    
+    profile = {"name": "Tester", "skills": ["Python"]}
+    
+    # Execute pipeline in mock mode (using keyword scorer)
+    cli.run_pipeline(
+        profile=profile,
+        user_email="test@user.com",
+        store=user_store,
+        scorer="keyword",
+        mock=True,
+        send=False,
+    )
+    
+    # Only 2 jobs should have been screened and added to the store (due to throttle cap of 2)
+    assert len(user_store.data) == 2
+
+

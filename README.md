@@ -23,7 +23,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
 3. 🧠 **Screening & Intelligence**: Scores surviving roles (1.0 - 10.0) against your candidate profile using **`gemini-3.5-flash`** (with automatic fallback).
 4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions.
-5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*) and delivers responsive HTML email briefings.
+5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), delivers HTML briefings, and leverages Edge CDN static assets offloading.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never auto-submits applications. It handles scouting, filtering, ranking, and drafting—leaving final application submission strictly under your control.
@@ -295,7 +295,8 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 - **Deduplication**: Prevents sending duplicate job notifications across runs.
 - **Kanban State Machine**: Tracks status transitions (`to_apply` $\rightarrow$ `applied` $\rightarrow$ `interviewing` $\rightarrow$ `offer` $\rightarrow$ `rejected`).
 - **Resilience**: Unscored or rate-limited jobs are not written to seen storage and are automatically retried on the next run.
-- **Gitignored**: Keeps your private job search data secure and local.
+- **Connection Resilience**: Supabase database queries and board scrapes employ pooled sessions configured with automatic exponential backoff retries (`Retry` adapter) to survive transient serverless cold starts or connection drops.
+- **Gitignored & Security Guarded**: Keeps your private job search data secure and local. A Git staging check in the local runner warns you if your credential-loaded `.env` file is accidentally tracked in Git.
 
 Export current tracking metrics to CSV at any time:
 ```bash
@@ -327,7 +328,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (262+ tests with $\ge 90\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (300+ tests with $\ge 90\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -421,7 +422,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (262 unit & integration tests):
+Run the full test suite locally (300 unit & integration tests):
 ```bash
 pytest
 ```

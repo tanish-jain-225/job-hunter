@@ -79,28 +79,14 @@ def _card(j: Job) -> str:
         else:
             india_badge = "🌐 Global / Check Location"
 
-    best_project = d.get("best_project", "Project Match")
-    cold_outreach = d.get("cold_outreach", "")
-    cover = d.get("cover_note", "")
-
-    outreach_html = ""
-    if cold_outreach:
-        outreach_html = _section("Cold Outreach (<80 words — copy & send)",
-            f'<div style="margin-top:8px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;'
-            f'border-radius:8px;color:#166534;font-size:12.5px;line-height:1.6;font-family:ui-monospace,Menlo,Consolas,monospace;'
-            f'white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;">{html.escape(cold_outreach)}</div>')
-
-    cover_html = ""
-    if cover:
-        cover_html = _section("Cover Note (Edit & Submit)",
-            f'<div style="margin-top:8px;padding:12px;background:#f1f5f9;'
-            f'border:1px solid {LINE};border-radius:8px;color:#1e293b;font-size:13.5px;'
-            f'line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;">{html.escape(cover)}</div>')
-
     salary_html = ""
     salary_val = d.get("salary_range_inr") or getattr(j, "salary", "")
     if salary_val:
         salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">💰 {html.escape(str(salary_val))}</span>'
+
+    # Display a concise Why It Fits summary
+    fit_text = d.get("fit_summary") or j.reason or ""
+    fit_html = _section("Why It Fits", _para(fit_text))
 
     return f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px 16px;margin-bottom:18px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
@@ -115,18 +101,10 @@ def _card(j: Job) -> str:
   <div style="margin-top:10px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
     {_job_type_badge(j)}
     <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">{html.escape(india_badge)}</span>
-    <span style="background:#fef2f2;color:#b91c1c;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #fecaca;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">Project: {html.escape(best_project)}</span>
     {salary_html}
   </div>
 
-  {_para(j.reason or "")}
-  {_section("Why It Fits", _para(d.get("fit_summary", "")))}
-  {_section("Tailored Resume Highlights", _bullets(d.get("tailored_bullets", [])))}
-  {_section("Key Matching Skills", _bullets(d.get("matching_skills", [])))}
-  {_section("Gaps & Hard Requirements", _bullets(d.get("gaps", [])))}
-  {outreach_html}
-  {cover_html}
-  {_section("Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))}
+  {fit_html}
 
   <div class="card-footer-flex" style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;">
     <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-block;background:{ACCENT};

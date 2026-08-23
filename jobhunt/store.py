@@ -185,6 +185,11 @@ class Store:
         if self.user_email and self.memory.is_configured:
             remote_jobs = self.memory.load_user_jobs(self.user_email, token=self.token)
             if remote_jobs:
+                # Purge local jobs that are no longer present in Supabase remote store
+                local_keys = set(self.data.keys())
+                remote_keys = set(remote_jobs.keys())
+                for k in (local_keys - remote_keys):
+                    del self.data[k]
                 # Merge remote jobs with local store
                 for jid, rjob in remote_jobs.items():
                     self.data[jid] = rjob
@@ -404,7 +409,11 @@ class Store:
         }
 
     def export_csv(self, path: str | Path = "out/tracker.csv") -> Path:
-        target_path = get_writable_path(path)
+        resolved_path = path
+        if str(path) in ("out/tracker.csv", "tracker.csv") and self.user_email:
+            user_hash = hashlib.md5(self.user_email.encode("utf-8")).hexdigest()[:12]
+            resolved_path = f"out/tracker_{user_hash}.csv"
+        target_path = get_writable_path(resolved_path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
         cols = ["first_seen", "company", "title", "location", "score", "score_100", "queue_category", "india_eligibility", "best_project",
                 "reason", "applied", "applied_on", "url"]
@@ -431,13 +440,62 @@ class Store:
                 row_copy = dict(row)
                 row_copy["score_100"] = score_100
                 row_copy["queue_category"] = cat
-                row_copy["india_eligibility"] = draft.get("india_eligibility", "Verified India-Friendly")
-                row_copy["best_project"] = draft.get("best_project", "Project Match")
+                row_copy["india_eligibility"] = draft.get("india_eligibility") or "Verified India-Friendly"
+                row_copy["best_project"] = draft.get("best_project") or "Project Match"
                 w.writerow({"job_id": jid, **row_copy})
         _atomic_replace(tmp_csv, target_path)
         return target_path
 
+    def prune_old_jobs(self) -> None:
+        """Keep database footprint small by purging stale jobs under configurable limits."""
+        is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
+        has_env_limit = "MAX_TRACKED_JOBS_COUNT" in os.environ
+
+        if not is_prod and not has_env_limit:
+            return
+
+        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 50)
+
+        if len(self.data) <= max_count:
+            return
+
+        keep_stages = {"applied", "interviewing", "offer"}
+        sorted_jobs = sorted(
+            self.data.items(),
+            key=lambda x: (
+                x[1].get("applied", False),
+                x[1].get("application_stage", "") in keep_stages,
+                x[1].get("first_seen") or x[1].get("created_at") or ""
+            ),
+            reverse=True
+        )
+
+        excess_count = len(self.data) - max_count
+        purged = 0
+        for jid, job in reversed(sorted_jobs):
+            if excess_count <= 0:
+                break
+
+            is_applied = bool(job.get("applied"))
+            stage = job.get("application_stage")
+            if is_applied or stage in keep_stages:
+                continue
+
+            del self.data[jid]
+            excess_count -= 1
+            purged += 1
+
+            if self.user_email and self.memory.is_configured:
+                try:
+                    self.memory.delete_user_job(self.user_email, jid, token=self.token)
+                except Exception:
+                    pass
+
+        if purged > 0:
+            print(f"  [prune] purged {purged} stale jobs to stay under free storage limits (capped at {max_count}).")
+
     def save(self, auto_export: bool = True) -> None:
+        self.prune_old_jobs()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),

@@ -49,16 +49,23 @@ def api_profile():
         if not email:
             return jsonify({"status": "error", "message": "Authenticated user email required."}), 400
 
-        # Always mark onboarding complete when the user explicitly saves their profile.
-        data["onboarding_completed"] = True
+        skills_val = data.get("skills")
+        target_val = data.get("target_keywords")
+        # Mark onboarding complete only if candidate criteria exist
+        data["onboarding_completed"] = bool(
+            (data.get("name") or "").strip()
+            or (data.get("title") or "").strip()
+            or (isinstance(skills_val, list) and len(skills_val) > 0)
+            or (isinstance(target_val, list) and len(target_val) > 0)
+        )
 
         # Merge with existing profile in Supabase so existing background data is preserved
         existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
         merged_profile = {**(existing or {}), **data}
 
-        # If skills are empty but resume_text is present, extract skills
-        resume_text = merged_profile.get("resume_text", "").strip()
-        if resume_text and not merged_profile.get("skills"):
+        # If new non-empty resume_text is submitted without skills, auto-extract skills
+        data_resume_text = (data.get("resume_text") or "").strip()
+        if data_resume_text and not data.get("skills"):
             common_keywords = [
                 "Python", "JavaScript", "TypeScript", "Go", "Golang", "Java", "C++", "Rust",
                 "PostgreSQL", "SQL", "MySQL", "MongoDB", "Redis", "Docker", "Kubernetes",
@@ -66,7 +73,7 @@ def api_profile():
                 "REST APIs", "GraphQL", "Microservices", "CI/CD", "Git", "Distributed Systems", "AI", "LLM"
             ]
             found_skills = []
-            text_lower = resume_text.lower()
+            text_lower = data_resume_text.lower()
             for kw in common_keywords:
                 if kw.lower() in text_lower:
                     found_skills.append(kw)
@@ -103,12 +110,9 @@ def api_profile_reset():
     memory = SupabaseMemory(token=token)
     cfg = cli._cfg(raise_on_error=False)
 
-    existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
-    existing_name = (existing or {}).get("name") or ""
-
     blank_profile: dict[str, Any] = {
         "email": email,
-        "name": existing_name,
+        "name": "",
         "title": "",
         "education": "",
         "experience_years": 0,
@@ -119,7 +123,7 @@ def api_profile_reset():
         "resume_filename": "",
         "email_notifications_enabled": False,
         "notification_email": email,
-        "min_score_notification": 7.5,
+        "min_score_notification": None,
         "onboarding_completed": False,
         "preferred_locations": [],
         "job_types": [],  # e.g. ["fulltime", "internship", "remote", "hybrid", "onsite"]
@@ -220,18 +224,18 @@ def api_resume_upload():
                 if kw.lower() in text_lower:
                     found_skills.append(kw)
 
-        skills_list = found_skills[:12] if len(found_skills) >= 2 else ["Python", "SQL", "Git", "REST APIs", "Docker", "PostgreSQL"]
+        skills_list = found_skills[:12] if len(found_skills) >= 1 else []
 
         parsed_profile = {
-            "name": derived_name or "Candidate",
-            "current_title": "Software Engineer",
-            "years_experience": 2.0,
-            "education": "Computer Science / Engineering",
+            "name": derived_name or "",
+            "current_title": "",
+            "years_experience": 0.0,
+            "education": "",
             "core_skills": skills_list,
-            "target_titles": ["Backend Engineer", "Systems Engineer", "Software Engineer II", "AI Engineer"],
-            "domains": ["backend", "software engineering"],
-            "notable_projects": ["Production software systems and backend services"],
-            "seniority": "mid",
+            "target_titles": [],
+            "domains": [],
+            "notable_projects": [],
+            "seniority": "",
         }
 
     # Fetch existing profile to retain notification preferences
@@ -241,37 +245,27 @@ def api_resume_upload():
 
     full_profile = {
         "email": email,
-        "name": parsed_profile.get("name") or "Candidate",
-        "title": parsed_profile.get("current_title") or "Software Engineer",
+        "name": parsed_profile.get("name") or "",
+        "title": parsed_profile.get("current_title") or "",
         "education": parsed_profile.get("education") or "",
-        "experience_years": parsed_profile.get("years_experience") or 2.0,
+        "experience_years": parsed_profile.get("years_experience") or 0.0,
         "skills": parsed_profile.get("core_skills") or [],
-        "target_keywords": parsed_profile.get("target_titles") or ["Backend Engineer", "Systems Engineer", "Software Engineer II", "AI Engineer"],
-        "exclude_keywords": (existing or {}).get("exclude_keywords") or [],
+        "target_keywords": parsed_profile.get("target_titles") or [],
+        "exclude_keywords": parsed_profile.get("exclude_keywords") or (existing or {}).get("exclude_keywords") or [],
         "resume_text": resume_text or (existing or {}).get("resume_text") or "",
         "resume_filename": filename,
         "email_notifications_enabled": existing_notif,
         "notification_email": existing_target_email,
-        "min_score_notification": (existing or {}).get("min_score_notification") or 7.5,
-        "preferred_locations": (existing or {}).get("preferred_locations") or [],
-        "job_types": (existing or {}).get("job_types") or [],
-        "experience_level": (existing or {}).get("experience_level") or "",
+        "min_score_notification": (existing or {}).get("min_score_notification"),
+        "preferred_locations": parsed_profile.get("preferred_locations") or (existing or {}).get("preferred_locations") or [],
+        "location_preference": parsed_profile.get("location_preference") or (existing or {}).get("location_preference") or "all_india",
+        "job_types": parsed_profile.get("job_types") or (existing or {}).get("job_types") or [],
+        "experience_level": parsed_profile.get("experience_level") or (existing or {}).get("experience_level") or "",
+        "seniority": parsed_profile.get("seniority") or "",
         "min_salary_lpa": (existing or {}).get("min_salary_lpa") or 0,
         "preferred_sectors": (existing or {}).get("preferred_sectors") or [],
         "profile_json": parsed_profile,
     }
-
-    if memory.is_configured:
-        memory.upsert_user_profile(email, full_profile, token=token)
-
-    try:
-        cfg = cli._cfg(raise_on_error=False)
-        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
-        profile_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(profile_path, "w", encoding="utf-8") as f:
-            json.dump(full_profile, f, indent=2)
-    except Exception as e:
-        logger.warning(f"Could not cache profile locally: {e}")
 
     return jsonify({
         "status": "success",
