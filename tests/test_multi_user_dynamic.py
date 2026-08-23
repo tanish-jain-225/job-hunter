@@ -205,7 +205,7 @@ def test_store_supabase_purge_deleted_jobs(tmp_path, monkeypatch):
 
     # Initialize store again to trigger cloud sync pull & check for purging
     st2 = Store(cache_file, user_email="purge_user@test.com")
-    
+
     # Assert missing job is purged
     assert "ashby:ramp:2" not in st2.data
     assert "greenhouse:stripe:1" in st2.data
@@ -260,7 +260,7 @@ def test_store_auto_pruning_limits(tmp_path, monkeypatch):
     """Verify that Store.save() automatically prunes old inactive jobs while preserving active ones."""
     cache_file = tmp_path / "seen_pruning_limit.json"
     st = Store(cache_file)
-    
+
     # Setup 5 jobs
     st.data = {
         "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0, "applied": True, "application_stage": "applied", "first_seen": "2026-08-01T10:00:00"},
@@ -272,10 +272,10 @@ def test_store_auto_pruning_limits(tmp_path, monkeypatch):
 
     # Restrict limit to 3 tracked jobs
     monkeypatch.setenv("MAX_TRACKED_JOBS_COUNT", "3")
-    
+
     # Save (which triggers prune_old_jobs)
     st.save(auto_export=False)
-    
+
     # Should keep Stripe (since it's applied), Warp 5 (newest timestamp), and Warp 4 (next newest)
     # Ramp 2 and Warp 3 (oldest inactive jobs) should be pruned
     assert "greenhouse:stripe:1" in st.data
@@ -289,7 +289,7 @@ def test_run_pipeline_jobs_throttling(tmp_path, monkeypatch):
     """Verify that run_pipeline throttles LLM screening by MAX_JOBS_TO_SCREEN limit."""
     monkeypatch.setenv("MAX_JOBS_TO_SCREEN", "2")
     user_store = Store(tmp_path / "seen_throttle.json")
-    
+
     # Mock prefilter to return 5 jobs
     mock_jobs = [
         Job("greenhouse:stripe:1", "greenhouse", "Stripe", "SE", "Remote", "http://stripe.com", "JD1"),
@@ -299,9 +299,9 @@ def test_run_pipeline_jobs_throttling(tmp_path, monkeypatch):
         Job("greenhouse:warp:5", "greenhouse", "Warp", "SE", "Remote", "http://warp5.com", "JD5"),
     ]
     monkeypatch.setattr("jobhunt.cli.fetch_all_mock", lambda: mock_jobs)
-    
+
     profile = {"name": "Tester", "skills": ["Python"]}
-    
+
     # Execute pipeline in mock mode (using keyword scorer)
     cli.run_pipeline(
         profile=profile,
@@ -311,7 +311,7 @@ def test_run_pipeline_jobs_throttling(tmp_path, monkeypatch):
         mock=True,
         send=False,
     )
-    
+
     # Only 2 jobs should have been screened and added to the store (due to throttle cap of 2)
     assert len(user_store.data) == 2
 
