@@ -38,6 +38,26 @@ def test_index_route(client):
     assert b"Run Job Hunt Now" in res.data
 
 
+def test_static_and_brand_assets(client):
+    """Verify static CSS, JS, logo, and favicon are served with 200 OK and appropriate content types."""
+    res_css = client.get("/static/css/style.css")
+    assert res_css.status_code == 200
+    assert "text/css" in res_css.content_type
+    assert len(res_css.data) > 1000
+
+    res_js = client.get("/static/js/app.js")
+    assert res_js.status_code == 200
+    assert "javascript" in res_js.content_type
+    assert len(res_js.data) > 1000
+
+    res_logo = client.get("/logo.png")
+    assert res_logo.status_code == 200
+    assert res_logo.content_type == "image/png"
+
+    res_fav = client.get("/favicon.ico")
+    assert res_fav.status_code in (200, 204)
+
+
 def test_api_stats(client):
     """Verify /api/stats endpoint returns JSON statistics."""
     res = client.get("/api/stats")
