@@ -46,6 +46,7 @@ def api_sync():
             user_profile = raw_local
 
     score_threshold = float(cfg.get("score_threshold", 7.0))
+    total_count = len(st.data)
     shortlisted_count = 0
     applied_count = 0
     unapplied_count = 0
@@ -53,14 +54,12 @@ def api_sync():
 
     for jid, item in st.data.items():
         score = item.get("score") or 0.0
-        # Only count/consider matching jobs that clear score_threshold
-        if score < score_threshold:
-            continue
-
         applied = bool(item.get("applied"))
         job_ats = (item.get("ats") or (jid.split(":")[0] if ":" in jid else "custom")).lower()
 
-        shortlisted_count += 1
+        if score >= score_threshold:
+            shortlisted_count += 1
+
         if applied:
             applied_count += 1
         else:
@@ -69,12 +68,27 @@ def api_sync():
         ats_counts[job_ats] = ats_counts.get(job_ats, 0) + 1
 
     stats = {
-        "tracked": shortlisted_count,
-        "emailed": sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold and v.get("emailed")),
+        "tracked": total_count,
+        "emailed": sum(1 for v in st.data.values() if v.get("emailed")),
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
     }
+
+    # Fetch active in-memory pipeline state or sync latest remote run from Supabase
+    pipe_state = get_user_pipeline_state(email)
+    if not pipe_state.get("running") and email and memory.is_configured:
+        try:
+            recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
+            if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
+                last_run = recent_runs[0]
+                run_logs = last_run.get("logs") or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
+                pipe_state["last_remote_run"] = last_run.get("run_timestamp")
+                if "dispatched" in pipe_state.get("message", "").lower():
+                    pipe_state["message"] = run_logs
+                    pipe_state["step"] = "completed"
+        except Exception:
+            pass
 
     version = get_store_version(st)
 
@@ -83,7 +97,7 @@ def api_sync():
         "version": version,
         "stats": stats,
         "ats_counts": ats_counts,
-        "pipeline": get_user_pipeline_state(email),
+        "pipeline": pipe_state,
         "user_email": email,
         "user_profile": user_profile,
         "memory_connected": memory.is_configured,

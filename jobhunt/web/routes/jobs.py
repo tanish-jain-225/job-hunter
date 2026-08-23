@@ -94,14 +94,15 @@ def api_stats():
     st = Store(seen_file, user_email=email, token=token)
 
     score_threshold = float(cfg.get("score_threshold", 7.0))
+    total_count = len(st.data)
     matching_jobs = [v for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold]
     shortlisted_count = len(matching_jobs)
-    applied_count = sum(1 for v in matching_jobs if v.get("applied"))
-    unapplied_count = shortlisted_count - applied_count
+    applied_count = sum(1 for v in st.data.values() if v.get("applied"))
+    unapplied_count = total_count - applied_count
 
     stats = {
-        "tracked": shortlisted_count,
-        "emailed": sum(1 for v in matching_jobs if v.get("emailed")),
+        "tracked": total_count,
+        "emailed": sum(1 for v in st.data.values() if v.get("emailed")),
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
@@ -149,13 +150,8 @@ def api_jobs():
         item = {"job_id": job_id, **data}
         job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
 
-        # Only include matching jobs that clear score_threshold
-        score_val = item.get("score")
-        if score_val is None or score_val < score_threshold:
-            continue
-
         # Filter status
-        if status == "shortlisted" and (item.get("score") or 0) < 7.0:
+        if status == "shortlisted" and (item.get("score") or 0.0) < 7.0:
             continue
         elif status == "applied" and not item.get("applied"):
             continue
@@ -167,7 +163,7 @@ def api_jobs():
             continue
 
         # Filter min_score
-        if min_score is not None and (item.get("score") or 0) < min_score:
+        if min_score is not None and (item.get("score") or 0.0) < min_score:
             continue
 
         # Filter search text
