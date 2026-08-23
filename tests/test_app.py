@@ -380,9 +380,27 @@ def test_api_run_vercel_mode(client, monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
     monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
-    res = client.post("/api/run")
-    assert res.status_code == 200
-    assert "Fast mode on Vercel" in res.get_json()["message"]
+
+    # 1. Unset token -> guides to GitHub Actions
+    res_guide = client.post("/api/run")
+    assert res_guide.status_code == 200
+    assert res_guide.get_json()["status"] == "need_github_dispatch"
+    assert "actions_url" in res_guide.get_json()
+
+    # 2. Mock mode -> runs fast mock pipeline
+    res_mock = client.post("/api/run", json={"mock": True})
+    assert res_mock.status_code == 200
+    assert "Fast mode on Vercel" in res_mock.get_json()["message"]
+
+    # 3. With GH_TOKEN -> dispatches to GitHub Actions
+    monkeypatch.setenv("GH_TOKEN", "mock_gh_pat_token")
+    class MockResp:
+        status_code = 204
+        text = ""
+    monkeypatch.setattr("requests.post", lambda *a, **kw: MockResp())
+    res_dispatch = client.post("/api/run")
+    assert res_dispatch.status_code == 200
+    assert res_dispatch.get_json()["status"] == "dispatched"
 
 
 def test_api_run_fallback_and_error(client, monkeypatch):

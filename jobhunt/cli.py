@@ -248,9 +248,7 @@ def run_pipeline(
 
     # Apply dynamic user keywords to filters if available
     filters = dict(cfg.get("filters", {}))
-    if custom_filters:
-        filters.update(custom_filters)
-    elif profile:
+    if profile:
         # Merge target_keywords / target_titles into include_titles if present
         target_keys = profile.get("target_keywords") or profile.get("target_titles") or []
         if target_keys and isinstance(target_keys, list):
@@ -270,6 +268,13 @@ def run_pipeline(
                 if clean_k and clean_k.lower() not in [x.lower() for x in existing_excludes]:
                     existing_excludes.append(r"\b" + re.escape(clean_k) + r"\b")
             filters["exclude_titles"] = existing_excludes
+
+    if custom_filters:
+        for k, v in custom_filters.items():
+            if isinstance(v, list) and k in filters and isinstance(filters[k], list):
+                filters[k] = list(filters[k]) + [x for x in v if x not in filters[k]]
+            else:
+                filters[k] = v
 
     # Flags
     use_mock = mock if mock is not None else (getattr(args, "mock", False) if args else False)

@@ -2695,7 +2695,61 @@ async function runPipeline() {
     });
     const data = await parseJsonResponse(res);
 
-    if (data.status === 'success' || data.status === 'busy') {
+    if (data.status === 'dispatched') {
+      showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
+      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 200+ company boards (~1-2 mins).';
+      
+      let pollCount = 0;
+      const pollGitHubPipeline = async () => {
+        pollCount++;
+        try {
+          const syncRes = await authFetch('/api/sync', { cache: 'no-store' });
+          const syncData = await parseJsonResponse(syncRes);
+          if (syncData.status === 'success') {
+            updatePipelineConsole(syncData.pipeline);
+            renderMetrics(syncData.stats);
+            await fetchAndRenderJobs(false);
+            refreshDigest(true);
+          }
+        } catch (e) {
+          console.warn('Poll notice:', e);
+        }
+        if (pollCount < 40) {
+          setTimeout(pollGitHubPipeline, 4000);
+        } else {
+          appState.pipelineRunning = false;
+          updateJobSearchButtonState();
+        }
+      };
+      setTimeout(pollGitHubPipeline, 3000);
+
+    } else if (data.status === 'need_github_dispatch') {
+      appState.pipelineRunning = false;
+      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 200+ live board crawl in the cloud...';
+      showToast('Opening GitHub Actions to run the live 200+ board radar in the cloud...', 'info', 5000);
+      if (data.actions_url) {
+        window.open(data.actions_url, '_blank');
+      }
+      updateJobSearchButtonState();
+
+      // Poll in background so when GitHub Actions finishes, the web dashboard automatically refreshes
+      let bgPollCount = 0;
+      const pollBg = async () => {
+        bgPollCount++;
+        try {
+          const syncRes = await authFetch('/api/sync', { cache: 'no-store' });
+          const syncData = await parseJsonResponse(syncRes);
+          if (syncData.status === 'success') {
+            renderMetrics(syncData.stats);
+            await fetchAndRenderJobs(false);
+            refreshDigest(true);
+          }
+        } catch (_) {}
+        if (bgPollCount < 30) setTimeout(pollBg, 5000);
+      };
+      setTimeout(pollBg, 5000);
+
+    } else if (data.status === 'success' || data.status === 'busy') {
       showToast('Pipeline scanner running in background...', 'info', 2500);
 
       // Continuous non-blocking progress poller

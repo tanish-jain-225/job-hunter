@@ -230,6 +230,61 @@ def api_run():
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
+    gh_token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or "").strip()
+    repo_name = (os.environ.get("GITHUB_REPOSITORY") or "tanish-jain-225/job-hunter").strip()
+
+    # Option 1: If on Vercel and GH_TOKEN is provided, trigger GitHub Actions workflow directly
+    if is_vercel and gh_token and not use_mock:
+        try:
+            import requests
+            gh_url = f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/dispatches"
+            gh_headers = {
+                "Authorization": f"Bearer {gh_token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "Job-Hunter-Web-App",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+            gh_payload = {
+                "ref": "main",
+                "inputs": {"mode": "multi"}
+            }
+            gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
+            if gh_resp.status_code in (200, 204):
+                msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 200+ company boards in the cloud..."
+                set_user_pipeline_state(
+                    email,
+                    running=True,
+                    step="running",
+                    message=msg,
+                    last_run=now_utc,
+                )
+                return jsonify({
+                    "status": "dispatched",
+                    "mode": "github_actions",
+                    "message": msg,
+                    "pipeline": get_user_pipeline_state(email),
+                    "version": get_store_version(st),
+                    "stats": st.stats(),
+                }), 200
+            else:
+                logger.warning("GitHub workflow_dispatch returned %s: %s", gh_resp.status_code, gh_resp.text)
+        except Exception as gh_err:
+            logger.warning("GitHub workflow dispatch request failed: %s", gh_err)
+
+    # If on Vercel without GH_TOKEN and not in mock mode, guide user to GitHub Actions
+    if is_vercel and not gh_token and not use_mock:
+        gh_actions_url = f"https://github.com/{repo_name}/actions/workflows/daily.yml"
+        msg = "Cloud Radar: GitHub Actions is ready to crawl 200+ live boards. Triggering workflow..."
+        return jsonify({
+            "status": "need_github_dispatch",
+            "mode": "github_actions",
+            "message": msg,
+            "actions_url": gh_actions_url,
+            "pipeline": get_user_pipeline_state(email),
+            "version": get_store_version(st),
+            "stats": st.stats(),
+        }), 200
+
     # Build custom_filters from user's search preferences
     custom_filters = {}
     if user_profile:
