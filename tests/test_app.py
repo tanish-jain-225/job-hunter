@@ -477,6 +477,7 @@ def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
     old_run_time = "2026-08-20T10:00:00+00:00"
 
     monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (test_email, "mock_token"))
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
     set_user_pipeline_state(test_email, running=True, step="running", message="Dispatched to GitHub Actions...", dispatched_at=now_ts)
 
     mock_history = [

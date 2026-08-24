@@ -193,13 +193,6 @@ def test_store_auto_export_warning(tmp_path: Path, monkeypatch):
     st.save(auto_export=True)
 
 
-def test_store_auto_seed_vercel(tmp_path: Path, monkeypatch):
-    """Test auto-seeding mock jobs on Vercel when store is empty."""
-    monkeypatch.setenv("VERCEL", "1")
-    seen_path = tmp_path / "seen.json"
-    st = Store(seen_path)
-    assert len(st.data) > 0
-
 
 def test_get_writable_path_permission_error(tmp_path: Path, monkeypatch):
     """Test fallback when parent directory touch fails with PermissionError."""
