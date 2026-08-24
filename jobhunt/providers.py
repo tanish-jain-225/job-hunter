@@ -54,6 +54,8 @@ class Provider:
 
     @staticmethod
     def _env(key: str) -> str:
+        from .auth import _load_env_if_needed
+        _load_env_if_needed()
         value = (os.environ.get(key) or "").strip()
         if not value:
             raise LLMError(f"{key} is not set (see .env.example)")
@@ -352,6 +354,9 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
        - If only ANTHROPIC_API_KEY is present -> "anthropic"
        - Fallback -> "gemini"
     """
+    from .auth import _load_env_if_needed
+    _load_env_if_needed()
+
     has_groq = bool((os.getenv("GROQ_API_KEY") or "").strip())
     has_gemini = bool((os.getenv("GEMINI_API_KEY") or "").strip())
     has_anthropic = bool((os.getenv("ANTHROPIC_API_KEY") or "").strip())

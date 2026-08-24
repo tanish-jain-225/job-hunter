@@ -9,6 +9,9 @@ from .prefilter import prefilter
 from .store import Store
 from .web import create_app
 
+from .auth import _load_env_if_needed
+_load_env_if_needed()
+
 __version__ = "1.0.0"
 __all__ = [
     "Job",

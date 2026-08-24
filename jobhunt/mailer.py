@@ -7,6 +7,8 @@ from email.message import EmailMessage
 
 
 def send(subject: str, html_body: str, to_email: str | None = None) -> None:
+    from .auth import _load_env_if_needed
+    _load_env_if_needed()
     host = (os.getenv("SMTP_HOST") or "smtp.gmail.com").strip()
     raw_port = (os.getenv("SMTP_PORT") or "587").strip()
     port = int(raw_port) if raw_port.isdigit() else 587
