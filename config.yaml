@@ -7,16 +7,47 @@
 # what fits the user — not hard-coded regex exclusions.
 
 filters:
-  # include_titles: Leave empty to match ALL job titles (recommended).
-  # Add patterns here only if you want to HARD-LIMIT to specific roles.
-  # Users set their own target roles via the Profile Settings wizard.
-  include_titles: []
+  # include_titles: Focus on software engineering, tech, and developer roles.
+  # Users override this dynamically through their web UI Profile Settings.
+  include_titles:
+    - 'software engineer'
+    - 'software engineering'
+    - '\b(se|sde|swe)\b'
+    - '\bsde\s*-?\s*(i{1,3}|[123])\b'
+    - 'software development engineer'
+    - 'site reliability engineer'
+    - '\bsre\b'
+    - 'member of technical staff'
+    - 'associate software engineer'
+    - 'junior software engineer'
+    - 'graduate engineer'
+    - 'engineer intern'
+    - 'developer intern'
+    - 'software intern'
+    - 'engineering intern'
+    - '\bintern\b'
+    - '\b(backend|back-end|server|platform|api)\b.*\bengineer\b'
+    - '\bengineer\b.*\b(backend|back-end|platform|api)\b'
+    - 'full.?stack engineer'
+    - 'full.?stack developer'
+    - 'frontend engineer'
+    - 'frontend developer'
+    - 'web developer'
+    - 'web engineer'
+    - '\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b.*\b(engineer|developer)\b'
+    - '\b(engineer|developer)\b.*\b(node(\.js)?|python|javascript|typescript|react|next(\.js)?)\b'
+    - '\b(ai|ml|llm|genai|generative)\b.*\bengineer\b'
+    - '\bengineer\b.*\b(ai|llm|genai|generative)\b'
+    - 'ai application(s)? engineer'
+    - 'ai software engineer'
 
-  # exclude_titles: Leave empty — let users decide what to exclude.
-  # Only add truly universal noise (internal roles, ghost postings).
+  # exclude_titles: Drop non-tech, executive, and extreme seniority noise
   exclude_titles:
     - '\b(ceo|coo|cfo|cto|ciso|vp|svp|evp|c-suite)\b'
-    - '\b(intern.*recruiter|talent.*acquisition|hr.*intern)\b'
+    - '\b(director|vice president|head of|chief)\b'
+    - '\b(manager|management|lead)\b'
+    - '\b(sales|account executive|marketing|recruit|talent.*acquisition|hr.*intern)\b'
+    - '\b(ios|android|game|designer|ux|ui)\b'
 
   # locations: Leave empty = accept ALL locations worldwide (India + Remote + Global).
   # Users set their preferred cities/regions in the Profile Settings wizard.

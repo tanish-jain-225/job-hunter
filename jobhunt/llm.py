@@ -283,21 +283,37 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                     j.reason = str(rec.get("reason", "")).strip()
                 print(f"  screened batch {n}/{len(batches)}")
     else:
+        consecutive_failures = 0
+        quota_circuit_broken = False
         for idx, batch in enumerate(batches):
+            if quota_circuit_broken:
+                keyword_screen(batch, profile)
+                processed_count = min((idx + 1) * batch_size, len(jobs))
+                print(f"  screened {processed_count}/{len(jobs)} [offline keyword fallback]")
+                continue
+
             results = process_batch(idx + 1, batch)
-            for j in batch:
-                rec = results.get(j.job_id)
-                if rec is None:
-                    continue
-                try:
-                    j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
-                except (TypeError, ValueError):
-                    j.score = 0.0
-                j.reason = str(rec.get("reason", "")).strip()
+            if not results:
+                consecutive_failures += 1
+                if consecutive_failures >= 2:
+                    print("  ⚠️ LLM provider quota exhausted for today (429). Fast-falling back to offline keyword scorer for remaining batches.")
+                    quota_circuit_broken = True
+                    keyword_screen(batch, profile)
+            else:
+                consecutive_failures = 0
+                for j in batch:
+                    rec = results.get(j.job_id)
+                    if rec is None:
+                        continue
+                    try:
+                        j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
+                    except (TypeError, ValueError):
+                        j.score = 0.0
+                    j.reason = str(rec.get("reason", "")).strip()
 
             processed_count = min((idx + 1) * batch_size, len(jobs))
             print(f"  screened {processed_count}/{len(jobs)}")
-            if idx < len(batches) - 1 and delay_seconds > 0:
+            if not quota_circuit_broken and idx < len(batches) - 1 and delay_seconds > 0:
                 time.sleep(delay_seconds)
 
     return jobs
