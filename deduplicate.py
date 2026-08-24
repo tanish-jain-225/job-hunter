@@ -261,7 +261,7 @@ global_mncs = """
   - {ats: greenhouse, slug: chime, name: Chime}
 """
 
-seen = set()
+seen: set[str] = set()
 
 
 def process_block(block, is_existing=False):

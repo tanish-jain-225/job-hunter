@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 from jobhunt import cli, providers
@@ -73,7 +74,7 @@ def test_screen_jobs_llm_flow(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli.llm, "screen", mock_screen)
     jobs = [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]
     args = argparse.Namespace(scorer="llm")
-    cfg = {}
+    cfg: dict[str, Any] = {}
     cli._screen_jobs(jobs, {}, args, cfg)
     assert called == [True]
 
@@ -88,7 +89,7 @@ def test_screen_jobs_llm_fallback_to_keyword(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli.llm, "screen", mock_screen)
     jobs = [Job("1", "gh", "Acme", "Software Engineer", "remote", "http://x", "desc")]
     args = argparse.Namespace(scorer="llm")
-    cfg = {}
+    cfg: dict[str, Any] = {}
     cli._screen_jobs(jobs, {"target_roles": ["Software Engineer"]}, args, cfg)
     assert jobs[0].score is not None
 
@@ -225,8 +226,11 @@ def test_cmd_profile_llm_resolve_error(tmp_path: Path, monkeypatch: pytest.Monke
 
 def test_main_cli_routing_all(monkeypatch: pytest.MonkeyPatch):
     for cmd in ["run", "applied", "stats", "profile"]:
-        called = []
-        monkeypatch.setattr(cli, f"cmd_{cmd}", lambda args: called.append(cmd) or 0)
+        called: list[str] = []
+        def _mock_cmd(args, c=cmd):
+            called.append(c)
+            return 0
+        monkeypatch.setattr(cli, f"cmd_{cmd}", _mock_cmd)
         argv = ["jobhunt", cmd]
         if cmd == "applied":
             argv.append("greenhouse:acme:1")

@@ -381,7 +381,7 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
 
     provider = get_provider(name)
     explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip()
-    
+
     # Avoid provider-model mismatch (e.g. legacy SCREEN_MODEL=gemini-3.5-flash in .env when provider is groq)
     if explicit_model and name == "groq" and ("gemini" in explicit_model.lower() or "claude" in explicit_model.lower()):
         model = DEFAULT_MODELS.get(name, {}).get(stage)

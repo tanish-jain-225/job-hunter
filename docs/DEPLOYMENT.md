@@ -17,10 +17,10 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
                 │                                         │
                 ▼                                         ▼
 ┌────────────────────────────────┐       ┌─────────────────────────────────┐
-│       AI Intelligence          │       │       Daily Cron Engine         │
-│   Google Gemini API (Free)     │       │     GitHub Actions (Free)       │
-│  - gemini-3.5-flash Screening  │       │  - Scheduled 9:00 AM Run        │
-│  - Application Kit Generation  │       │  - Single-Pass 9-ATS Crawl      │
+│   Zero-Quota AI Intelligence   │       │       Daily Cron Engine         │
+│ Groq + Gemini Split (Free)     │       │     GitHub Actions (Free)       │
+│  - Groq 14,400 RPD Screening   │       │  - Scheduled 9:00 AM Run        │
+│  - Gemini Rich Kit Drafting    │       │  - Single-Pass 9-ATS Crawl      │
 │  - Automatic Keyword Fallback  │       │  - Daily Morning Email Briefing │
 └────────────────────────────────┘       └─────────────────────────────────┘
 ```
@@ -33,7 +33,8 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 | :--- | :--- | :--- | :--- |
 | **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **$0 / mo** |
 | **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs | **$0 / mo** |
-| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day | LLM screening & kit generation | **$0 / mo** |
+| **Groq API** | 30 RPM, 14,400 Requests/Day Free | Stage 1 candidate batch fit screening | **$0 / mo** |
+| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day | Stage 2 application kit drafting | **$0 / mo** |
 | **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar | **$0 / mo** |
 | **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **$0 / mo** |
 
@@ -53,11 +54,10 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 
 ---
 
-## 🔑 Step 2: Get Free Google Gemini API Key (1 Minute)
+## 🔑 Step 2: Get Free AI API Keys (2 Minutes)
 
-1. Visit [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
-2. Click **Create API Key** (select any project or create a default one).
-3. Copy your API Key -> `GEMINI_API_KEY`.
+1. **Groq (Fast Screening)**: Visit [console.groq.com/keys](https://console.groq.com/keys) $\rightarrow$ Create Key $\rightarrow$ `GROQ_API_KEY`.
+2. **Google Gemini (Rich Drafting)**: Visit [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) $\rightarrow$ Create API Key $\rightarrow$ `GEMINI_API_KEY`.
 
 ---
 
@@ -84,10 +84,8 @@ To send automated daily briefings and on-demand alerts:
 4. In **Environment Variables**, add:
 
 ```ini
-LLM_PROVIDER=gemini
+GROQ_API_KEY=your-groq-api-key
 GEMINI_API_KEY=your-gemini-api-key
-SCREEN_MODEL=gemini-3.5-flash
-DRAFT_MODEL=gemini-3.5-flash
 
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
@@ -117,6 +115,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 
 1. Go to your GitHub repository > **Settings > Secrets and variables > Actions**.
 2. Add the following **Repository Secrets**:
+   * `GROQ_API_KEY`: Your Groq API Key
    * `GEMINI_API_KEY`: Your Google Gemini API Key
    * `SUPABASE_URL`: Your Supabase Project URL
    * `SUPABASE_ANON_KEY`: Your Supabase Anon Key

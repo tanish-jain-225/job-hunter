@@ -185,6 +185,7 @@ def test_require_auth_decorator():
     os.environ["AUTH_REQUIRED"] = "false"
     res = client.get("/protected")
     assert res.status_code == 200
+    assert res.json is not None
     assert res.json["status"] == "ok"
     assert res.json["user"]["id"] == "local_dev_user"
 
@@ -194,6 +195,7 @@ def test_require_auth_decorator():
     os.environ["SUPABASE_ANON_KEY"] = "key"
     res = client.get("/protected")
     assert res.status_code == 401
+    assert res.json is not None
     assert res.json["code"] == "UNAUTHORIZED"
 
     # 3. When valid Bearer token is provided
@@ -202,6 +204,7 @@ def test_require_auth_decorator():
     token = jwt.encode({"sub": "admin_user", "email": "admin@career.org"}, secret, algorithm="HS256")
     res = client.get("/protected", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
+    assert res.json is not None
     assert res.json["user"]["id"] == "admin_user"
     assert res.json["user"]["email"] == "admin@career.org"
 
@@ -215,6 +218,7 @@ def test_api_auth_config_route():
     res = client.get("/api/auth/config")
     assert res.status_code == 200
     data = res.json
+    assert data is not None
     assert data["status"] == "success"
     assert data["auth_required"] is True
     assert data["supabase_url"] == "https://test.supabase.co"
@@ -230,6 +234,7 @@ def test_api_auth_user_route():
     token = jwt.encode({"sub": "user_42", "email": "dev@supabase.co"}, secret, algorithm="HS256")
     res = client.get("/api/auth/user", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
+    assert res.json is not None
     assert res.json["status"] == "success"
     assert res.json["user"]["id"] == "user_42"
     assert res.json["user"]["email"] == "dev@supabase.co"
@@ -261,4 +266,5 @@ def test_protected_routes_deny_unauthenticated():
         else:
             res = client.post(path, json={})
         assert res.status_code == 401, f"Expected 401 for unauthenticated {method} {path}, got {res.status_code}"
+        assert res.json is not None
         assert res.json["code"] in ("UNAUTHORIZED", "INVALID_TOKEN")

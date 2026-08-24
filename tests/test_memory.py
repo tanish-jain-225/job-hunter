@@ -194,9 +194,11 @@ def test_supabase_memory_session_retry_setup(monkeypatch):
     sess = mem_mod._get_session()
 
     import requests
+    from requests.adapters import HTTPAdapter
     assert isinstance(sess, requests.Session)
     assert "https://" in sess.adapters
     adapter = sess.adapters["https://"]
+    assert isinstance(adapter, HTTPAdapter)
     assert adapter.max_retries.total == 3
     assert adapter.max_retries.backoff_factor == 0.5
     assert 502 in adapter.max_retries.status_forcelist

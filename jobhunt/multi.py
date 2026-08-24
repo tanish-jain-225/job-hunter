@@ -39,6 +39,14 @@ def merge_user_profile(row: dict) -> dict:
     res["resume_filename"] = row.get("resume_filename") if row.get("resume_filename") is not None else (pjson.get("resume_filename") or "")
     res["email_notifications_enabled"] = bool(row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False)))
     res["onboarding_completed"] = bool(row.get("onboarding_completed", pjson.get("onboarding_completed", False)))
+    res["preferred_locations"] = row.get("preferred_locations") if row.get("preferred_locations") is not None else (pjson.get("preferred_locations") or [])
+    res["location_preference"] = row.get("location_preference") if row.get("location_preference") is not None else (pjson.get("location_preference") or "all_india")
+    res["job_types"] = row.get("job_types") if row.get("job_types") is not None else (pjson.get("job_types") or [])
+    res["experience_level"] = row.get("experience_level") if row.get("experience_level") is not None else (pjson.get("experience_level") or "")
+    res["min_salary_lpa"] = row.get("min_salary_lpa") if row.get("min_salary_lpa") is not None else (pjson.get("min_salary_lpa") or 0)
+    res["preferred_sectors"] = row.get("preferred_sectors") if row.get("preferred_sectors") is not None else (pjson.get("preferred_sectors") or [])
+    res["min_score_notification"] = row.get("min_score_notification") if row.get("min_score_notification") is not None else pjson.get("min_score_notification")
+    res["notification_email"] = row.get("notification_email") if row.get("notification_email") is not None else (pjson.get("notification_email") or row.get("email") or "")
     return res
 
 
@@ -146,6 +154,24 @@ def run_multi_user_pipeline(
             user_excludes = user.get("exclude_keywords") or []
             if user_excludes and isinstance(user_excludes, list):
                 user_filters["exclude_titles"] = [t for t in user_excludes if t]
+
+            preferred_locs = user.get("preferred_locations") or []
+            if preferred_locs and isinstance(preferred_locs, list):
+                user_filters["locations"] = preferred_locs
+
+            job_types = user.get("job_types") or []
+            if job_types and isinstance(job_types, list):
+                user_filters["job_types"] = job_types
+
+            exp_level = user.get("experience_level") or ""
+            if exp_level in ("fresher", "0-1"):
+                existing_inc = list(user_filters.get("include_titles", []))
+                existing_inc.append(r"\b(fresher|entry.level|graduate|junior|intern|trainee|associate|0.1.year)\b")
+                user_filters["include_titles"] = existing_inc
+            elif exp_level == "1-3":
+                existing_exc = list(user_filters.get("exclude_titles", []))
+                existing_exc.append(r"\b(senior|staff|principal|lead|head|director|vp)\b")
+                user_filters["exclude_titles"] = existing_exc
 
             # Stage A: Deterministic pre-filter
             user_candidates = prefilter(raw_jobs, user_filters)

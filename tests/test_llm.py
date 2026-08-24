@@ -29,8 +29,8 @@ class StubProvider(Provider):
 
     name = "stub"
 
-    def __init__(self, replies: list[str] | None = None):
-        self.replies = list(replies or [])
+    def __init__(self, replies: list[str | Exception] | None = None):
+        self.replies: list[str | Exception] = list(replies or [])
         self.calls: list[dict] = []
 
     def complete(self, model, system, user, max_tokens, json_mode=False):
@@ -221,8 +221,9 @@ def test_enhanced_keyword_screen():
     jobs = [matching_job, staff_job]
     llm.keyword_screen(jobs, profile)
 
+    assert matching_job.score is not None and staff_job.score is not None
     assert matching_job.score > staff_job.score
-    assert "skills matched" in matching_job.reason
+    assert matching_job.reason is not None and "skills matched" in matching_job.reason
 
 
 def test_build_profile_text_and_pdf(monkeypatch: pytest.MonkeyPatch):

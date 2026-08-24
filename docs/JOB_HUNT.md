@@ -78,19 +78,20 @@ jobhunt/
 
 ---
 
-## 🤖 LLM Layer
+## 🤖 LLM Layer & Zero-Quota Split Architecture
 
 Two stages for token efficiency:
 
-- **Screen** — batch ~8 jobs per call, truncate each JD to ~1400 chars, return JSON array of `{job_id, score, reason}`.
-- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, tailored_bullets[], gaps[], cover_note, questions_to_ask[]}`.
+- **Screen** — batch ~8–15 jobs per call, truncate each JD to ~1800 chars, return JSON array of `{job_id, score, reason}`. Handled by **Groq** (`llama-3.3-70b-versatile`, 14,400 RPD free) for high throughput.
+- **Draft** — only for jobs above the score threshold. Send ~8000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Handled by **Google Gemini** (`gemini-3.5-flash`) or **Claude**.
 
 ### Provider Flexibility
-Make provider swappable via environment variables (`LLM_PROVIDER`):
-- Google Gemini (`gemini-3.5-flash`)
-- Groq (`llama-3.3-70b-versatile`)
-- Anthropic (`claude-3-7-sonnet` / `claude-3-5-sonnet`)
-- OpenAI-compatible endpoints & local Ollama
+Make providers swappable and auto-split via environment variables:
+- **Groq** (`GROQ_API_KEY`) $\rightarrow$ High-throughput batch screening (30 RPM, 14,400 RPD)
+- **Google Gemini** (`GEMINI_API_KEY`) $\rightarrow$ Application kit drafting & rich context window
+- **Anthropic** (`ANTHROPIC_API_KEY`) $\rightarrow$ Advanced reasoning & native PDF resume analysis
+- **OpenAI Compatible** (`LLM_BASE_URL`) $\rightarrow$ OpenRouter, Together AI, vLLM
+- **Ollama** (`OLLAMA_HOST`) $\rightarrow$ 100% Offline local models
 
 ---
 

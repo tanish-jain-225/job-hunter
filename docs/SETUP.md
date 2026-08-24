@@ -89,26 +89,39 @@ You should see mock Greenhouse/Lever/Ashby boards fetch, filter, and output summ
 
 ## Step 5 — Configure your `.env` & Preferences
 
-Create a `.env` file in your root folder:
+Create a `.env` file in your root folder (or copy `.env.example` to `.env`):
 
 ```env
-LLM_PROVIDER=gemini
-GEMINI_API_KEY=your_gemini_api_key_here
-SCREEN_MODEL=gemini-3.5-flash
-DRAFT_MODEL=gemini-3.5-flash
+# AI Intelligence Providers (High-Speed Zero-Quota Split Architecture)
+# • GROQ_API_KEY: 30 RPM, 14,400 RPD for ultra-fast candidate screening (console.groq.com)
+# • GEMINI_API_KEY: Rich tailored application kit drafting (aistudio.google.com)
+# (When both keys are set, Job-Hunter automatically routes screening to Groq and drafting to Gemini!)
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GEMINI_API_KEY=AIzaSy_your_gemini_api_key_here
 
+# Central Outbound SMTP Server (Gmail App Password)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_char_gmail_app_password
 
+# Supabase PostgreSQL Multi-Tenant Database & Authentication
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 AUTH_REQUIRED=true
 
+# GitHub Actions Workflow Dispatch (Cloud On-Demand Radar)
 GH_TOKEN=github_pat_your_personal_access_token_here
 GITHUB_REPOSITORY=your-username/job-hunter
+
+# Optional: Static Flask secret key for serverless session stability
+FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
+
+# Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
+# LLM_PROVIDER=gemini
+# SCREEN_MODEL=llama-3.3-70b-versatile
+# DRAFT_MODEL=gemini-3.5-flash
 ```
 
 Extract your candidate profile from your resume:

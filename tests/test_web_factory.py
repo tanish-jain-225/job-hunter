@@ -28,8 +28,8 @@ def test_create_app_custom_folders(tmp_path: Path):
     custom_stat.mkdir()
 
     app_instance = create_app(template_folder=custom_tmpl, static_folder=custom_stat)
-    assert Path(app_instance.template_folder) == custom_tmpl
-    assert Path(app_instance.static_folder) == custom_stat
+    assert app_instance.template_folder is not None and Path(app_instance.template_folder) == custom_tmpl
+    assert app_instance.static_folder is not None and Path(app_instance.static_folder) == custom_stat
 
 
 def test_web_handle_exception_http():

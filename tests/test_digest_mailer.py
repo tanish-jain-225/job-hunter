@@ -53,7 +53,7 @@ def test_digest_build_escapes_xss():
 
 def test_digest_card_with_none_draft():
     job = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc")
-    job.draft = None
+    job.draft = None  # type: ignore[assignment]
     subject, html_doc = digest.build([job], 1, 1, {})
     assert "Dev" in html_doc
 

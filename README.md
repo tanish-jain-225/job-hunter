@@ -21,8 +21,8 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. 🧠 **Screening & Intelligence**: Scores surviving roles (1.0 - 10.0) against your candidate profile using **`gemini-3.5-flash`** (with automatic fallback).
-4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions.
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Groq (`llama-3.3-70b-versatile`, 14,400 RPD)** or **Google Gemini (`gemini-3.5-flash`)** (with automatic offline fallback).
+4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions using **Google Gemini (`gemini-3.5-flash`)** or Claude.
 5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), delivers HTML briefings, and leverages Edge CDN static assets offloading.
 
 > [!IMPORTANT]
@@ -33,7 +33,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 │ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
 │ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Kanban Board & Mail │
 └─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (9 Major ATS Engines)        (0 API Cost Filter)           (gemini-3.5-flash)            (Dashboard / Inbox)
+  (9 Major ATS Engines)        (0 API Cost Filter)           (Groq Llama / Gemini)         (Dashboard / Inbox)
 ```
 
 > [!TIP]
@@ -215,11 +215,12 @@ jobhunt profile --resume resume.pdf
 Copy `.env.example` to `.env` and insert your credentials:
 
 ```ini
-# AI Intelligence Provider (Google Gemini Free Tier)
-LLM_PROVIDER=gemini
-GEMINI_API_KEY=your_gemini_api_key
-SCREEN_MODEL=gemini-3.5-flash
-DRAFT_MODEL=gemini-3.5-flash
+# AI Intelligence Providers (High-Speed Zero-Quota Split Architecture)
+# • GROQ_API_KEY: 30 RPM, 14,400 RPD for ultra-fast candidate screening (console.groq.com)
+# • GEMINI_API_KEY: Rich tailored application kit drafting (aistudio.google.com)
+# (When both keys are set, Job-Hunter automatically routes screening to Groq and drafting to Gemini!)
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GEMINI_API_KEY=AIzaSy_your_gemini_api_key_here
 
 # Central Outbound SMTP Server (Gmail App Password)
 SMTP_HOST=smtp.gmail.com
@@ -239,22 +240,34 @@ GITHUB_REPOSITORY=your-github-username/job-hunter
 
 # Optional: Static Flask secret key for serverless session stability
 FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
+
+# Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
+# LLM_PROVIDER=gemini
+# SCREEN_MODEL=llama-3.3-70b-versatile
+# DRAFT_MODEL=gemini-3.5-flash
 ```
 
 
 ---
 
-## 🤖 Supported LLM Providers & Cost Matrix
+## 🤖 Supported LLM Providers & Zero-Quota Architecture
 
-Screening requires high throughput on dozens of postings (fast & cheap model), while drafting application kits requires strong reasoning (high-capability model). You can split providers for maximum cost efficiency:
+Job Hunter features an **intelligent split pipeline**: screening dozens of jobs requires ultra-high throughput (handled by **Groq** at 30 RPM / 14,400 RPD), while drafting application kits requires rich context (handled by **Google Gemini** or **Anthropic Claude**).
 
-| Provider | `LLM_PROVIDER` | Environment Key | Native PDF | Best Recommended Role |
+```mermaid
+flowchart LR
+    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Groq (Llama 3.3 70B)<br/>14,400 Requests/Day Free"]
+    B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.5 Flash)<br/>Cover Note, Cold Message, Bullets"]
+    C --> D["Daily Briefing & Web Kanban"]
+```
+
+| Provider | Default Model | Environment Key | Native PDF | Best Recommended Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Google Gemini** | `gemini` | `GEMINI_API_KEY` | ✅ | **Default:** Generous free tier screening & drafting (`gemini-3.5-flash`) |
-| **Anthropic** | `anthropic` | `ANTHROPIC_API_KEY` | ✅ | Drafts & Complex Reasoning (Claude 3.7 / 3.5 Sonnet) |
-| **Groq** | `groq` | `GROQ_API_KEY` | ❌ | Ultra-fast free screening (Llama 3.3 70B) |
-| **OpenAI Compatible** | `openai-compatible` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |
-| **Ollama** | `ollama` | `OLLAMA_HOST` | ❌ | 100% Offline local models |
+| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | ❌ | **Default Screening:** Blazing-fast batch inference (30 RPM, 14,400 RPD free) |
+| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | ✅ | **Default Drafting:** Generous free tier context window for tailored kits |
+| **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-haiku` | `ANTHROPIC_API_KEY` | ✅ | High-reasoning drafting and native PDF resume analysis |
+| **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |
+| **Ollama** | `llama3.1` | `OLLAMA_HOST` | ❌ | 100% Offline local model execution |
 
 ---
 
@@ -322,11 +335,12 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 
 | Secret Name | Description |
 |---|---|
-| `PROFILE_JSON` | Full text contents of your local `profile.json` (for single-user mode). |
-| `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY` / `GROQ_API_KEY`) | API key for your chosen LLM provider. |
+| `GROQ_API_KEY` | Free Groq API key for ultra-fast candidate screening (30 RPM, 14,400 RPD). |
+| `GEMINI_API_KEY` | Free Google Gemini API key for application kit drafting (or `ANTHROPIC_API_KEY`). |
 | `SMTP_USER` & `SMTP_PASS` | Gmail address + [App Password](https://myaccount.google.com/apppasswords). |
-| `MAIL_TO` | Recipient email address for the daily digest. |
+| `MAIL_TO` | Recipient email address for the daily digest (single-user mode). |
 | `SUPABASE_URL` & `SUPABASE_ANON_KEY` | Supabase PostgreSQL credentials (for centralized multi-user mode). |
+| `PROFILE_JSON` | Full text contents of your local `profile.json` (for single-user mode). |
 
 ---
 

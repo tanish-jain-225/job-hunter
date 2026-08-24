@@ -341,7 +341,7 @@ def clear_ats_cache() -> None:
 
 
 def fetch_board(ats: str, slug: str, company: str | None = None,
-                session: requests.Session | None = None,
+                session: Any = None,
                 use_cache: bool = True,
                 cache_ttl: float = 1800.0) -> list[Job]:
     """Hit one company's public board with caching and retries. Returns [] on failure."""

@@ -33,14 +33,17 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 
 For the surviving postings, Job Hunter performs a cheap, batched evaluation pass to score how well the job description aligns with your resume profile.
 
-### Batching & Cost Reduction
-Rather than sending job descriptions one-by-one, Job Hunter batches **7 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,400 characters** (configured via `screen_jd_chars`), keeping only the core requirements.
+### High-Throughput Batching & Cost Reduction
+Rather than sending job descriptions one-by-one, Job Hunter batches **8–15 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,800 characters** (configured via `screen_jd_chars`), keeping only the core requirements.
+
+When `GROQ_API_KEY` is configured, Job Hunter routes all batch screening to **Groq (`llama-3.3-70b-versatile`)**, taking advantage of Groq's high rate limits (30 RPM / 14,400 Requests Per Day) to screen hundreds of jobs in seconds at zero cost.
 
 ### Evaluation Criteria
 The LLM is prompted to assign a score from **`0.0` to `10.0`** based on:
 1. **Core Skills Match:** Does the candidate possess the required stack?
 2. **Seniority Alignment:** Does the job match the target seniority level (e.g. Intern/Junior vs. Principal)?
 3. **Domain Match:** Does the job domain align with the candidate's experience?
+4. **India & Remote Eligibility:** Evaluates location compatibility for Indian and remote-friendly roles.
 
 The LLM returns a JSON list:
 ```json
@@ -57,36 +60,38 @@ The LLM returns a JSON list:
 
 ## ✍️ Phase 3: LLM Drafting (Application Kit Generation)
 
-Only jobs that score at or above the **`score_threshold`** (default `7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
+Only jobs that score at or above the **`score_threshold`** (default `5.0`–`7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
 
 ### High-Context Evaluation
-The engine sends the full job description (up to **7,000 characters**, configured via `draft_jd_chars`) along with your full profile. It asks the model to generate a custom application kit:
+The engine sends the full job description (up to **8,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to **Google Gemini (`gemini-3.5-flash`)** or **Anthropic Claude (`claude-3-7-sonnet`)** to generate a complete application kit:
 
-* **Fit Summary:** A brief 2-sentence summary of why this role is a good match.
+* **Fit Summary:** A brief 2-sentence summary of why this role is a strong match.
 * **Tailored Resume Bullets:** 3 high-impact bullet points demonstrating skills matching the job requirements that you can insert into your resume.
-* **Gaps Analysis:** An honest assessment of skills or requirements listed in the job description that you are missing.
-* **Cover Note:** A short, professional outreach or cover letter tailored directly to the team.
-* **Interview Questions:** 2-3 technical or team-oriented questions to ask during interviews.
+* **Gaps Analysis:** An honest assessment of missing requirements and how to address them.
+* **Cover Note:** A direct, professional outreach letter tailored directly to the hiring team.
+* **Cold Outreach:** A concise (<80 words) direct message for LinkedIn/email networking.
+* **Interview Questions:** 2 sharp technical questions showing thorough reading of the JD.
 
 ---
 
-## 🔌 Swappable Providers & Models
+## 🔌 Swappable Providers & Zero-Quota Split Architecture
 
-The system is provider-agnostic, configured via environment variables in your `.env` file:
+The system is provider-agnostic and auto-routes tasks intelligently when keys are set:
 
 ```env
-LLM_PROVIDER=gemini # options: gemini, groq, anthropic, openai, ollama
+GROQ_API_KEY=gsk_...       # Routes screening to Groq (30 RPM, 14,400 RPD)
+GEMINI_API_KEY=AIzaSy_...  # Routes drafting to Gemini (rich context window)
 ```
 
 ### Supported Configurations
 
-| Provider | Recommended Model | Config Env Var | Notes |
+| Provider | Default Model | Config Key | Role in Split Architecture |
 | :--- | :--- | :--- | :--- |
-| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | **Recommended:** Extremely fast, large context window, and generous free-tier quotas. |
-| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | Blazing-fast inference speeds. |
-| **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-sonnet` | `ANTHROPIC_API_KEY` | Best-in-class reasoning and writing styles. |
-| **OpenAI** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |
-| **Ollama** | Local model (e.g., `llama3`) | `OLLAMA_HOST` | Run locally on your machine for 100% free, offline inference. |
+| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | **Screening:** Ultra-fast high-throughput batch evaluation (14,400 RPD free). |
+| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | **Drafting:** Rich context window for personalized application kits. |
+| **Anthropic** | `claude-3-7-sonnet` | `ANTHROPIC_API_KEY` | High-reasoning drafting and native PDF resume analysis. |
+| **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |
+| **Ollama** | Local model (`llama3.1`) | `OLLAMA_HOST` | Run locally on your machine for 100% free, offline inference. |
 
 ---
 

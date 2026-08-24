@@ -248,3 +248,41 @@ def test_multi_user_pipeline_zero_jobs_sends_email_and_records_history(monkeypat
     assert recorded_runs[0][1]["shortlisted"] == 0
     assert recorded_runs[0][1]["status"] == "completed"
 
+
+def test_merge_user_profile_all_fields_and_filters():
+    """Verify merge_user_profile correctly merges all candidate preference attributes."""
+    from jobhunt.multi import merge_user_profile
+
+    raw_row = {
+        "email": "candidate@example.com",
+        "name": "Jane Developer",
+        "title": "Backend Lead",
+        "skills": ["Rust", "Python"],
+        "target_keywords": ["Backend Engineer"],
+        "exclude_keywords": ["Manager"],
+        "preferred_locations": ["Bengaluru", "Remote"],
+        "location_preference": "specific_cities",
+        "job_types": ["fulltime", "remote"],
+        "experience_level": "1-3",
+        "min_salary_lpa": 30,
+        "preferred_sectors": ["Fintech"],
+        "min_score_notification": 8.0,
+        "notification_email": "alerts@example.com",
+        "email_notifications_enabled": True,
+        "onboarding_completed": True,
+    }
+
+    merged = merge_user_profile(raw_row)
+    assert merged["email"] == "candidate@example.com"
+    assert merged["name"] == "Jane Developer"
+    assert merged["preferred_locations"] == ["Bengaluru", "Remote"]
+    assert merged["job_types"] == ["fulltime", "remote"]
+    assert merged["experience_level"] == "1-3"
+    assert merged["min_salary_lpa"] == 30
+    assert merged["preferred_sectors"] == ["Fintech"]
+    assert merged["min_score_notification"] == 8.0
+    assert merged["notification_email"] == "alerts@example.com"
+    assert merged["email_notifications_enabled"] is True
+    assert merged["onboarding_completed"] is True
+
+
