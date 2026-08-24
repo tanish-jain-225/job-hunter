@@ -341,17 +341,55 @@ def get_provider(name: str) -> Provider:
 def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
     """Which provider + model handles this stage ("screen" or "draft")?
 
-    Precedence: stage-specific env var -> global env var -> auto-detected API key -> built-in default (gemini).
+    Precedence:
+    1. Stage-specific env var (SCREEN_PROVIDER / DRAFT_PROVIDER)
+    2. Global env var (LLM_PROVIDER)
+    3. Auto-detected API key with intelligent pipeline stage splitting:
+       - If GROQ_API_KEY is present:
+         - stage == "screen" -> "groq" (fast high-throughput batch screening, 14,400 RPD)
+         - stage == "draft"  -> "gemini" if GEMINI_API_KEY else "groq"
+       - If only GEMINI_API_KEY is present -> "gemini"
+       - If only ANTHROPIC_API_KEY is present -> "anthropic"
+       - Fallback -> "gemini"
     """
-    default_provider = "gemini" if os.getenv("GEMINI_API_KEY") else ("groq" if os.getenv("GROQ_API_KEY") else ("anthropic" if os.getenv("ANTHROPIC_API_KEY") else "gemini"))
+    has_groq = bool((os.getenv("GROQ_API_KEY") or "").strip())
+    has_gemini = bool((os.getenv("GEMINI_API_KEY") or "").strip())
+    has_anthropic = bool((os.getenv("ANTHROPIC_API_KEY") or "").strip())
+
+    if stage.lower() == "screen":
+        if has_groq:
+            default_provider = "groq"
+        elif has_gemini:
+            default_provider = "gemini"
+        elif has_anthropic:
+            default_provider = "anthropic"
+        else:
+            default_provider = "gemini"
+    else:  # draft
+        if has_gemini:
+            default_provider = "gemini"
+        elif has_groq:
+            default_provider = "groq"
+        elif has_anthropic:
+            default_provider = "anthropic"
+        else:
+            default_provider = "gemini"
 
     name = (os.getenv(f"{stage.upper()}_PROVIDER")
             or os.getenv("LLM_PROVIDER")
             or default_provider).strip().lower()
 
     provider = get_provider(name)
-    model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip() \
-        or DEFAULT_MODELS.get(name, {}).get(stage)
+    explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip()
+    
+    # Avoid provider-model mismatch (e.g. legacy SCREEN_MODEL=gemini-3.5-flash in .env when provider is groq)
+    if explicit_model and name == "groq" and ("gemini" in explicit_model.lower() or "claude" in explicit_model.lower()):
+        model = DEFAULT_MODELS.get(name, {}).get(stage)
+    elif explicit_model and name == "gemini" and ("llama" in explicit_model.lower() or "gpt" in explicit_model.lower() or "claude" in explicit_model.lower()):
+        model = DEFAULT_MODELS.get(name, {}).get(stage)
+    else:
+        model = explicit_model or DEFAULT_MODELS.get(name, {}).get(stage)
+
     if not model:
         raise LLMError(f"set {stage.upper()}_MODEL for provider {name!r}")
     if check:
