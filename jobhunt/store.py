@@ -423,13 +423,13 @@ class Store:
 
     def prune_old_jobs(self) -> None:
         """Keep database footprint small by purging stale jobs under configurable limits."""
-        is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
+        is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production" or os.environ.get("CI") == "true"
         has_env_limit = "MAX_TRACKED_JOBS_COUNT" in os.environ
 
         if not is_prod and not has_env_limit:
             return
 
-        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 50)
+        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 300)
 
         if len(self.data) <= max_count:
             return
