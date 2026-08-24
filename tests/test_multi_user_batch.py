@@ -201,3 +201,50 @@ def test_multi_user_pipeline_candidate_error_isolation(monkeypatch: pytest.Monke
     res = run_multi_user_pipeline(mock=True, scorer="keyword")
     assert res["status"] == "success"
     assert res["users_processed"] == 2
+
+
+def test_multi_user_pipeline_zero_jobs_sends_email_and_records_history(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Verify that when 0 candidate matches pass filter, multi-run still dispatches zero-match email and records run history."""
+    monkeypatch.setattr("jobhunt.store.get_writable_path", lambda p: tmp_path / Path(p).name)
+    user_email = "zeromatch_user@test.com"
+    mock_users = [
+        {
+            "email": user_email,
+            "name": "Zero Match Candidate",
+            "title": "Blockchain Rust Specialist",
+            "skills": ["Solidity", "Rust", "Substrate"],
+            "target_keywords": ["Quantum Cryptographer 999"],  # Will match 0 jobs
+            "exclude_keywords": [],
+            "onboarding_completed": True,
+            "email_notifications_enabled": True,
+            "notification_email": user_email,
+        }
+    ]
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = mock_users
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
+
+    mailer_mock = MagicMock()
+    monkeypatch.setattr("jobhunt.mailer.send", mailer_mock)
+
+    recorded_runs = []
+    def mock_record_run(self, email, run_data, token=None):
+        recorded_runs.append((email, run_data))
+        return True
+
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.record_pipeline_run", mock_record_run)
+    monkeypatch.setenv("SMTP_PASS", "valid-app-password")
+    monkeypatch.delenv("VERCEL", raising=False)
+
+    res = run_multi_user_pipeline(mock=True, scorer="keyword", force_send=True)
+    assert res["status"] == "success"
+    assert res["users_processed"] == 1
+    assert res["total_shortlisted"] == 0
+    assert mailer_mock.called
+    assert len(recorded_runs) == 1
+    assert recorded_runs[0][0] == user_email
+    assert recorded_runs[0][1]["shortlisted"] == 0
+    assert recorded_runs[0][1]["status"] == "completed"
+

@@ -20,6 +20,7 @@ from . import digest, llm, mailer
 from .fetch import fetch_all
 from .mock import fetch_all_mock
 from .prefilter import prefilter
+from .memory import SupabaseMemory
 from .providers import LLMError, resolve
 from .store import Store
 
@@ -305,10 +306,23 @@ def run_pipeline(
         jobs = jobs[:max_jobs_to_screen]
     print(f"  new since last run: {len(jobs)}")
 
+    memory = SupabaseMemory(token=token)
+
     if not jobs:
         print("\nNo new matching jobs today.")
         if use_send:
             _build_and_send_digest([], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email)
+        if user_email and memory.is_configured:
+            try:
+                memory.record_pipeline_run(user_email, {
+                    "scanned": len(raw_jobs),
+                    "matched": len(candidates),
+                    "shortlisted": 0,
+                    "status": "completed",
+                    "logs": f"Screened 0 new jobs, 0 shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
+                }, token=token)
+            except Exception:
+                pass
         return 0
 
     # 3. Screen
@@ -316,6 +330,17 @@ def run_pipeline(
     try:
         _screen_jobs(jobs, profile, eval_args, cfg)
     except LLMError:
+        if user_email and memory.is_configured:
+            try:
+                memory.record_pipeline_run(user_email, {
+                    "scanned": len(raw_jobs),
+                    "matched": len(candidates),
+                    "shortlisted": 0,
+                    "status": "error",
+                    "logs": "LLM screening failed",
+                }, token=token)
+            except Exception:
+                pass
         return 1
 
     # 4. Shortlist + draft
@@ -324,6 +349,18 @@ def run_pipeline(
 
     # 5. Digest + mail
     _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email)
+
+    if user_email and memory.is_configured:
+        try:
+            memory.record_pipeline_run(user_email, {
+                "scanned": len(raw_jobs),
+                "matched": len(candidates),
+                "shortlisted": len(shortlist),
+                "status": "completed",
+                "logs": f"Screened {len(jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
+            }, token=token)
+        except Exception:
+            pass
 
     return 0
 

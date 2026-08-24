@@ -101,6 +101,10 @@ SMTP_PASS=your-16-char-app-password
 
 # Optional: GitHub Personal Access Token (for 1-click cloud on-demand radar from web UI)
 GH_TOKEN=github_pat_...
+GITHUB_REPOSITORY=your-username/job-hunter
+
+# Optional: Static Flask secret key for serverless session stability
+FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 ```
 
 5. Click **Deploy**. Vercel will build and deploy your live dashboard at `https://your-project.vercel.app`!

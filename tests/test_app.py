@@ -466,6 +466,60 @@ def test_api_sync(client):
     assert "timestamp" in data
 
 
+def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
+    """Verify /api/sync ignores older historical runs when dispatched_at is set."""
+    from jobhunt.web.state import set_user_pipeline_state
+    import time
+    from datetime import datetime, timezone
+
+    test_email = "dispatch_test@example.com"
+    now_ts = time.time()
+    old_run_time = "2026-08-20T10:00:00+00:00"
+
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (test_email, "mock_token"))
+    set_user_pipeline_state(test_email, running=True, step="running", message="Dispatched to GitHub Actions...", dispatched_at=now_ts)
+
+    mock_history = [
+        {
+            "user_email": test_email,
+            "run_timestamp": old_run_time,
+            "jobs_scanned": 1000,
+            "shortlisted": 2,
+            "status": "completed",
+            "logs": "Old run from days ago"
+        }
+    ]
+
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=1, token=None: mock_history)
+
+    res = client.get("/api/sync")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["pipeline"]["running"] is True
+
+    # Fresh run after dispatch
+    fresh_run_time = datetime.now(timezone.utc).isoformat()
+    mock_history_fresh = [
+        {
+            "user_email": test_email,
+            "run_timestamp": fresh_run_time,
+            "jobs_scanned": 1200,
+            "shortlisted": 5,
+            "status": "completed",
+            "logs": "Cloud Radar completed: 5 shortlisted out of 1200 scanned."
+        }
+    ]
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=1, token=None: mock_history_fresh)
+
+    res_fresh = client.get("/api/sync")
+    assert res_fresh.status_code == 200
+    data_fresh = res_fresh.get_json()
+    assert data_fresh["pipeline"]["running"] is False
+    assert data_fresh["pipeline"]["step"] == "completed"
+    assert "Cloud Radar completed" in data_fresh["pipeline"]["message"]
+
+
+
 
 
 

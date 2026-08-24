@@ -232,6 +232,13 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 AUTH_REQUIRED=true
+
+# GitHub Actions Workflow Dispatch (Cloud On-Demand Radar)
+GH_TOKEN=github_pat_your_personal_access_token_here
+GITHUB_REPOSITORY=your-github-username/job-hunter
+
+# Optional: Static Flask secret key for serverless session stability
+FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 ```
 
 
@@ -366,7 +373,7 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 262 comprehensive automated test cases (94%+ line coverage)
+├── tests/                    # 303 comprehensive automated test cases (95%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests

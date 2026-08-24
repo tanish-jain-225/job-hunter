@@ -131,15 +131,47 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     if edu:
         cand_info += f" ({html.escape(str(edu))})"
 
-    subject = (f"{len(jobs)} Remote Role{'s' if len(jobs) != 1 else ''} Matched for {name} — {today}"
-               if jobs else f"No new remote matches today — {today}")
+    target_titles = (profile or {}).get("target_keywords") or (profile or {}).get("target_titles") or []
+    target_str = ", ".join(str(t) for t in target_titles[:3]) if target_titles else "Software Engineering"
+
+    skills = (profile or {}).get("skills") or (profile or {}).get("core_skills") or []
+    skills_str = ", ".join(str(s) for s in skills[:6]) if skills else "Core Stack"
+
+    pref_locs = (profile or {}).get("preferred_locations") or []
+    locs_str = ", ".join(str(l) for l in pref_locs) if pref_locs else "India / Remote / Global"
 
     if jobs:
+        subject = f"{len(jobs)} Remote Role{'s' if len(jobs) != 1 else ''} Matched for {name} — {today}"
         body = "".join(_card(j) for j in jobs)
     else:
-        body = (f'<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
-                f'padding:20px 16px;color:{MUTED};font-size:13.5px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">Scanned {scanned} postings across 40+ ATS boards, '
-                f'0 candidates cleared the 70+ match bar today.</div>')
+        subject = f"No new remote matches today for {name} — {today}" if name != "Candidate" else f"No new remote matches today — {today}"
+        body = f"""
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+    <div style="background:#eff6ff;color:#2563eb;font-size:22px;line-height:1;padding:10px;border-radius:10px;border:1px solid #bfdbfe;">🏹</div>
+    <div>
+      <div style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;">Daily Radar Scan Completed</div>
+      <div style="color:{MUTED};font-size:12.5px;margin-top:2px;">No new high-match postings found (0 candidates cleared the match bar today)</div>
+    </div>
+  </div>
+
+  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin-bottom:14px;">
+    Our autonomous crawler scanned <b>{scanned} postings</b> across <b>100+ verified ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters).
+  </p>
+
+  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+    <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Active Criteria Evaluated</div>
+    <div style="font-size:12.5px;color:#334155;line-height:1.5;">
+      • <b>Target Roles:</b> {html.escape(target_str)}<br>
+      • <b>Locations:</b> {html.escape(locs_str)}<br>
+      • <b>Key Skills:</b> {html.escape(skills_str)}
+    </div>
+  </div>
+
+  <div style="color:#475569;font-size:13px;line-height:1.5;">
+    💡 <b>Radar Status: Active &amp; Monitoring.</b> You will be immediately alerted as soon as new matching opportunities are published by target companies.
+  </div>
+</div>"""
 
     html_doc = f"""<!doctype html>
 <html lang="en" style="box-sizing:border-box;-webkit-text-size-adjust:100%;">

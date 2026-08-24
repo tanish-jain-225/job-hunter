@@ -61,6 +61,9 @@ pip install -e .
    SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    AUTH_REQUIRED=true
+
+   GH_TOKEN=github_pat_your_personal_access_token_here
+   GITHUB_REPOSITORY=your-username/job-hunter
    ```
 
 2. **Generate Profile from Resume**:

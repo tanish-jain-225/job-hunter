@@ -857,7 +857,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                 </div>
                 <div class="empty-state-title">Autonomous Job Scan in Progress...</div>
                 <div class="empty-state-desc">
-                  Scanning 40+ ATS boards and matching jobs to your candidate profile in real time. Please wait, this takes about 10-15 seconds!
+                  Scanning 100+ ATS boards and matching jobs to your candidate profile in real time. Please wait, this takes about 10-15 seconds!
                 </div>
                 <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Scanning target endpoints...</div>
               </div>
@@ -872,7 +872,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Candidate Profile Required</div>
                   <div class="empty-state-desc">
-                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 40+ ATS boards.
+                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 100+ ATS boards.
                   </div>
                   <button class="btn btn-primary" onclick="openProfileModal()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -888,7 +888,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Your Live Job Radar is Ready</div>
                   <div class="empty-state-desc">
-                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 40+ ATS boards!
+                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 100+ ATS boards!
                   </div>
                   <button class="btn btn-primary" onclick="runPipeline()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -2699,7 +2699,7 @@ async function runPipeline() {
 
     if (data.status === 'dispatched') {
       showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
-      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 200+ company boards (~1-2 mins).';
+      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 100+ company boards (~1-2 mins).';
       
       let pollCount = 0;
       const pollGitHubPipeline = async () => {
@@ -2710,25 +2710,39 @@ async function runPipeline() {
           if (syncData.status === 'success') {
             updatePipelineConsole(syncData.pipeline);
             renderMetrics(syncData.stats);
-            await fetchAndRenderJobs(false);
-            refreshDigest(true);
+
+            if (syncData.pipeline && !syncData.pipeline.running && (syncData.pipeline.step === 'completed' || syncData.pipeline.step === 'error')) {
+              appState.pipelineRunning = false;
+              if (syncData.pipeline.step === 'completed') {
+                showToast('Autonomous Cloud Radar completed! Results synchronized.', 'success', 4000);
+                await fetchAndRenderJobs(false);
+                refreshDigest(true);
+                broadcastSync('STATE_MUTATED');
+              } else {
+                showToast(syncData.pipeline.message || 'Cloud Radar encountered an error', 'error');
+              }
+              updateJobSearchButtonState();
+              return;
+            }
           }
         } catch (e) {
-          console.warn('Poll notice:', e);
+          console.warn('GitHub poll notice:', e);
         }
-        if (pollCount < 40) {
-          setTimeout(pollGitHubPipeline, 4000);
+        if (pollCount < 60 && appState.pipelineRunning) {
+          setTimeout(pollGitHubPipeline, 3500);
         } else {
           appState.pipelineRunning = false;
           updateJobSearchButtonState();
+          await fetchAndRenderJobs(false);
+          refreshDigest(true);
         }
       };
-      setTimeout(pollGitHubPipeline, 3000);
+      setTimeout(pollGitHubPipeline, 2500);
 
     } else if (data.status === 'need_github_dispatch') {
       appState.pipelineRunning = false;
-      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 200+ live board crawl in the cloud...';
-      showToast('Opening GitHub Actions to run the live 200+ board radar in the cloud...', 'info', 5000);
+      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 100+ live board crawl in the cloud...';
+      showToast('Opening GitHub Actions to run the live 100+ board radar in the cloud...', 'info', 5000);
       if (data.actions_url) {
         window.open(data.actions_url, '_blank');
       }

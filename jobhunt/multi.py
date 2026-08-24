@@ -151,62 +151,66 @@ def run_multi_user_pipeline(
             user_candidates = prefilter(raw_jobs, user_filters)
             print(f"  Pre-filtered: {len(raw_jobs)} -> {len(user_candidates)} candidate postings")
 
-            if not user_candidates:
-                print("  No candidate matches passed pre-filter for this user.")
-                users_processed += 1
-                continue
-
-            # Stage B: Deduplication against user's private store
             seen_file = cfg.get("seen_file", "seen.json")
             st = Store(seen_file, user_email=user_email)
-            unseen_jobs = st.unseen(user_candidates)
+            unseen_jobs = st.unseen(user_candidates) if user_candidates else []
             print(f"  New unseen jobs to evaluate: {len(unseen_jobs)} (skipping {len(user_candidates) - len(unseen_jobs)} seen)")
 
-            if not unseen_jobs:
-                print("  All matching jobs were already evaluated in previous runs.")
-                users_processed += 1
-                continue
+            scored_jobs: list[Any] = []
+            shortlist: list[Any] = []
 
-            # Stage C: LLM Screening with gemini-3.5-flash & Fallback
-            if scorer == "keyword" or mock:
-                llm.keyword_screen(unseen_jobs, profile_dict)
-            else:
-                try:
-                    provider, model = resolve("screen")
-                    print(f"  Screening {len(unseen_jobs)} postings via {provider.name}/{model}...")
-                    llm.screen(
-                        unseen_jobs, profile_dict,
-                        batch_size=int(cfg.get("screen_batch_size", 7)),
-                        jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                        provider=provider, model=model,
-                        delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
-                        max_workers=int(cfg.get("llm_max_workers", 2)),
-                    )
-                except Exception as e:
-                    print(f"  ! Screening error ({e}). Falling back to keyword matcher...")
+            # Determine candidate score threshold
+            user_min_score = user.get("min_score_notification")
+            effective_threshold = float(user_min_score) if user_min_score is not None and str(user_min_score).strip() != "" else score_threshold
+
+            if unseen_jobs:
+                # Stage C: LLM Screening with fallback
+                if scorer == "keyword" or mock:
                     llm.keyword_screen(unseen_jobs, profile_dict)
+                else:
+                    try:
+                        provider, model = resolve("screen")
+                        print(f"  Screening {len(unseen_jobs)} postings via {provider.name}/{model}...")
+                        llm.screen(
+                            unseen_jobs, profile_dict,
+                            batch_size=int(cfg.get("screen_batch_size", 7)),
+                            jd_chars=int(cfg.get("screen_jd_chars", 1400)),
+                            provider=provider, model=model,
+                            delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
+                            max_workers=int(cfg.get("llm_max_workers", 2)),
+                        )
+                    except Exception as e:
+                        print(f"  ! Screening error ({e}). Falling back to keyword matcher...")
+                        llm.keyword_screen(unseen_jobs, profile_dict)
 
-            scored_jobs = [j for j in unseen_jobs if j.score is not None]
-            shortlist = [j for j in scored_jobs if (j.score or 0) >= score_threshold]
-            shortlist.sort(key=lambda j: j.score or 0, reverse=True)
-            shortlist = shortlist[:max_per_digest]
-            print(f"  Scored: {len(scored_jobs)} jobs | {len(shortlist)} cleared threshold ({score_threshold}+)")
+                scored_jobs = [j for j in unseen_jobs if j.score is not None]
+                shortlist = [j for j in scored_jobs if (j.score or 0) >= effective_threshold]
+                shortlist.sort(key=lambda j: j.score or 0, reverse=True)
+                shortlist = shortlist[:max_per_digest]
+                print(f"  Scored: {len(scored_jobs)} jobs | {len(shortlist)} cleared threshold ({effective_threshold}+)")
 
-            # Stage D: Application kit drafting
-            if shortlist and scorer != "keyword" and not mock:
-                try:
-                    d_provider, d_model = resolve("draft")
-                    print(f"  Drafting application kits via {d_provider.name}/{d_model}...")
-                    llm.draft(
-                        shortlist, profile_dict,
-                        jd_chars=int(cfg.get("draft_jd_chars", 7000)),
-                        provider=d_provider, model=d_model,
-                        delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
-                    )
-                except Exception as e:
-                    print(f"  ! Drafting error ({e}). Using standard kit drafts.")
+                # Stage D: Application kit drafting
+                if shortlist and scorer != "keyword" and not mock:
+                    try:
+                        d_provider, d_model = resolve("draft")
+                        print(f"  Drafting application kits via {d_provider.name}/{d_model}...")
+                        llm.draft(
+                            shortlist, profile_dict,
+                            jd_chars=int(cfg.get("draft_jd_chars", 7000)),
+                            provider=d_provider, model=d_model,
+                            delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
+                        )
+                    except Exception as e:
+                        print(f"  ! Drafting error ({e}). Using standard kit drafts.")
 
-            # Stage E: Save records to private store & Supabase
+                st.record(scored_jobs, emailed=bool(user.get("email_notifications_enabled", False)) or force_send)
+            else:
+                if not user_candidates:
+                    print("  No candidate matches passed pre-filter for this user.")
+                else:
+                    print("  All matching jobs were already evaluated in previous runs.")
+
+            # Stage E: Build digest (contains shortlisted jobs or clean zero-match briefing)
             email_enabled = bool(user.get("email_notifications_enabled", False)) or force_send
             target_email = user.get("notification_email") or user_email
 
@@ -218,13 +222,12 @@ def run_multi_user_pipeline(
                 profile=profile_dict,
             )
 
-            st.record(scored_jobs, emailed=email_enabled)
-
-            # Stage F: Dispatch email briefing if enabled
+            # Stage F: Dispatch email briefing if notifications enabled
             dispatched = False
             if email_enabled and has_smtp and not os.environ.get("VERCEL"):
                 try:
-                    print(f"  Dispatching daily briefing email to {target_email}...")
+                    status_desc = f"{len(shortlist)} matches" if shortlist else "0 new matches briefing"
+                    print(f"  Dispatching briefing email ({status_desc}) to {target_email}...")
                     mailer.send(subject, html_content, to_email=target_email)
                     dispatched = True
                     dispatched_emails += 1
@@ -232,18 +235,19 @@ def run_multi_user_pipeline(
                 except Exception as e:
                     print(f"  ! Email dispatch failed: {e}")
 
-            # Record run history in Supabase
+            # Record run history in Supabase PostgreSQL memory
             if memory.is_configured:
                 try:
+                    run_log_msg = f"Screened {len(unseen_jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if dispatched else 'skipped'}"
                     memory.record_pipeline_run(user_email, {
                         "scanned": len(raw_jobs),
                         "matched": len(user_candidates),
                         "shortlisted": len(shortlist),
                         "status": "completed",
-                        "logs": f"Screened {len(unseen_jobs)} new jobs, {len(shortlist)} shortlisted, email={'sent' if dispatched else 'skipped'}",
+                        "logs": run_log_msg,
                     })
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"  ! Failed to record pipeline run in Supabase: {e}")
 
             users_processed += 1
             total_matches += len(user_candidates)

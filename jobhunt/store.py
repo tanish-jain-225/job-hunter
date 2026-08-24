@@ -214,31 +214,6 @@ class Store:
         if changed_urls:
             self.save(auto_export=False)
 
-        # Auto-seed mock jobs on Vercel serverless if store is empty (unauthenticated demo visit)
-        if not self.data and (os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ) and not self.user_email:
-            try:
-                from .mock import fetch_all_mock
-                from .llm import keyword_screen
-                mock_jobs = fetch_all_mock()
-                keyword_screen(mock_jobs, {})
-                now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-                for j in mock_jobs:
-                    self.data[j.job_id] = {
-                        "first_seen": now,
-                        "company": j.company,
-                        "title": j.title,
-                        "location": j.location,
-                        "url": sanitize_job_url(j.url, ats=j.ats, job_id=j.job_id, company=j.company, title=j.title),
-                        "score": j.score,
-                        "reason": j.reason,
-                        "emailed": True,
-                        "applied": False,
-                        "applied_on": None,
-                    }
-                self.save()
-            except Exception as e:
-                print(f"  ! Store auto-seed error: {e}")
-
     def unseen(self, jobs: list[Job]) -> list[Job]:
         return [j for j in jobs if j.job_id not in self.data]
 

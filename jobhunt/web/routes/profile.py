@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 from flask import Blueprint, jsonify, request
 
@@ -15,6 +16,27 @@ from ..state import get_current_user_context
 logger = logging.getLogger(__name__)
 
 profile_bp = Blueprint("profile", __name__)
+
+
+def _extract_skills_from_text(resume_text: str) -> list[str]:
+    """Safely extract skills from resume text using strict word boundaries to avoid false substring matches."""
+    if not resume_text:
+        return []
+    common_keywords = [
+        "Python", "JavaScript", "TypeScript", "Golang", "Go", "Java", "C++", "C#", "Rust",
+        "PostgreSQL", "SQL", "MySQL", "MongoDB", "Redis", "Docker", "Kubernetes",
+        "AWS", "GCP", "Azure", "FastAPI", "Flask", "Django", "React", "React.js", "Next.js",
+        "Node.js", "Express.js", "REST APIs", "GraphQL", "Microservices", "CI/CD", "Git",
+        "Tailwind CSS", "Tailwind", "Jest", "Playwright", "Firebase", "Firestore",
+        "Distributed Systems", "AI", "LLM"
+    ]
+    found_skills: list[str] = []
+    for kw in common_keywords:
+        escaped = re.escape(kw)
+        pattern = rf"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])"
+        if re.search(pattern, resume_text, re.IGNORECASE):
+            found_skills.append(kw)
+    return found_skills
 
 
 @profile_bp.route("/api/profile", methods=["GET", "POST"])
@@ -66,17 +88,7 @@ def api_profile():
         # If new non-empty resume_text is submitted without skills, auto-extract skills
         data_resume_text = (data.get("resume_text") or "").strip()
         if data_resume_text and not data.get("skills"):
-            common_keywords = [
-                "Python", "JavaScript", "TypeScript", "Go", "Golang", "Java", "C++", "Rust",
-                "PostgreSQL", "SQL", "MySQL", "MongoDB", "Redis", "Docker", "Kubernetes",
-                "AWS", "GCP", "Azure", "FastAPI", "Flask", "Django", "React", "Next.js", "Node.js",
-                "REST APIs", "GraphQL", "Microservices", "CI/CD", "Git", "Distributed Systems", "AI", "LLM"
-            ]
-            found_skills = []
-            text_lower = data_resume_text.lower()
-            for kw in common_keywords:
-                if kw.lower() in text_lower:
-                    found_skills.append(kw)
+            found_skills = _extract_skills_from_text(data_resume_text)
             if found_skills:
                 merged_profile["skills"] = found_skills[:12]
 
@@ -211,20 +223,7 @@ def api_resume_upload():
         if not derived_name or len(derived_name) > 40:
             derived_name = " ".join(part.capitalize() for part in username_part.replace(".", " ").replace("_", " ").split())
 
-        common_keywords = [
-            "Python", "JavaScript", "TypeScript", "Go", "Golang", "Java", "C++", "Rust",
-            "PostgreSQL", "SQL", "MySQL", "MongoDB", "Redis", "Docker", "Kubernetes",
-            "AWS", "GCP", "Azure", "FastAPI", "Flask", "Django", "React", "Next.js", "Node.js",
-            "REST APIs", "GraphQL", "Microservices", "CI/CD", "Git", "Distributed Systems", "AI", "LLM"
-        ]
-        found_skills = []
-        if resume_text:
-            text_lower = resume_text.lower()
-            for kw in common_keywords:
-                if kw.lower() in text_lower:
-                    found_skills.append(kw)
-
-        skills_list = found_skills[:12] if len(found_skills) >= 1 else []
+        skills_list = _extract_skills_from_text(resume_text)[:12] if resume_text else []
 
         parsed_profile = {
             "name": derived_name or "",

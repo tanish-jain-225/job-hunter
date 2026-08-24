@@ -77,18 +77,96 @@ def api_sync():
 
     # Fetch active in-memory pipeline state or sync latest remote run from Supabase
     pipe_state = get_user_pipeline_state(email)
+    dispatched_at = pipe_state.get("dispatched_at") or 0
+
     if email and memory.is_configured:
         try:
             recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
             if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
                 last_run = recent_runs[0]
-                run_logs = last_run.get("logs") or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
-                pipe_state["last_remote_run"] = last_run.get("run_timestamp")
-                if pipe_state.get("running") or "dispatched" in pipe_state.get("message", "").lower():
+                run_ts_raw = str(last_run.get("run_timestamp") or "")
+
+                # Check if this run occurred after the latest on-demand dispatch
+                is_newer = False
+                if run_ts_raw and dispatched_at:
+                    try:
+                        from datetime import datetime
+                        clean_ts = run_ts_raw.replace("Z", "+00:00")
+                        run_dt = datetime.fromisoformat(clean_ts).timestamp()
+                        if run_dt >= (dispatched_at - 5):  # 5s clock skew tolerance
+                            is_newer = True
+                    except Exception:
+                        is_newer = True
+                elif not dispatched_at:
+                    is_newer = False
+
+                if is_newer:
+                    run_logs = last_run.get("logs") or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
+                    pipe_state["last_remote_run"] = run_ts_raw
                     pipe_state["running"] = False
                     pipe_state["step"] = "completed"
                     pipe_state["message"] = run_logs
+                    pipe_state.pop("dispatched_at", None)
                     set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
+                elif pipe_state.get("running"):
+                    # Check GitHub Actions API for live workflow execution state
+                    gh_token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or "").strip()
+                    if gh_token:
+                        try:
+                            import requests
+                            v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
+                            v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
+                            v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
+                            repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
+                            gh_url = f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
+                            gh_headers = {
+                                "Authorization": f"Bearer {gh_token}",
+                                "Accept": "application/vnd.github+json",
+                                "User-Agent": "Job-Hunter-Web-App",
+                            }
+                            gh_r = requests.get(gh_url, headers=gh_headers, timeout=4)
+                            if gh_r.status_code == 200:
+                                runs_data = gh_r.json().get("workflow_runs", [])
+                                if runs_data:
+                                    top_run = runs_data[0]
+                                    run_created_raw = str(top_run.get("run_started_at") or top_run.get("created_at") or "")
+                                    is_gh_newer = True
+                                    if run_created_raw and dispatched_at:
+                                        try:
+                                            from datetime import datetime
+                                            clean_gh_ts = run_created_raw.replace("Z", "+00:00")
+                                            gh_dt = datetime.fromisoformat(clean_gh_ts).timestamp()
+                                            if gh_dt < (dispatched_at - 10):
+                                                is_gh_newer = False
+                                        except Exception:
+                                            pass
+
+                                    if not is_gh_newer:
+                                        pipe_state["running"] = True
+                                        pipe_state["step"] = "running"
+                                        pipe_state["message"] = "Cloud Radar: Workflow dispatching in GitHub Actions cloud..."
+                                    else:
+                                        gh_status = top_run.get("status")  # queued, in_progress, completed
+                                        gh_conclusion = top_run.get("conclusion")  # success, failure, etc.
+                                        if gh_status in ("queued", "in_progress"):
+                                            pipe_state["running"] = True
+                                            pipe_state["step"] = "running"
+                                            pipe_state["message"] = f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
+                                        elif gh_status == "completed":
+                                            if gh_conclusion == "success":
+                                                pipe_state["running"] = False
+                                                pipe_state["step"] = "completed"
+                                                pipe_state["message"] = "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
+                                                pipe_state.pop("dispatched_at", None)
+                                                set_user_pipeline_state(email, running=False, step="completed", message=pipe_state["message"])
+                                            else:
+                                                pipe_state["running"] = False
+                                                pipe_state["step"] = "error"
+                                                pipe_state["message"] = f"GitHub Actions completed with status: {gh_conclusion}"
+                                                pipe_state.pop("dispatched_at", None)
+                                                set_user_pipeline_state(email, running=False, step="error", message=pipe_state["message"])
+                        except Exception:
+                            pass
         except Exception:
             pass
 
@@ -149,17 +227,28 @@ def api_digest():
 
         memory = SupabaseMemory(token=token)
         profile_data = None
+        scanned_count = len(st.data)
+        candidates_count = len(st.data)
+
         if email and memory.is_configured:
             remote_profile = memory.get_user_profile(email, token=token)
             if remote_profile:
                 profile_data = remote_profile.get("profile_json") or remote_profile
+            recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
+            if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
+                latest_run = recent_runs[0]
+                if latest_run.get("jobs_scanned"):
+                    scanned_count = int(latest_run["jobs_scanned"])
+                if latest_run.get("candidates_matched"):
+                    candidates_count = int(latest_run["candidates_matched"])
+
         if not profile_data:
             profile_data = cli._load_profile(cfg, raise_on_error=False)
 
         subject, html_content = digest.build(
             jobs_list[:7],
-            scanned=len(st.data),
-            candidates=len(st.data),
+            scanned=scanned_count,
+            candidates=candidates_count,
             stats=st.stats(),
             profile=profile_data,
         )
@@ -252,8 +341,9 @@ def api_run():
     v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
     repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
 
-    # Option 1: If on Vercel and GH_TOKEN is provided, trigger GitHub Actions workflow directly
-    if is_vercel and gh_token and not use_mock:
+    # Option 1: If on Vercel or cloud requested and GH_TOKEN is provided, trigger GitHub Actions workflow directly
+    prefer_cloud = is_vercel or bool(data.get("cloud", False))
+    if prefer_cloud and gh_token and not use_mock:
         try:
             import requests
             gh_url = f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/dispatches"
@@ -269,7 +359,8 @@ def api_run():
             }
             gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
             if gh_resp.status_code in (200, 204):
-                msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 200+ company boards in the cloud..."
+                msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 100+ company boards in the cloud..."
+                dispatched_time = time.time()
                 set_user_pipeline_state(
                     email,
                     running=True,
@@ -277,11 +368,14 @@ def api_run():
                     message=msg,
                     last_run=now_utc,
                 )
+                pipe_st = get_user_pipeline_state(email)
+                pipe_st["dispatched_at"] = dispatched_time
                 return jsonify({
                     "status": "dispatched",
                     "mode": "github_actions",
                     "message": msg,
-                    "pipeline": get_user_pipeline_state(email),
+                    "dispatched_at": dispatched_time,
+                    "pipeline": pipe_st,
                     "version": get_store_version(st),
                     "stats": st.stats(),
                 }), 200
@@ -293,7 +387,7 @@ def api_run():
     # If on Vercel without GH_TOKEN and not in mock mode, guide user to GitHub Actions
     if is_vercel and not gh_token and not use_mock:
         gh_actions_url = f"https://github.com/{repo_name}/actions/workflows/daily.yml"
-        msg = "Cloud Radar: GitHub Actions is ready to crawl 200+ live boards. Triggering workflow..."
+        msg = "Cloud Radar: GitHub Actions is ready to crawl 100+ live boards. Triggering workflow..."
         return jsonify({
             "status": "need_github_dispatch",
             "mode": "github_actions",
@@ -383,15 +477,6 @@ def api_run():
                 st.export_csv(cfg.get("tracker_csv", "out/tracker.csv"))
             except Exception:
                 pass
-
-            if email and memory.is_configured:
-                memory.record_pipeline_run(email, {
-                    "scanned": len(st.data),
-                    "matched": len(st.data),
-                    "shortlisted": sum(1 for v in st.data.values() if (v.get("score") or 0) >= 7.0),
-                    "status": "completed",
-                    "logs": msg,
-                }, token=token)
         else:
             set_user_pipeline_state(
                 email,

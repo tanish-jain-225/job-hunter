@@ -599,3 +599,189 @@ def test_web_routes_pipeline_in_memory_digest(client, monkeypatch):
     assert "text/html" in res.content_type
 
 
+def test_digest_badge_and_bullets_and_locations():
+    from jobhunt.digest import _job_type_badge, _bullets, _card
+
+    # Internship badge
+    j_intern = Job("1", "ashby", "Co", "Summer Intern", "London", "http://x", "Internship role")
+    assert "Internship" in _job_type_badge(j_intern)
+
+    # Empty and populated bullets
+    assert _bullets([]) == ""
+    bullets_html = _bullets(["Point 1", "Point 2"])
+    assert "Point 1</li>" in bullets_html
+
+    # Location TBD
+    j_tbd = Job("2", "ashby", "Co", "Engineer", "", "http://x", "No location", score=9.0)
+    card_tbd = _card(j_tbd)
+    assert "Location TBD" in card_tbd
+
+    # Global location
+    j_global = Job("3", "ashby", "Co", "Engineer", "Tokyo, Japan", "http://x", "Japan role", score=8.5)
+    card_global = _card(j_global)
+    assert "Global / Check Location" in card_global
+
+
+def test_web_routes_profile_preferences_get_and_post(client, monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setattr("jobhunt.web.routes.profile.get_current_user_context", lambda: ("pref_user@test.com", "token"))
+
+    # GET preferences
+    res_get = client.get("/api/profile/preferences")
+    assert res_get.status_code == 200
+    data_get = res_get.get_json()
+    assert data_get["status"] == "success"
+    assert "preferences" in data_get
+
+    # POST preferences
+    payload = {
+        "preferred_locations": ["Bengaluru", "Remote"],
+        "job_types": ["fulltime", "remote"],
+        "experience_level": "1-3",
+        "min_salary_lpa": 25,
+        "preferred_sectors": ["Fintech", "AI"],
+    }
+    res_post = client.post("/api/profile/preferences", json=payload)
+    assert res_post.status_code == 200
+    data_post = res_post.get_json()
+    assert data_post["status"] == "success"
+    assert data_post["preferences"]["min_salary_lpa"] == 25
+
+
+def test_web_routes_api_sync_github_actions_status_polling(client, monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setenv("GH_TOKEN", "mock_gh_token")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("sync_gh@test.com", "token"))
+
+    # Mock in-progress GitHub run
+    from jobhunt.web.state import set_user_pipeline_state
+    set_user_pipeline_state("sync_gh@test.com", running=True, step="running", dispatched_at=time.time() - 30)
+
+    mock_gh_in_progress = {
+        "workflow_runs": [
+            {"status": "in_progress", "conclusion": None, "created_at": "2026-08-24T12:00:00Z"}
+        ]
+    }
+    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_in_progress)):
+        res = client.get("/api/sync")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+    # Mock completed success GitHub run
+    mock_gh_completed = {
+        "workflow_runs": [
+            {"status": "completed", "conclusion": "success", "created_at": "2026-08-24T12:05:00Z"}
+        ]
+    }
+    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_completed)):
+        res = client.get("/api/sync")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+    # Mock completed failure GitHub run
+    set_user_pipeline_state("sync_gh@test.com", running=True, step="running", dispatched_at=time.time() - 30)
+    mock_gh_failed = {
+        "workflow_runs": [
+            {"status": "completed", "conclusion": "failure", "created_at": "2026-08-24T12:10:00Z"}
+        ]
+    }
+    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_failed)):
+        res = client.get("/api/sync")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+
+def test_web_routes_companies_search_and_ats_filter(client, monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setattr("jobhunt.web.routes.jobs.get_current_user_context", lambda: ("comp_test@test.com", "token"))
+
+    # Filter by ATS
+    res_ats = client.get("/api/companies?ats=greenhouse")
+    assert res_ats.status_code == 200
+    data_ats = res_ats.get_json()
+    assert all(c.get("ats") == "greenhouse" for c in data_ats["companies"])
+
+    # Filter by search keyword
+    res_search = client.get("/api/companies?search=stripe")
+    assert res_search.status_code == 200
+    data_search = res_search.get_json()
+    assert any("stripe" in c.get("slug", "").lower() for c in data_search["companies"])
+
+
+def test_providers_document_and_error_handling(monkeypatch):
+    from jobhunt.providers import Provider, GeminiProvider, AnthropicProvider, LLMError
+
+    # Provider abstract method raises
+    class DummyProvider(Provider):
+        pass
+
+    dummy = DummyProvider()
+    with pytest.raises(NotImplementedError):
+        dummy.complete("model", "sys", "user", 1000)
+
+    # Gemini document completion mock
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    gemini = GeminiProvider()
+    with patch("requests.post", return_value=MagicMock(
+        status_code=200,
+        json=lambda: {"candidates": [{"content": {"parts": [{"text": "Extracted doc"}]}}]}
+    )):
+        res = gemini.complete_document("gemini-3.5-flash", "extract", b"pdf_bytes", 1000)
+        assert res == "Extracted doc"
+
+    # Anthropic missing key
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    anthropic = AnthropicProvider()
+    with pytest.raises(LLMError):
+        anthropic.preflight()
+
+
+def test_web_routes_api_run_experience_levels_and_dispatch_failures(client, monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("exp_user@test.com", "token"))
+
+    # Mock user profile with fresher experience level and mock mode
+    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
+        "name": "Fresher Candidate",
+        "skills": ["Python", "Flask"],
+        "experience_level": "fresher",
+        "onboarding_completed": True,
+    }), patch("jobhunt.cli.run_pipeline", return_value=0):
+        res_fresher = client.post("/api/run", json={"mock": True})
+        assert res_fresher.status_code == 200
+
+    # Mock user profile with 1-3 experience level
+    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
+        "name": "Mid Candidate",
+        "skills": ["Python", "FastAPI"],
+        "experience_level": "1-3",
+        "preferred_locations": ["Bengaluru"],
+        "job_types": ["fulltime"],
+        "onboarding_completed": True,
+    }), patch("jobhunt.cli.run_pipeline", return_value=0):
+        res_mid = client.post("/api/run", json={"mock": True})
+        assert res_mid.status_code == 200
+
+    # Vercel mode with GitHub Actions dispatch non-200 failure
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("GH_TOKEN", "mock_token")
+    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
+        "name": "Cloud Candidate",
+        "skills": ["Go", "Kubernetes"],
+        "onboarding_completed": True,
+    }), patch("requests.post", return_value=MagicMock(status_code=422, text="Unprocessable Entity")), \
+       patch("jobhunt.cli.run_pipeline", return_value=0):
+        res_gh_fail = client.post("/api/run", json={"mock": True})
+        assert res_gh_fail.status_code == 200
+
+
+
+
+
+
+
+
+

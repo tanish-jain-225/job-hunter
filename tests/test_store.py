@@ -260,13 +260,13 @@ def test_atomic_replace_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert dst.read_text(encoding="utf-8") == "hello atomic"
 
 
-def test_store_auto_seed_vercel_exception(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+def test_store_clean_init_vercel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Verify that Store does not auto-seed mock data on Vercel, ensuring pure real-time data."""
     monkeypatch.setenv("VERCEL", "1")
-    monkeypatch.setattr("jobhunt.mock.fetch_all_mock", lambda: (_ for _ in ()).throw(RuntimeError("Mock seed error")))
-    unique_path = tmp_path / "unique_empty_seen_err.json"
-    _ = Store(unique_path)
-    out = capsys.readouterr().out
-    assert "Store auto-seed error" in out
+    unique_path = tmp_path / "unique_empty_seen_clean.json"
+    st = Store(unique_path)
+    assert len(st.data) == 0
+
 
 
 

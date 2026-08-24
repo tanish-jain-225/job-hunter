@@ -208,3 +208,52 @@ def test_recruitee_breezy_pinpoint_parsers():
         "description": "<p>Manage Kubernetes and AWS infrastructure.</p>",
         "published_at": "2026-08-16T10:00:00Z", "salary_range": "\u00a380,000 - \u00a3100,000"}]})
     assert len(p_jobs) == 1 and p_jobs[0].salary == "\u00a380,000 - \u00a3100,000"
+
+
+def test_detect_job_type_and_negations():
+    from jobhunt.prefilter import _detect_job_type
+
+    # Remote
+    j1 = Job("1", "gh", "A", "Senior Backend Engineer", "Remote, US", "http://x", "Fully remote role.")
+    assert "remote" in _detect_job_type(j1)
+    assert "fulltime" in _detect_job_type(j1)
+
+    # Hybrid
+    j2 = Job("2", "gh", "A", "Frontend Developer", "Bengaluru", "http://x", "Hybrid: 2 days from home.")
+    assert "hybrid" in _detect_job_type(j2)
+
+    # Intern
+    j3 = Job("3", "gh", "A", "Software Engineering Intern", "Pune", "http://x", "Summer internship.")
+    assert "internship" in _detect_job_type(j3)
+    assert "fulltime" not in _detect_job_type(j3)
+
+    # Onsite
+    j4 = Job("4", "gh", "A", "Staff Engineer", "Mumbai Office", "http://x", "In-office only role.")
+    assert "onsite" in _detect_job_type(j4)
+
+    # Negation rules: 'not remote'
+    j_not_remote = Job("5", "gh", "A", "DevOps", "Delhi", "http://x", "Candidate must work in office. Not remote / no wfh.")
+    assert "remote" not in _detect_job_type(j_not_remote)
+
+    # Negation rules: 'not an internship'
+    j_not_intern = Job("6", "gh", "A", "Engineering Manager", "Bengaluru", "http://x", "Leadership role (not an internship).")
+    assert "internship" not in _detect_job_type(j_not_intern)
+    assert "fulltime" in _detect_job_type(j_not_intern)
+
+
+def test_prefilter_job_types_filter_and_exclude_titles():
+    now_iso = datetime.now(timezone.utc).isoformat()
+    jobs = [
+        Job("1", "gh", "A", "CTO & Co-Founder", "Remote", "http://x", "Exec", posted_at=now_iso),
+        Job("2", "gh", "A", "Software Engineer", "Bangalore", "http://x", "remote full-time role", posted_at=now_iso),
+        Job("3", "gh", "A", "Software Engineering Intern", "Bangalore", "http://x", "intern", posted_at=now_iso),
+    ]
+
+    # Fulltime filter + exclude CTO
+    passed = prefilter(jobs, {"exclude_titles": [r"\bcto\b"], "job_types": ["fulltime"], "max_age_days": 30})
+    assert len(passed) == 1 and passed[0].job_id == "2"
+
+    # Internship filter
+    passed_intern = prefilter(jobs, {"job_types": ["internship"], "max_age_days": 30})
+    assert len(passed_intern) == 1 and passed_intern[0].job_id == "3"
+
