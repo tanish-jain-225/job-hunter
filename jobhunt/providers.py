@@ -137,7 +137,7 @@ class GeminiProvider(Provider):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def _post(self, model: str, body: dict) -> str:
-        max_retries = 3
+        max_retries = 4
         url = f"{self.BASE}/{model}:generateContent"
         key = self._env("GEMINI_API_KEY")
         for attempt in range(max_retries):
@@ -148,8 +148,14 @@ class GeminiProvider(Provider):
                     json=body,
                     timeout=TIMEOUT,
                 )
-                if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 2 * (attempt + 1)
+                if r.status_code == 429 and attempt < max_retries - 1:
+                    retry_after = r.headers.get("Retry-After")
+                    delay = max(float(retry_after), 5.0) if (retry_after and retry_after.isdigit()) else 6.0 * (attempt + 1)
+                    print(f"  ! gemini rate limit (HTTP 429) — cooling down for {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
+                    delay = 3.0 * (attempt + 1)
                     print(f"  ! gemini HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
@@ -233,7 +239,7 @@ class OpenAICompatProvider(Provider):
                                    "max_tokens": max_tokens, "temperature": 0.2}
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
-        max_retries = 3
+        max_retries = 4
         for attempt in range(max_retries):
             try:
                 r = requests.post(
@@ -242,8 +248,14 @@ class OpenAICompatProvider(Provider):
                     json=payload,
                     timeout=TIMEOUT,
                 )
-                if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
+                if r.status_code == 429 and attempt < max_retries - 1:
+                    retry_after = r.headers.get("Retry-After")
+                    delay = max(float(retry_after), 5.0) if (retry_after and retry_after.isdigit()) else 5.0 * (attempt + 1)
+                    print(f"  ! {self.name} rate limit (HTTP 429) — cooling down for {delay}s ({attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
+                    delay = 3.0 * (attempt + 1)
                     print(f"  ! {self.name} HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue

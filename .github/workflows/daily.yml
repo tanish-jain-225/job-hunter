@@ -58,9 +58,11 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          LLM_PROVIDER: gemini
-          SCREEN_MODEL: gemini-3.5-flash
-          DRAFT_MODEL: gemini-3.5-flash
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER || (secrets.GEMINI_API_KEY && 'gemini') || (secrets.GROQ_API_KEY && 'groq') || 'gemini' }}
+          SCREEN_PROVIDER: ${{ secrets.SCREEN_PROVIDER || '' }}
+          DRAFT_PROVIDER: ${{ secrets.DRAFT_PROVIDER || '' }}
+          SCREEN_MODEL: ${{ secrets.SCREEN_MODEL || 'gemini-3.5-flash' }}
+          DRAFT_MODEL: ${{ secrets.DRAFT_MODEL || 'gemini-3.5-flash' }}
           SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
           SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

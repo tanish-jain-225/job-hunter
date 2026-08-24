@@ -35,16 +35,16 @@ filters:
   max_age_days: 60
 
 # --- LLM scoring & concurrency -------------------------------------------
-screen_batch_size: 8        # jobs per screening call
-screen_jd_chars: 1800       # JD truncation for screening (increased for richer context)
+screen_batch_size: 15       # jobs per screening call (cuts total API calls by ~50%)
+screen_jd_chars: 1800       # JD truncation for screening (rich context)
 draft_jd_chars: 8000        # JD truncation for drafting
 score_threshold: 5.0        # Lower bar: 5.0 catches more matches (users filter via UI)
 max_per_digest: 10          # hard cap on drafted kits per run (increased from 7)
 
-# Concurrency & rate-limit tuning
+# Concurrency & rate-limit tuning (Safe for Gemini 15 RPM Free Tier)
 fetch_max_workers: 12       # parallel HTTP requests across 200+ ATS boards
-llm_max_workers: 3          # concurrent LLM batch workers
-llm_delay_seconds: 1.5      # delay between LLM calls
+llm_max_workers: 1          # sequential processing to strictly prevent rate limit bursts
+llm_delay_seconds: 4.2      # 4.2s delay = ~14 RPM (safely under Gemini 15 RPM ceiling)
 
 # --- paths ----------------------------------------------------------------
 companies_file: companies.yaml
