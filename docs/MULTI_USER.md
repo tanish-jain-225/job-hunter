@@ -47,7 +47,8 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
    - For each active profile stored in Supabase PostgreSQL:
      - Deterministic title/location pre-filtering narrows down candidate jobs.
      - Deduplication checks the user's private `user_tracked_jobs` table to prevent re-evaluating previously scored jobs.
-     - Surviving new jobs are screened via **Groq** (`llama-3.3-70b-versatile`, 14,400 RPD free) and application kits drafted using **Google Gemini** (`gemini-3.5-flash`).
+     - Surviving new jobs are screened and application kits drafted.
+     - **Dynamic API Key Isolation**: If configured in their settings, the pipeline executes using the candidate's private API keys (Google Gemini, Groq, or Anthropic). This completely isolates rate limits per candidate, protecting the system from shared quota bottlenecks and shifting all API costs to $0 for the platform owner. If custom keys are omitted, the pipeline falls back to the system's global keys.
      - Results are synchronized to their private Supabase partition.
      - A personalized HTML briefing is dispatched if email notifications are enabled.
 
@@ -59,8 +60,8 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 | :--- | :--- | :--- |
 | **Vercel** | 100GB bandwidth, serverless functions | Web Dashboard hosting |
 | **Supabase PostgreSQL** | 500MB database, 50,000 monthly active users | User profiles, private tracking stores, audit history |
-| **Groq API** | 30 RPM, 14,400 RPD on `llama-3.3-70b-versatile` | Ultra-fast candidate fit screening |
-| **Google Gemini API** | 15 RPM, 1M TPM, 1,500 RPD on `gemini-3.5-flash` | High-quality application kit drafting |
+| **Groq API** | $0.00 (Supplied by Candidate / User Keys) | Candidate fit screening (Optional fallback to system keys) |
+| **Google Gemini API** | $0.00 (Supplied by Candidate / User Keys) | Resume tailoring and application kit drafting |
 | **GitHub Actions** | 2,000 free runner minutes / month | Scheduled daily radar execution |
 | **Gmail SMTP** | 500 emails / day | Daily executive briefing email delivery |
 
