@@ -259,6 +259,10 @@ class SupabaseMemory:
         except (ValueError, TypeError):
             min_score_val = None
 
+        pjson = profile.get("profile_json")
+        if not isinstance(pjson, dict):
+            pjson = {}
+
         pjson_merged = {
             "resume_text": profile.get("resume_text") if profile.get("resume_text") is not None else "",
             "resume_filename": profile.get("resume_filename") if profile.get("resume_filename") is not None else "",
@@ -278,6 +282,9 @@ class SupabaseMemory:
             "min_salary_lpa": float(profile.get("min_salary_lpa") or 0),
             "preferred_sectors": profile.get("preferred_sectors") or [],
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
+            "GEMINI_API_KEY": str(profile.get("GEMINI_API_KEY") or pjson.get("GEMINI_API_KEY") or "").strip(),
+            "GROQ_API_KEY": str(profile.get("GROQ_API_KEY") or pjson.get("GROQ_API_KEY") or "").strip(),
+            "ANTHROPIC_API_KEY": str(profile.get("ANTHROPIC_API_KEY") or pjson.get("ANTHROPIC_API_KEY") or "").strip(),
         }
 
         payload = {

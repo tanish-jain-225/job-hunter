@@ -247,122 +247,139 @@ def run_pipeline(
     if profile is None:
         profile = _load_profile(cfg, raise_on_error=False)
 
-    # Apply dynamic user keywords to filters if available
-    filters = dict(cfg.get("filters", {}))
+    # Set temporary candidate-specific API keys if defined in profile
+    old_env = {}
     if profile:
-        # Merge target_keywords / target_titles into include_titles if present
-        target_keys = profile.get("target_keywords") or profile.get("target_titles") or []
-        if target_keys and isinstance(target_keys, list):
-            existing_includes = list(filters.get("include_titles", []))
-            for k in target_keys:
-                clean_k = str(k).strip()
-                if clean_k and clean_k.lower() not in [x.lower() for x in existing_includes]:
-                    existing_includes.insert(0, re.escape(clean_k))
-            filters["include_titles"] = existing_includes
+        for k in ("GEMINI_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
+            val = profile.get(k) or profile.get("profile_json", {}).get(k)
+            if val and str(val).strip():
+                old_env[k] = os.environ.get(k)
+                os.environ[k] = str(val).strip()
 
-        # Merge exclude_keywords into exclude_titles
-        exclude_keys = profile.get("exclude_keywords") or profile.get("avoid_roles") or []
-        if exclude_keys and isinstance(exclude_keys, list):
-            existing_excludes = list(filters.get("exclude_titles", []))
-            for k in exclude_keys:
-                clean_k = str(k).strip()
-                if clean_k and clean_k.lower() not in [x.lower() for x in existing_excludes]:
-                    existing_excludes.append(r"\b" + re.escape(clean_k) + r"\b")
-            filters["exclude_titles"] = existing_excludes
-
-    if custom_filters:
-        for k, v in custom_filters.items():
-            if isinstance(v, list) and k in filters and isinstance(filters[k], list):
-                filters[k] = list(filters[k]) + [x for x in v if x not in filters[k]]
-            else:
-                filters[k] = v
-
-    # Flags
-    use_mock = mock if mock is not None else (getattr(args, "mock", False) if args else False)
-    use_send = send if send is not None else (getattr(args, "send", False) if args else False)
-    use_scorer = scorer if scorer is not None else (getattr(args, "scorer", "llm") if args else "llm")
-    target_to_email = to_email or (profile.get("notification_email") if profile else None)
-
-    # 1. Fetch
-    fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
-    print("[1/5] fetching boards")
-    if use_mock:
-        raw_jobs = fetch_all_mock()
-    else:
-        companies_file = _resolve_relative(Path(cfg.get("companies_file", "companies.yaml")))
-        raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
-
-    # 2. Filter
-    print("\n[2/5] filtering")
-    candidates = prefilter(raw_jobs, filters)
-
-    # Store
-    seen_file = cfg.get("seen_file", "seen.json")
-    st = store or Store(seen_file, user_email=user_email, token=token)
-    jobs = st.unseen(candidates)
-    max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))
-    if len(jobs) > max_jobs_to_screen:
-        print(f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits.")
-        jobs = jobs[:max_jobs_to_screen]
-    print(f"  new since last run: {len(jobs)}")
-
-    memory = SupabaseMemory(token=token)
-
-    if not jobs:
-        print("\nNo new matching jobs today.")
-        if use_send:
-            _build_and_send_digest([], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email)
-        if user_email and memory.is_configured:
-            try:
-                memory.record_pipeline_run(user_email, {
-                    "scanned": len(raw_jobs),
-                    "matched": len(candidates),
-                    "shortlisted": 0,
-                    "status": "completed",
-                    "logs": f"Screened 0 new jobs, 0 shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
-                }, token=token)
-            except Exception:
-                pass
-        return 0
-
-    # 3. Screen
-    eval_args = argparse.Namespace(scorer=use_scorer)
     try:
-        _screen_jobs(jobs, profile, eval_args, cfg)
-    except LLMError:
+        # Apply dynamic user keywords to filters if available
+        filters = dict(cfg.get("filters", {}))
+        if profile:
+            # Merge target_keywords / target_titles into include_titles if present
+            target_keys = profile.get("target_keywords") or profile.get("target_titles") or []
+            if target_keys and isinstance(target_keys, list):
+                existing_includes = list(filters.get("include_titles", []))
+                for k in target_keys:
+                    clean_k = str(k).strip()
+                    if clean_k and clean_k.lower() not in [x.lower() for x in existing_includes]:
+                        existing_includes.insert(0, re.escape(clean_k))
+                filters["include_titles"] = existing_includes
+
+            # Merge exclude_keywords into exclude_titles
+            exclude_keys = profile.get("exclude_keywords") or profile.get("avoid_roles") or []
+            if exclude_keys and isinstance(exclude_keys, list):
+                existing_excludes = list(filters.get("exclude_titles", []))
+                for k in exclude_keys:
+                    clean_k = str(k).strip()
+                    if clean_k and clean_k.lower() not in [x.lower() for x in existing_excludes]:
+                        existing_excludes.append(r"\b" + re.escape(clean_k) + r"\b")
+                filters["exclude_titles"] = existing_excludes
+
+        if custom_filters:
+            for k, v in custom_filters.items():
+                if isinstance(v, list) and k in filters and isinstance(filters[k], list):
+                    filters[k] = list(filters[k]) + [x for x in v if x not in filters[k]]
+                else:
+                    filters[k] = v
+
+        # Flags
+        use_mock = mock if mock is not None else (getattr(args, "mock", False) if args else False)
+        use_send = send if send is not None else (getattr(args, "send", False) if args else False)
+        use_scorer = scorer if scorer is not None else (getattr(args, "scorer", "llm") if args else "llm")
+        target_to_email = to_email or (profile.get("notification_email") if profile else None)
+
+        # 1. Fetch
+        fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
+        print("[1/5] fetching boards")
+        if use_mock:
+            raw_jobs = fetch_all_mock()
+        else:
+            companies_file = _resolve_relative(Path(cfg.get("companies_file", "companies.yaml")))
+            raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
+
+        # 2. Filter
+        print("\n[2/5] filtering")
+        candidates = prefilter(raw_jobs, filters)
+
+        # Store
+        seen_file = cfg.get("seen_file", "seen.json")
+        st = store or Store(seen_file, user_email=user_email, token=token)
+        jobs = st.unseen(candidates)
+        max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))
+        if len(jobs) > max_jobs_to_screen:
+            print(f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits.")
+            jobs = jobs[:max_jobs_to_screen]
+        print(f"  new since last run: {len(jobs)}")
+
+        memory = SupabaseMemory(token=token)
+
+        if not jobs:
+            print("\nNo new matching jobs today.")
+            if use_send:
+                _build_and_send_digest([], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email)
+            if user_email and memory.is_configured:
+                try:
+                    memory.record_pipeline_run(user_email, {
+                        "scanned": len(raw_jobs),
+                        "matched": len(candidates),
+                        "shortlisted": 0,
+                        "status": "completed",
+                        "logs": f"Screened 0 new jobs, 0 shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
+                    }, token=token)
+                except Exception:
+                    pass
+            return 0
+
+        # 3. Screen
+        eval_args = argparse.Namespace(scorer=use_scorer)
+        try:
+            _screen_jobs(jobs, profile, eval_args, cfg)
+        except LLMError:
+            if user_email and memory.is_configured:
+                try:
+                    memory.record_pipeline_run(user_email, {
+                        "scanned": len(raw_jobs),
+                        "matched": len(candidates),
+                        "shortlisted": 0,
+                        "status": "error",
+                        "logs": "LLM screening failed",
+                    }, token=token)
+                except Exception:
+                    pass
+            return 1
+
+        # 4. Shortlist + draft
+        scored_jobs, shortlist = _select_shortlist(jobs, cfg)
+        _draft_kits(shortlist, profile, use_scorer, cfg)
+
+        # 5. Digest + mail
+        _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email)
+
         if user_email and memory.is_configured:
             try:
                 memory.record_pipeline_run(user_email, {
                     "scanned": len(raw_jobs),
                     "matched": len(candidates),
-                    "shortlisted": 0,
-                    "status": "error",
-                    "logs": "LLM screening failed",
+                    "shortlisted": len(shortlist),
+                    "status": "completed",
+                    "logs": f"Screened {len(jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
                 }, token=token)
             except Exception:
                 pass
-        return 1
 
-    # 4. Shortlist + draft
-    scored_jobs, shortlist = _select_shortlist(jobs, cfg)
-    _draft_kits(shortlist, profile, use_scorer, cfg)
-
-    # 5. Digest + mail
-    _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email)
-
-    if user_email and memory.is_configured:
-        try:
-            memory.record_pipeline_run(user_email, {
-                "scanned": len(raw_jobs),
-                "matched": len(candidates),
-                "shortlisted": len(shortlist),
-                "status": "completed",
-                "logs": f"Screened {len(jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
-            }, token=token)
-        except Exception:
-            pass
-
-    return 0
+        return 0
+    finally:
+        # Restore environment variables
+        for k, val in old_env.items():
+            if val is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = val
 
 
 def cmd_run(args: argparse.Namespace) -> int:
