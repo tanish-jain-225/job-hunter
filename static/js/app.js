@@ -3430,20 +3430,24 @@ async function initAuth() {
           storage: window.localStorage
         }
       });
-
+ 
       // Get initial session from localStorage
       const { data } = await supabaseClient.auth.getSession();
       currentAuthSession = data?.session || null;
-
+ 
       // Listen for auth state changes across all tabs and token refreshes
+      let initialAuthSynced = false;
       supabaseClient.auth.onAuthStateChange((event, session) => {
         currentAuthSession = session;
         updateUserHeader(session);
         if (session) {
           setAppView('dashboard');
-          syncDashboard(true);
+          if (!initialAuthSynced) {
+            initialAuthSynced = true;
+            syncDashboard(true);
+          }
           startHeartbeat();
-
+ 
           // Clean up OAuth fragment from address bar if present
           if (window.location.hash && window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -3455,19 +3459,30 @@ async function initAuth() {
           }
         }
       });
-    }
-
-    // Initialize View based on restored session
-    if (currentAuthSession) {
-      setAppView('dashboard');
-      updateUserHeader(currentAuthSession);
-      syncDashboard(true);
-      startHeartbeat();
-    } else if (authConfig.auth_required) {
-      setAppView('landing');
-      stopHeartbeat();
+ 
+      // Initialize View based on restored session
+      if (currentAuthSession) {
+        setAppView('dashboard');
+        updateUserHeader(currentAuthSession);
+        if (!initialAuthSynced) {
+          initialAuthSynced = true;
+          syncDashboard(true);
+        }
+        startHeartbeat();
+      } else if (authConfig.auth_required) {
+        setAppView('landing');
+        stopHeartbeat();
+      } else {
+        // Local dev mode with auth bypassed
+        setAppView('dashboard');
+        if (!initialAuthSynced) {
+          initialAuthSynced = true;
+          syncDashboard(true);
+        }
+        startHeartbeat();
+      }
     } else {
-      // Local dev mode with auth bypassed
+      // Local dev mode with auth bypassed / disabled
       setAppView('dashboard');
       syncDashboard(true);
       startHeartbeat();
