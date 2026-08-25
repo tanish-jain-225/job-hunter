@@ -1,0 +1,82 @@
+<header class="navbar" id="main-navbar">
+  <div class="navbar-container">
+    
+    <!-- Brand & Live State Indicator -->
+    <div class="nav-brand-cluster">
+      <a href="/" class="brand-link" title="Job Hunter Home">
+        <div class="brand-logo-frame">
+          <img src="/logo.png" alt="Job Hunter" class="brand-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='flex';">
+          <div class="brand-fallback-icon" id="brand-fallback" style="display:none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+          </div>
+        </div>
+        <div class="brand-text-block">
+          <span class="brand-title">Job Hunter</span>
+          <span class="brand-badge">Career Intelligence</span>
+        </div>
+      </a>
+
+      <div class="sync-indicator" id="sync-status" title="Real-time synchronization status (Click to refresh)" onclick="manualSync()" role="button" tabindex="0">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="sync-text">Radar: Online</span>
+      </div>
+    </div>
+
+    <!-- Landing Page Navigation Links & CTA (Shown when Unauthenticated) -->
+    <div class="landing-nav-links" id="landing-nav-links">
+      <a href="#pipeline-section" class="nav-link">How It Works</a>
+      <a href="#ats-section" class="nav-link">200+ Companies</a>
+      <div class="landing-nav-btns">
+        <button class="btn btn-secondary btn-sm" onclick="scrollToAuth('signin')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="scrollToAuth('signup')">
+          <span>Get Started</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action & Metrics Group (Shown in Authenticated Dashboard Mode) -->
+    <div class="nav-actions-cluster" id="header-metrics" style="display:none;">
+      
+      <!-- Live Global Metrics Summary -->
+      <div class="metrics-bar">
+        <div class="metric-item" title="Total jobs tracked across ATS endpoints">
+          <span class="metric-lbl">Tracked</span>
+          <span class="metric-val" id="metric-tracked">--</span>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item" title="Jobs dispatched in daily briefings">
+          <span class="metric-lbl">Emailed</span>
+          <span class="metric-val" id="metric-emailed">--</span>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item" title="Applications completed and submitted">
+          <span class="metric-lbl">Applied</span>
+          <span class="metric-val" id="metric-applied">--</span>
+        </div>
+      </div>
+
+      <!-- Studio & Settings Action Buttons -->
+      <div class="nav-btn-group">
+        <button class="btn btn-secondary btn-sm btn-nav-settings" id="btn-open-settings" onclick="openProfileModal()" title="Open Candidate Profile & Search Settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Settings</span>
+        </button>
+      </div>
+
+      <!-- User Authentication Status Pill -->
+      <div class="user-auth-pill" id="user-auth-pill">
+        <div class="user-avatar" id="user-avatar" title="Candidate Profile Settings" onclick="openProfileModal()">U</div>
+        <div class="user-info-text" onclick="openProfileModal()" role="button" tabindex="0" title="Click to open Candidate Profile & Settings">
+          <span class="user-email" id="user-email">user@domain.com</span>
+          <span class="user-status-badge">Authenticated</span>
+        </div>
+        <button class="btn-auth-signout" id="btn-signout" title="Sign Out from Supabase" onclick="handleSignOut()" aria-label="Sign Out" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</header>

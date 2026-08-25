@@ -3392,3 +3392,16 @@ input:checked + .slider::before {
 .btn-copy svg {
   flex-shrink: 0;
 }
+
+.modal-content-medium {
+  max-width: 620px;
+  width: 95%;
+}
+
+.btn-add-job-trigger {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+

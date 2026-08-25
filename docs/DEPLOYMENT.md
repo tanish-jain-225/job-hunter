@@ -147,3 +147,17 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 * **Row-Level Security (RLS)**: PostgreSQL enforces that users can only view and update their own tracked jobs, application kits, and profiles.
 * **No File Persistence**: Uploaded resumes are decoded in-memory for one-time text extraction; no candidate PDFs or binary documents are stored on disk or cloud buckets.
 * **Service Role Access**: Automated GitHub Actions cron uses the Service Role key exclusively to query active profiles and deliver candidate-tailored briefings.
+
+---
+
+## 📚 Related Documentation
+
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine specifications.
+- **[MULTI_USER.md](MULTI_USER.md)** — Multi-user scaling architecture.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[README.md](../README.md)** — Project homepage.
+

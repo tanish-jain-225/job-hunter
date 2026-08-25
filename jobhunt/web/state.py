@@ -57,6 +57,17 @@ def get_current_user_context() -> Tuple[Optional[str], Optional[str]]:
 
 _USER_PIPELINE_STATES: dict[str, dict] = {}
 _PIPELINE_LOCK = threading.Lock()
+_MAX_PIPELINE_STATES = 500
+
+
+def _prune_pipeline_states_locked() -> None:
+    """Evict oldest idle pipeline states when capacity exceeds limits."""
+    if len(_USER_PIPELINE_STATES) > _MAX_PIPELINE_STATES:
+        # Filter non-running states first for eviction
+        idle_keys = [k for k, v in _USER_PIPELINE_STATES.items() if not v.get("running") and k != "anonymous"]
+        excess = len(_USER_PIPELINE_STATES) - _MAX_PIPELINE_STATES
+        for k in idle_keys[:excess]:
+            _USER_PIPELINE_STATES.pop(k, None)
 
 
 def get_user_pipeline_state(email: Optional[str]) -> dict:
@@ -79,6 +90,7 @@ def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
         if key not in _USER_PIPELINE_STATES:
+            _prune_pipeline_states_locked()
             _USER_PIPELINE_STATES[key] = {
                 "running": False,
                 "step": "idle",
@@ -88,6 +100,7 @@ def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
             }
         _USER_PIPELINE_STATES[key].update(kwargs)
         return dict(_USER_PIPELINE_STATES[key])
+
 
 
 def get_store_version(st: Store) -> str:

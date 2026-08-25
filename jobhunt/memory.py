@@ -11,6 +11,8 @@ Utilizes PostgREST REST API over HTTPS with strict tenant isolation and local ca
 from __future__ import annotations
 
 import os
+import threading
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +22,29 @@ from .auth import get_supabase_config
 
 
 _SESSION: requests.Session | None = None
+
+# Thread-safe short TTL cache for read operations
+_PROFILE_CACHE: Dict[str, tuple[Dict[str, Any], float]] = {}
+_JOBS_CACHE: Dict[str, tuple[Dict[str, Dict[str, Any]], float]] = {}
+_CACHE_TTL = 10.0
+_CACHE_LOCK = threading.Lock()
+
+
+def invalidate_user_cache(email: Optional[str] = None) -> None:
+    """Invalidate memory cache for a specific user or all users."""
+    with _CACHE_LOCK:
+        if email:
+            clean = email.lower().strip()
+            _PROFILE_CACHE.pop(clean, None)
+            _JOBS_CACHE.pop(clean, None)
+        else:
+            _PROFILE_CACHE.clear()
+            _JOBS_CACHE.clear()
+
+
+def clear_memory_cache() -> None:
+    """Clear all cached profiles and jobs memory."""
+    invalidate_user_cache()
 
 
 def _get_session() -> Any:
@@ -43,6 +68,7 @@ def _get_session() -> Any:
         session.mount("https://", adapter)
         _SESSION = session
     return _SESSION
+
 
 
 class SupabaseMemory:
@@ -83,6 +109,14 @@ class SupabaseMemory:
             return None
 
         clean_email = email.lower().strip()
+        now = time.time()
+        with _CACHE_LOCK:
+            if clean_email in _PROFILE_CACHE:
+                cached_prof, exp = _PROFILE_CACHE[clean_email]
+                if now < exp:
+                    return dict(cached_prof)
+                _PROFILE_CACHE.pop(clean_email, None)
+
         try:
             endpoint = f"{self.url}/rest/v1/user_profiles"
             params = {"email": f"eq.{clean_email}", "select": "*"}
@@ -140,6 +174,9 @@ class SupabaseMemory:
                     }
                     for legacy_k in ("current_title", "core_skills", "target_titles", "exclude_titles", "years_experience"):
                         res_profile.pop(legacy_k, None)
+
+                    with _CACHE_LOCK:
+                        _PROFILE_CACHE[clean_email] = (dict(res_profile), now + _CACHE_TTL)
                     return res_profile
             return None
         except Exception as e:
@@ -152,6 +189,8 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
+
 
         raw_skills = profile.get("skills") if profile.get("skills") is not None else profile.get("core_skills", [])
         if isinstance(raw_skills, str):
@@ -328,6 +367,14 @@ class SupabaseMemory:
             return {}
 
         clean_email = email.lower().strip()
+        now = time.time()
+        with _CACHE_LOCK:
+            if clean_email in _JOBS_CACHE:
+                cached_jobs, exp = _JOBS_CACHE[clean_email]
+                if now < exp:
+                    return {k: dict(v) for k, v in cached_jobs.items()}
+                _JOBS_CACHE.pop(clean_email, None)
+
         jobs_map: Dict[str, Dict[str, Any]] = {}
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
@@ -363,6 +410,8 @@ class SupabaseMemory:
                             "draft": r.get("draft") or {},
                             "first_seen": r.get("first_seen") or r.get("created_at"),
                         }
+                with _CACHE_LOCK:
+                    _JOBS_CACHE[clean_email] = ({k: dict(v) for k, v in jobs_map.items()}, now + _CACHE_TTL)
             return jobs_map
         except Exception as e:
             print(f"[SupabaseMemory] load_user_jobs error for {clean_email}: {e}")
@@ -374,6 +423,7 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         jid = str(job_dict.get("job_id", "")).strip()
         if not jid:
             return False
@@ -426,6 +476,7 @@ class SupabaseMemory:
             return 0
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         self._ensure_user_profile_exists(clean_email, token)
 
         records = []
@@ -488,6 +539,7 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         applied_on = datetime.now(timezone.utc).isoformat() if applied else None
         stage = "applied" if applied else "to_apply"
         payload = {
@@ -517,6 +569,7 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         clean_stage = stage.lower().strip()
         applied = clean_stage in ("applied", "interviewing", "offer", "rejected")
         applied_on = datetime.now(timezone.utc).isoformat() if applied else None
@@ -549,6 +602,7 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         payload = {
             "notes": str(notes or ""),
             "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -574,6 +628,7 @@ class SupabaseMemory:
             return False
 
         clean_email = email.lower().strip()
+        invalidate_user_cache(clean_email)
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
             headers = self._headers(token)
@@ -586,6 +641,7 @@ class SupabaseMemory:
         except Exception as e:
             print(f"[SupabaseMemory] delete_user_job error for {clean_email} ({job_id}): {e}")
             return False
+
 
     # --------------------------------------------------------------------------
     # 3. Pipeline Execution History & Memory Logs

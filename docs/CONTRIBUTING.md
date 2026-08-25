@@ -123,9 +123,11 @@ jobhunt/
 
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API.
 - **[ENGINE.md](ENGINE.md)** — Scoring and matching engine details.
 - **[MULTI_USER.md](MULTI_USER.md)** — Multi-user setup strategies.
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting.
 - **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
 - **[README.md](../README.md)** — Project homepage.
+

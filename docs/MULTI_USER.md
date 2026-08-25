@@ -80,3 +80,17 @@ python -m jobhunt multi-run --send
 ### Via GitHub Actions:
 - Trigger manually from the **Actions** tab by choosing `multi` mode.
 - Automated daily schedule runs Monday through Friday at 03:30 UTC (09:00 IST).
+
+---
+
+## 📚 Related Documentation
+
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine specifications.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[README.md](../README.md)** — Project homepage.
+

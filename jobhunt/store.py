@@ -76,6 +76,9 @@ def sanitize_job_url(
 
 
 
+_WRITABLE_DIR_CACHE: set[Path] = set()
+
+
 def get_writable_path(path: str | Path) -> Path:
     """Resolve a path that is writable in read-only environments (like Vercel serverless).
 
@@ -85,25 +88,35 @@ def get_writable_path(path: str | Path) -> Path:
     target = Path(path)
     is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
 
-    parent = target.parent if target.parent != Path(".") else Path.cwd()
-    parent_writable = True
     if is_vercel:
+        tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        return tmp_dir / target.name
+
+    parent = target.parent if target.parent != Path(".") else Path.cwd()
+
+    if parent in _WRITABLE_DIR_CACHE:
+        return target
+
+    parent_writable = True
+    try:
+        parent.mkdir(parents=True, exist_ok=True)
+        test_file = parent / ".writable_test"
+        test_file.touch()
+        test_file.unlink()
+        parent_writable = True
+    except (PermissionError, OSError):
         parent_writable = False
-    else:
-        try:
-            parent.mkdir(parents=True, exist_ok=True)
-            test_file = parent / ".writable_test"
-            test_file.touch()
-            test_file.unlink()
-        except (PermissionError, OSError):
-            parent_writable = False
 
     if parent_writable:
+        _WRITABLE_DIR_CACHE.add(parent)
         return target
     else:
         tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
         tmp_dir.mkdir(parents=True, exist_ok=True)
         return tmp_dir / target.name
+
+
 
 
 def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
@@ -352,6 +365,7 @@ class Store:
             title=title,
         )
 
+        stage = "applied" if applied else "to_apply"
         job_dict = {
             "job_id": job_id,
             "first_seen": now,
@@ -365,6 +379,9 @@ class Store:
             "emailed": False,
             "applied": bool(applied),
             "applied_on": now if applied else None,
+            "application_stage": stage,
+            "notes": "",
+            "salary_range": "",
             "draft": draft or {},
         }
         self.data[job_id] = job_dict

@@ -114,10 +114,12 @@ LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or incl
 
 - **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
 - **[MULTI_USER.md](MULTI_USER.md)** — Setting up multiple users.
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Troubleshooting and FAQs.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
 - **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
 - **[README.md](../README.md)** — Project homepage.
+
 

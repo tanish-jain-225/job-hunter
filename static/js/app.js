@@ -3594,3 +3594,97 @@ function copyToClipboard(text, btnEl) {
     showToast('Clipboard copy failed: ' + err.message, 'error');
   });
 }
+
+// Add Custom Opportunity Modal Controller
+function openAddJobModal() {
+  const modal = document.getElementById('add-job-modal');
+  if (modal) {
+    modal.classList.add('active');
+    setTimeout(() => {
+      document.getElementById('add-job-company')?.focus();
+    }, 100);
+  }
+}
+
+function closeAddJobModal() {
+  const modal = document.getElementById('add-job-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.getElementById('form-add-job')?.reset();
+    const scoreInput = document.getElementById('add-job-score');
+    if (scoreInput) scoreInput.value = '7.5';
+    const aiCheckbox = document.getElementById('add-job-ai-eval');
+    if (aiCheckbox) aiCheckbox.checked = true;
+  }
+}
+
+async function handleAddJobSubmit(e) {
+  e.preventDefault();
+  const company = document.getElementById('add-job-company')?.value.trim();
+  const title = document.getElementById('add-job-title')?.value.trim();
+  const location = document.getElementById('add-job-location')?.value.trim() || 'Remote/Unspecified';
+  const url = document.getElementById('add-job-url')?.value.trim() || '#';
+  const stage = document.getElementById('add-job-stage')?.value || 'to_apply';
+  const score = parseFloat(document.getElementById('add-job-score')?.value || '7.5');
+  const description = document.getElementById('add-job-description')?.value.trim() || '';
+  const runAi = document.getElementById('add-job-ai-eval')?.checked;
+
+  if (!company || !title) {
+    showToast('Company name and job title are required.', 'error');
+    return;
+  }
+
+  const spinner = document.getElementById('add-job-spinner');
+  const btnText = document.getElementById('add-job-submit-text');
+  const submitBtn = document.getElementById('btn-submit-add-job');
+
+  if (spinner) spinner.style.display = 'inline-block';
+  if (btnText) btnText.innerText = runAi && description ? 'Evaluating with AI...' : 'Saving Opportunity...';
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const payload = {
+      company,
+      title,
+      location,
+      url,
+      stage,
+      score,
+      description,
+      run_ai: runAi,
+      applied: stage !== 'to_apply',
+    };
+
+    const res = await authFetch('/api/jobs/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      showToast(`Tracked '${title}' at ${company}!`, 'success');
+      closeAddJobModal();
+
+      // Trigger instant UI reload and multi-tab broadcast
+      broadcastSync('STATE_MUTATED', { job_id: data.job_id });
+      await syncDashboard(false);
+      await fetchAndRenderJobs(false);
+
+      if (data.job && data.job.draft && (data.job.draft.fit_summary || data.job.draft.cover_note)) {
+        setTimeout(() => {
+          openKitModal(data.job_id);
+        }, 500);
+      }
+    } else {
+      throw new Error(data.message || 'Failed to add job opportunity');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+    if (btnText) btnText.innerText = 'Track Opportunity';
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+

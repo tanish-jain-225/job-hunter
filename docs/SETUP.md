@@ -153,9 +153,11 @@ Once configured, run the pipeline or launch the interactive dashboard:
 ## Step 7 — Next Steps & Useful Links
 
 - **[GUIDE.md](GUIDE.md)** — Learn how to run as a 100% database-free personal utility or configure free GitHub Actions cloud execution.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide (Vercel, Supabase, GitHub Actions).
 - **[DASHBOARD.md](DASHBOARD.md)** — Explore the Flask-based web dashboard and REST API endpoints.
 - **[ENGINE.md](ENGINE.md)** — Learn about the deterministic prefiltering and swappable LLM matching engine.
 - **[MULTI_USER.md](MULTI_USER.md)** — Learn how to configure Job Hunter for multiple users (forking or centralized loop).
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Solutions for SMTP, GitHub Actions, and Gemini rate limits.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions, test suite execution, and architecture principles.
 - **[README.md](../README.md)** — Back to project homepage.
+

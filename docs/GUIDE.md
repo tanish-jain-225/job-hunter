@@ -149,17 +149,32 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (191 unit and integration tests, 98%+ test coverage). |
+| `pytest` | Run the full test suite (319+ unit and integration tests, 99%+ test coverage). |
 
 ---
 
 ## 💡 Frequently Asked Questions (FAQ)
 
 #### Q: Where is my job tracking data stored?
-All tracked jobs, match scores, and application statuses are stored in `seen.json` in the project root and auto-exported to `out/tracker.csv`.
+All tracked jobs, match scores, and application statuses are stored in `seen.json` in the project root (or Supabase PostgreSQL in multi-user mode) and auto-exported to `out/tracker.csv`.
 
 #### Q: How do I backup my job application tracker?
 Simply commit `seen.json` or copy `out/tracker.csv` to Google Drive or OneDrive.
 
 #### Q: What happens if Gemini API rate limits occur?
 Job Hunter includes automatic fallback logic — if LLM screening fails or hits quotas, it seamlessly falls back to an offline keyword matching engine without crashing.
+
+---
+
+## 📚 Related Documentation
+
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine specifications.
+- **[MULTI_USER.md](MULTI_USER.md)** — Multi-user scaling architecture.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[JOB_HUNT.md](JOB_HUNT.md)** — Original prompt & technical requirements specification.
+- **[README.md](../README.md)** — Project homepage.
+

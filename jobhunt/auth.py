@@ -22,6 +22,20 @@ except ImportError:
 # In-memory token verification cache: token_hash -> (user_dict, expires_at_epoch)
 _TOKEN_CACHE: Dict[str, tuple[Dict[str, Any], float]] = {}
 _CACHE_TTL_SECONDS = 60.0
+_MAX_TOKEN_CACHE_SIZE = 1000
+
+
+def _prune_token_cache(now: float) -> None:
+    """Sweep expired tokens and cap maximum memory footprint."""
+    expired = [h for h, (_, exp) in _TOKEN_CACHE.items() if now >= exp]
+    for h in expired:
+        _TOKEN_CACHE.pop(h, None)
+    if len(_TOKEN_CACHE) > _MAX_TOKEN_CACHE_SIZE:
+        # Evict oldest excess items
+        excess = len(_TOKEN_CACHE) - _MAX_TOKEN_CACHE_SIZE
+        for h in list(_TOKEN_CACHE.keys())[:excess]:
+            _TOKEN_CACHE.pop(h, None)
+
 
 
 _ENV_LOADED = False
@@ -129,6 +143,7 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                 "user_metadata": decoded.get("user_metadata", {}),
                 "app_metadata": decoded.get("app_metadata", {}),
             }
+            _prune_token_cache(now)
             _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
             return user_data
         except Exception:
@@ -154,6 +169,7 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                     "app_metadata": user_obj.get("app_metadata", {}),
                     "created_at": user_obj.get("created_at"),
                 }
+                _prune_token_cache(now)
                 _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
                 return user_data
         except Exception as e:

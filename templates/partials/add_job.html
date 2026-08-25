@@ -1,0 +1,71 @@
+<div class="modal-overlay" id="add-job-modal" onclick="if(event.target===this) closeAddJobModal();">
+  <div class="modal-content modal-content-medium">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title">Track Custom Opportunity</div>
+        <div class="modal-subtitle">Add a role from LinkedIn, referral, or company career portal</div>
+      </div>
+      <button class="modal-close" onclick="closeAddJobModal()" aria-label="Close modal">×</button>
+    </div>
+
+    <form id="form-add-job" onsubmit="handleAddJobSubmit(event)">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="add-job-company">Company Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" id="add-job-company" placeholder="e.g. Stripe, Razorpay, Google" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-job-title">Job Title <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" id="add-job-title" placeholder="e.g. Senior Backend Engineer" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="add-job-location">Location</label>
+          <input type="text" class="form-input" id="add-job-location" placeholder="e.g. Bengaluru, India / Remote">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-job-url">Job Listing / Apply URL</label>
+          <input type="url" class="form-input" id="add-job-url" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="add-job-stage">Initial Stage</label>
+          <select class="form-input" id="add-job-stage">
+            <option value="to_apply">To Apply</option>
+            <option value="applied">Applied</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="offer">Offer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="add-job-score">Initial Match Score (0 - 10)</label>
+          <input type="number" step="0.1" min="0" max="10" class="form-input" id="add-job-score" placeholder="7.5" value="7.5">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="add-job-description">Job Description / Requirements (Optional — for AI Fit Evaluation & Application Kit)</label>
+        <textarea class="form-input form-textarea" id="add-job-description" rows="3" placeholder="Paste job description here to automatically evaluate fit against your candidate profile..."></textarea>
+      </div>
+
+      <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <input type="checkbox" id="add-job-ai-eval" checked style="width:16px; height:16px; cursor:pointer;">
+        <label for="add-job-ai-eval" style="font-size:12.5px; font-weight:600; color:var(--text); cursor:pointer;">
+          Run AI Match Scoring & Draft Application Kit for this role
+        </label>
+      </div>
+
+      <div class="modal-footer" style="margin-top:18px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeAddJobModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-submit-add-job">
+          <span class="spinner" id="add-job-spinner" style="display:none;"></span>
+          <span id="add-job-submit-text">Track Opportunity</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

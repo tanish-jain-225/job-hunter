@@ -333,6 +333,18 @@ ENDPOINTS = REGISTERED_ATS
 
 # Global in-memory cache for high-throughput ATS job pooling (TTL: 30 minutes)
 _GLOBAL_ATS_CACHE: dict[str, tuple[float, list[Job]]] = {}
+_MAX_ATS_CACHE_SIZE = 500
+
+
+def _prune_ats_cache(now: float, ttl: float = 1800.0) -> None:
+    """Sweep expired ATS cached jobs and cap memory size."""
+    expired = [k for k, (ts, _) in _GLOBAL_ATS_CACHE.items() if now - ts >= ttl]
+    for k in expired:
+        _GLOBAL_ATS_CACHE.pop(k, None)
+    if len(_GLOBAL_ATS_CACHE) > _MAX_ATS_CACHE_SIZE:
+        excess = len(_GLOBAL_ATS_CACHE) - _MAX_ATS_CACHE_SIZE
+        for k in list(_GLOBAL_ATS_CACHE.keys())[:excess]:
+            _GLOBAL_ATS_CACHE.pop(k, None)
 
 
 def clear_ats_cache() -> None:
@@ -355,6 +367,8 @@ def fetch_board(ats: str, slug: str, company: str | None = None,
         ts, cached_jobs = _GLOBAL_ATS_CACHE[cache_key]
         if now - ts < cache_ttl:
             return list(cached_jobs)
+        else:
+            _GLOBAL_ATS_CACHE.pop(cache_key, None)
 
     url_tpl, parser = REGISTERED_ATS[ats_lower]
     sess = session or requests
@@ -365,8 +379,10 @@ def fetch_board(ats: str, slug: str, company: str | None = None,
             if r.status_code == 200:
                 jobs = parser(slug, company or slug, r.json())
                 if use_cache:
+                    _prune_ats_cache(now, cache_ttl)
                     _GLOBAL_ATS_CACHE[cache_key] = (now, list(jobs))
                 return jobs
+
             elif r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
                 time.sleep(1.0 * (attempt + 1))
                 continue

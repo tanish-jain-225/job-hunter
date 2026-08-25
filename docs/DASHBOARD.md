@@ -73,6 +73,10 @@ The dashboard is designed as a single-page application with a premium Light Mode
 * Enterprise-grade authentication via **Supabase Auth** protects confidential career intelligence, target match scores, application drafts, and pipeline trigger controls.
 * When `AUTH_REQUIRED=true`, all private REST API endpoints enforce `Authorization: Bearer <token>` token validation with high-throughput in-memory TTL caching.
 
+### 9. ➕ Manual Opportunity Tracking ("+ Add Opportunity")
+* Click **"+ Add Opportunity"** directly on the Tracker toolbar to track external roles found via LinkedIn, company career portals, or personal referrals.
+* Automatically scores fit and drafts an Application Kit on demand using your candidate profile.
+
 ---
 
 ## 📡 REST API Reference
@@ -202,3 +206,17 @@ Removes a job entry completely from the tracking store.
 ### 16. Fetch Dashboard Metrics & Config
 * **`GET /api/stats`**: Returns total tracked, emailed, and applied metric counts.
 * **`GET /api/config`**: Returns active filter rules, thresholds, and ATS company board counts.
+
+---
+
+## 📚 Related Documentation
+
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine specifications.
+- **[MULTI_USER.md](MULTI_USER.md)** — Multi-user scaling architecture.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Setup troubleshooting and FAQs.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions and test suite.
+- **[README.md](../README.md)** — Project homepage.
+

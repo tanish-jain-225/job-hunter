@@ -349,7 +349,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (300+ tests with $\ge 90\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (319+ tests with $\ge 98\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -363,11 +363,11 @@ job-hunter/
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── cli.py                # Argparse subcommands (profile, run, multi-run, applied, stats, web)
 │   ├── fetch.py              # Job dataclass & 9 ATS API parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
-│   ├── prefilter.py          # Deterministic regex, location, and freshness filter
+│   ├── prefilter.py          # Safe regex compilation, deterministic location, and freshness filter
 │   ├── providers.py          # Provider interface + Gemini/Anthropic/Groq/OpenAI/Ollama clients
 │   ├── llm.py                # Screening, drafting, profile extraction & tolerant JSON parser
 │   ├── store.py              # seen.json persistence, deduplication, atomic file writes & CSV export
-│   ├── memory.py             # Supabase PostgreSQL client with strict tenant isolation (RLS)
+│   ├── memory.py             # Supabase PostgreSQL client with strict tenant isolation (RLS) & in-memory caching
 │   ├── multi.py              # Single-pass multi-tenant batch execution engine
 │   ├── digest.py             # Responsive HTML digest generator with inline CSS & XSS escaping
 │   ├── mailer.py             # SMTP client for email delivery
@@ -387,7 +387,7 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 303 comprehensive automated test cases (95%+ line coverage)
+├── tests/                    # 319 comprehensive automated test cases (98%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
@@ -395,6 +395,7 @@ job-hunter/
 │   ├── test_auth.py          # Supabase auth token verification & endpoint protection tests
 │   ├── test_resume_studio.py # Resume Studio PDF/TXT parsing & AI profile extraction tests
 │   ├── test_memory.py        # Supabase PostgreSQL storage & tenant isolation tests
+│   ├── test_resilience_scaling.py # Bounded memory, caching, safe regex & scaling tests
 │   ├── test_multi_user_batch.py # Multi-user batch execution & candidate isolation tests
 │   ├── test_multi_user_dynamic.py # Dynamic candidate prompts & store isolation tests
 │   ├── test_auto.py          # Master automation script & fallback tests
@@ -443,10 +444,11 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (300 unit & integration tests):
+Run the full test suite locally (319 unit & integration tests):
 ```bash
 pytest
 ```
+
 
 Run test suite with detailed 98%+ coverage reporting:
 ```bash

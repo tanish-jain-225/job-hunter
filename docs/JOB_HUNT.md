@@ -107,9 +107,11 @@ Make providers swappable and auto-split via environment variables:
 
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and API reference.
 - **[ENGINE.md](ENGINE.md)** — Job-matching engine details.
 - **[MULTI_USER.md](MULTI_USER.md)** — Setting up multiple users.
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Troubleshooting and FAQs.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Developer instructions.
 - **[README.md](../README.md)** — Project homepage.
+

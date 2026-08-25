@@ -1,0 +1,247 @@
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal-content modal-content-studio">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title">Profile &amp; Search Settings</div>
+        <div class="modal-subtitle" id="profile-wizard-subtitle">Step 1 of 3 — Resume Upload</div>
+      </div>
+      <button class="modal-close" onclick="closeProfileModal()" aria-label="Close modal">×</button>
+    </div>
+
+    <!-- Step Progress Bar -->
+    <div class="wizard-progress-bar">
+      <div class="wizard-step-node active" id="pws-node-1" onclick="profileWizardGoTo(1)" role="button" tabindex="0" title="Go to Step 1: Resume Upload">
+        <div class="wizard-step-circle">1</div>
+        <div class="wizard-step-label">Resume</div>
+      </div>
+      <div class="wizard-step-connector" id="pws-conn-1"></div>
+      <div class="wizard-step-node" id="pws-node-2" onclick="profileWizardGoTo(2)" role="button" tabindex="0" title="Go to Step 2: Target Roles">
+        <div class="wizard-step-circle">2</div>
+        <div class="wizard-step-label">Roles</div>
+      </div>
+      <div class="wizard-step-connector" id="pws-conn-2"></div>
+      <div class="wizard-step-node" id="pws-node-3" onclick="profileWizardGoTo(3)" role="button" tabindex="0" title="Go to Step 3: Alert Settings">
+        <div class="wizard-step-circle">3</div>
+        <div class="wizard-step-label">Alerts</div>
+      </div>
+    </div>
+
+    <div class="modal-body modal-body-studio">
+
+      <!-- Step 1: Resume PDF Upload & Auto-Parse -->
+      <div class="studio-wizard-step" id="profile-step-1">
+        <div class="studio-section-desc">
+          Upload your resume (PDF/TXT) to extract text once in-memory, or edit your text context directly below. Text alterations in the editor are what get saved.
+        </div>
+
+        <div class="resume-dropzone" id="resume-dropzone" onclick="document.getElementById('resume-file-input').click()">
+          <label for="resume-file-input" class="sr-only">Upload Resume File</label>
+          <input type="file" id="resume-file-input" accept=".pdf,.txt" style="display:none;" onchange="handleResumeFileSelectedAndParse(event)" aria-label="Upload resume file (.pdf, .txt)">
+          <div class="dropzone-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </div>
+          <div class="dropzone-text" id="dropzone-text">Click or drag &amp; drop a new resume PDF / TXT file</div>
+          <div class="dropzone-sub">One-time text extraction · No binary files stored · Plain text only</div>
+        </div>
+
+        <!-- Direct Resume Text Context Editor -->
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="prof-resume-text">
+            <span>Resume Text Context</span>
+            <span class="form-hint-inline">(Extracted text appears here — edit or alter freely before saving)</span>
+          </label>
+          <textarea class="form-input form-textarea" id="prof-resume-text" rows="5" placeholder="Resume text context is stored here. You can paste, edit, or customize your background text directly before saving..."></textarea>
+        </div>
+
+        <!-- Inline parse status -->
+        <div class="studio-alert" id="resume-status-alert" style="display:none;"></div>
+
+        <!-- Parsed preview card (hidden until parse completes) -->
+        <div class="studio-preview-card" id="studio-resume-preview-card" style="display:none;">
+          <div class="studio-preview-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Extracted Profile Preview</span>
+          </div>
+          <div class="studio-preview-row"><span class="preview-label">Name</span><span class="preview-value" id="studio-prev-name">—</span></div>
+          <div class="studio-preview-row"><span class="preview-label">Title</span><span class="preview-value" id="studio-prev-title">—</span></div>
+          <div class="studio-preview-row"><span class="preview-label">Experience</span><span class="preview-value" id="studio-prev-years">—</span></div>
+          <div class="studio-preview-row">
+            <span class="preview-label">Skills</span>
+            <span class="preview-value" id="studio-prev-skills">—</span>
+          </div>
+        </div>
+
+        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Empty</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+              <span>Cancel</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="profile-next-1" onclick="profileWizardNext(1)">
+              <span>Next: Target Roles →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Target Roles & Excluded Keywords Only with Single Auto-Fill Button -->
+      <div class="studio-wizard-step" id="profile-step-2" style="display:none;">
+        <div class="studio-section-desc">
+          Define your included and excluded job titles, or auto-fill them from your resume text context.
+        </div>
+
+        <div style="margin-top:14px; margin-bottom:16px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
+            <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
+          </button>
+        </div>
+
+        <!-- Job Type Preferences -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Job Type Preferences <span class="form-hint-inline">(Select all that apply)</span></div>
+          <div class="job-type-chips" id="prof-job-types">
+            <label class="chip-toggle"><input type="checkbox" value="fulltime"> Full-Time</label>
+            <label class="chip-toggle"><input type="checkbox" value="internship"> 🎓 Internship</label>
+            <label class="chip-toggle"><input type="checkbox" value="remote"> 🌐 Remote</label>
+            <label class="chip-toggle"><input type="checkbox" value="hybrid"> 🔀 Hybrid</label>
+            <label class="chip-toggle"><input type="checkbox" value="onsite"> 🏢 On-Site</label>
+            <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
+            <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
+          </div>
+        </div>
+
+        <!-- Location Preference -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Location Preference</div>
+          <div class="location-pref-options">
+            <label class="radio-option" id="prof-loc-pref-allindia">
+              <input type="radio" name="prof-location-pref" value="all_india">
+              <span>🇮🇳 All India</span>
+            </label>
+            <label class="radio-option" id="prof-loc-pref-remote">
+              <input type="radio" name="prof-location-pref" value="remote_only">
+              <span>🌐 Remote Only</span>
+            </label>
+            <label class="radio-option" id="prof-loc-pref-specific">
+              <input type="radio" name="prof-location-pref" value="specific_cities">
+              <span>📍 Specific Cities</span>
+            </label>
+            <label class="radio-option" id="prof-loc-pref-global">
+              <input type="radio" name="prof-location-pref" value="global">
+              <span>🌍 Global</span>
+            </label>
+          </div>
+          <div id="prof-specific-cities-input" style="display:none; margin-top:10px;">
+            <input type="text" class="form-input" id="prof-specific-cities"
+                   placeholder="e.g. Bangalore, Mumbai, Pune, Hyderabad, Remote">
+          </div>
+        </div>
+
+        <!-- Experience Level -->
+        <div class="form-group" style="margin-top:16px;">
+          <div class="form-label">Experience Level</div>
+          <div class="exp-level-chips" id="prof-exp-level">
+            <label class="chip-radio"><input type="radio" name="prof-exp" value="fresher"> Fresher</label>
+            <label class="chip-radio"><input type="radio" name="prof-exp" value="0-1"> 0–1 Yr</label>
+            <label class="chip-radio"><input type="radio" name="prof-exp" value="1-3"> 1–3 Yrs</label>
+            <label class="chip-radio"><input type="radio" name="prof-exp" value="3-5"> 3–5 Yrs</label>
+            <label class="chip-radio"><input type="radio" name="prof-exp" value="5+"> 5+ Yrs</label>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span></label>
+          <input type="text" class="form-input" id="prof-name" placeholder="e.g. Alex Morgan">
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
+          <input type="text" class="form-input" id="prof-targets" placeholder="Backend Engineer, Systems Engineer, Software Engineer II, AI Engineer">
+          <span class="form-hint">Only jobs matching at least one target title pattern will be screened.</span>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="prof-excludes">Excluded Title Keywords (roles to automatically reject) <span class="form-hint-inline">(comma separated)</span></label>
+          <input type="text" class="form-input" id="prof-excludes" placeholder="Manager, Director, Sales, Recruiter, VP">
+          <span class="form-hint">Any job with these keywords in the title will be immediately filtered out.</span>
+        </div>
+
+        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Empty</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary" onclick="profileWizardBack(2)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <span>Previous</span>
+            </button>
+            <button class="btn btn-primary" onclick="profileWizardNext(2)">
+              <span>Next: Mail Settings →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Alert Score & Selectable Mail Modes -->
+      <div class="studio-wizard-step" id="profile-step-3" style="display:none;">
+        <div class="studio-section-desc">
+          Set your AI qualification threshold and select your email briefing mode.
+        </div>
+
+        <!-- 1. Minimum AI Match Score Input -->
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="notif-min-score">Minimum AI Match Score <span class="form-hint-inline">(0.0 – 10.0)</span></label>
+          <input type="number" step="0.1" min="1.0" max="10.0" class="form-input" id="notif-min-score" placeholder="7.5">
+          <span class="form-hint">Only job matches scoring at or above this threshold will trigger briefings (Default: 7.5).</span>
+        </div>
+
+        <!-- 2. Selectable Mail Mode (Only One Active) -->
+        <div class="form-group" style="margin-top:20px;">
+          <div class="form-label" id="label-email-briefing-mode">Email Briefing Mode (Select One)</div>
+          
+          <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+            <!-- Option 1: Daily Mail Mode -->
+            <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
+              <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" aria-label="Daily Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
+              <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">Daily Mail Mode</div>
+              <div style="font-size:12px; color:#64748B; line-height:1.4;">Automated daily executive briefings sent when matching roles are found.</div>
+            </label>
+
+            <!-- Option 2: One-Time Mail Mode -->
+            <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" onclick="selectMailMode('onetime')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
+              <input type="radio" name="email_briefing_mode" id="radio-mode-onetime" value="onetime" aria-label="One-Time Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
+              <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">One-Time Mail Mode</div>
+              <div style="font-size:12px; color:#64748B; line-height:1.4;">No recurring emails. Only send an on-demand briefing when you request it.</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Final Save Profile Button -->
+        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Empty all profile sections and inputs without saving yet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Empty</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary" onclick="profileWizardBack(3)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <span>Previous</span>
+            </button>
+            <button class="btn btn-primary" id="btn-profile-save" onclick="saveProfilePreferences()">
+              <span class="spinner" id="profile-save-spinner" style="display:none;"></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span id="profile-save-btn-text">Save Profile</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

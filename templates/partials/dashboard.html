@@ -1,0 +1,139 @@
+<div class="dashboard-layout" id="dashboard-view" style="display:none;">
+
+  <!-- Sidebar Controls Pane -->
+  <aside class="sidebar-pane">
+
+    <!-- Candidate Profile Summary Card -->
+    <div class="card card-studio-summary">
+      <div class="card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Candidate Profile & Radar</span>
+      </div>
+      <div class="studio-summary-body">
+        <div class="studio-profile-name profile-incomplete-label" id="summary-candidate-name">Setup required</div>
+        <div class="studio-profile-title profile-incomplete-label" id="summary-candidate-title">Complete your profile to begin</div>
+        <div class="studio-tags-row" id="summary-skills-tags">
+          <span class="studio-skill-tag studio-skill-placeholder">No skills yet</span>
+        </div>
+        <div class="studio-notif-status" id="summary-notif-status">
+          <span class="notif-badge-off" id="notif-badge-indicator">Email Alerts: Off</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm studio-btn-manage" id="btn-sidebar-settings" onclick="openProfileModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Edit Profile & Search Criteria</span>
+      </button>
+    </div>
+
+    <!-- Run Pipeline Card -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>On-Demand Pipeline Scout</span>
+      </div>
+      <button class="btn btn-primary" id="btn-run" onclick="runPipeline()">
+        <span class="spinner" id="run-spinner" style="display:none;"></span>
+        <span id="run-text">Run Job Hunt Now</span>
+      </button>
+      <div class="console" id="run-console">System ready. Click 'Run Job Hunt Now' to start scanning target ATS endpoints.</div>
+    </div>
+
+  </aside>
+
+  <!-- Main Board Viewport Pane -->
+  <main class="main-viewport-pane">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-btn-digest" onclick="switchTab('digest')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        <span>Daily Digest Briefing</span>
+      </button>
+      <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span>Interactive Job Board</span>
+      </button>
+    </div>
+
+    <!-- Tab 1: Digest Viewport -->
+    <div id="tab-content-digest">
+      <div class="digest-header-row">
+        <div class="digest-header-title-group">
+          <span class="digest-preview-label">Latest generated HTML digest briefing preview</span>
+          <span class="badge-live-sync" id="digest-sync-tag">Auto-Synced</span>
+        </div>
+        <div class="digest-header-actions">
+          <button class="btn btn-secondary btn-sm" onclick="refreshDigest(true)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Refresh Digest</span>
+          </button>
+        </div>
+      </div>
+      <div class="viewport-frame" id="digest-frame" role="region" aria-label="Executive Career Digest Briefing"></div>
+    </div>
+
+    <!-- Tab 2: Tracker Board -->
+    <div id="tab-content-tracker" style="display:none;">
+      <div class="tracker-bar">
+        <div class="tracker-controls-row">
+          <div class="search-input-wrapper">
+            <label for="tracker-search-input" class="sr-only">Search Jobs</label>
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="form-input tracker-search" id="tracker-search-input"
+                   placeholder="Search company, title, location... (Press '/' to search)" oninput="handleSearchInput()"
+                   aria-label="Search company, title, location">
+            <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;" aria-label="Clear search">✕</button>
+            <span class="search-kbd-hint" title="Press '/' to focus search">/</span>
+          </div>
+          
+          <label for="tracker-ats-select" class="sr-only">Filter by ATS Board</label>
+          <select class="form-input tracker-select" id="tracker-ats-select" onchange="fetchAndRenderJobs()" aria-label="Filter by ATS Board">
+            <option value="all">All ATS Boards</option>
+            <option value="greenhouse">Greenhouse</option>
+            <option value="lever">Lever</option>
+            <option value="ashby">Ashby</option>
+            <option value="workable">Workable</option>
+            <option value="smartrecruiters">SmartRecruiters</option>
+            <option value="bamboohr">BambooHR</option>
+            <option value="recruitee">Recruitee</option>
+            <option value="breezy">Breezy HR</option>
+            <option value="pinpoint">Pinpoint</option>
+          </select>
+
+          <label for="tracker-sort-select" class="sr-only">Sort Jobs By</label>
+          <select class="form-input tracker-select" id="tracker-sort-select" onchange="fetchAndRenderJobs()" aria-label="Sort Jobs By">
+            <option value="date">Sort: Date</option>
+            <option value="score">Sort: Match Score</option>
+            <option value="company">Sort: Company</option>
+          </select>
+
+          <button class="btn btn-primary btn-sm btn-add-job-trigger" id="btn-add-opportunity" onclick="openAddJobModal()" title="Manually Add Job Opportunity" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add Opportunity</span>
+          </button>
+        </div>
+
+        <div class="filter-pills">
+          <button class="pill active" id="pill-all" onclick="setFilter('all')">
+            <span>All Jobs</span>
+            <span class="pill-count" id="count-all">0</span>
+          </button>
+          <button class="pill" id="pill-applied" onclick="setFilter('applied')">
+            <span>Applied</span>
+            <span class="pill-count" id="count-applied">0</span>
+          </button>
+          <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">
+            <span>Unapplied</span>
+            <span class="pill-count" id="count-unapplied">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="job-list" id="job-list-container">
+        <div class="job-list-loading">
+          <span class="spinner" style="display:inline-block;"></span>
+          <span>Loading job board data...</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>

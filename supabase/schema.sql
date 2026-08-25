@@ -92,11 +92,13 @@ SET application_stage = 'applied'
 WHERE applied = TRUE AND (application_stage = 'to_apply' OR application_stage IS NULL);
 
 -- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_created ON public.user_tracked_jobs (user_email, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_score ON public.user_tracked_jobs (user_email, score DESC);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_applied ON public.user_tracked_jobs (user_email, applied);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_stage ON public.user_tracked_jobs (user_email, application_stage);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_ats ON public.user_tracked_jobs (user_email, ats);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_created_at ON public.user_tracked_jobs (created_at DESC);
+
 
 -- ------------------------------------------------------------------------------
 -- 3. Create User Pipeline Execution History Table

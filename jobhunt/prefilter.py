@@ -91,6 +91,16 @@ def _detect_job_type(j: Job) -> set[str]:
     return types
 
 
+def _safe_compile(pattern: str, flags: int = re.I) -> re.Pattern:
+    """Safely compile a regex pattern; falls back to escaping if regex syntax is invalid."""
+    if not isinstance(pattern, str) or not pattern.strip():
+        return re.compile(r"^$", flags)
+    try:
+        return re.compile(pattern, flags)
+    except re.error:
+        return re.compile(re.escape(pattern.strip()), flags)
+
+
 def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     inc = cfg.get("include_titles") or []
     exc = cfg.get("exclude_titles") or []
@@ -101,14 +111,15 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     job_types_filter = [jt.lower().strip() for jt in (cfg.get("job_types") or [])]
     cutoff = datetime.now(timezone.utc) - timedelta(days=max_age) if max_age else None
 
-    # Pre-compile patterns once
+    # Pre-compile patterns once with safe fallback for user-entered special characters
     # If include_titles is empty, match everything (wildcard)
-    inc_re = [re.compile(p, re.I) for p in inc] if inc else []
-    exc_re = [re.compile(p, re.I) for p in exc] if exc else []
-    exc_locs_re = [re.compile(p, re.I) for p in exc_locs] if exc_locs else []
+    inc_re = [_safe_compile(p) for p in inc if str(p).strip()] if inc else []
+    exc_re = [_safe_compile(p) for p in exc if str(p).strip()] if exc else []
+    exc_locs_re = [_safe_compile(p) for p in exc_locs if str(p).strip()] if exc_locs else []
 
     def _match(patterns: list, text: str) -> bool:
         return any(p.search(text) for p in patterns)
+
 
     kept, stats = [], {"title": 0, "location": 0, "age": 0, "job_type": 0}
     for j in jobs:
