@@ -3,14 +3,11 @@ from __future__ import annotations
 
 import time
 from unittest.mock import MagicMock, patch
-import pytest
 
-from jobhunt.auth import _TOKEN_CACHE, _prune_token_cache, verify_token, clear_token_cache
+from jobhunt.auth import _TOKEN_CACHE, _prune_token_cache, clear_token_cache
 from jobhunt.fetch import Job, _GLOBAL_ATS_CACHE, _prune_ats_cache, clear_ats_cache
 from jobhunt.memory import (
     SupabaseMemory,
-    _PROFILE_CACHE,
-    _JOBS_CACHE,
     clear_memory_cache,
     invalidate_user_cache,
 )
@@ -19,8 +16,6 @@ from jobhunt.store import Store, get_writable_path, _WRITABLE_DIR_CACHE
 from jobhunt.web.state import (
     _USER_PIPELINE_STATES,
     _prune_pipeline_states_locked,
-    set_user_pipeline_state,
-    get_user_pipeline_state,
 )
 
 
