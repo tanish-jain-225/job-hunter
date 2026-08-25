@@ -48,6 +48,7 @@ def test_safe_compile_with_special_characters():
     assert filtered[0].title == "C++ Core Developer"
 
 
+
 def test_token_cache_pruning():
     """Verify that token cache expires old items and caps size."""
     clear_token_cache()

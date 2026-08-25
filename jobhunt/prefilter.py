@@ -95,10 +95,16 @@ def _safe_compile(pattern: str, flags: int = re.I) -> re.Pattern:
     """Safely compile a regex pattern; falls back to escaping if regex syntax is invalid."""
     if not isinstance(pattern, str) or not pattern.strip():
         return re.compile(r"^$", flags)
+    p_clean = pattern.strip()
+    # Python 3.11+ supports possessive quantifiers (e.g. ++, *+, ?+, }+) natively.
+    # In user-entered job search filters, these are almost always intended as literal
+    # strings (like C++). We escape them to prevent matching arbitrary letters.
+    if any(seq in p_clean for seq in ("++", "*+", "?+", "}+")):
+        return re.compile(re.escape(p_clean), flags)
     try:
         return re.compile(pattern, flags)
     except re.error:
-        return re.compile(re.escape(pattern.strip()), flags)
+        return re.compile(re.escape(p_clean), flags)
 
 
 def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
