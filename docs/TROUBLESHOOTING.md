@@ -74,6 +74,12 @@ This guide covers solutions to common errors, configurations, and questions enco
 ### Question: Why did the same job show up again in my feed?
 * **Answer:** Some recruiters delete and re-post the same listing on Greenhouse or Lever. When they do, the ATS assigns it a **new unique job ID**. Because the ID changed, Job Hunter treats it as a fresh posting. You can filter duplicates out manually on your web dashboard by clicking **Mark Applied** or ignoring it.
 
+## ⚡ Filtering & Regular Expressions
+
+### Issue: Filter keywords like `"C++"` match unexpected job titles (like `"Frontend React Developer"`) on Python 3.11+
+* **Why it happens:** Python 3.11+ introduced native support for possessive quantifiers (e.g., `++`, `*+`, `?+`, `}+`). If a keyword like `"C++"` is compiled directly as a regular expression, Python 3.11 compiles it successfully as a possessive quantifier of `"C"` (matching `C` one or more times possessively). Because of this, it matches any job title containing a case-insensitive `c` (like `"React"`).
+* **The Solution:** The prefilter compiler in [`jobhunt/prefilter.py`](../jobhunt/prefilter.py) automatically detects and escapes possessive quantifier sequences (`++`, `*+`, `?+`, `}+`) before compiling them, ensuring they are treated as literal strings. Make sure your repository is updated to the latest commit.
+
 ---
 
 ## 🔗 Documentation Links
