@@ -86,7 +86,7 @@ def get_writable_path(path: str | Path) -> Path:
     returns a path in temp directory while allowing initial reads from the target path.
     """
     target = Path(path)
-    is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
+    is_vercel = os.environ.get("VERCEL") == "1"
 
     if is_vercel:
         tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"

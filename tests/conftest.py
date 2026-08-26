@@ -14,6 +14,10 @@ class DummyResponse:
     def json(self):
         return self._json_data
 
+    @property
+    def content(self) -> bytes:
+        return self.text.encode("utf-8")
+
 
 class DummySession:
     """Stub HTTP session that returns a canned response or raises."""

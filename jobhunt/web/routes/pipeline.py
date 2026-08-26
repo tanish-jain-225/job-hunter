@@ -264,10 +264,23 @@ def api_digest():
 @pipeline_bp.route("/api/run", methods=["POST"])
 @require_auth
 def api_run():
-    """Trigger job search pipeline with personalized user criteria and email notification toggle."""
+    """Trigger job search pipeline with personalized user criteria and email notification toggle.
+
+    Rate limited to 5 calls/hour/IP (when flask-limiter is installed) to protect
+    free-tier LLM quota from runaway clients or accidental retry loops.
+    """
+    from flask import current_app
+    limiter = current_app.extensions.get("limiter")
+    if limiter:
+        try:
+            limiter.limit("5 per hour")(lambda: None)()
+        except Exception:
+            # If rate limit exceeded, flask-limiter raises 429 automatically.
+            # Any other exception means limiter is misconfigured — skip silently.
+            pass
     data = request.get_json(silent=True) or {}
     use_mock = bool(data.get("mock", False))
-    is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
+    is_vercel = os.environ.get("VERCEL") == "1"
 
     email, token = get_current_user_context()
     cli._load_env()

@@ -47,8 +47,10 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
+    import os
     print("=" * 60)
     print(" [*] Job Hunter Web Dashboard (Public Multi-Tenant Ready)")
     print(" Server running at: http://localhost:5000")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    is_debug = os.environ.get("FLASK_DEBUG", "0") == "1" or os.environ.get("FLASK_ENV") == "development"
+    app.run(host="0.0.0.0", port=5000, debug=is_debug)

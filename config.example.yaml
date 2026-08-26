@@ -100,6 +100,13 @@ llm_delay_seconds: 4.2    # delay between LLM calls to strictly respect API rate
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml
 profile_file: profile.json
-seen_file: seen.json
+seen_file: state/seen.json
 digest_file: out/digest.html
 tracker_csv: out/tracker.csv
+
+# --- regional context (injected into LLM screening prompts) ----------------
+# Options: india | global | us | uk | eu
+# Set to 'global' to remove India-specific salary / city hints from LLM prompts.
+# Leaving 'india' preserves all default behavior for Indian job seekers.
+region_context: india
+region_hint: "India-first platform. Consider Indian salary norms (LPA), Indian cities and companies. If a job mentions Indian cities or 'remote' it is highly relevant for Indian candidates."

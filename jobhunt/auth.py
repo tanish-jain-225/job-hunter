@@ -8,6 +8,7 @@ from __future__ import annotations
 import functools
 import hashlib
 import os
+import threading
 import time
 from typing import Any, Callable, Dict, Optional
 
@@ -21,12 +22,13 @@ except ImportError:
 
 # In-memory token verification cache: token_hash -> (user_dict, expires_at_epoch)
 _TOKEN_CACHE: Dict[str, tuple[Dict[str, Any], float]] = {}
+_TOKEN_CACHE_LOCK = threading.Lock()
 _CACHE_TTL_SECONDS = 60.0
 _MAX_TOKEN_CACHE_SIZE = 1000
 
 
-def _prune_token_cache(now: float) -> None:
-    """Sweep expired tokens and cap maximum memory footprint."""
+def _prune_token_cache_locked(now: float) -> None:
+    """Sweep expired tokens and cap maximum memory footprint (must be called with _TOKEN_CACHE_LOCK)."""
     expired = [h for h, (_, exp) in _TOKEN_CACHE.items() if now >= exp]
     for h in expired:
         _TOKEN_CACHE.pop(h, None)
@@ -35,6 +37,12 @@ def _prune_token_cache(now: float) -> None:
         excess = len(_TOKEN_CACHE) - _MAX_TOKEN_CACHE_SIZE
         for h in list(_TOKEN_CACHE.keys())[:excess]:
             _TOKEN_CACHE.pop(h, None)
+
+
+def _prune_token_cache(now: float) -> None:
+    """Sweep expired tokens with thread safety."""
+    with _TOKEN_CACHE_LOCK:
+        _prune_token_cache_locked(now)
 
 
 
@@ -85,22 +93,22 @@ def is_auth_required() -> bool:
 
 
 def extract_bearer_token() -> Optional[str]:
-    """Extract Bearer access token from Authorization header, cookie, or query param."""
-    # 1. Authorization header: "Bearer <token>" (case-insensitive)
+    """Extract Bearer access token from Authorization header, query string, or HttpOnly cookie."""
+    # 1. Authorization header: "Bearer <token>" (case-insensitive, preferred)
     auth_header = request.headers.get("Authorization", "").strip()
     if auth_header.lower().startswith("bearer "):
         token = auth_header[7:].strip()
         if token:
             return token
 
-    # 2. Query param fallback (e.g. for iframe / direct link: ?token=...)
+    # 2. Query string fallback (?token=... or ?access_token=...)
     query_token = request.args.get("token") or request.args.get("access_token")
-    if query_token:
+    if query_token and query_token.strip():
         return query_token.strip()
 
-    # 3. Cookie fallback
+    # 3. HttpOnly cookie fallback
     cookie_token = request.cookies.get("sb_access_token") or request.cookies.get("supabase_token")
-    if cookie_token:
+    if cookie_token and cookie_token.strip():
         return cookie_token.strip()
 
     return None
@@ -119,13 +127,14 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     now = time.time()
 
-    # Check memory cache
-    if token_hash in _TOKEN_CACHE:
-        user_info, expires_at = _TOKEN_CACHE[token_hash]
-        if now < expires_at:
-            return user_info
-        else:
-            _TOKEN_CACHE.pop(token_hash, None)
+    # Check memory cache (thread-safe)
+    with _TOKEN_CACHE_LOCK:
+        if token_hash in _TOKEN_CACHE:
+            user_info, expires_at = _TOKEN_CACHE[token_hash]
+            if now < expires_at:
+                return user_info
+            else:
+                _TOKEN_CACHE.pop(token_hash, None)
 
     # 1. Try local PyJWT verification if SUPABASE_JWT_SECRET is configured
     if jwt and jwt_secret:
@@ -143,8 +152,9 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                 "user_metadata": decoded.get("user_metadata", {}),
                 "app_metadata": decoded.get("app_metadata", {}),
             }
-            _prune_token_cache(now)
-            _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
+            with _TOKEN_CACHE_LOCK:
+                _prune_token_cache_locked(now)
+                _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
             return user_data
         except Exception:
             # Fall through to Supabase Auth API verification
@@ -169,8 +179,9 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                     "app_metadata": user_obj.get("app_metadata", {}),
                     "created_at": user_obj.get("created_at"),
                 }
-                _prune_token_cache(now)
-                _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
+                with _TOKEN_CACHE_LOCK:
+                    _prune_token_cache_locked(now)
+                    _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
                 return user_data
         except Exception as e:
             print(f"[Auth] Supabase verification request failed: {e}")
@@ -193,7 +204,8 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
 
 def clear_token_cache() -> None:
     """Clear in-memory token cache (useful for testing)."""
-    _TOKEN_CACHE.clear()
+    with _TOKEN_CACHE_LOCK:
+        _TOKEN_CACHE.clear()
 
 
 def require_auth(fn: Callable[..., Any]) -> Callable[..., Any]:

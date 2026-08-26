@@ -39,7 +39,7 @@ DRAFT_KEYS = (
 # (Gemini 2.5+, and anything with thinking on) spend output tokens before the
 # answer starts, so a ceiling sized to the visible answer gets consumed and you
 # get truncated JSON instead of a result.
-SCREEN_MAX_TOKENS = 8000
+SCREEN_MAX_TOKENS = 2000
 DRAFT_MAX_TOKENS = 8000
 PROFILE_MAX_TOKENS = 4000
 
@@ -125,7 +125,7 @@ def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
     # Fallback decode as text if parsing fails (useful for mock/corrupted PDF bytes in testing)
     try:
         decoded = pdf_bytes.decode("utf-8", errors="ignore").strip()
-        if len(decoded) > 20 and any(kw in decoded for kw in ("Resume", "skills", "Python", "experience", "John Doe")):
+        if len(decoded) > 20 and any(kw in decoded for kw in ("Resume", "skills", "Python", "experience", "education", "projects")):
             return decoded
     except Exception:
         pass
@@ -180,7 +180,7 @@ def _get_candidate_name(profile: dict | None) -> str:
     return "Candidate"
 
 
-def _build_screen_system(profile: dict | None = None) -> str:
+def _build_screen_system(profile: dict | None = None, cfg: dict | None = None) -> str:
     name = _get_candidate_name(profile)
     edu = (profile or {}).get("education", "")
     yoe = (profile or {}).get("years_experience")
@@ -202,8 +202,21 @@ def _build_screen_system(profile: dict | None = None) -> str:
     if details:
         context += f" ({', '.join(details)})"
 
-    return f"""You screen job postings for {context}. You are strict and objective.
-Note: This platform is India-first. Consider Indian salary norms (LPA), Indian cities, Indian company names. If a job location mentions Indian cities or 'remote' it is highly relevant for Indian candidates.
+    # Regional context: configurable via config.yaml (region_hint / region_context).
+    # Defaults to India-first when no config is passed, preserving backward compatibility.
+    _cfg = cfg or {}
+    region_context = str(_cfg.get("region_context") or "india").lower().strip()
+    if region_context == "global":
+        region_note = ""
+    else:
+        region_note = _cfg.get("region_hint") or (
+            "India-first platform. Consider Indian salary norms (LPA), Indian cities, Indian company names. "
+            "If a job location mentions Indian cities or 'remote' it is highly relevant for Indian candidates."
+        )
+
+    region_line = f"\nNote: {region_note}" if region_note else ""
+
+    return f"""You screen job postings for {context}. You are strict and objective.{region_line}
 Target Roles: {titles_str}
 Domains: {domains_str}
 

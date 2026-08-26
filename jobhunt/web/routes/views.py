@@ -22,7 +22,7 @@ def index():
 @views_bp.route("/api/health")
 def api_health():
     """Service health check endpoint for monitoring, Vercel status, and uptime verification."""
-    is_vercel = os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ
+    is_vercel = os.environ.get("VERCEL") == "1"
     supabase_cfg = get_supabase_config()
     return jsonify({
         "status": "healthy",

@@ -37,7 +37,7 @@ def _resolve_relative(p: str | Path) -> Path:
         return path
     if path.is_file():
         return path
-    if os.environ.get("VERCEL") == "1" or "VERCEL" in os.environ:
+    if os.environ.get("VERCEL") == "1":
         root_path = ROOT / path
         if root_path.is_file():
             return root_path
@@ -459,7 +459,9 @@ def json_dumps_pretty(obj: dict) -> str:
 
 
 def main() -> None:
+    from . import __version__
     parser = argparse.ArgumentParser(prog="jobhunt", description="Personal & Multi-User job search intelligence agent.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # run

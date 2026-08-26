@@ -4,7 +4,7 @@ Enables hundreds of users to receive daily job intelligence at zero infrastructu
 1. Fetches all target ATS company boards ONCE into a shared in-memory pool.
 2. Iterates over all active users in Supabase PostgreSQL (or local profiles).
 3. Pre-filters jobs dynamically against each candidate's specific criteria.
-4. Screens and drafts application kits using gemini-3.5-flash (with automatic fallback).
+4. Screens and drafts application kits using frontier LLMs (Groq / Gemini / Claude).
 5. Dispatches personalized HTML briefings via email for users with notifications enabled.
 6. Records run metrics and audits per user.
 """
@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Any
+import requests
 
 from . import cli, digest, llm, mailer
 from .fetch import fetch_all
@@ -84,10 +85,11 @@ def run_multi_user_pipeline(
     users_to_process: list[dict[str, Any]] = []
     if memory.is_configured:
         try:
-            # Query all user profiles from Supabase
-            import requests
+            # Admin operation: list ALL user profiles for batch processing.
+            # This is the ONLY place where use_service_key=True is appropriate —
+            # we intentionally bypass RLS here to enumerate all users for the batch run.
             endpoint = f"{memory.url}/rest/v1/user_profiles"
-            headers = memory._headers()
+            headers = memory._headers(use_service_key=True)
             params = {"select": "*", "order": "created_at.asc"}
             resp = requests.get(
                 endpoint, headers=headers, params=params, timeout=memory.timeout

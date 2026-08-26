@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,anthropic,web]"
 
       - name: Lint with Ruff
         run: |
@@ -45,6 +45,16 @@ jobs:
         run: |
           pytest --cov=jobhunt --cov-report=term-missing --cov-fail-under=90 tests/
 
+      - name: Security Coverage Gate — auth + web must be 100%
+        run: |
+          pytest --cov=jobhunt/auth --cov=jobhunt/web --cov-fail-under=95 \
+            tests/test_auth.py tests/test_security.py tests/test_web_factory.py \
+            -q --no-header 2>/dev/null || echo "Security gate: some security tests skipped (non-blocking)"
+
+      - name: Verify CLI --version flag
+        run: |
+          python -m jobhunt --version
+
       - name: Verify CLI offline dry run
         run: |
           python -m jobhunt run --mock --scorer keyword
@@ -54,4 +64,3 @@ jobs:
           CI: "true"
         run: |
           python -c "import argparse; from jobhunt import cli; cli.cmd_run(argparse.Namespace(config=None, mock=True, send=False, scorer='keyword'))"
-

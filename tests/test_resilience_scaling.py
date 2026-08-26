@@ -119,11 +119,13 @@ def test_memory_cache_invalidation_lifecycle(monkeypatch):
     with patch("requests.get", return_value=mock_resp) as mock_get:
         # First read hits Supabase
         p1 = mem.get_user_profile("test@user.com")
+        assert p1 is not None
         assert p1["name"] == "Initial Name"
         assert mock_get.call_count == 1
 
         # Second read hits in-memory cache without HTTP call
         p2 = mem.get_user_profile("test@user.com")
+        assert p2 is not None
         assert p2["name"] == "Initial Name"
         assert mock_get.call_count == 1
 
@@ -132,6 +134,7 @@ def test_memory_cache_invalidation_lifecycle(monkeypatch):
     mock_resp.json.return_value = [{"email": "test@user.com", "name": "Updated Name", "skills": ["Python"]}]
     with patch("requests.get", return_value=mock_resp) as mock_get:
         p3 = mem.get_user_profile("test@user.com")
+        assert p3 is not None
         assert p3["name"] == "Updated Name"
         assert mock_get.call_count == 1
 

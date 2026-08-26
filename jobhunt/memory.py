@@ -22,6 +22,7 @@ from .auth import get_supabase_config
 
 
 _SESSION: requests.Session | None = None
+_SESSION_LOCK = threading.Lock()
 
 # Thread-safe short TTL cache for read operations
 _PROFILE_CACHE: Dict[str, tuple[Dict[str, Any], float]] = {}
@@ -53,21 +54,22 @@ def _get_session() -> Any:
     import sys
     if "pytest" in sys.modules:
         return requests
-    if _SESSION is None:
-        from urllib3.util import Retry
-        from requests.adapters import HTTPAdapter
-        session = requests.Session()
-        retries = Retry(
-            total=3,
-            backoff_factor=0.5,
-            status_forcelist=[502, 503, 504],
-            raise_on_status=False
-        )
-        adapter = HTTPAdapter(max_retries=retries)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        _SESSION = session
-    return _SESSION
+    with _SESSION_LOCK:
+        if _SESSION is None:
+            from urllib3.util import Retry
+            from requests.adapters import HTTPAdapter
+            session = requests.Session()
+            retries = Retry(
+                total=3,
+                backoff_factor=0.5,
+                status_forcelist=[502, 503, 504],
+                raise_on_status=False
+            )
+            adapter = HTTPAdapter(max_retries=retries)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            _SESSION = session
+        return _SESSION
 
 
 
@@ -87,11 +89,25 @@ class SupabaseMemory:
         """Check if Supabase endpoint credentials are validly configured."""
         return bool(self.url and (self.anon_key or self.service_key))
 
-    def _headers(self, token: Optional[str] = None) -> Dict[str, str]:
-        """Build authorized PostgREST HTTP headers."""
+    def _headers(self, token: Optional[str] = None, use_service_key: bool = False) -> Dict[str, str]:
+        """Build authorized PostgREST HTTP headers.
+
+        Args:
+            token: Optional user-scoped JWT token. When provided and use_service_key is False,
+                   this token is used — preserving Supabase Row-Level Security for that user.
+            use_service_key: When True, use the SUPABASE_SERVICE_ROLE_KEY which bypasses RLS.
+                   Should ONLY be True for admin/batch operations (e.g., multi-run pipeline that
+                   must read all users). Never set True for user-facing reads or writes.
+        """
         active_token = token or self.token
         key = self.service_key or self.anon_key
-        auth_val = f"Bearer {self.service_key}" if self.service_key else (f"Bearer {active_token}" if active_token else f"Bearer {self.anon_key}")
+        # Use service key (bypasses RLS) only when explicitly requested for admin operations
+        if use_service_key and self.service_key:
+            auth_val = f"Bearer {self.service_key}"
+        elif active_token:
+            auth_val = f"Bearer {active_token}"
+        else:
+            auth_val = f"Bearer {self.anon_key}"
         return {
             "apikey": key,
             "Authorization": auth_val,

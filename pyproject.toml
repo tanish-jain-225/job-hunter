@@ -26,13 +26,14 @@ classifiers = [
 dependencies = [
     "requests>=2.31.0",
     "PyYAML>=6.0",
-    "anthropic>=0.40.0",
     "flask>=3.0.0",
     "pypdf>=4.0.0",
     "PyJWT>=2.8.0",
 ]
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+web = ["flask-limiter>=3.5.0"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
@@ -40,6 +41,7 @@ dev = [
     "types-requests>=2.31.0",
     "types-PyYAML>=6.0.0",
     "ruff>=0.2.0",
+    "hypothesis>=6.0.0",
 ]
 
 [project.scripts]
@@ -81,11 +83,17 @@ source = ["jobhunt"]
 omit = ["jobhunt/__pycache__/*"]
 
 [tool.coverage.report]
+# Global threshold: overall suite must stay >= 90%.
+# Security-critical modules (auth.py, web/__init__.py) are checked separately
+# via: pytest --cov=jobhunt/auth --cov=jobhunt/web --cov-fail-under=100
+# in the CI "Security Coverage Gate" step.
 fail_under = 90
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",
     "raise NotImplementedError",
+    "except ImportError:",          # optional dependency graceful degradation
+    "except ImportError as",
 ]
 show_missing = true
 

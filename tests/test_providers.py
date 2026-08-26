@@ -74,7 +74,7 @@ def test_resolve_auto_split_groq_and_gemini(monkeypatch: pytest.MonkeyPatch):
 
     screen_p, screen_m = resolve("screen", check=False)
     assert screen_p.name == "groq"
-    assert "llama" in screen_m.lower()
+    assert "gpt" in screen_m.lower() or "qwen" in screen_m.lower() or "openai" in screen_m.lower()
 
     draft_p, draft_m = resolve("draft", check=False)
     assert draft_p.name == "gemini"
@@ -429,7 +429,7 @@ def test_resolve_auto_detect_anthropic(monkeypatch: pytest.MonkeyPatch):
     assert provider.name == "anthropic"
 
 
-def test_gemini_35_flash_default_model(monkeypatch: pytest.MonkeyPatch):
+def test_gemini_36_flash_default_model(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
     monkeypatch.delenv("SCREEN_MODEL", raising=False)
@@ -437,11 +437,11 @@ def test_gemini_35_flash_default_model(monkeypatch: pytest.MonkeyPatch):
 
     p_screen, m_screen = resolve("screen", check=True)
     assert p_screen.name == "gemini"
-    assert m_screen == "gemini-3.5-flash"
+    assert m_screen == "gemini-3.6-flash"
 
     p_draft, m_draft = resolve("draft", check=True)
     assert p_draft.name == "gemini"
-    assert m_draft == "gemini-3.5-flash"
+    assert m_draft == "gemini-3.6-flash"
 
 
 
