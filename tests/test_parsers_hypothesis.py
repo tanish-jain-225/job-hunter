@@ -196,6 +196,28 @@ def test_parse_breezy_never_raises(slug: str, body) -> None:
     assert isinstance(result, list)
 
 
+@given(
+    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    body=st.just({}) | st.just(None) | st.just([]),
+)
+@settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
+def test_parse_recruitee_never_raises(slug: str, body) -> None:
+    """parse_recruitee must never raise even on degenerate inputs."""
+    result = parse_recruitee(slug, "TestCo", body)
+    assert isinstance(result, list)
+
+
+@given(
+    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    body=st.just({}) | st.just(None) | st.just([]),
+)
+@settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
+def test_parse_pinpoint_never_raises(slug: str, body) -> None:
+    """parse_pinpoint must never raise even on degenerate inputs."""
+    result = parse_pinpoint(slug, "TestCo", body)
+    assert isinstance(result, list)
+
+
 # ---------------------------------------------------------------------------
 # Job dataclass invariants
 # ---------------------------------------------------------------------------
