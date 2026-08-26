@@ -66,16 +66,21 @@ filters:
   max_age_days: 60
 
 # --- LLM scoring & concurrency -------------------------------------------
-screen_batch_size: 5        # jobs per screening call (safely stays under Groq 8000 TPM limit)
-screen_jd_chars: 1400       # JD truncation for screening (concise context)
+# Token budget (Groq on-demand TPM = 8000):
+#   system_prompt ≈ 300 tokens + profile ≈ 500 tokens + 10 jobs × 350 tokens/job ≈ 4300 tokens total
+#   → safely under 8000 TPM. If any batch still hits 413, process_batch_with_split()
+#     auto-halves it until it fits.
+screen_batch_size: 10       # 10 jobs/call ≈ 4300 tokens — well under Groq 8000 TPM cap
+screen_jd_chars: 1400       # JD truncation for screening (keeps per-job token cost low)
 draft_jd_chars: 8000        # JD truncation for drafting
 score_threshold: 5.0        # Lower bar: 5.0 catches more matches (users filter via UI)
-max_per_digest: 10          # hard cap on drafted kits per run (increased from 7)
+max_per_digest: 10          # hard cap on drafted kits per run
 
-# Concurrency & rate-limit tuning (Safe for Gemini 15 RPM & Groq 30,000 TPM Free Tier)
+# Concurrency & rate-limit tuning
+# With batch_size=10: 800 jobs → 80 batches × 1.5s delay = 2 min (was 161 batches × 3.5s = 9.4 min)
 fetch_max_workers: 12       # parallel HTTP requests across 200+ ATS boards
 llm_max_workers: 1          # sequential processing to strictly prevent rate limit bursts
-llm_delay_seconds: 3.5      # 3.5s delay spreads token traffic evenly across the TPM window
+llm_delay_seconds: 1.5      # 1.5s between calls is plenty at ~4300 tokens/call on Groq free tier
 
 # --- paths ----------------------------------------------------------------
 companies_file: companies.yaml

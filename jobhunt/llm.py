@@ -239,9 +239,9 @@ Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, con
 SCREEN_SYSTEM = _build_screen_system()
 
 
-def screen(jobs: list[Job], profile: dict, batch_size: int = 5, jd_chars: int = 1400,
+def screen(jobs: list[Job], profile: dict, batch_size: int = 10, jd_chars: int = 1400,
            provider: Provider | None = None, model: str | None = None,
-           delay_seconds: float = 2.5, max_workers: int = 1) -> list[Job]:
+           delay_seconds: float = 1.5, max_workers: int = 1) -> list[Job]:
     """Stage 1: score every surviving job. Mutates and returns `jobs`."""
     is_explicit_provider = provider is not None
     if provider is None or model is None:
