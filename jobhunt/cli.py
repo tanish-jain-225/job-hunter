@@ -143,7 +143,7 @@ def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict)
             raise
         print(f"\n[3/5] screening {len(jobs)} jobs via {provider.name}/{model}")
         llm.screen(jobs, profile,
-                   batch_size=int(cfg.get("screen_batch_size", 7)),
+                   batch_size=int(cfg.get("screen_batch_size", 5)),
                    jd_chars=int(cfg.get("screen_jd_chars", 1400)),
                    provider=provider, model=model,
                    delay_seconds=llm_delay_seconds,

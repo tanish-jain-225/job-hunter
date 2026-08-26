@@ -239,7 +239,7 @@ Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, con
 SCREEN_SYSTEM = _build_screen_system()
 
 
-def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 1400,
+def screen(jobs: list[Job], profile: dict, batch_size: int = 5, jd_chars: int = 1400,
            provider: Provider | None = None, model: str | None = None,
            delay_seconds: float = 2.5, max_workers: int = 1) -> list[Job]:
     """Stage 1: score every surviving job. Mutates and returns `jobs`."""
@@ -251,7 +251,13 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
     batches = [jobs[i:i + batch_size] for i in range(0, len(jobs), batch_size)]
     system_prompt = _build_screen_system(profile)
 
-    def process_batch(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
+    def _is_too_large_error(e: Exception) -> bool:
+        """Return True if the error signals the request was too large (HTTP 413 / TPM exceeded)."""
+        msg = str(e).lower()
+        return "413" in msg or "request too large" in msg or "tokens per minute" in msg or "tpm" in msg
+
+    def process_batch_with_split(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
+        """Attempt batch; on a too-large error split in half and retry recursively (min batch=1)."""
         payload = [{
             "job_id": j.job_id,
             "company": j.company,
@@ -274,7 +280,15 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 if jid:
                     results[str(jid)] = r
         except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
-            print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
+            if _is_too_large_error(e) and len(batch) > 1:
+                half = len(batch) // 2
+                print(f"  ! batch {n} too large ({len(batch)} jobs) — splitting into halves of {half}/{len(batch)-half}")
+                left = process_batch_with_split(n, batch[:half])
+                right = process_batch_with_split(n, batch[half:])
+                results.update(left)
+                results.update(right)
+            else:
+                print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
         return results
 
     if max_workers > 1 and len(batches) > 1:
@@ -283,7 +297,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
         def throttled_process_batch(n: int, b: list[Job]) -> tuple[int, list[Job], dict[str, dict[str, Any]]]:
             if delay_seconds > 0 and n > 1:
                 time.sleep(min(delay_seconds, 1.0) * ((n - 1) % max_workers))
-            return n, b, process_batch(n, b)
+            return n, b, process_batch_with_split(n, b)
 
         with ThreadPoolExecutor(max_workers=min(max_workers, len(batches))) as executor:
             futures = [executor.submit(throttled_process_batch, idx + 1, batch) for idx, batch in enumerate(batches)]
@@ -309,7 +323,8 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 print(f"  screened {processed_count}/{len(jobs)} [offline keyword fallback]")
                 continue
 
-            results = process_batch(idx + 1, batch)
+            results = process_batch_with_split(idx + 1, batch)
+            # Only attempt Gemini failover when no explicit provider was given by the caller
             if not results and not is_explicit_provider:
                 if getattr(provider, "name", "") != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
                     try:
@@ -319,7 +334,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                         print(f"  🔄 Switching screening provider from {pname} -> gemini (gemini-3.6-flash)...")
                         provider = gemini_p
                         model = "gemini-3.6-flash"
-                        results = process_batch(idx + 1, batch)
+                        results = process_batch_with_split(idx + 1, batch)
                     except Exception as fe:
                         print(f"  ! gemini failover failed: {fe}")
 

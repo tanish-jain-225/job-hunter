@@ -66,8 +66,8 @@ filters:
   max_age_days: 60
 
 # --- LLM scoring & concurrency -------------------------------------------
-screen_batch_size: 15       # jobs per screening call (cuts total API calls by ~50%)
-screen_jd_chars: 1800       # JD truncation for screening (rich context)
+screen_batch_size: 5        # jobs per screening call (safely stays under Groq 8000 TPM limit)
+screen_jd_chars: 1400       # JD truncation for screening (concise context)
 draft_jd_chars: 8000        # JD truncation for drafting
 score_threshold: 5.0        # Lower bar: 5.0 catches more matches (users filter via UI)
 max_per_digest: 10          # hard cap on drafted kits per run (increased from 7)

@@ -385,7 +385,7 @@ ENDPOINTS = REGISTERED_ATS
 _GLOBAL_ATS_CACHE: dict[str, tuple[float, list[Job]]] = {}
 _ATS_CACHE_LOCK = threading.Lock()   # Fix 11: protect concurrent reads/writes
 _MAX_ATS_CACHE_SIZE = 500
-_MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # Fix 12: 10 MB hard cap per ATS response
+_MAX_RESPONSE_BYTES = 30 * 1024 * 1024  # 30 MB hard cap per ATS response (accommodates large boards like Ashby OpenAI)
 
 
 def _prune_ats_cache(now: float, ttl: float = 1800.0) -> None:

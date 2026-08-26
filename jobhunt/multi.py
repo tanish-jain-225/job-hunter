@@ -201,7 +201,7 @@ def run_multi_user_pipeline(
                         print(f"  Screening {len(unseen_jobs)} postings via {provider.name}/{model}...")
                         llm.screen(
                             unseen_jobs, profile_dict,
-                            batch_size=int(cfg.get("screen_batch_size", 15)),
+                            batch_size=int(cfg.get("screen_batch_size", 5)),
                             jd_chars=int(cfg.get("screen_jd_chars", 1400)),
                             provider=provider, model=model,
                             delay_seconds=float(cfg.get("llm_delay_seconds", 3.5)),
