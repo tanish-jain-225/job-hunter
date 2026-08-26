@@ -308,7 +308,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
             results = process_batch(idx + 1, batch)
             if not results:
                 consecutive_failures += 1
-                if consecutive_failures >= 2:
+                if consecutive_failures >= 4:
                     print("  ⚠️ LLM provider quota exhausted for today (429). Fast-falling back to offline keyword scorer for remaining batches.")
                     quota_circuit_broken = True
                     keyword_screen(batch, profile)
