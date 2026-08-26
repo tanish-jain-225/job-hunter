@@ -17,7 +17,7 @@ import time
 from typing import Any
 
 from .fetch import Job
-from .providers import LLMError, Provider, resolve
+from .providers import LLMError, Provider, get_provider, resolve
 
 _FENCE_OPEN = re.compile(r"^\s*```(?:json|JSON)?\s*", re.M)
 _FENCE_CLOSE = re.compile(r"\s*```\s*$", re.M)
