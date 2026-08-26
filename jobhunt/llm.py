@@ -260,6 +260,8 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
             "description": j.description[:jd_chars],
         } for j in batch]
         results: dict[str, dict[str, Any]] = {}
+        if provider is None or model is None:
+            return results
         try:
             raw = provider.complete(
                 model, system_prompt,
