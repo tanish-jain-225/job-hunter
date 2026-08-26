@@ -21,7 +21,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Groq (`openai/gpt-oss-20b` / `qwen/qwen3.6-27b`, 14,400 RPD)** or **Google Gemini (`gemini-3.6-flash`)** (with automatic offline fallback).
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Groq (`llama-3.1-8b-instant` / `qwen/qwen3.6-27b`, 14,400 RPD)** or **Google Gemini (`gemini-3.6-flash`)** (with automatic offline fallback).
 4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions using **Google Gemini (`gemini-3.6-flash`)**, **Groq**, or Claude.
 5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), delivers HTML briefings, and leverages Edge CDN static assets offloading.
 
@@ -243,7 +243,7 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 # Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=openai/gpt-oss-20b
+# SCREEN_MODEL=llama-3.1-8b-instant
 # DRAFT_MODEL=gemini-3.6-flash
 ```
 
@@ -256,14 +256,14 @@ Job Hunter features an **intelligent split pipeline**: screening dozens of jobs 
 
 ```mermaid
 flowchart LR
-    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Groq (openai/gpt-oss-20b)<br/>14,400 Requests/Day Free"]
+    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Groq (llama-3.1-8b-instant)<br/>14,400 Requests/Day Free"]
     B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.6 Flash)<br/>Cover Note, Cold Message, Bullets"]
     C --> D["Daily Briefing & Web Kanban"]
 ```
 
 | Provider | Default Model | Environment Key | Native PDF | Best Recommended Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Groq** | `openai/gpt-oss-20b` | `GROQ_API_KEY` | ❌ | **Default Screening:** Blazing-fast batch inference (30 RPM, 14,400 RPD free) |
+| **Groq** | `llama-3.1-8b-instant` | `GROQ_API_KEY` | ❌ | **Default Screening:** Blazing-fast batch inference (30 RPM, 14,400 RPD free) |
 | **Google Gemini** | `gemini-3.6-flash` | `GEMINI_API_KEY` | ✅ | **Default Drafting:** Generous free tier context window for tailored kits |
 | **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-haiku` | `ANTHROPIC_API_KEY` | ✅ | High-reasoning drafting and native PDF resume analysis |
 | **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |

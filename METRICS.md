@@ -41,7 +41,7 @@ flowchart LR
 ## 3. Component-by-Component Infrastructure Breakdown
 
 ### A. Stage 1 Batch Screening (Groq Cloud)
-* **Default Model**: `openai/gpt-oss-20b` *(with fallback to `openai/gpt-oss-120b` / `qwen/qwen3.6-27b`)*
+* **Default Model**: `llama-3.1-8b-instant` *(with drafting on `llama-3.3-70b-versatile` / `gemini-3.6-flash`)*
 * **Batch Size**: 15 jobs per screening request (reduces API call volume by **~54%**).
 * **Batch Pacing & Concurrency**: 3.5s delay between requests with single-worker sequential execution (`max_workers: 1`), keeping token traffic continuously under 30,000 TPM limit.
 * **429 Cooldown Recovery**: Automatic 62.0s reset window on HTTP 429 rate limit responses, ensuring **100% AI screening completion** with 0% circuit-breaker fallback rate.

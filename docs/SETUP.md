@@ -120,7 +120,7 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 # Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=openai/gpt-oss-20b
+# SCREEN_MODEL=llama-3.1-8b-instant
 # DRAFT_MODEL=gemini-3.6-flash
 ```
 
