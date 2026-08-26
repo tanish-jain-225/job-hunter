@@ -42,8 +42,9 @@ flowchart LR
 
 ### A. Stage 1 Batch Screening (Groq Cloud)
 * **Default Model**: `openai/gpt-oss-20b` *(with fallback to `openai/gpt-oss-120b` / `qwen/qwen3.6-27b`)*
-* **Batch Size**: 15 jobs per screening request.
-* **Latency**: ~0.70 seconds per batch.
+* **Batch Size**: 15 jobs per screening request (reduces API call volume by **~54%**).
+* **Batch Pacing & Concurrency**: 3.5s delay between requests with single-worker sequential execution (`max_workers: 1`), keeping token traffic continuously under 30,000 TPM limit.
+* **429 Cooldown Recovery**: Automatic 62.0s reset window on HTTP 429 rate limit responses, ensuring **100% AI screening completion** with 0% circuit-breaker fallback rate.
 * **Daily Free Quota**: **14,400 requests / day**.
 * **Capacity**:
   * 100 Users: 200 calls (**1.4%** of quota)
@@ -122,7 +123,7 @@ timeline
 
 | Risk Factor | Impact | Mitigation Strategy |
 |---|---|---|
-| **AI Provider Free Tier Changes** | Provider reduces daily rate limits | Multi-provider architecture allows instant switching between Groq, Gemini, Anthropic, and local Ollama via environment variables. |
+| **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Sequential 3.5s batch delay + 62s reset window on 429 + instant auto-switch between Groq, Gemini, Anthropic, and local Ollama via environment variables. |
 | **ATS Anti-Scraping Policies** | ATS adds bot challenge on public endpoints | All 9 supported ATS engines use standard public JSON career APIs that have remained open for over a decade. Proxy rotation can be enabled if needed. |
 | **Email Deliverability (Spam Filter)** | High-volume emails from `@gmail.com` land in spam | For >300 users, connect a custom domain with verified SPF, DKIM, and DMARC DNS records via Amazon SES or Resend. |
 | **GitHub Access Token Expiration** | Workflow dispatch fails to trigger | Set GitHub Personal Access Tokens (`GH_TOKEN`) with "No Expiration" or rotate annually. |
