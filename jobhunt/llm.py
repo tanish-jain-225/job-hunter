@@ -307,13 +307,14 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
 
             results = process_batch(idx + 1, batch)
             if not results:
-                if active_provider.name != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
+                if getattr(provider, "name", "") != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
                     try:
                         gemini_p = get_provider("gemini")
                         gemini_p.preflight()
-                        print(f"  🔄 Switching screening provider from {active_provider.name} -> gemini (gemini-3.6-flash)...")
-                        active_provider = gemini_p
-                        active_model = "gemini-3.6-flash"
+                        pname = getattr(provider, "name", "primary")
+                        print(f"  🔄 Switching screening provider from {pname} -> gemini (gemini-3.6-flash)...")
+                        provider = gemini_p
+                        model = "gemini-3.6-flash"
                         results = process_batch(idx + 1, batch)
                     except Exception as fe:
                         print(f"  ! gemini failover failed: {fe}")
