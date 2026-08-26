@@ -307,9 +307,21 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
 
             results = process_batch(idx + 1, batch)
             if not results:
+                if active_provider.name != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
+                    try:
+                        gemini_p = get_provider("gemini")
+                        gemini_p.preflight()
+                        print(f"  🔄 Switching screening provider from {active_provider.name} -> gemini (gemini-3.6-flash)...")
+                        active_provider = gemini_p
+                        active_model = "gemini-3.6-flash"
+                        results = process_batch(idx + 1, batch)
+                    except Exception as fe:
+                        print(f"  ! gemini failover failed: {fe}")
+
+            if not results:
                 consecutive_failures += 1
                 if consecutive_failures >= 4:
-                    print("  ⚠️ LLM provider quota exhausted for today (429). Fast-falling back to offline keyword scorer for remaining batches.")
+                    print("  ⚠️ LLM provider quota exhausted for today. Fast-falling back to offline keyword scorer for remaining batches.")
                     quota_circuit_broken = True
                     keyword_screen(batch, profile)
             else:

@@ -513,14 +513,17 @@ def fetch_all(companies: Iterable[dict] | str | Any, sleep: float = 0.25,
 
             with ThreadPoolExecutor(max_workers=min(max_workers, len(company_list))) as executor:
                 futures = [executor.submit(worker, c) for c in company_list]
-                for future in as_completed(futures):
-                    try:
-                        c, got = future.result()
-                        if got:
-                            print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
-                        jobs.extend(got)
-                    except (requests.RequestException, KeyError, ValueError, TypeError) as e:
-                        print(f"  ! worker error: {e}")
+                try:
+                    for future in as_completed(futures, timeout=120):
+                        try:
+                            c, got = future.result()
+                            if got:
+                                print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
+                            jobs.extend(got)
+                        except (requests.RequestException, KeyError, ValueError, TypeError) as e:
+                            print(f"  ! worker error: {e}")
+                except Exception as te:
+                    print(f"  ! fetch pool finished with timeout guard ({te})")
         else:
             for c in company_list:
                 try:
