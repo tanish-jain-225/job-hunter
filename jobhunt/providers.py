@@ -239,7 +239,7 @@ class OpenAICompatProvider(Provider):
                    [{"role": "user", "content": user}]
         payload: dict[str, Any] = {"model": model, "messages": messages,
                                    "max_tokens": max_tokens, "temperature": 0.2}
-        if json_mode:
+        if json_mode and self.name != "groq":
             payload["response_format"] = {"type": "json_object"}
         max_retries = 4
         for attempt in range(max_retries):
@@ -330,7 +330,7 @@ PROVIDERS = {
 DEFAULT_MODELS = {
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "gemini": {"screen": "gemini-3.6-flash", "draft": "gemini-3.6-flash"},
-    "groq": {"screen": "llama-3.1-8b-instant", "draft": "llama-3.3-70b-versatile"},
+    "groq": {"screen": "openai/gpt-oss-20b", "draft": "openai/gpt-oss-120b"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
     "ollama": {"screen": "llama3.1", "draft": "llama3.1"},
 }
