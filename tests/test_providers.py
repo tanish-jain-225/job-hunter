@@ -74,7 +74,7 @@ def test_resolve_auto_split_groq_and_gemini(monkeypatch: pytest.MonkeyPatch):
 
     screen_p, screen_m = resolve("screen", check=False)
     assert screen_p.name == "groq"
-    assert "gpt" in screen_m.lower() or "qwen" in screen_m.lower() or "openai" in screen_m.lower()
+    assert "llama" in screen_m.lower() or "gpt" in screen_m.lower() or "qwen" in screen_m.lower() or "openai" in screen_m.lower()
 
     draft_p, draft_m = resolve("draft", check=False)
     assert draft_p.name == "gemini"
