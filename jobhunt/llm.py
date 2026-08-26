@@ -243,6 +243,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
            provider: Provider | None = None, model: str | None = None,
            delay_seconds: float = 2.5, max_workers: int = 1) -> list[Job]:
     """Stage 1: score every surviving job. Mutates and returns `jobs`."""
+    is_explicit_provider = provider is not None
     if provider is None or model is None:
         provider, model = resolve("screen")
     batch_size = max(1, int(batch_size))
@@ -307,7 +308,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 8, jd_chars: int = 
                 continue
 
             results = process_batch(idx + 1, batch)
-            if not results:
+            if not results and not is_explicit_provider:
                 if getattr(provider, "name", "") != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
                     try:
                         gemini_p = get_provider("gemini")
