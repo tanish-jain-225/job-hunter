@@ -1,4 +1,4 @@
-﻿"""Security regression tests.
+"""Security regression tests.
 
 Verifies that key security properties of the Flask application hold:
   - CSP and Permissions-Policy headers are present on all responses
@@ -16,7 +16,10 @@ from jobhunt.web import create_app
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "true")
+    monkeypatch.setenv("SUPABASE_URL", "https://mock.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "mock_anon_key")
     app = create_app()
     app.config["TESTING"] = True
     with app.test_client() as c:
