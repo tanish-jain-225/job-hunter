@@ -82,8 +82,8 @@ jobhunt/
 
 Two stages for token efficiency:
 
-- **Screen** — batch ~8–15 jobs per call, truncate each JD to ~1800 chars, return JSON array of `{job_id, score, reason}`. Handled by **Groq** (`llama-3.3-70b-versatile`, 14,400 RPD free) for high throughput.
-- **Draft** — only for jobs above the score threshold. Send ~8000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Handled by **Google Gemini** (`gemini-3.5-flash`) or **Claude**.
+- **Screen** — batch ~8–15 jobs per call, truncate each JD to ~1800 chars, return JSON array of `{job_id, score, reason}`. Handled by **Groq** (`openai/gpt-oss-20b`, 14,400 RPD free) for high throughput.
+- **Draft** — only for jobs above the score threshold. Send ~8000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Handled by **Google Gemini** (`gemini-3.6-flash`) or **Claude**.
 
 ### Provider Flexibility
 Make providers swappable and auto-split via environment variables:

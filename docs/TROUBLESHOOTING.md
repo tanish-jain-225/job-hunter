@@ -55,7 +55,7 @@ This guide covers solutions to common errors, configurations, and questions enco
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
 * **Why it happens:** You are screening dozens of jobs solely on the Google Gemini free tier API (15 RPM ceiling) and high-concurrency requests or multiple fast runs exceeded the rate limit.
 * **The Solution:** 
-  * **Enable Zero-Quota Split Mode (Recommended):** Add a free `GROQ_API_KEY` to `.env`. Job Hunter will automatically route Stage 1 batch screening to Groq (`llama-3.3-70b-versatile`) with 30 RPM and 14,400 Requests/Day capacity, completely bypassing Gemini rate limits!
+  * **Enable Zero-Quota Split Mode (Recommended):** Add a free `GROQ_API_KEY` to `.env`. Job Hunter will automatically route Stage 1 batch screening to Groq (`openai/gpt-oss-20b`) with 30 RPM and 14,400 Requests/Day capacity, completely bypassing Gemini rate limits!
   * Job Hunter includes automatic parallel worker pacing (`min(delay_seconds, 1.0) * worker_idx`) and exponential backoff retry loops.
   * In `config.yaml`, set `llm_max_workers` to `1` or `2` for free-tier keys.
   * Increase `llm_delay_seconds` (e.g., `3.0` or `4.0`) to insert a larger pause between batches.

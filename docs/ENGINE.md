@@ -36,7 +36,7 @@ For the surviving postings, Job Hunter performs a cheap, batched evaluation pass
 ### High-Throughput Batching & Cost Reduction
 Rather than sending job descriptions one-by-one, Job Hunter batches **8–15 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,800 characters** (configured via `screen_jd_chars`), keeping only the core requirements.
 
-When `GROQ_API_KEY` is configured, Job Hunter routes all batch screening to **Groq (`llama-3.3-70b-versatile`)**, taking advantage of Groq's high rate limits (30 RPM / 14,400 Requests Per Day) to screen hundreds of jobs in seconds at zero cost.
+When `GROQ_API_KEY` is configured, Job Hunter routes all batch screening to **Groq (`openai/gpt-oss-20b`)**, taking advantage of Groq's high rate limits (30 RPM / 14,400 Requests Per Day) to screen hundreds of jobs in seconds at zero cost.
 
 ### Evaluation Criteria
 The LLM is prompted to assign a score from **`0.0` to `10.0`** based on:
@@ -63,7 +63,7 @@ The LLM returns a JSON list:
 Only jobs that score at or above the **`score_threshold`** (default `5.0`–`7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
 
 ### High-Context Evaluation
-The engine sends the full job description (up to **8,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to **Google Gemini (`gemini-3.5-flash`)** or **Anthropic Claude (`claude-3-7-sonnet`)** to generate a complete application kit:
+The engine sends the full job description (up to **8,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to **Google Gemini (`gemini-3.6-flash`)** or **Anthropic Claude (`claude-3-7-sonnet`)** to generate a complete application kit:
 
 * **Fit Summary:** A brief 2-sentence summary of why this role is a strong match.
 * **Tailored Resume Bullets:** 3 high-impact bullet points demonstrating skills matching the job requirements that you can insert into your resume.
@@ -87,8 +87,8 @@ GEMINI_API_KEY=AIzaSy_...  # Routes drafting to Gemini (rich context window)
 
 | Provider | Default Model | Config Key | Role in Split Architecture |
 | :--- | :--- | :--- | :--- |
-| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | **Screening:** Ultra-fast high-throughput batch evaluation (14,400 RPD free). |
-| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | **Drafting:** Rich context window for personalized application kits. |
+| **Groq** | `openai/gpt-oss-20b` | `GROQ_API_KEY` | **Screening:** Ultra-fast high-throughput batch evaluation (14,400 RPD free). |
+| **Google Gemini** | `gemini-3.6-flash` | `GEMINI_API_KEY` | **Drafting:** Rich context window for personalized application kits. |
 | **Anthropic** | `claude-3-7-sonnet` | `ANTHROPIC_API_KEY` | High-reasoning drafting and native PDF resume analysis. |
 | **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |
 | **Ollama** | Local model (`llama3.1`) | `OLLAMA_HOST` | Run locally on your machine for 100% free, offline inference. |
