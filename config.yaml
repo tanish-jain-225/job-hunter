@@ -72,10 +72,10 @@ draft_jd_chars: 8000        # JD truncation for drafting
 score_threshold: 5.0        # Lower bar: 5.0 catches more matches (users filter via UI)
 max_per_digest: 10          # hard cap on drafted kits per run (increased from 7)
 
-# Concurrency & rate-limit tuning (Safe for Gemini 15 RPM Free Tier)
+# Concurrency & rate-limit tuning (Safe for Gemini 15 RPM & Groq 30,000 TPM Free Tier)
 fetch_max_workers: 12       # parallel HTTP requests across 200+ ATS boards
 llm_max_workers: 1          # sequential processing to strictly prevent rate limit bursts
-llm_delay_seconds: 4.2      # 4.2s delay = ~14 RPM (safely under Gemini 15 RPM ceiling)
+llm_delay_seconds: 3.5      # 3.5s delay spreads token traffic evenly across the TPM window
 
 # --- paths ----------------------------------------------------------------
 companies_file: companies.yaml

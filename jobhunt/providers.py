@@ -252,8 +252,13 @@ class OpenAICompatProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    delay = max(float(retry_after), 5.0) if (retry_after and retry_after.isdigit()) else 5.0 * (attempt + 1)
-                    print(f"  ! {self.name} rate limit (HTTP 429) — cooling down for {delay}s ({attempt + 1}/{max_retries})...")
+                    if self.name in ("groq", "openai-compatible"):
+                        delay = 62.0
+                    elif retry_after and retry_after.isdigit():
+                        delay = max(float(retry_after), 5.0)
+                    else:
+                        delay = 5.0 * (attempt + 1)
+                    print(f"  ! {self.name} rate limit (HTTP 429) — cooling down for {delay:.1f}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
