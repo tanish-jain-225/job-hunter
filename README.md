@@ -37,7 +37,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 ```
 
 > [!TIP]
-> **First time setting up?** Check out **[SETUP.md](docs/SETUP.md)** for a beginner-friendly setup guide, **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** for 100% free multi-user cloud deployment, or **[MULTI_USER.md](docs/MULTI_USER.md)** for architecture scaling details.
+> **First time setting up?** Check out **[SETUP.md](docs/SETUP.md)** for a beginner-friendly setup guide, **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** for 100% free multi-user cloud deployment, **[METRICS.md](METRICS.md)** for business metrics & scaling economics, or **[MULTI_USER.md](docs/MULTI_USER.md)** for architecture scaling details.
 
 ---
 
