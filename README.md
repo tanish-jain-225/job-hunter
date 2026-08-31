@@ -454,7 +454,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (319 unit & integration tests):
+Run the full test suite locally (357 unit & integration tests):
 ```bash
 pytest
 ```
