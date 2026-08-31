@@ -261,11 +261,9 @@ def run_multi_user_pipeline(
                         llm.screen(
                             unseen_jobs,
                             profile_dict,
-                            batch_size=int(cfg.get("screen_batch_size", 10)),
-                            jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                            provider=provider,
-                            model=model,
-                            delay_seconds=float(cfg.get("llm_delay_seconds", 1.5)),
+                            batch_size=int(cfg.get("screen_batch_size", 8)),
+                            jd_chars=int(cfg.get("screen_jd_chars", 800)),
+                            delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
                             max_workers=int(cfg.get("llm_max_workers", 1)),
                         )
                     except Exception as e:
