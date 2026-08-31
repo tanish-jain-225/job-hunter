@@ -210,11 +210,13 @@ class GeminiProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    delay = (
-                        max(float(retry_after), 15.0)
-                        if (retry_after and retry_after.isdigit())
-                        else 15.0 * (attempt + 1)
-                    )
+                    raw_delay = 15.0 * (attempt + 1)
+                    if retry_after:
+                        try:
+                            raw_delay = max(float(str(retry_after).strip()), 5.0)
+                        except (ValueError, TypeError):
+                            pass
+                    delay = min(raw_delay, 20.0)
                     _record_key_cooldown(key, delay)
                     if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
                         print(
@@ -337,12 +339,13 @@ class OpenAICompatProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    if self.name in ("groq", "openai-compatible"):
-                        delay = max(float(retry_after), 15.0) if (retry_after and retry_after.isdigit()) else 15.0
-                    elif retry_after and retry_after.isdigit():
-                        delay = max(float(retry_after), 5.0)
-                    else:
-                        delay = 5.0 * (attempt + 1)
+                    raw_delay = 5.0 * (attempt + 1)
+                    if retry_after:
+                        try:
+                            raw_delay = max(float(str(retry_after).strip()), 5.0)
+                        except (ValueError, TypeError):
+                            pass
+                    delay = min(raw_delay, 20.0)
                     _record_key_cooldown(key, delay)
                     if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
                         print(

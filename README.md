@@ -183,8 +183,8 @@ filters:
   job_types: []
   max_age_days: 21
 
-screen_batch_size: 15     # Jobs per screening LLM call (reduces API calls by ~33%)
-screen_jd_chars: 1200     # Concise context truncation for fast screening
+screen_batch_size: 8      # Jobs per screening LLM call (optimal token budget under TPM caps)
+screen_jd_chars: 800      # Concise context truncation for fast screening
 draft_jd_chars: 6000      # Full context for kit drafting
 score_threshold: 7.0      # Score threshold (1.0 to 10.0 bar for shortlist)
 max_per_digest: 7         # Maximum job kits per digest briefing

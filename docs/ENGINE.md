@@ -34,7 +34,7 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 For the surviving postings, Job Hunter performs a cheap, batched evaluation pass to score how well the job description aligns with your resume profile.
 
 ### High-Throughput Batching & Cost Reduction
-Rather than sending job descriptions one-by-one, Job Hunter batches **8–15 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,800 characters** (configured via `screen_jd_chars`), keeping only the core requirements.
+Rather than sending job descriptions one-by-one, Job Hunter batches **8 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **800 characters** (configured via `screen_jd_chars`), keeping only the core requirements.
 
 When `GROQ_API_KEY` is configured, Job Hunter routes all batch screening to **Groq (`openai/gpt-oss-20b`)**, taking advantage of Groq's high rate limits (30 RPM / 14,400 Requests Per Day) to screen hundreds of jobs in seconds at zero cost.
 

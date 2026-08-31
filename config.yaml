@@ -65,8 +65,8 @@ filters:
   max_age_days: 21
 
 # --- LLM scoring & concurrency -------------------------------------------
-screen_batch_size: 15       # 15 jobs/call — reduces API call volume by ~33%
-screen_jd_chars: 1200       # JD truncation for screening (keeps per-job token cost low)
+screen_batch_size: 8        # 8 jobs/call — optimal token budget under provider TPM caps
+screen_jd_chars: 800        # JD truncation for fast, concise screening
 draft_jd_chars: 6000        # JD truncation for drafting
 score_threshold: 7.0        # High bar: 7.0 drafts kits only for strong matches
 max_per_digest: 7           # Hard cap on drafted kits per run

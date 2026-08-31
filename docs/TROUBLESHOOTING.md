@@ -59,7 +59,7 @@ This guide covers solutions to common errors, configurations, and questions enco
   * Job Hunter includes automatic parallel worker pacing (`min(delay_seconds, 1.0) * worker_idx`) and exponential backoff retry loops.
   * In `config.yaml`, set `llm_max_workers` to `1` or `2` for free-tier keys.
   * Increase `llm_delay_seconds` (e.g., `3.0` or `4.0`) to insert a larger pause between batches.
-  * Increase `screen_batch_size` (e.g., to `8` or `15`) to evaluate more jobs per API call and save overall requests.
+  * Adjust `screen_batch_size` (e.g., to `8`) to evaluate jobs efficiently per API call within token budget limits.
 
 ---
 

@@ -42,9 +42,9 @@ flowchart LR
 
 ### A. Stage 1 Batch Screening (Groq Cloud)
 * **Default Model**: `openai/gpt-oss-20b` *(with fallback to `openai/gpt-oss-120b` / `qwen/qwen3.6-27b`)*
-* **Batch Size**: 15 jobs per screening request (reduces API call volume by **~54%**).
-* **Batch Pacing & Concurrency**: 3.5s delay between requests with single-worker sequential execution (`max_workers: 1`), keeping token traffic continuously under 30,000 TPM limit.
-* **429 Cooldown Recovery**: Automatic 62.0s reset window on HTTP 429 rate limit responses, ensuring **100% AI screening completion** with 0% circuit-breaker fallback rate.
+* **Batch Size**: 8 jobs per screening request (optimal token budget under provider TPM caps).
+* **Batch Pacing & Concurrency**: 2.0s delay between requests with single-worker sequential execution (`max_workers: 1`), keeping token traffic continuously under provider TPM limits.
+* **429 Cooldown Recovery**: Automatic 20.0s capped reset window on HTTP 429 rate limit responses, triggering immediate secondary provider fallback to ensure **100% AI screening completion**.
 * **Daily Free Quota**: **14,400 requests / day**.
 * **Capacity**:
   * 100 Users: 200 calls (**1.4%** of quota)
