@@ -289,7 +289,7 @@ def screen(
 
         user_prompt = f"CANDIDATE PROFILE:\n{profile_blob}\n\nJOBS:\n{json.dumps(payload, ensure_ascii=False)}"
         approx_tokens = (len(system_prompt) + len(user_prompt)) // 3
-        if approx_tokens > 4500 and len(batch) > 1:
+        if approx_tokens > 8000 and len(batch) > 1:
             half = len(batch) // 2
             print(
                 f"  ! batch {n} prompt token count ({approx_tokens} tokens) > budget — pre-emptively micro-batching ({half}/{len(batch) - half})"
