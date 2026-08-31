@@ -14,9 +14,9 @@ Combined with **self-compacting storage pruning** and **frontier AI splitting**,
 flowchart LR
     A["90+ ATS Boards (Single Crawl)"] --> B["Global Pool (~2,000 Raw Postings)"]
     B --> C["Deterministic Filter (Per User)"]
-    C --> D["Stage 1: Groq Screening (0.7s)"]
-    D --> E["Stage 2: Gemini Drafting (2.0s)"]
-    E --> F["100-300 Morning HTML Briefings"]
+    C --> D["Stage 1: Gemini Screening (1.2s)"]
+    D --> E["Stage 2: Gemini Kit Drafting (2.0s)"]
+    E --> F["100-750 Morning HTML Briefings"]
     E --> G["Supabase PostgreSQL (Auto-Pruned)"]
 ```
 
@@ -24,43 +24,33 @@ flowchart LR
 
 ## 2. Multi-User Scale & Workload Matrix
 
-| Metric | 100 Users | 200 Users | 300 Users | 500 Users | 1,000 Users |
+| Metric | 100 Users | 250 Users | 500 Users | 750 Users | 1,500 Users |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Daily Discovered Jobs** | ~2,000 | ~2,000 | ~2,000 | ~2,000 | ~2,000 |
 | **ATS Crawl Requests** | ~95 | ~95 | ~95 | ~95 | ~95 |
-| **Stage 1 Screening Calls (Groq)** | ~200 | ~400 | ~600 | ~1,000 | ~2,000 |
-| **Stage 2 Drafting Calls (Gemini)** | ~400 | ~800 | ~1,200 | ~2,000 | ~4,000 |
-| **Emails Dispatched / Day** | 100 | 200 | 300 | 500 | 1,000 |
-| **Daily Cron Runtime (GitHub Actions)** | ~2.5 mins | ~4.5 mins | ~6.5 mins | ~11 mins | ~20 mins |
-| **Permanent DB Size Plateau** | ~45 MB | ~90 MB | ~135 MB | ~225 MB | ~450 MB |
-| **Total Monthly Running Cost** | **$0.00** | **$0.00** | **$0.00** | **~$1 – $5** | **~$10 – $15** |
-| **Free Tier Status** | 🟢 100% Free | 🟢 100% Free | 🟢 100% Free | 🟡 Minor Tweaks | 🔴 Paid Tier |
+| **Stage 1 Screening Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
+| **Stage 2 Kit Drafting Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
+| **Emails Dispatched / Day** | 100 | 250 | 500 | 750 | 1,500 |
+| **Daily Cron Runtime (GitHub Actions)** | ~2.5 mins | ~4.5 mins | ~8.5 mins | ~14 mins | ~25 mins |
+| **Permanent DB Size Plateau** | ~25 MB | ~62.5 MB | ~125 MB | ~187.5 MB | ~375 MB |
+| **Total Monthly Running Cost** | **$0.00** | **$0.00** | **$0.00** | **$0.00** | **~$10 – $15** |
+| **Free Tier Status** | 🟢 100% Free (1 Key) | 🟢 100% Free (1 Key) | 🟢 100% Free (2 CSV Keys) | 🟢 100% Free (3 CSV Keys) | 🔴 Paid Expansion |
 
 ---
 
 ## 3. Component-by-Component Infrastructure Breakdown
 
-### A. Stage 1 Batch Screening (Google Gemini Flash)
+### A. Primary AI Engine: Google Gemini Flash (`gemini-3.6-flash`)
 * **Default Model**: `gemini-3.6-flash`
-* **Batch Size**: 10 jobs per screening request (high-throughput evaluation pass).
-* **Batch Pacing & Concurrency**: 1.5s delay between requests with single-worker sequential execution (`max_workers: 1`).
-* **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`key1,key2,key3`) with 20s capped retry delay.
-* **Daily Free Quota**: **1,000,000+ tokens / day per project**.
+* **Batch Size**: 8 jobs per screening request (high-throughput evaluation pass).
+* **Batch Pacing**: 4.0s delay between requests = 15 RPM exact speed matching.
+* **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`).
+* **Daily Free Quota**: **1,500 requests / day** and **1,000,000+ tokens / day** per project key.
+* **Per-User Daily Consumption**: ~6 API calls (3 screening batches + 3 kit drafts).
 * **Capacity**:
-  * 100 Users: 200 calls (**1.4%** of quota)
-  * 300 Users: 600 calls (**4.2%** of quota)
-  * 1,000 Users: 2,000 calls (**13.9%** of quota)
-* **Headroom**: Groq screening alone can comfortably support **7,000+ daily users** on free tier.
-
-### B. Stage 2 Application Kit Drafting (Google Gemini)
-* **Default Model**: `gemini-3.6-flash`
-* **Output**: 150-word cover note, 80-word cold outreach message, 3-4 tailored resume bullets, India eligibility tag, and LPA salary analysis.
-* **Daily Free Quota**: **1,500 requests / day**.
-* **Capacity**:
-  * 100 Users: ~400 kits (**26.6%** of quota)
-  * 200 Users: ~800 kits (**53.3%** of quota)
-  * 300 Users: ~1,200 kits (**80.0%** of quota)
-  * *Threshold*: Crosses 1,500/day at **~375 users**.
+  * **1 Gemini API Key**: 250 Daily Active Users (**100% Free Forever**)
+  * **2 Gemini API Keys**: 500 Daily Active Users (**100% Free Forever**)
+  * **3 Gemini API Keys**: 750 Daily Active Users (**100% Free Forever**)
 
 ### C. Database & Multi-Tenant Storage (Supabase PostgreSQL)
 * **Free Tier Quota**: **500 MB Database Storage** & **50,000 Monthly Active Users**.
@@ -109,8 +99,8 @@ timeline
     title Scaling Thresholds & Action Triggers
     0 to 350 Users : 100% Free
                    : Zero-maintenance baseline configuration
-    350 to 500 Users : Gemini 1,500 Quota Hit
-                     : Switch DRAFT_PROVIDER=groq for 14,400 free daily calls
+    350 to 1,000+ Users : Add second GEMINI_API_KEY (CSV format) for +1,000,000 daily tokens
+                        : Instant zero-downtime key rotation
     500 to 1,000 Users : Gmail 500 Email Cap Hit
                        : Add free Brevo (300/day) or Resend (3,000/mo) SMTP provider
     1,000 to 2,000+ Users : Supabase 500MB Cap Hit

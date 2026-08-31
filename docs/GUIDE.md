@@ -47,11 +47,9 @@ pip install -e .
 1. **Environment Configuration (`.env`)**:
    Create a `.env` file in the project root with your credentials:
    ```env
-   # AI Intelligence Providers (High-Speed Zero-Quota Split Architecture)
-   # • GROQ_API_KEY: 30 RPM, 14,400 RPD for ultra-fast candidate screening (console.groq.com)
-   # • GEMINI_API_KEY: Rich tailored application kit drafting (aistudio.google.com)
-   # (When both keys are set, Job-Hunter automatically routes screening to Groq and drafting to Gemini!)
-   GROQ_API_KEY=gsk_your_groq_api_key_here
+   # AI Intelligence Provider (Google Gemini Flash — 1M Tokens/Day per project)
+   # • GEMINI_API_KEY: High-throughput candidate screening & tailored kit drafting (aistudio.google.com)
+   # Supports comma-separated keys for instant multi-key rotation: key1,key2,key3
    GEMINI_API_KEY=AIzaSy_your_gemini_api_key_here
 
    # Central Outbound SMTP Server (Gmail App Password)

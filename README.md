@@ -473,7 +473,7 @@ pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 > **Zero jobs returned for a company?** The slug in `companies.yaml` may be invalid or migrated to a different ATS. Verify the company's public job board URL in your browser.
 
 > [!NOTE]
-> **Zero API Costs?** Set `SCREEN_PROVIDER=groq` (or `gemini`) and `DRAFT_PROVIDER=gemini`, or run locally using Ollama (`OLLAMA_HOST`).
+> **Zero API Costs?** Google Gemini Flash (`gemini-3.6-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).
 
 ---
 

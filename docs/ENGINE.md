@@ -34,7 +34,7 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 For the surviving postings, Job Hunter performs a cheap, batched evaluation pass to score how well the job description aligns with your resume profile.
 
 ### High-Throughput Batching & Cost Reduction
-Rather than sending job descriptions one-by-one, Job Hunter batches **10 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,400 characters** (configured via `screen_jd_chars`), keeping rich context for evaluation.
+Rather than sending job descriptions one-by-one, Job Hunter batches **8 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,000 characters** (configured via `screen_jd_chars`), keeping rich context for evaluation.
 
 When `GEMINI_API_KEY` is configured (with single key or multi-key CSV rotation `key1,key2,key3`), Job Hunter routes all batch screening to **Google Gemini (`gemini-3.6-flash`)**, leveraging Gemini's massive 1M token context window and 1,000,000+ daily tokens per project allowance at zero cost.
 

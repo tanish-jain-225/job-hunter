@@ -56,8 +56,8 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 
 ## 🔑 Step 2: Get Free AI API Keys (2 Minutes)
 
-1. **Groq (Fast Screening)**: Visit [console.groq.com/keys](https://console.groq.com/keys) $\rightarrow$ Create Key $\rightarrow$ `GROQ_API_KEY`.
-2. **Google Gemini (Rich Drafting)**: Visit [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) $\rightarrow$ Create API Key $\rightarrow$ `GEMINI_API_KEY`.
+1. **Google Gemini Flash (Primary AI Engine)**: Visit [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) $\rightarrow$ Create API Key $\rightarrow$ `GEMINI_API_KEY`.
+   *(Supports comma-separated keys for instant multi-key rotation: `key1,key2,key3`)*
 
 ---
 
@@ -84,7 +84,6 @@ To send automated daily briefings and on-demand alerts:
 4. In **Environment Variables**, add:
 
 ```ini
-GROQ_API_KEY=your-groq-api-key
 GEMINI_API_KEY=your-gemini-api-key
 
 SUPABASE_URL=https://your-project-ref.supabase.co
