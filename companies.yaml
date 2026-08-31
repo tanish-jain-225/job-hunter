@@ -10,7 +10,6 @@ companies:
   # --- Top Indian Unicorns, Startups & India Hubs (100% Live 200 OK) ---
   - {ats: greenhouse, slug: razorpaysoftwareprivatelimited, name: Razorpay}
   - {ats: lever, slug: meesho, name: Meesho}
-  - {ats: greenhouse, slug: phonepe, name: PhonePe}
   - {ats: lever, slug: cred, name: CRED}
   - {ats: greenhouse, slug: groww, name: Groww}
   - {ats: greenhouse, slug: slice, name: Slice}
