@@ -10,6 +10,7 @@ hardcoded date silently ages past `max_age_days` and one day your demo
 returns zero jobs for no visible reason. `_STALE` is the only old one, and
 it is old on purpose.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -37,7 +38,7 @@ def _ashby(days: int) -> str:
     return _ago(days).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-STALE_DAYS = 280   # comfortably past any sane max_age_days
+STALE_DAYS = 280  # comfortably past any sane max_age_days
 
 _BACKEND_JD = """<p>We are building the control plane for our edge platform.</p>
 <p><strong>What you'll do</strong></p><ul>
@@ -58,99 +59,145 @@ _FRONTEND_JD = """<p>Build delightful UI in React and TypeScript. Own our design
 system, animations and accessibility work.</p>"""
 
 GREENHOUSE = {
-    "acme-edge": {"jobs": [
-        # keeper: right level, right city, fresh
-        {"id": 5501001, "title": "Software Engineer II, Distributed Systems",
-         "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501001",
-         "location": {"name": "Bangalore, India"},
-         "updated_at": _gh(2), "content": _BACKEND_JD},
-        # junk: wrong seniority
-        {"id": 5501002, "title": "Staff Software Engineer, Storage",
-         "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501002",
-         "location": {"name": "Bengaluru, KA"},
-         "updated_at": _gh(3), "content": _STAFF_JD},
-        # junk: wrong function
-        {"id": 5501003, "title": "Enterprise Account Executive",
-         "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501003",
-         "location": {"name": "Mumbai, India"},
-         "updated_at": _gh(4),
-         "content": "<p>Own a $3M quota selling to CIOs.</p>"},
-        # junk: wrong city, and not remote
-        {"id": 5501004, "title": "Backend Engineer, Payments",
-         "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501004",
-         "location": {"name": "San Francisco, CA"},
-         "updated_at": _gh(1), "content": _BACKEND_JD},
-        # junk: would pass every other gate, but it is ancient
-        {"id": 5501005, "title": "Senior Software Engineer, Platform",
-         "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501005",
-         "location": {"name": "Remote - India"},
-         "updated_at": _gh(STALE_DAYS), "content": _BACKEND_JD},
-    ]},
-    "novapay": {"jobs": [
-        # keeper: "SDE" spelled out — the bare regex "sde" would miss this
-        {"id": 7702001, "title": "Software Development Engineer, Core Infra",
-         "absolute_url": "https://boards.greenhouse.io/novapay/jobs/7702001",
-         "location": {"name": "Bengaluru, India"},
-         "updated_at": _gh(1),
-         "content": _BACKEND_JD + "<p>Java, Kafka, Postgres. Hybrid, 3 days in office.</p>"},
-        # junk: wrong discipline
-        {"id": 7702002, "title": "Frontend Engineer, Design Systems",
-         "absolute_url": "https://boards.greenhouse.io/novapay/jobs/7702002",
-         "location": {"name": "Bengaluru, India"},
-         "updated_at": _gh(2), "content": _FRONTEND_JD},
-    ]},
+    "acme-edge": {
+        "jobs": [
+            # keeper: right level, right city, fresh
+            {
+                "id": 5501001,
+                "title": "Software Engineer II, Distributed Systems",
+                "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501001",
+                "location": {"name": "Bangalore, India"},
+                "updated_at": _gh(2),
+                "content": _BACKEND_JD,
+            },
+            # junk: wrong seniority
+            {
+                "id": 5501002,
+                "title": "Staff Software Engineer, Storage",
+                "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501002",
+                "location": {"name": "Bengaluru, KA"},
+                "updated_at": _gh(3),
+                "content": _STAFF_JD,
+            },
+            # junk: wrong function
+            {
+                "id": 5501003,
+                "title": "Enterprise Account Executive",
+                "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501003",
+                "location": {"name": "Mumbai, India"},
+                "updated_at": _gh(4),
+                "content": "<p>Own a $3M quota selling to CIOs.</p>",
+            },
+            # junk: wrong city, and not remote
+            {
+                "id": 5501004,
+                "title": "Backend Engineer, Payments",
+                "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501004",
+                "location": {"name": "San Francisco, CA"},
+                "updated_at": _gh(1),
+                "content": _BACKEND_JD,
+            },
+            # junk: would pass every other gate, but it is ancient
+            {
+                "id": 5501005,
+                "title": "Senior Software Engineer, Platform",
+                "absolute_url": "https://boards.greenhouse.io/acme-edge/jobs/5501005",
+                "location": {"name": "Remote - India"},
+                "updated_at": _gh(STALE_DAYS),
+                "content": _BACKEND_JD,
+            },
+        ]
+    },
+    "novapay": {
+        "jobs": [
+            # keeper: "SDE" spelled out — the bare regex "sde" would miss this
+            {
+                "id": 7702001,
+                "title": "Software Development Engineer, Core Infra",
+                "absolute_url": "https://boards.greenhouse.io/novapay/jobs/7702001",
+                "location": {"name": "Bengaluru, India"},
+                "updated_at": _gh(1),
+                "content": _BACKEND_JD + "<p>Java, Kafka, Postgres. Hybrid, 3 days in office.</p>",
+            },
+            # junk: wrong discipline
+            {
+                "id": 7702002,
+                "title": "Frontend Engineer, Design Systems",
+                "absolute_url": "https://boards.greenhouse.io/novapay/jobs/7702002",
+                "location": {"name": "Bengaluru, India"},
+                "updated_at": _gh(2),
+                "content": _FRONTEND_JD,
+            },
+        ]
+    },
 }
 
 LEVER = {
     "quantstack": [
         # keeper: right level, right city, fresh. Description split across 4 fields.
-        {"id": "c1a2b3", "text": "Backend Engineer (Go)",
-         "hostedUrl": "https://jobs.lever.co/quantstack/c1a2b3",
-         "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
-         "createdAt": _lever(2),
-         "descriptionPlain": "Build our high-frequency market data pipeline.",
-         "lists": [
-             {"text": "Requirements",
-              "content": "<p>2-5 years backend experience in Go or Rust</p>"},
-             {"text": "Nice to have",
-              "content": "<p>Knowledge of kernel-bypass networking (DPDK)</p>"},
-         ],
-         "additionalPlain": "No take-home assignments."},
+        {
+            "id": "c1a2b3",
+            "text": "Backend Engineer (Go)",
+            "hostedUrl": "https://jobs.lever.co/quantstack/c1a2b3",
+            "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
+            "createdAt": _lever(2),
+            "descriptionPlain": "Build our high-frequency market data pipeline.",
+            "lists": [
+                {"text": "Requirements", "content": "<p>2-5 years backend experience in Go or Rust</p>"},
+                {"text": "Nice to have", "content": "<p>Knowledge of kernel-bypass networking (DPDK)</p>"},
+            ],
+            "additionalPlain": "No take-home assignments.",
+        },
         # keeper: right level, right city, fresh.
-        {"id": "d4e5f6", "text": "Site Reliability Engineer",
-         "hostedUrl": "https://jobs.lever.co/quantstack/d4e5f6",
-         "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
-         "createdAt": _lever(1),
-         "descriptionPlain": "Own our Kubernetes clusters across 3 regions.",
-         "lists": [], "additionalPlain": ""},
+        {
+            "id": "d4e5f6",
+            "text": "Site Reliability Engineer",
+            "hostedUrl": "https://jobs.lever.co/quantstack/d4e5f6",
+            "categories": {"location": "Bengaluru, KA", "commitment": "Full-time"},
+            "createdAt": _lever(1),
+            "descriptionPlain": "Own our Kubernetes clusters across 3 regions.",
+            "lists": [],
+            "additionalPlain": "",
+        },
     ],
 }
 
 ASHBY = {
-    "helioscale": {"jobs": [
-        # keeper: right level, right city, fresh.
-        {"id": "9f8e7d6c-0000-4bbb-8888-000000000001",
-         "title": "Software Engineer, Networking",
-         "location": "Bengaluru, KA, India", "isListed": True,
-         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-0000-4bbb-8888-000000000001",
-         "publishedAt": _ashby(1),
-         "descriptionPlain": "eBPF, XDP, Linux kernel networking.",
-         "compensation": {"compensationTierSummary": "₹32L – ₹48L"}},
-        # junk: draft, not listed yet
-        {"id": "9f8e7d6c-1111-4bbb-8888-000000000002",
-         "title": "Software Engineer, Draft (Unlisted)",
-         "location": "Bengaluru, KA, India", "isListed": False,
-         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-1111-4bbb-8888-000000000002",
-         "publishedAt": _ashby(1),
-         "descriptionPlain": "Draft role — should be skipped."},
-        # junk: wrong discipline
-        {"id": "9f8e7d6c-2222-4bbb-8888-000000000003",
-         "title": "Data Scientist, Growth",
-         "location": "Bengaluru, India", "isListed": True,
-         "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-2222-4bbb-8888-000000000003",
-         "publishedAt": _ashby(2),
-         "descriptionHtml": "<p>Causal inference, experimentation, SQL &amp; Python.</p>"},
-    ]},
+    "helioscale": {
+        "jobs": [
+            # keeper: right level, right city, fresh.
+            {
+                "id": "9f8e7d6c-0000-4bbb-8888-000000000001",
+                "title": "Software Engineer, Networking",
+                "location": "Bengaluru, KA, India",
+                "isListed": True,
+                "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-0000-4bbb-8888-000000000001",
+                "publishedAt": _ashby(1),
+                "descriptionPlain": "eBPF, XDP, Linux kernel networking.",
+                "compensation": {"compensationTierSummary": "₹32L – ₹48L"},
+            },
+            # junk: draft, not listed yet
+            {
+                "id": "9f8e7d6c-1111-4bbb-8888-000000000002",
+                "title": "Software Engineer, Draft (Unlisted)",
+                "location": "Bengaluru, KA, India",
+                "isListed": False,
+                "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-1111-4bbb-8888-000000000002",
+                "publishedAt": _ashby(1),
+                "descriptionPlain": "Draft role — should be skipped.",
+            },
+            # junk: wrong discipline
+            {
+                "id": "9f8e7d6c-2222-4bbb-8888-000000000003",
+                "title": "Data Scientist, Growth",
+                "location": "Bengaluru, India",
+                "isListed": True,
+                "jobUrl": "https://jobs.ashbyhq.com/helioscale/9f8e7d6c-2222-4bbb-8888-000000000003",
+                "publishedAt": _ashby(2),
+                "descriptionHtml": "<p>Causal inference, experimentation, SQL &amp; Python.</p>",
+            },
+        ]
+    },
 }
 
 

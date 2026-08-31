@@ -8,6 +8,7 @@ Provides persistent per-user storage keyed on the authenticated user's email:
 
 Utilizes PostgREST REST API over HTTPS with strict tenant isolation and local caching.
 """
+
 from __future__ import annotations
 
 import os
@@ -52,25 +53,21 @@ def _get_session() -> Any:
     """Retrieve or initialize a thread-safe global requests Session for HTTP connection pooling."""
     global _SESSION
     import sys
+
     if "pytest" in sys.modules:
         return requests
     with _SESSION_LOCK:
         if _SESSION is None:
             from urllib3.util import Retry
             from requests.adapters import HTTPAdapter
+
             session = requests.Session()
-            retries = Retry(
-                total=3,
-                backoff_factor=0.5,
-                status_forcelist=[502, 503, 504],
-                raise_on_status=False
-            )
+            retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504], raise_on_status=False)
             adapter = HTTPAdapter(max_retries=retries)
             session.mount("http://", adapter)
             session.mount("https://", adapter)
             _SESSION = session
         return _SESSION
-
 
 
 class SupabaseMemory:
@@ -148,16 +145,36 @@ class SupabaseMemory:
                     name_val = row_name if row_name is not None else (pjson.get("name") or "")
 
                     row_title = row.get("title")
-                    title_val = row_title if row_title is not None else (pjson.get("title") or pjson.get("current_title") or "")
+                    title_val = (
+                        row_title if row_title is not None else (pjson.get("title") or pjson.get("current_title") or "")
+                    )
 
                     row_skills = row.get("skills")
-                    skills_val = row_skills if row_skills is not None else (pjson.get("skills") if pjson.get("skills") is not None else (pjson.get("core_skills") or []))
+                    skills_val = (
+                        row_skills
+                        if row_skills is not None
+                        else (
+                            pjson.get("skills") if pjson.get("skills") is not None else (pjson.get("core_skills") or [])
+                        )
+                    )
 
                     row_targets = row.get("target_keywords")
-                    targets_val = row_targets if row_targets is not None else (pjson.get("target_keywords") if pjson.get("target_keywords") is not None else (pjson.get("target_titles") or []))
+                    targets_val = (
+                        row_targets
+                        if row_targets is not None
+                        else (
+                            pjson.get("target_keywords")
+                            if pjson.get("target_keywords") is not None
+                            else (pjson.get("target_titles") or [])
+                        )
+                    )
 
                     row_excludes = row.get("exclude_keywords")
-                    excludes_val = row_excludes if row_excludes is not None else (pjson.get("exclude_keywords") if pjson.get("exclude_keywords") is not None else [])
+                    excludes_val = (
+                        row_excludes
+                        if row_excludes is not None
+                        else (pjson.get("exclude_keywords") if pjson.get("exclude_keywords") is not None else [])
+                    )
 
                     row_resume = row.get("resume_text")
                     resume_val = row_resume if row_resume is not None else (pjson.get("resume_text") or "")
@@ -170,8 +187,12 @@ class SupabaseMemory:
                         **row,
                         "resume_text": resume_val,
                         "resume_filename": filename_val,
-                        "email_notifications_enabled": bool(row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False))),
-                        "notification_email": row.get("notification_email") or pjson.get("notification_email") or clean_email,
+                        "email_notifications_enabled": bool(
+                            row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False))
+                        ),
+                        "notification_email": row.get("notification_email")
+                        or pjson.get("notification_email")
+                        or clean_email,
                         "min_score_notification": (
                             float(row["min_score_notification"])
                             if row.get("min_score_notification") is not None
@@ -181,14 +202,22 @@ class SupabaseMemory:
                                 else None
                             )
                         ),
-                        "onboarding_completed": bool(row.get("onboarding_completed", pjson.get("onboarding_completed", False))),
+                        "onboarding_completed": bool(
+                            row.get("onboarding_completed", pjson.get("onboarding_completed", False))
+                        ),
                         "name": name_val,
                         "title": title_val,
                         "skills": skills_val,
                         "target_keywords": targets_val,
                         "exclude_keywords": excludes_val,
                     }
-                    for legacy_k in ("current_title", "core_skills", "target_titles", "exclude_titles", "years_experience"):
+                    for legacy_k in (
+                        "current_title",
+                        "core_skills",
+                        "target_titles",
+                        "exclude_titles",
+                        "years_experience",
+                    ):
                         res_profile.pop(legacy_k, None)
 
                     with _CACHE_LOCK:
@@ -207,7 +236,6 @@ class SupabaseMemory:
         clean_email = email.lower().strip()
         invalidate_user_cache(clean_email)
 
-
         raw_skills = profile.get("skills") if profile.get("skills") is not None else profile.get("core_skills", [])
         if isinstance(raw_skills, str):
             skills_list = [s.strip() for s in raw_skills.split(",") if s.strip()]
@@ -216,7 +244,11 @@ class SupabaseMemory:
         else:
             skills_list = []
 
-        raw_targets = profile.get("target_keywords") if profile.get("target_keywords") is not None else profile.get("target_titles", [])
+        raw_targets = (
+            profile.get("target_keywords")
+            if profile.get("target_keywords") is not None
+            else profile.get("target_titles", [])
+        )
         if isinstance(raw_targets, str):
             targets_list = [s.strip() for s in raw_targets.split(",") if s.strip()]
         elif isinstance(raw_targets, list):
@@ -224,7 +256,11 @@ class SupabaseMemory:
         else:
             targets_list = []
 
-        raw_excludes = profile.get("exclude_keywords") if profile.get("exclude_keywords") is not None else profile.get("exclude_titles", [])
+        raw_excludes = (
+            profile.get("exclude_keywords")
+            if profile.get("exclude_keywords") is not None
+            else profile.get("exclude_titles", [])
+        )
         if isinstance(raw_excludes, str):
             excludes_list = [s.strip() for s in raw_excludes.split(",") if s.strip()]
         elif isinstance(raw_excludes, list):
@@ -246,7 +282,7 @@ class SupabaseMemory:
             else:
                 loc_pref_obj = {
                     "type": "specific_cities" if locations_list else "all_india",
-                    "locations": locations_list
+                    "locations": locations_list,
                 }
         else:
             loc_pref_raw = profile.get("location_preference")
@@ -271,7 +307,9 @@ class SupabaseMemory:
 
         raw_min_score = profile.get("min_score_notification")
         try:
-            min_score_val = float(raw_min_score) if raw_min_score is not None and str(raw_min_score).strip() != "" else None
+            min_score_val = (
+                float(raw_min_score) if raw_min_score is not None and str(raw_min_score).strip() != "" else None
+            )
         except (ValueError, TypeError):
             min_score_val = None
 
@@ -486,7 +524,7 @@ class SupabaseMemory:
                 headers=headers,
                 params={"on_conflict": "user_email,job_id"},
                 json=payload,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
             return resp.status_code in (200, 201, 204)
         except Exception as e:
@@ -510,26 +548,28 @@ class SupabaseMemory:
                 continue
             applied = bool(j.get("applied", False))
             stage = j.get("application_stage") or ("applied" if applied else "to_apply")
-            records.append({
-                "user_email": clean_email,
-                "job_id": jid,
-                "company": j.get("company", ""),
-                "title": j.get("title", ""),
-                "location": j.get("location", "Remote/Unspecified"),
-                "url": j.get("url", "#"),
-                "ats": j.get("ats", "custom"),
-                "score": j.get("score"),
-                "reason": j.get("reason"),
-                "applied": applied,
-                "applied_on": j.get("applied_on"),
-                "application_stage": stage,
-                "notes": j.get("notes") or "",
-                "salary_range": j.get("salary_range") or "",
-                "emailed": bool(j.get("emailed", False)),
-                "draft": j.get("draft") or {},
-                "first_seen": j.get("first_seen") or now_iso,
-                "updated_at": now_iso,
-            })
+            records.append(
+                {
+                    "user_email": clean_email,
+                    "job_id": jid,
+                    "company": j.get("company", ""),
+                    "title": j.get("title", ""),
+                    "location": j.get("location", "Remote/Unspecified"),
+                    "url": j.get("url", "#"),
+                    "ats": j.get("ats", "custom"),
+                    "score": j.get("score"),
+                    "reason": j.get("reason"),
+                    "applied": applied,
+                    "applied_on": j.get("applied_on"),
+                    "application_stage": stage,
+                    "notes": j.get("notes") or "",
+                    "salary_range": j.get("salary_range") or "",
+                    "emailed": bool(j.get("emailed", False)),
+                    "draft": j.get("draft") or {},
+                    "first_seen": j.get("first_seen") or now_iso,
+                    "updated_at": now_iso,
+                }
+            )
 
         if not records:
             return 0
@@ -537,7 +577,7 @@ class SupabaseMemory:
         inserted_count = 0
         chunk_size = 100
         for i in range(0, len(records), chunk_size):
-            chunk = records[i:i + chunk_size]
+            chunk = records[i : i + chunk_size]
             try:
                 endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
                 headers = self._headers(token)
@@ -547,7 +587,7 @@ class SupabaseMemory:
                     headers=headers,
                     params={"on_conflict": "user_email,job_id"},
                     json=chunk,
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
                 if resp.status_code in (200, 201, 204):
                     inserted_count += len(chunk)
@@ -664,7 +704,6 @@ class SupabaseMemory:
         except Exception as e:
             print(f"[SupabaseMemory] delete_user_job error for {clean_email} ({job_id}): {e}")
             return False
-
 
     # --------------------------------------------------------------------------
     # 3. Pipeline Execution History & Memory Logs

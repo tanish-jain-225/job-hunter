@@ -1,4 +1,5 @@
 """Unit test suite for jobhunt.web Application Factory and Modular Blueprints."""
+
 from __future__ import annotations
 
 from pathlib import Path

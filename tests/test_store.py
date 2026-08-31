@@ -1,4 +1,5 @@
 """Unit tests for jobhunt.store (Store class for seen.json dedupe and tracker)."""
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ import pytest
 from jobhunt import store
 from jobhunt.fetch import Job
 from jobhunt.store import Store
-
 
 
 def test_store_init_creates_fresh_when_missing(tmp_path: Path):
@@ -159,7 +159,6 @@ def test_store_score_clamping(tmp_path: Path):
     assert st.data[j2]["score"] == 0.0
 
 
-
 def test_load_seen_legacy_array(tmp_path: Path):
     """Test migrating legacy JSON array format."""
     file_path = tmp_path / "seen.json"
@@ -193,7 +192,6 @@ def test_store_auto_export_warning(tmp_path: Path, monkeypatch):
     st.save(auto_export=True)
 
 
-
 def test_get_writable_path_permission_error(tmp_path: Path, monkeypatch):
     """Test fallback when parent directory touch fails with PermissionError."""
     target = tmp_path / "sub" / "seen.json"
@@ -218,7 +216,10 @@ def test_sanitize_job_url_all_ats_types():
     assert store.sanitize_job_url("stripe.com/jobs/123") == "https://stripe.com/jobs/123"
 
     # Greenhouse
-    assert store.sanitize_job_url("", ats="greenhouse", job_id="greenhouse:stripe:101") == "https://boards.greenhouse.io/stripe/jobs/101"
+    assert (
+        store.sanitize_job_url("", ats="greenhouse", job_id="greenhouse:stripe:101")
+        == "https://boards.greenhouse.io/stripe/jobs/101"
+    )
 
     # Lever
     assert store.sanitize_job_url("", ats="lever", job_id="lever:stripe:102") == "https://jobs.lever.co/stripe/102"
@@ -227,13 +228,22 @@ def test_sanitize_job_url_all_ats_types():
     assert store.sanitize_job_url("", ats="ashby", job_id="ashby:openai:103") == "https://jobs.ashbyhq.com/openai/103"
 
     # Workable
-    assert store.sanitize_job_url("", ats="workable", job_id="workable:vector:104") == "https://apply.workable.com/vector/j/104/"
+    assert (
+        store.sanitize_job_url("", ats="workable", job_id="workable:vector:104")
+        == "https://apply.workable.com/vector/j/104/"
+    )
 
     # SmartRecruiters
-    assert store.sanitize_job_url("", ats="smartrecruiters", job_id="smartrecruiters:visa:105") == "https://jobs.smartrecruiters.com/visa/105"
+    assert (
+        store.sanitize_job_url("", ats="smartrecruiters", job_id="smartrecruiters:visa:105")
+        == "https://jobs.smartrecruiters.com/visa/105"
+    )
 
     # BambooHR
-    assert store.sanitize_job_url("", ats="bamboohr", job_id="bamboohr:acme:106") == "https://acme.bamboohr.com/careers/106"
+    assert (
+        store.sanitize_job_url("", ats="bamboohr", job_id="bamboohr:acme:106")
+        == "https://acme.bamboohr.com/careers/106"
+    )
 
     # Custom empty query fallback
     fallback_url = store.sanitize_job_url("", company="", title="")
@@ -259,9 +269,3 @@ def test_store_clean_init_vercel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     unique_path = tmp_path / "unique_empty_seen_clean.json"
     st = Store(unique_path)
     assert len(st.data) == 0
-
-
-
-
-
-

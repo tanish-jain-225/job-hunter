@@ -6,6 +6,7 @@ Commands:
   stats     Report total tracked jobs and application counts
   profile   Extract candidate profile from a resume (PDF/text) -> profile.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,7 +29,6 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parent.parent
-
 
 
 def _resolve_relative(p: str | Path) -> Path:
@@ -56,7 +56,9 @@ def _load_env() -> None:
         key, val = line.split("=", 1)
         key = key.strip()
         val = val.strip()
-        if (val.startswith('"') and val.endswith('"') and len(val) >= 2) or (val.startswith("'") and val.endswith("'") and len(val) >= 2):
+        if (val.startswith('"') and val.endswith('"') and len(val) >= 2) or (
+            val.startswith("'") and val.endswith("'") and len(val) >= 2
+        ):
             val = val[1:-1]
         else:
             val = val.split("#", 1)[0].strip().strip('"').strip("'")
@@ -107,7 +109,6 @@ def _load_profile(cfg: dict, raise_on_error: bool = True) -> dict:
         return {}
 
 
-
 def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
     """Stage 1-2: Fetch raw jobs and apply prefilter + dedupe."""
     fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
@@ -123,7 +124,6 @@ def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
     print("\n[2/5] filtering")
     candidates = prefilter(raw_jobs, filters)
     return raw_jobs, candidates
-
 
 
 def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict) -> None:
@@ -142,12 +142,16 @@ def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict)
             print(f"\n{e}\nNo key? Run with --scorer keyword for an offline dry run.")
             raise
         print(f"\n[3/5] screening {len(jobs)} jobs via {provider.name}/{model}")
-        llm.screen(jobs, profile,
-                   batch_size=int(cfg.get("screen_batch_size", 10)),
-                   jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                   provider=provider, model=model,
-                   delay_seconds=llm_delay_seconds,
-                   max_workers=llm_max_workers)
+        llm.screen(
+            jobs,
+            profile,
+            batch_size=int(cfg.get("screen_batch_size", 10)),
+            jd_chars=int(cfg.get("screen_jd_chars", 1400)),
+            provider=provider,
+            model=model,
+            delay_seconds=llm_delay_seconds,
+            max_workers=llm_max_workers,
+        )
 
     # Fallback to keyword screening if all LLM screening attempts failed
     if scorer == "llm" and not any(j.score is not None for j in jobs):
@@ -159,8 +163,10 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
     """Select scored jobs and build the shortlist above the threshold."""
     unscored_count = sum(1 for j in jobs if j.score is None)
     if unscored_count > 0:
-        print(f"\n  ! Warning: {unscored_count}/{len(jobs)} jobs could not be scored by LLM.\n"
-              f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run).")
+        print(
+            f"\n  ! Warning: {unscored_count}/{len(jobs)} jobs could not be scored by LLM.\n"
+            f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run)."
+        )
 
     threshold = float(cfg.get("score_threshold", 7.0))
     top_n = int(os.environ.get("MAX_PER_DIGEST") or cfg.get("max_per_digest", 7))
@@ -182,18 +188,29 @@ def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
         try:
             d_provider, d_model = resolve("draft")
             print(f"\n[4/5] drafting kits via {d_provider.name}/{d_model}")
-            llm.draft(shortlist, profile,
-                      jd_chars=int(cfg.get("draft_jd_chars", 7000)),
-                      provider=d_provider, model=d_model,
-                      delay_seconds=llm_delay_seconds)
+            llm.draft(
+                shortlist,
+                profile,
+                jd_chars=int(cfg.get("draft_jd_chars", 7000)),
+                provider=d_provider,
+                model=d_model,
+                delay_seconds=llm_delay_seconds,
+            )
         except LLMError as e:
             print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
 
 
-def _build_and_send_digest(shortlist: list, raw_jobs: list, candidates: list,
-                           scored_jobs: list, st: Store, send_or_args: bool | argparse.Namespace,
-                           cfg: dict, profile: dict | None = None,
-                           to_email: str | None = None) -> tuple[str, str]:
+def _build_and_send_digest(
+    shortlist: list,
+    raw_jobs: list,
+    candidates: list,
+    scored_jobs: list,
+    st: Store,
+    send_or_args: bool | argparse.Namespace,
+    cfg: dict,
+    profile: dict | None = None,
+    to_email: str | None = None,
+) -> tuple[str, str]:
     """Stage 5: Build digest HTML, export CSV, and optionally send email."""
     print("\n[5/5] building digest")
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
@@ -242,6 +259,9 @@ def run_pipeline(
 ) -> int:
     """Orchestrate the full pipeline dynamically with per-user context."""
     cfg = _cfg(config_path or (getattr(args, "config", None) if args else None))
+
+    if getattr(args, "strict_llm", False):
+        os.environ["STRICT_LLM"] = "true"
 
     # Load dynamic or fallback profile
     if profile is None:
@@ -315,7 +335,9 @@ def run_pipeline(
         jobs = st.unseen(candidates)
         max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))
         if len(jobs) > max_jobs_to_screen:
-            print(f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits.")
+            print(
+                f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits."
+            )
             jobs = jobs[:max_jobs_to_screen]
         print(f"  new since last run: {len(jobs)}")
 
@@ -324,16 +346,22 @@ def run_pipeline(
         if not jobs:
             print("\nNo new matching jobs today.")
             if use_send:
-                _build_and_send_digest([], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email)
+                _build_and_send_digest(
+                    [], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email
+                )
             if user_email and memory.is_configured:
                 try:
-                    memory.record_pipeline_run(user_email, {
-                        "scanned": len(raw_jobs),
-                        "matched": len(candidates),
-                        "shortlisted": 0,
-                        "status": "completed",
-                        "logs": f"Screened 0 new jobs, 0 shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
-                    }, token=token)
+                    memory.record_pipeline_run(
+                        user_email,
+                        {
+                            "scanned": len(raw_jobs),
+                            "matched": len(candidates),
+                            "shortlisted": 0,
+                            "status": "completed",
+                            "logs": f"Screened 0 new jobs, 0 shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
+                        },
+                        token=token,
+                    )
                 except Exception:
                     pass
             return 0
@@ -345,13 +373,17 @@ def run_pipeline(
         except LLMError:
             if user_email and memory.is_configured:
                 try:
-                    memory.record_pipeline_run(user_email, {
-                        "scanned": len(raw_jobs),
-                        "matched": len(candidates),
-                        "shortlisted": 0,
-                        "status": "error",
-                        "logs": "LLM screening failed",
-                    }, token=token)
+                    memory.record_pipeline_run(
+                        user_email,
+                        {
+                            "scanned": len(raw_jobs),
+                            "matched": len(candidates),
+                            "shortlisted": 0,
+                            "status": "error",
+                            "logs": "LLM screening failed",
+                        },
+                        token=token,
+                    )
                 except Exception:
                     pass
             return 1
@@ -361,17 +393,23 @@ def run_pipeline(
         _draft_kits(shortlist, profile, use_scorer, cfg)
 
         # 5. Digest + mail
-        _build_and_send_digest(shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email)
+        _build_and_send_digest(
+            shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email
+        )
 
         if user_email and memory.is_configured:
             try:
-                memory.record_pipeline_run(user_email, {
-                    "scanned": len(raw_jobs),
-                    "matched": len(candidates),
-                    "shortlisted": len(shortlist),
-                    "status": "completed",
-                    "logs": f"Screened {len(jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
-                }, token=token)
+                memory.record_pipeline_run(
+                    user_email,
+                    {
+                        "scanned": len(raw_jobs),
+                        "matched": len(candidates),
+                        "shortlisted": len(shortlist),
+                        "status": "completed",
+                        "logs": f"Screened {len(jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if use_send else 'skipped'}",
+                    },
+                    token=token,
+                )
             except Exception:
                 pass
 
@@ -432,8 +470,9 @@ def cmd_profile(args: argparse.Namespace) -> int:
         sys.exit(f"Error resolving LLM provider: {e}")
 
     print(f"reading {resume_path} via {provider.name}/{model} ...")
-    prof = llm.build_profile(resume_bytes=resume_bytes, resume_text=resume_text,
-                             is_pdf=is_pdf, provider=provider, model=model)
+    prof = llm.build_profile(
+        resume_bytes=resume_bytes, resume_text=resume_text, is_pdf=is_pdf, provider=provider, model=model
+    )
 
     out_file = Path("profile.json")
     out_file.write_text(yaml.dump(prof) if args.yaml else json_dumps_pretty(prof), encoding="utf-8")
@@ -444,6 +483,9 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 def cmd_multi_run(args: argparse.Namespace) -> int:
     from .multi import run_multi_user_pipeline
+
+    if getattr(args, "strict_llm", False):
+        os.environ["STRICT_LLM"] = "true"
     res = run_multi_user_pipeline(
         config_path=getattr(args, "config", None),
         mock=bool(getattr(args, "mock", False)),
@@ -453,13 +495,63 @@ def cmd_multi_run(args: argparse.Namespace) -> int:
     return 0 if res.get("status") == "success" else 1
 
 
+def cmd_web(args: argparse.Namespace) -> int:
+    from .web import create_app
+
+    app = create_app()
+    host = getattr(args, "host", "0.0.0.0")
+    port = int(getattr(args, "port", 5000))
+    is_debug = bool(getattr(args, "debug", False)) or os.environ.get("FLASK_DEBUG") == "1"
+    print("=" * 60)
+    print(" [*] Job Hunter Web Dashboard")
+    print(f" Server running at: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
+    print("=" * 60)
+    app.run(host=host, port=port, debug=is_debug)
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    from .verify import audit_company_boards
+
+    cfg = _cfg(getattr(args, "config", None), raise_on_error=False)
+    companies_file = getattr(args, "companies", None) or cfg.get("companies_file", "companies.yaml")
+    comp_path = _resolve_relative(Path(companies_file))
+    print(f"Auditing company career boards from {comp_path}...")
+    res = audit_company_boards(comp_path, max_workers=int(getattr(args, "workers", 25)))
+    print("\n" + "=" * 55)
+    print(f"AUDIT RESULTS: {res['valid_count']} VERIFIED LIVE (HTTP 200 OK), {res['invalid_count']} UNREACHABLE")
+    print("=" * 55 + "\n")
+    if res["invalid"]:
+        print("Non-200 / Unreachable entries:")
+        for c, status in res["invalid"]:
+            print(f"  - {{ats: {c.get('ats')}, slug: {c.get('slug')}, name: {c.get('name')}}} -> {status}")
+    return 0
+
+
+def cmd_clean(args: argparse.Namespace) -> int:
+    from .clean import clean_workspace
+
+    dry_run = bool(getattr(args, "dry_run", False))
+    print(f"{'[DRY RUN] ' if dry_run else ''}Cleaning temporary test/scratch files in {ROOT}...")
+    removed, freed_bytes = clean_workspace(ROOT, dry_run=dry_run)
+    if not removed:
+        print("  No cleanable temporary files found. Workspace is clean!")
+    else:
+        for p in removed:
+            print(f"  {'[would remove]' if dry_run else '[removed]'} {p.name}")
+        print(f"\nCleaned {len(removed)} files ({freed_bytes / 1024:.1f} KB freed).")
+    return 0
+
+
 def json_dumps_pretty(obj: dict) -> str:
     import json
+
     return json.dumps(obj, indent=2, ensure_ascii=False)
 
 
 def main() -> None:
     from . import __version__
+
     parser = argparse.ArgumentParser(prog="jobhunt", description="Personal & Multi-User job search intelligence agent.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -469,16 +561,22 @@ def main() -> None:
     p_run.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
     p_run.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
     p_run.add_argument("--send", action="store_true", help="Send digest email via SMTP.")
-    p_run.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
-                       help="Scorer to use (default: llm).")
+    p_run.add_argument(
+        "--strict-llm", action="store_true", help="Enforce 100%% live LLM execution (no keyword fallback)."
+    )
+    p_run.add_argument("--scorer", choices=["llm", "keyword"], default="llm", help="Scorer to use (default: llm).")
 
     # multi-run
-    p_multi = subparsers.add_parser("multi-run", help="Single-pass batch run across all active multi-tenant user accounts.")
+    p_multi = subparsers.add_parser(
+        "multi-run", help="Single-pass batch run across all active multi-tenant user accounts."
+    )
     p_multi.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
     p_multi.add_argument("--mock", action="store_true", help="Use mock ATS data (no network).")
     p_multi.add_argument("--send", action="store_true", help="Force send digest emails via SMTP.")
-    p_multi.add_argument("--scorer", choices=["llm", "keyword"], default="llm",
-                         help="Scorer to use (default: llm).")
+    p_multi.add_argument(
+        "--strict-llm", action="store_true", help="Enforce 100%% live LLM execution (no keyword fallback)."
+    )
+    p_multi.add_argument("--scorer", choices=["llm", "keyword"], default="llm", help="Scorer to use (default: llm).")
 
     # applied
     p_applied = subparsers.add_parser("applied", help="Mark a job ID as applied.")
@@ -494,6 +592,22 @@ def main() -> None:
     p_prof.add_argument("--resume", required=True, help="Path to resume file (PDF or text).")
     p_prof.add_argument("--yaml", action="store_true", help="Save as YAML instead of JSON.")
 
+    # web
+    p_web = subparsers.add_parser("web", help="Launch the Flask Web Dashboard & API server.")
+    p_web.add_argument("--host", default="0.0.0.0", help="Host interface to bind to (default: 0.0.0.0).")
+    p_web.add_argument("--port", type=int, default=5000, help="Port to listen on (default: 5000).")
+    p_web.add_argument("--debug", action="store_true", help="Enable Flask debug mode.")
+
+    # verify
+    p_verify = subparsers.add_parser("verify", help="Audit company career boards live against public ATS APIs.")
+    p_verify.add_argument("-c", "--config", help="Path to config YAML file (default: config.yaml).")
+    p_verify.add_argument("--companies", help="Path to companies YAML file (default: companies.yaml).")
+    p_verify.add_argument("--workers", type=int, default=25, help="Max parallel request workers (default: 25).")
+
+    # clean
+    p_clean = subparsers.add_parser("clean", help="Clean temporary test stores and scratch files from workspace root.")
+    p_clean.add_argument("--dry-run", action="store_true", help="List cleanable files without removing them.")
+
     args = parser.parse_args()
 
     if args.command == "run":
@@ -506,6 +620,12 @@ def main() -> None:
         sys.exit(cmd_stats(args))
     elif args.command == "profile":
         sys.exit(cmd_profile(args))
+    elif args.command == "web":
+        sys.exit(cmd_web(args))
+    elif args.command == "verify":
+        sys.exit(cmd_verify(args))
+    elif args.command == "clean":
+        sys.exit(cmd_clean(args))
 
 
 if __name__ == "__main__":

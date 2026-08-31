@@ -1,4 +1,5 @@
 """Unit tests for jobhunt.fetch module (HTTP calls, parsers, and error handling)."""
+
 from __future__ import annotations
 
 import pytest
@@ -157,6 +158,7 @@ def test_job_queue_categories():
 def test_fetch_all_dict_and_empty_inputs(monkeypatch):
     # Dict input with companies key
     called = []
+
     def mock_fetch_board(ats, slug, company=None, session=None):
         called.append((ats, slug))
         return [Job(f"{ats}:{slug}:1", ats, company or slug, "Role", "Remote", "http://ex.com", "desc")]
@@ -173,16 +175,14 @@ def test_fetch_all_dict_and_empty_inputs(monkeypatch):
 
 def test_fetch_all_single_worker_with_sleep(monkeypatch):
     called = []
+
     def mock_fetch_board(ats, slug, company=None, session=None):
         called.append((ats, slug))
         return [Job(f"{ats}:{slug}:1", ats, company or slug, "Role", "Remote", "http://ex.com", "desc")]
 
     monkeypatch.setattr(fetch, "fetch_board", mock_fetch_board)
 
-    companies = [
-        {"ats": "greenhouse", "slug": "c1"},
-        {"ats": "lever", "slug": "c2"}
-    ]
+    companies = [{"ats": "greenhouse", "slug": "c1"}, {"ats": "lever", "slug": "c2"}]
     # Single worker branch with small sleep
     res = fetch_all(companies, sleep=0.01, max_workers=1)
     assert len(res) == 2
@@ -241,6 +241,3 @@ def test_fetch_all_session_retry_setup(monkeypatch):
     assert adapter.max_retries.total == 3
     assert adapter.max_retries.backoff_factor == 0.3
     assert 502 in adapter.max_retries.status_forcelist
-
-
-

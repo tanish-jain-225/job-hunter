@@ -8,6 +8,7 @@ Enables hundreds of users to receive daily job intelligence at zero infrastructu
 5. Dispatches personalized HTML briefings via email for users with notifications enabled.
 6. Records run metrics and audits per user.
 """
+
 from __future__ import annotations
 
 import os
@@ -32,22 +33,72 @@ def merge_user_profile(row: dict) -> dict:
         pjson = {}
     res = {**pjson, **row}
     res["name"] = row.get("name") if row.get("name") is not None else (pjson.get("name") or "")
-    res["title"] = row.get("title") if row.get("title") is not None else (pjson.get("title") or pjson.get("current_title") or "")
-    res["skills"] = row.get("skills") if row.get("skills") is not None else (pjson.get("skills") if pjson.get("skills") is not None else (pjson.get("core_skills") or []))
-    res["target_keywords"] = row.get("target_keywords") if row.get("target_keywords") is not None else (pjson.get("target_keywords") if pjson.get("target_keywords") is not None else (pjson.get("target_titles") or []))
-    res["exclude_keywords"] = row.get("exclude_keywords") if row.get("exclude_keywords") is not None else (pjson.get("exclude_keywords") if pjson.get("exclude_keywords") is not None else [])
-    res["resume_text"] = row.get("resume_text") if row.get("resume_text") is not None else (pjson.get("resume_text") or "")
-    res["resume_filename"] = row.get("resume_filename") if row.get("resume_filename") is not None else (pjson.get("resume_filename") or "")
-    res["email_notifications_enabled"] = bool(row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False)))
+    res["title"] = (
+        row.get("title") if row.get("title") is not None else (pjson.get("title") or pjson.get("current_title") or "")
+    )
+    res["skills"] = (
+        row.get("skills")
+        if row.get("skills") is not None
+        else (pjson.get("skills") if pjson.get("skills") is not None else (pjson.get("core_skills") or []))
+    )
+    res["target_keywords"] = (
+        row.get("target_keywords")
+        if row.get("target_keywords") is not None
+        else (
+            pjson.get("target_keywords")
+            if pjson.get("target_keywords") is not None
+            else (pjson.get("target_titles") or [])
+        )
+    )
+    res["exclude_keywords"] = (
+        row.get("exclude_keywords")
+        if row.get("exclude_keywords") is not None
+        else (pjson.get("exclude_keywords") if pjson.get("exclude_keywords") is not None else [])
+    )
+    res["resume_text"] = (
+        row.get("resume_text") if row.get("resume_text") is not None else (pjson.get("resume_text") or "")
+    )
+    res["resume_filename"] = (
+        row.get("resume_filename") if row.get("resume_filename") is not None else (pjson.get("resume_filename") or "")
+    )
+    res["email_notifications_enabled"] = bool(
+        row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False))
+    )
     res["onboarding_completed"] = bool(row.get("onboarding_completed", pjson.get("onboarding_completed", False)))
-    res["preferred_locations"] = row.get("preferred_locations") if row.get("preferred_locations") is not None else (pjson.get("preferred_locations") or [])
-    res["location_preference"] = row.get("location_preference") if row.get("location_preference") is not None else (pjson.get("location_preference") or "all_india")
+    res["preferred_locations"] = (
+        row.get("preferred_locations")
+        if row.get("preferred_locations") is not None
+        else (pjson.get("preferred_locations") or [])
+    )
+    res["location_preference"] = (
+        row.get("location_preference")
+        if row.get("location_preference") is not None
+        else (pjson.get("location_preference") or "all_india")
+    )
     res["job_types"] = row.get("job_types") if row.get("job_types") is not None else (pjson.get("job_types") or [])
-    res["experience_level"] = row.get("experience_level") if row.get("experience_level") is not None else (pjson.get("experience_level") or "")
-    res["min_salary_lpa"] = row.get("min_salary_lpa") if row.get("min_salary_lpa") is not None else (pjson.get("min_salary_lpa") or 0)
-    res["preferred_sectors"] = row.get("preferred_sectors") if row.get("preferred_sectors") is not None else (pjson.get("preferred_sectors") or [])
-    res["min_score_notification"] = row.get("min_score_notification") if row.get("min_score_notification") is not None else pjson.get("min_score_notification")
-    res["notification_email"] = row.get("notification_email") if row.get("notification_email") is not None else (pjson.get("notification_email") or row.get("email") or "")
+    res["experience_level"] = (
+        row.get("experience_level")
+        if row.get("experience_level") is not None
+        else (pjson.get("experience_level") or "")
+    )
+    res["min_salary_lpa"] = (
+        row.get("min_salary_lpa") if row.get("min_salary_lpa") is not None else (pjson.get("min_salary_lpa") or 0)
+    )
+    res["preferred_sectors"] = (
+        row.get("preferred_sectors")
+        if row.get("preferred_sectors") is not None
+        else (pjson.get("preferred_sectors") or [])
+    )
+    res["min_score_notification"] = (
+        row.get("min_score_notification")
+        if row.get("min_score_notification") is not None
+        else pjson.get("min_score_notification")
+    )
+    res["notification_email"] = (
+        row.get("notification_email")
+        if row.get("notification_email") is not None
+        else (pjson.get("notification_email") or row.get("email") or "")
+    )
     return res
 
 
@@ -91,9 +142,7 @@ def run_multi_user_pipeline(
             endpoint = f"{memory.url}/rest/v1/user_profiles"
             headers = memory._headers(use_service_key=True)
             params = {"select": "*", "order": "created_at.asc"}
-            resp = requests.get(
-                endpoint, headers=headers, params=params, timeout=memory.timeout
-            )
+            resp = requests.get(endpoint, headers=headers, params=params, timeout=memory.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 if isinstance(data, list):
@@ -182,14 +231,20 @@ def run_multi_user_pipeline(
             seen_file = cfg.get("seen_file", "seen.json")
             st = Store(seen_file, user_email=user_email)
             unseen_jobs = st.unseen(user_candidates) if user_candidates else []
-            print(f"  New unseen jobs to evaluate: {len(unseen_jobs)} (skipping {len(user_candidates) - len(unseen_jobs)} seen)")
+            print(
+                f"  New unseen jobs to evaluate: {len(unseen_jobs)} (skipping {len(user_candidates) - len(unseen_jobs)} seen)"
+            )
 
             scored_jobs: list[Any] = []
             shortlist: list[Any] = []
 
             # Determine candidate score threshold
             user_min_score = user.get("min_score_notification")
-            effective_threshold = float(user_min_score) if user_min_score is not None and str(user_min_score).strip() != "" else score_threshold
+            effective_threshold = (
+                float(user_min_score)
+                if user_min_score is not None and str(user_min_score).strip() != ""
+                else score_threshold
+            )
 
             if unseen_jobs:
                 # Stage C: LLM Screening with fallback
@@ -200,10 +255,12 @@ def run_multi_user_pipeline(
                         provider, model = resolve("screen")
                         print(f"  Screening {len(unseen_jobs)} postings via {provider.name}/{model}...")
                         llm.screen(
-                            unseen_jobs, profile_dict,
+                            unseen_jobs,
+                            profile_dict,
                             batch_size=int(cfg.get("screen_batch_size", 10)),
                             jd_chars=int(cfg.get("screen_jd_chars", 1400)),
-                            provider=provider, model=model,
+                            provider=provider,
+                            model=model,
                             delay_seconds=float(cfg.get("llm_delay_seconds", 1.5)),
                             max_workers=int(cfg.get("llm_max_workers", 1)),
                         )
@@ -215,7 +272,9 @@ def run_multi_user_pipeline(
                 shortlist = [j for j in scored_jobs if (j.score or 0) >= effective_threshold]
                 shortlist.sort(key=lambda j: j.score or 0, reverse=True)
                 shortlist = shortlist[:max_per_digest]
-                print(f"  Scored: {len(scored_jobs)} jobs | {len(shortlist)} cleared threshold ({effective_threshold}+)")
+                print(
+                    f"  Scored: {len(scored_jobs)} jobs | {len(shortlist)} cleared threshold ({effective_threshold}+)"
+                )
 
                 # Stage D: Application kit drafting
                 if shortlist and scorer != "keyword" and not mock:
@@ -223,9 +282,11 @@ def run_multi_user_pipeline(
                         d_provider, d_model = resolve("draft")
                         print(f"  Drafting application kits via {d_provider.name}/{d_model}...")
                         llm.draft(
-                            shortlist, profile_dict,
+                            shortlist,
+                            profile_dict,
                             jd_chars=int(cfg.get("draft_jd_chars", 7000)),
-                            provider=d_provider, model=d_model,
+                            provider=d_provider,
+                            model=d_model,
                             delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
                         )
                     except Exception as e:
@@ -267,13 +328,16 @@ def run_multi_user_pipeline(
             if memory.is_configured:
                 try:
                     run_log_msg = f"Screened {len(unseen_jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if dispatched else 'skipped'}"
-                    memory.record_pipeline_run(user_email, {
-                        "scanned": len(raw_jobs),
-                        "matched": len(user_candidates),
-                        "shortlisted": len(shortlist),
-                        "status": "completed",
-                        "logs": run_log_msg,
-                    })
+                    memory.record_pipeline_run(
+                        user_email,
+                        {
+                            "scanned": len(raw_jobs),
+                            "matched": len(user_candidates),
+                            "shortlisted": len(shortlist),
+                            "status": "completed",
+                            "logs": run_log_msg,
+                        },
+                    )
                 except Exception as e:
                     print(f"  ! Failed to record pipeline run in Supabase: {e}")
 
@@ -295,6 +359,8 @@ def run_multi_user_pipeline(
 
     print("\n" + "=" * 70)
     print(" 🏁 MULTI-USER BATCH EXECUTION COMPLETE")
-    print(f" Users: {users_processed} | Scanned: {len(raw_jobs)} | Shortlisted: {total_shortlisted} | Emails: {dispatched_emails}")
+    print(
+        f" Users: {users_processed} | Scanned: {len(raw_jobs)} | Shortlisted: {total_shortlisted} | Emails: {dispatched_emails}"
+    )
     print("=" * 70)
     return summary

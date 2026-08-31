@@ -11,6 +11,7 @@ It will automatically:
 5. Export tracker.csv and write out/digest.html.
 6. Automatically open out/digest.html in your browser.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -50,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     # Safety Check: Warn if credentials are committed in git
     if (ROOT / ".git").exists():
         import subprocess
+
         try:
             result = subprocess.run(
                 ["git", "ls-files", "--error-unmatch", ".env"],

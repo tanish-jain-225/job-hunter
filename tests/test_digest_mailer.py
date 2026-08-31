@@ -1,4 +1,5 @@
 """Unit tests for jobhunt.digest HTML generation and jobhunt.mailer SMTP message handling."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jobhunt import digest, mailer
 from jobhunt.fetch import Job
-
 
 
 def test_badge_color_levels():
@@ -42,7 +42,7 @@ def test_digest_build_escapes_xss():
             "gaps": ["Gap 1"],
             "cover_note": "Cover note text",
             "questions_to_ask": ["Question 1?"],
-        }
+        },
     )
 
     subject, html_doc = digest.build([xss_job], scanned=10, candidates=5, stats={"tracked": 1, "applied": 0})
@@ -94,6 +94,7 @@ def test_mailer_missing_smtp_user(monkeypatch: pytest.MonkeyPatch):
 def test_mailer_smtp_auth_failure(monkeypatch: pytest.MonkeyPatch):
     """SMTPAuthenticationError is re-raised after printing a diagnostic."""
     import smtplib
+
     monkeypatch.setenv("SMTP_USER", "user@example.com")
     monkeypatch.setenv("SMTP_PASS", "wrong_password")
 
@@ -137,7 +138,7 @@ def test_digest_card_with_outreach_and_cover():
             "cover_note": "Dear OpenAI team,\nI am writing to apply...",
             "cold_outreach": "Hi! I built Edvanta...",
             "questions_to_ask": ["What is the primary LLM infrastructure?"],
-        }
+        },
     )
     card_html = digest._card(job)
     assert "Why It Fits" in card_html
@@ -154,10 +155,7 @@ def test_digest_write(tmp_path: Path):
 
 def test_digest_build_with_custom_profile():
     job = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=8.5)
-    custom_profile = {
-        "name": "Jane Doe",
-        "education": "M.S. Computer Science, Stanford 2025"
-    }
+    custom_profile = {"name": "Jane Doe", "education": "M.S. Computer Science, Stanford 2025"}
     subject, html_doc = digest.build([job], 10, 5, {"tracked": 10}, profile=custom_profile)
     assert "Matched for Jane Doe" in subject
     assert "Jane Doe" in html_doc
@@ -165,25 +163,30 @@ def test_digest_build_with_custom_profile():
 
 
 def test_digest_responsive_structure():
-    job = Job("greenhouse:stripe:1", "greenhouse", "Stripe", "Senior Backend Engineer", "Remote", "https://stripe.com/job/1", "desc", score=9.5, draft={
-        "fit_summary": "Top match",
-        "india_eligibility": "Verified India-Friendly",
-        "best_project": "Payments Engine",
-        "tailored_bullets": ["Built real-time payout pipeline."],
-        "cold_outreach": "Hey team, check out my payment engine repo.",
-        "cover_note": "I'd love to join Stripe."
-    })
+    job = Job(
+        "greenhouse:stripe:1",
+        "greenhouse",
+        "Stripe",
+        "Senior Backend Engineer",
+        "Remote",
+        "https://stripe.com/job/1",
+        "desc",
+        score=9.5,
+        draft={
+            "fit_summary": "Top match",
+            "india_eligibility": "Verified India-Friendly",
+            "best_project": "Payments Engine",
+            "tailored_bullets": ["Built real-time payout pipeline."],
+            "cold_outreach": "Hey team, check out my payment engine repo.",
+            "cover_note": "I'd love to join Stripe.",
+        },
+    )
     subject, html_doc = digest.build([job], 20, 5, {"tracked": 20})
-    assert 'viewport' in html_doc
-    assert '@media' in html_doc
-    assert 'box-sizing:border-box' in html_doc
-    assert 'overflow-wrap:anywhere' in html_doc or 'word-break:break-word' in html_doc
-    assert 'digest-card' in html_doc
+    assert "viewport" in html_doc
+    assert "@media" in html_doc
+    assert "box-sizing:border-box" in html_doc
+    assert "overflow-wrap:anywhere" in html_doc or "word-break:break-word" in html_doc
+    assert "digest-card" in html_doc
     # Ensure body does not have display:flex (which Gmail breaks into horizontal row)
     assert '<body style="margin:0;padding:16px 8px;background:' in html_doc
-    assert 'display:flex' not in html_doc.split('<body')[1].split('<div class="digest-wrap"')[0]
-
-
-
-
-
+    assert "display:flex" not in html_doc.split("<body")[1].split('<div class="digest-wrap"')[0]

@@ -17,7 +17,7 @@
 ## 🚀 Core Philosophy & Features
 
 - **🔒 100% Data Privacy**: Your resume, job applications, scores, and notes remain completely local on your machine or inside your private repository.
-- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini 3.5 Flash / Groq) and free email dispatches.
+- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini `gemini-3.6-flash` / Groq) and free email dispatches.
 - **⚡ Zero-Database Architecture**: No mandatory SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`), with optional Supabase PostgreSQL sync.
 - **📊 Automatic Excel/Sheets Sync**: All tracked and applied jobs auto-export to `out/tracker.csv` on every action.
 - **🤖 Automated Daily Email Digest**: Delivers personalized HTML career digests straight to your email inbox every morning.
@@ -149,7 +149,7 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (319+ unit and integration tests, 99%+ test coverage). |
+| `pytest` | Run the full test suite (357+ unit and integration tests, 98%+ test coverage). |
 
 ---
 

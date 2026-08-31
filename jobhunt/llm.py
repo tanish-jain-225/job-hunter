@@ -8,6 +8,7 @@ Cost lives here, so the two stages are deliberately lopsided:
 Both stages take an optional (provider, model) pair so tests can inject a stub
 and so you can point screening at Groq while drafting stays on Claude.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,7 +18,7 @@ import time
 from typing import Any
 
 from .fetch import Job
-from .providers import LLMError, Provider, get_provider, resolve
+from .providers import LLMError, Provider, get_fallback_provider, resolve
 
 _FENCE_OPEN = re.compile(r"^\s*```(?:json|JSON)?\s*", re.M)
 _FENCE_CLOSE = re.compile(r"\s*```\s*$", re.M)
@@ -58,7 +59,7 @@ def parse_json(raw: str) -> Any:
     for opener, closer in (("[", "]"), ("{", "}")):
         i, k = cleaned.find(opener), cleaned.rfind(closer)
         if i != -1 and k > i:
-            candidates.append((i, cleaned[i:k + 1]))
+            candidates.append((i, cleaned[i : k + 1]))
     for _, blob in sorted(candidates):
         try:
             return json.loads(blob)
@@ -112,6 +113,7 @@ def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
     try:
         import io
         import pypdf
+
         reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
         pages_text = []
         for page in reader.pages:
@@ -126,16 +128,22 @@ def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
     # Fallback decode as text if parsing fails (useful for mock/corrupted PDF bytes in testing)
     try:
         decoded = pdf_bytes.decode("utf-8", errors="ignore").strip()
-        if len(decoded) > 20 and any(kw in decoded for kw in ("Resume", "skills", "Python", "experience", "education", "projects")):
+        if len(decoded) > 20 and any(
+            kw in decoded for kw in ("Resume", "skills", "Python", "experience", "education", "projects")
+        ):
             return decoded
     except Exception:
         pass
     return ""
 
 
-def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = None,
-                  is_pdf: bool = False, provider: Provider | None = None,
-                  model: str | None = None) -> dict:
+def build_profile(
+    resume_bytes: bytes | None = None,
+    resume_text: str | None = None,
+    is_pdf: bool = False,
+    provider: Provider | None = None,
+    model: str | None = None,
+) -> dict:
     """Resume (PDF or text) -> profile.json. Uses the draft-stage model."""
     if provider is None or model is None:
         provider, model = resolve("draft")
@@ -148,12 +156,11 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
 
     if effective_text:
         raw = provider.complete(
-            model, "", f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}",
-            PROFILE_MAX_TOKENS, json_mode=True)
+            model, "", f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}", PROFILE_MAX_TOKENS, json_mode=True
+        )
     elif is_pdf and resume_bytes:
         try:
-            raw = provider.complete_document(
-                model, PROFILE_PROMPT, resume_bytes, PROFILE_MAX_TOKENS)
+            raw = provider.complete_document(model, PROFILE_PROMPT, resume_bytes, PROFILE_MAX_TOKENS)
         except LLMError as e:
             raise LLMError(
                 f"{e}\nTip: export your resume to .txt and re-run, or set "
@@ -161,8 +168,8 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
             ) from e
     else:
         raw = provider.complete(
-            model, "", f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{resume_text or ''}",
-            PROFILE_MAX_TOKENS, json_mode=True)
+            model, "", f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{resume_text or ''}", PROFILE_MAX_TOKENS, json_mode=True
+        )
 
     profile = parse_json(raw)
     if not isinstance(profile, dict):
@@ -171,6 +178,7 @@ def build_profile(resume_bytes: bytes | None = None, resume_text: str | None = N
 
 
 # ----------------------------------------------------------------- screen ---
+
 
 def _get_candidate_name(profile: dict | None) -> str:
     if profile and profile.get("name"):
@@ -239,16 +247,23 @@ Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, con
 SCREEN_SYSTEM = _build_screen_system()
 
 
-def screen(jobs: list[Job], profile: dict, batch_size: int = 10, jd_chars: int = 1400,
-           provider: Provider | None = None, model: str | None = None,
-           delay_seconds: float = 1.5, max_workers: int = 1) -> list[Job]:
-    """Stage 1: score every surviving job. Mutates and returns `jobs`."""
+def screen(
+    jobs: list[Job],
+    profile: dict,
+    batch_size: int = 10,
+    jd_chars: int = 1400,
+    provider: Provider | None = None,
+    model: str | None = None,
+    delay_seconds: float = 1.5,
+    max_workers: int = 1,
+) -> list[Job]:
     is_explicit_provider = provider is not None
     if provider is None or model is None:
         provider, model = resolve("screen")
+
     batch_size = max(1, int(batch_size))
     profile_blob = json.dumps(profile, ensure_ascii=False)
-    batches = [jobs[i:i + batch_size] for i in range(0, len(jobs), batch_size)]
+    batches = [jobs[i : i + batch_size] for i in range(0, len(jobs), batch_size)]
     system_prompt = _build_screen_system(profile)
 
     def _is_too_large_error(e: Exception) -> bool:
@@ -258,31 +273,52 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 10, jd_chars: int =
 
     def process_batch_with_split(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
         """Attempt batch; on a too-large error split in half and retry recursively (min batch=1)."""
-        payload = [{
-            "job_id": j.job_id,
-            "company": j.company,
-            "title": j.title,
-            "location": j.location,
-            "description": j.description[:jd_chars],
-        } for j in batch]
+        payload = [
+            {
+                "job_id": j.job_id,
+                "company": j.company,
+                "title": j.title,
+                "location": j.location,
+                "description": j.description[:jd_chars],
+            }
+            for j in batch
+        ]
         results: dict[str, dict[str, Any]] = {}
         if provider is None or model is None:
             return results
+
+        user_prompt = f"CANDIDATE PROFILE:\n{profile_blob}\n\nJOBS:\n{json.dumps(payload, ensure_ascii=False)}"
+        approx_tokens = (len(system_prompt) + len(user_prompt)) // 3
+        if approx_tokens > 4500 and len(batch) > 1:
+            half = len(batch) // 2
+            print(
+                f"  ! batch {n} prompt token count ({approx_tokens} tokens) > budget — pre-emptively micro-batching ({half}/{len(batch) - half})"
+            )
+            left = process_batch_with_split(n, batch[:half])
+            right = process_batch_with_split(n, batch[half:])
+            results.update(left)
+            results.update(right)
+            return results
+
         try:
             raw = provider.complete(
-                model, system_prompt,
-                f"CANDIDATE PROFILE:\n{profile_blob}\n\n"
-                f"JOBS:\n{json.dumps(payload, ensure_ascii=False)}",
-                SCREEN_MAX_TOKENS, json_mode=True,
+                model,
+                system_prompt,
+                user_prompt,
+                SCREEN_MAX_TOKENS,
+                json_mode=True,
             )
             for r in _as_list(parse_json(raw)):
                 jid = r.get("job_id")
                 if jid:
                     results[str(jid)] = r
-        except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
+
+        except Exception as e:
             if _is_too_large_error(e) and len(batch) > 1:
                 half = len(batch) // 2
-                print(f"  ! batch {n} too large ({len(batch)} jobs) — splitting into halves of {half}/{len(batch)-half}")
+                print(
+                    f"  ! batch {n} too large ({len(batch)} jobs) — splitting into halves of {half}/{len(batch) - half}"
+                )
                 left = process_batch_with_split(n, batch[:half])
                 right = process_batch_with_split(n, batch[half:])
                 results.update(left)
@@ -324,24 +360,27 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 10, jd_chars: int =
                 continue
 
             results = process_batch_with_split(idx + 1, batch)
-            # Only attempt Gemini failover when no explicit provider was given by the caller
+            # Live provider failover cascade when current provider fails (and wasn't explicitly pinned by unit test)
             if not results and not is_explicit_provider:
-                if getattr(provider, "name", "") != "gemini" and bool((os.getenv("GEMINI_API_KEY") or "").strip()):
-                    try:
-                        gemini_p = get_provider("gemini")
-                        gemini_p.preflight()
-                        pname = getattr(provider, "name", "primary")
-                        print(f"  🔄 Switching screening provider from {pname} -> gemini (gemini-3.6-flash)...")
-                        provider = gemini_p
-                        model = "gemini-3.6-flash"
-                        results = process_batch_with_split(idx + 1, batch)
-                    except Exception as fe:
-                        print(f"  ! gemini failover failed: {fe}")
+                curr_name = getattr(provider, "name", "primary")
+                fallback_info = get_fallback_provider(curr_name, stage="screen")
+                if fallback_info:
+                    alt_provider, alt_model = fallback_info
+                    print(
+                        f"  🔄 Live Failover Cascade: switching screening provider from {curr_name} -> {alt_provider.name} ({alt_model})..."
+                    )
+                    provider = alt_provider
+                    model = alt_model
+                    results = process_batch_with_split(idx + 1, batch)
+
+            strict_llm = os.environ.get("STRICT_LLM", "").strip().lower() in ("1", "true", "yes", "on")
 
             if not results:
                 consecutive_failures += 1
-                if consecutive_failures >= 4:
-                    print("  ⚠️ LLM provider quota exhausted for today. Fast-falling back to offline keyword scorer for remaining batches.")
+                if consecutive_failures >= 4 and not strict_llm:
+                    print(
+                        "  ⚠️ All live LLM providers rate-limited. Falling back to keyword scorer for remaining batches."
+                    )
                     quota_circuit_broken = True
                     keyword_screen(batch, profile)
             else:
@@ -365,6 +404,7 @@ def screen(jobs: list[Job], profile: dict, batch_size: int = 10, jd_chars: int =
 
 
 # ------------------------------------------------------------------ draft ---
+
 
 def _build_draft_system(profile: dict | None = None) -> str:
     name = _get_candidate_name(profile)
@@ -408,9 +448,14 @@ Return ONLY a JSON object:
 DRAFT_SYSTEM = _build_draft_system()
 
 
-def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
-          provider: Provider | None = None, model: str | None = None,
-          delay_seconds: float = 2.5) -> list[Job]:
+def draft(
+    jobs: list[Job],
+    profile: dict,
+    jd_chars: int = 6000,
+    provider: Provider | None = None,
+    model: str | None = None,
+    delay_seconds: float = 2.5,
+) -> list[Job]:
     """Stage 2: full kit for the shortlist. One call per job, best model."""
     if provider is None or model is None:
         provider, model = resolve("draft")
@@ -422,11 +467,13 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
     for i, j in enumerate(jobs):
         try:
             raw = provider.complete(
-                model, system_prompt,
+                model,
+                system_prompt,
                 f"CANDIDATE PROFILE:\n{profile_blob}\n\n"
                 f"JOB: {j.title} at {j.company} ({j.location or 'location not stated'})\n"
                 f"URL: {j.url}\n\n{j.description[:jd_chars]}",
-                DRAFT_MAX_TOKENS, json_mode=True,
+                DRAFT_MAX_TOKENS,
+                json_mode=True,
             )
             kit = parse_json(raw)
             if not isinstance(kit, dict):
@@ -447,7 +494,14 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
             print(f"  drafted {j.title} @ {j.company}")
         except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:
             print(f"  ! draft failed for {j.job_id} ({type(e).__name__}: {e})")
-            j.draft = {k: ("" if k in ("fit_summary", "india_eligibility", "best_project", "cover_note", "cold_outreach") else []) for k in DRAFT_KEYS}
+            j.draft = {
+                k: (
+                    ""
+                    if k in ("fit_summary", "india_eligibility", "best_project", "cover_note", "cold_outreach")
+                    else []
+                )
+                for k in DRAFT_KEYS
+            }
 
         if i < len(jobs) - 1 and delay_seconds > 0:
             time.sleep(delay_seconds)
@@ -456,6 +510,7 @@ def draft(jobs: list[Job], profile: dict, jd_chars: int = 6000,
 
 
 # ------------------------------------------------- offline scorer (no API) ---
+
 
 def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
     """DEV ONLY. High-fidelity offline keyword stand-in for testing/dry-runs."""
@@ -510,21 +565,25 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
 
         j.draft = {
             "fit_summary": f"Strong alignment for {j.title} at {j.company} with matching background ({matched_str}).",
-            "india_eligibility": "Verified India-Friendly" if "india" in blob or "remote" in blob else "Remote Friendly",
+            "india_eligibility": "Verified India-Friendly"
+            if "india" in blob or "remote" in blob
+            else "Remote Friendly",
             "best_project": project_highlight,
             "tailored_bullets": [
                 f"Engineered software solutions utilizing {lead_skill_1} and {lead_skill_2}.",
                 "Developed scalable backend workflows, APIs, and robust data layers.",
-                "Implemented automated testing, monitoring, and continuous integration practices."
+                "Implemented automated testing, monitoring, and continuous integration practices.",
             ],
-            "matching_skills": hits[:6] if hits else (raw_skills[:6] if raw_skills else ["Software Engineering", "REST APIs", "Git"]),
+            "matching_skills": hits[:6]
+            if hits
+            else (raw_skills[:6] if raw_skills else ["Software Engineering", "REST APIs", "Git"]),
             "gaps": ["Verify specific domain/experience requirements mentioned in the job description."],
             "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with a background in {edu_str}. I built {project_highlight}. My technical skills in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
             "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and built {project_highlight} with {matched_str}. Would love to connect!{github_suffix}",
             "questions_to_ask": [
                 f"What are the primary technical milestones for the {j.title} in their first 90 days?",
-                "How does your engineering team approach architecture reviews and deployment testing?"
-            ]
+                "How does your engineering team approach architecture reviews and deployment testing?",
+            ],
         }
 
     return jobs

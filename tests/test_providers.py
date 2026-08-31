@@ -1,4 +1,5 @@
 """Unit tests for jobhunt.providers resolution, preflight checks, and error handling."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -74,12 +75,16 @@ def test_resolve_auto_split_groq_and_gemini(monkeypatch: pytest.MonkeyPatch):
 
     screen_p, screen_m = resolve("screen", check=False)
     assert screen_p.name == "groq"
-    assert "llama" in screen_m.lower() or "gpt" in screen_m.lower() or "qwen" in screen_m.lower() or "openai" in screen_m.lower()
+    assert (
+        "llama" in screen_m.lower()
+        or "gpt" in screen_m.lower()
+        or "qwen" in screen_m.lower()
+        or "openai" in screen_m.lower()
+    )
 
     draft_p, draft_m = resolve("draft", check=False)
     assert draft_p.name == "gemini"
     assert "gemini" in draft_m.lower()
-
 
 
 def test_resolve_missing_model(monkeypatch: pytest.MonkeyPatch):
@@ -125,12 +130,7 @@ def test_gemini_provider_complete_success(monkeypatch: pytest.MonkeyPatch):
         status_code = 200
 
         def json(self):
-            return {
-                "candidates": [{
-                    "finishReason": "STOP",
-                    "content": {"parts": [{"text": '{"result": "ok"}'}]}
-                }]
-            }
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": '{"result": "ok"}'}]}}]}
 
     monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
     p = providers.GeminiProvider()
@@ -145,12 +145,7 @@ def test_gemini_provider_complete_document_success(monkeypatch: pytest.MonkeyPat
         status_code = 200
 
         def json(self):
-            return {
-                "candidates": [{
-                    "finishReason": "STOP",
-                    "content": {"parts": [{"text": "Extracted text"}]}
-                }]
-            }
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "Extracted text"}]}}]}
 
     monkeypatch.setattr(providers.requests, "post", lambda *a, **kw: DummyResponse())
     p = providers.GeminiProvider()
@@ -164,10 +159,12 @@ def test_gemini_provider_retries_and_errors(monkeypatch: pytest.MonkeyPatch):
 
     # Retry on 500 then succeed
     attempts = [0]
+
     class RetryResponse:
         def __init__(self, code):
             self.status_code = code
             self.text = "server error"
+
         def json(self):
             return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "OK"}]}}]}
 
@@ -185,6 +182,7 @@ def test_gemini_provider_retries_and_errors(monkeypatch: pytest.MonkeyPatch):
     class MalformedResponse:
         status_code = 200
         text = "invalid json"
+
         def json(self):
             raise ValueError("bad json")
 
@@ -196,6 +194,7 @@ def test_gemini_provider_retries_and_errors(monkeypatch: pytest.MonkeyPatch):
     class MaxTokensResponse:
         status_code = 200
         text = "stopped"
+
         def json(self):
             return {"candidates": [{"finishReason": "MAX_TOKENS", "content": {"parts": [{"text": "trunc"}]}}]}
 
@@ -231,6 +230,7 @@ def test_openai_compat_provider_retries_and_errors(monkeypatch: pytest.MonkeyPat
     class MalformedResponse:
         status_code = 200
         text = "{}"
+
         def json(self):
             return {}
 
@@ -263,6 +263,7 @@ def test_ollama_provider_errors(monkeypatch: pytest.MonkeyPatch):
     class MalformedResponse:
         status_code = 200
         text = "{}"
+
         def json(self):
             return {}
 
@@ -289,6 +290,7 @@ def test_gemini_provider_no_candidates_and_empty_text(monkeypatch: pytest.Monkey
     class NoCandidatesResponse:
         status_code = 200
         text = "{}"
+
         def json(self):
             return {}
 
@@ -300,6 +302,7 @@ def test_gemini_provider_no_candidates_and_empty_text(monkeypatch: pytest.Monkey
     class EmptyTextResponse:
         status_code = 200
         text = "empty text"
+
         def json(self):
             return {"candidates": [{"finishReason": "STOP", "content": {"parts": []}}]}
 
@@ -319,6 +322,7 @@ def test_openai_compat_retry_loop(monkeypatch: pytest.MonkeyPatch):
         def __init__(self, code):
             self.status_code = code
             self.text = "server error"
+
         def json(self):
             return {"choices": [{"message": {"content": "OK"}}]}
 
@@ -344,6 +348,7 @@ def test_ollama_provider_success(monkeypatch: pytest.MonkeyPatch):
     class OllamaOkResponse:
         status_code = 200
         text = "ok"
+
         def json(self):
             return {"message": {"content": "Ollama OK"}}
 
@@ -357,6 +362,7 @@ def test_anthropic_import_error(monkeypatch: pytest.MonkeyPatch):
     p = providers.AnthropicProvider()
 
     import builtins
+
     orig_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
@@ -406,7 +412,6 @@ def test_openai_compat_max_retries_error(monkeypatch: pytest.MonkeyPatch):
         p.complete("llama-3.3-70b", "sys", "user", 100)
 
 
-
 def test_ollama_connection_error(monkeypatch: pytest.MonkeyPatch):
     p = providers.OllamaProvider()
 
@@ -442,7 +447,3 @@ def test_gemini_36_flash_default_model(monkeypatch: pytest.MonkeyPatch):
     p_draft, m_draft = resolve("draft", check=True)
     assert p_draft.name == "gemini"
     assert m_draft == "gemini-3.6-flash"
-
-
-
-

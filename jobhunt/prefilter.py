@@ -7,6 +7,7 @@ India-first: Empty locations = accept all Indian cities + remote + global.
 Empty include_titles = accept all titles (LLM scorer decides fit).
 Empty job_types = accept all employment types.
 """
+
 from __future__ import annotations
 
 import re
@@ -16,34 +17,95 @@ from .fetch import Job
 
 # Remote / work-from-home detection patterns
 REMOTE_HINTS = (
-    "remote", "anywhere", "work from home", "wfh", "distributed",
-    "work-from-home", "fully remote", "100% remote",
+    "remote",
+    "anywhere",
+    "work from home",
+    "wfh",
+    "distributed",
+    "work-from-home",
+    "fully remote",
+    "100% remote",
 )
 
 # Hybrid detection patterns
 HYBRID_HINTS = (
-    "hybrid", "flexible", "partial remote", "2 days from home",
-    "3 days from home", "work from office",
+    "hybrid",
+    "flexible",
+    "partial remote",
+    "2 days from home",
+    "3 days from home",
+    "work from office",
 )
 
 # Internship detection patterns
 INTERNSHIP_HINTS = (
-    "intern", "internship", "trainee", "apprentice", "co-op", "coop",
-    "summer intern", "graduate intern", "fresher", "entry level",
+    "intern",
+    "internship",
+    "trainee",
+    "apprentice",
+    "co-op",
+    "coop",
+    "summer intern",
+    "graduate intern",
+    "fresher",
+    "entry level",
 )
 
 # Comprehensive list of Indian cities / regions for "All India" match
 INDIA_LOCATIONS = [
-    "india", "mumbai", "bengaluru", "bangalore", "pune", "hyderabad",
-    "delhi", "new delhi", "ncr", "noida", "gurgaon", "gurugram",
-    "chennai", "kolkata", "ahmedabad", "surat", "jaipur", "lucknow",
-    "thane", "navi mumbai", "indore", "bhopal", "nagpur", "coimbatore",
-    "kochi", "cochin", "chandigarh", "bhubaneswar", "visakhapatnam",
-    "vizag", "vadodara", "baroda", "patna", "mysore", "mysuru",
-    "hubli", "mangalore", "thiruvananthapuram", "trivandrum",
-    "mohali", "panchkula", "ghaziabad", "faridabad", "meerut",
-    "rajasthan", "karnataka", "maharashtra", "telangana", "tamilnadu",
-    "andhra", "gujarat", "uttar pradesh", "haryana",
+    "india",
+    "mumbai",
+    "bengaluru",
+    "bangalore",
+    "pune",
+    "hyderabad",
+    "delhi",
+    "new delhi",
+    "ncr",
+    "noida",
+    "gurgaon",
+    "gurugram",
+    "chennai",
+    "kolkata",
+    "ahmedabad",
+    "surat",
+    "jaipur",
+    "lucknow",
+    "thane",
+    "navi mumbai",
+    "indore",
+    "bhopal",
+    "nagpur",
+    "coimbatore",
+    "kochi",
+    "cochin",
+    "chandigarh",
+    "bhubaneswar",
+    "visakhapatnam",
+    "vizag",
+    "vadodara",
+    "baroda",
+    "patna",
+    "mysore",
+    "mysuru",
+    "hubli",
+    "mangalore",
+    "thiruvananthapuram",
+    "trivandrum",
+    "mohali",
+    "panchkula",
+    "ghaziabad",
+    "faridabad",
+    "meerut",
+    "rajasthan",
+    "karnataka",
+    "maharashtra",
+    "telangana",
+    "tamilnadu",
+    "andhra",
+    "gujarat",
+    "uttar pradesh",
+    "haryana",
     "in",  # ISO country code
 ]
 
@@ -126,7 +188,6 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     def _match(patterns: list, text: str) -> bool:
         return any(p.search(text) for p in patterns)
 
-
     kept, stats = [], {"title": 0, "location": 0, "age": 0, "job_type": 0}
     for j in jobs:
         # Title filter: if include_titles is empty, accept all. Otherwise pattern-match.
@@ -176,4 +237,3 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
         f"stale={stats['age']} job_type={stats['job_type']})"
     )
     return kept
-

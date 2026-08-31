@@ -1,4 +1,5 @@
 """Unit and integration tests for Supabase Authentication and protected API routes."""
+
 import os
 import time
 from unittest import mock

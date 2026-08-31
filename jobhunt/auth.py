@@ -3,6 +3,7 @@
 Provides token extraction, Supabase Auth API / JWT signature validation,
 caching, and a Flask @require_auth decorator to secure API endpoints.
 """
+
 from __future__ import annotations
 
 import functools
@@ -45,7 +46,6 @@ def _prune_token_cache(now: float) -> None:
         _prune_token_cache_locked(now)
 
 
-
 _ENV_LOADED = False
 
 
@@ -56,6 +56,7 @@ def _load_env_if_needed() -> None:
         return
     try:
         from jobhunt import cli
+
         cli._load_env()
         _ENV_LOADED = True
     except Exception:
@@ -210,32 +211,33 @@ def clear_token_cache() -> None:
 
 def require_auth(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to require valid Supabase JWT authentication on Flask route."""
+
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not is_auth_required():
             # Auth is disabled for local single-user dev mode
-            g.user = {
-                "id": "local_dev_user",
-                "email": "developer@local",
-                "role": "authenticated"
-            }
+            g.user = {"id": "local_dev_user", "email": "developer@local", "role": "authenticated"}
             return fn(*args, **kwargs)
 
         token = extract_bearer_token()
         if not token:
-            return jsonify({
-                "status": "error",
-                "message": "Authentication required. Missing Bearer access token in Authorization header.",
-                "code": "UNAUTHORIZED"
-            }), 401
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Authentication required. Missing Bearer access token in Authorization header.",
+                    "code": "UNAUTHORIZED",
+                }
+            ), 401
 
         user = verify_token(token)
         if not user:
-            return jsonify({
-                "status": "error",
-                "message": "Invalid or expired Supabase authentication session. Please sign in again.",
-                "code": "INVALID_TOKEN"
-            }), 401
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Invalid or expired Supabase authentication session. Please sign in again.",
+                    "code": "INVALID_TOKEN",
+                }
+            ), 401
 
         g.user = user
         return fn(*args, **kwargs)

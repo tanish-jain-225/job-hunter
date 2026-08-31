@@ -1,4 +1,5 @@
 """Test multi-user single-pass automated batch pipeline and isolated user execution."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,7 +43,7 @@ def test_multi_user_pipeline_mock_run(monkeypatch: pytest.MonkeyPatch, tmp_path:
             "exclude_keywords": ["Frontend"],
             "onboarding_completed": True,
             "email_notifications_enabled": False,
-        }
+        },
     ]
 
     mock_resp = MagicMock()
@@ -72,13 +73,16 @@ def test_multi_user_pipeline_fallback_to_local_profile(monkeypatch: pytest.Monke
     monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
 
     # Mock local profile loader
-    monkeypatch.setattr("jobhunt.cli._load_profile", lambda *a, **kw: {
-        "name": "Local Candidate",
-        "email": "local@test.com",
-        "current_title": "Backend Engineer",
-        "core_skills": ["Python", "Go"],
-        "target_titles": ["Backend Engineer"],
-    })
+    monkeypatch.setattr(
+        "jobhunt.cli._load_profile",
+        lambda *a, **kw: {
+            "name": "Local Candidate",
+            "email": "local@test.com",
+            "current_title": "Backend Engineer",
+            "core_skills": ["Python", "Go"],
+            "target_titles": ["Backend Engineer"],
+        },
+    )
 
     res = run_multi_user_pipeline(mock=True, scorer="keyword")
     assert res["status"] == "success"
@@ -91,11 +95,14 @@ def test_multi_user_pipeline_supabase_query_exception(monkeypatch: pytest.Monkey
         raise ConnectionError("Supabase connection timeout")
 
     monkeypatch.setattr(requests, "get", raise_err)
-    monkeypatch.setattr("jobhunt.cli._load_profile", lambda *a, **kw: {
-        "name": "Local Candidate",
-        "email": "local@test.com",
-        "current_title": "Backend Engineer",
-    })
+    monkeypatch.setattr(
+        "jobhunt.cli._load_profile",
+        lambda *a, **kw: {
+            "name": "Local Candidate",
+            "email": "local@test.com",
+            "current_title": "Backend Engineer",
+        },
+    )
 
     res = run_multi_user_pipeline(mock=True, scorer="keyword")
     assert res["status"] == "success"
@@ -180,7 +187,12 @@ def test_multi_user_pipeline_candidate_error_isolation(monkeypatch: pytest.Monke
     # Two users; first one raises an exception during prefilter, second succeeds
     mock_users = [
         {"email": "broken@example.com", "name": "Broken User"},
-        {"email": "good@example.com", "name": "Good User", "skills": ["Python"], "target_keywords": ["Software Engineer"]},
+        {
+            "email": "good@example.com",
+            "name": "Good User",
+            "skills": ["Python"],
+            "target_keywords": ["Software Engineer"],
+        },
     ]
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -230,6 +242,7 @@ def test_multi_user_pipeline_zero_jobs_sends_email_and_records_history(monkeypat
     monkeypatch.setattr("jobhunt.mailer.send", mailer_mock)
 
     recorded_runs = []
+
     def mock_record_run(self, email, run_data, token=None):
         recorded_runs.append((email, run_data))
         return True
@@ -284,5 +297,3 @@ def test_merge_user_profile_all_fields_and_filters():
     assert merged["notification_email"] == "alerts@example.com"
     assert merged["email_notifications_enabled"] is True
     assert merged["onboarding_completed"] is True
-
-

@@ -1,4 +1,5 @@
 """Candidate profile, preferences, and Resume Studio upload/parsing routes."""
+
 from __future__ import annotations
 
 import json
@@ -23,12 +24,47 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
     if not resume_text:
         return []
     common_keywords = [
-        "Python", "JavaScript", "TypeScript", "Golang", "Go", "Java", "C++", "C#", "Rust",
-        "PostgreSQL", "SQL", "MySQL", "MongoDB", "Redis", "Docker", "Kubernetes",
-        "AWS", "GCP", "Azure", "FastAPI", "Flask", "Django", "React", "React.js", "Next.js",
-        "Node.js", "Express.js", "REST APIs", "GraphQL", "Microservices", "CI/CD", "Git",
-        "Tailwind CSS", "Tailwind", "Jest", "Playwright", "Firebase", "Firestore",
-        "Distributed Systems", "AI", "LLM"
+        "Python",
+        "JavaScript",
+        "TypeScript",
+        "Golang",
+        "Go",
+        "Java",
+        "C++",
+        "C#",
+        "Rust",
+        "PostgreSQL",
+        "SQL",
+        "MySQL",
+        "MongoDB",
+        "Redis",
+        "Docker",
+        "Kubernetes",
+        "AWS",
+        "GCP",
+        "Azure",
+        "FastAPI",
+        "Flask",
+        "Django",
+        "React",
+        "React.js",
+        "Next.js",
+        "Node.js",
+        "Express.js",
+        "REST APIs",
+        "GraphQL",
+        "Microservices",
+        "CI/CD",
+        "Git",
+        "Tailwind CSS",
+        "Tailwind",
+        "Jest",
+        "Playwright",
+        "Firebase",
+        "Firestore",
+        "Distributed Systems",
+        "AI",
+        "LLM",
     ]
     found_skills: list[str] = []
     for kw in common_keywords:
@@ -59,12 +95,9 @@ def api_profile():
             raw.setdefault("onboarding_completed", True)
             profile = raw
 
-        return jsonify({
-            "status": "success",
-            "email": email,
-            "profile": profile,
-            "memory_connected": memory.is_configured
-        })
+        return jsonify(
+            {"status": "success", "email": email, "profile": profile, "memory_connected": memory.is_configured}
+        )
 
     elif request.method == "POST":
         data = request.get_json(silent=True) or {}
@@ -103,12 +136,14 @@ def api_profile():
         except Exception as e:
             logger.warning(f"Could not cache profile locally: {e}")
 
-        return jsonify({
-            "status": "success",
-            "message": "Candidate profile and preferences successfully stored in Supabase PostgreSQL.",
-            "profile": merged_profile,
-            "email": email
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Candidate profile and preferences successfully stored in Supabase PostgreSQL.",
+                "profile": merged_profile,
+                "email": email,
+            }
+        )
 
 
 @profile_bp.route("/api/profile/reset", methods=["POST"])
@@ -156,11 +191,13 @@ def api_profile_reset():
     except Exception as e:
         logger.warning(f"Could not reset local profile cache: {e}")
 
-    return jsonify({
-        "status": "success",
-        "message": "Your profile information and resume context have been completely flushed.",
-        "profile": blank_profile,
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Your profile information and resume context have been completely flushed.",
+            "profile": blank_profile,
+        }
+    )
 
 
 @profile_bp.route("/api/resume/upload", methods=["POST"])
@@ -221,7 +258,9 @@ def api_resume_upload():
             if first_lines:
                 derived_name = first_lines[0]
         if not derived_name or len(derived_name) > 40:
-            derived_name = " ".join(part.capitalize() for part in username_part.replace(".", " ").replace("_", " ").split())
+            derived_name = " ".join(
+                part.capitalize() for part in username_part.replace(".", " ").replace("_", " ").split()
+            )
 
         skills_list = _extract_skills_from_text(resume_text)[:12] if resume_text else []
 
@@ -256,8 +295,12 @@ def api_resume_upload():
         "email_notifications_enabled": existing_notif,
         "notification_email": existing_target_email,
         "min_score_notification": (existing or {}).get("min_score_notification"),
-        "preferred_locations": parsed_profile.get("preferred_locations") or (existing or {}).get("preferred_locations") or [],
-        "location_preference": parsed_profile.get("location_preference") or (existing or {}).get("location_preference") or "all_india",
+        "preferred_locations": parsed_profile.get("preferred_locations")
+        or (existing or {}).get("preferred_locations")
+        or [],
+        "location_preference": parsed_profile.get("location_preference")
+        or (existing or {}).get("location_preference")
+        or "all_india",
         "job_types": parsed_profile.get("job_types") or (existing or {}).get("job_types") or [],
         "experience_level": parsed_profile.get("experience_level") or (existing or {}).get("experience_level") or "",
         "seniority": parsed_profile.get("seniority") or "",
@@ -266,13 +309,15 @@ def api_resume_upload():
         "profile_json": parsed_profile,
     }
 
-    return jsonify({
-        "status": "success",
-        "message": "Resume text successfully extracted. You can review and alter your text context before saving.",
-        "resume_text": resume_text,
-        "profile": full_profile,
-        "parsed_profile": parsed_profile,
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Resume text successfully extracted. You can review and alter your text context before saving.",
+            "resume_text": resume_text,
+            "profile": full_profile,
+            "parsed_profile": parsed_profile,
+        }
+    )
 
 
 @profile_bp.route("/api/profile/preferences", methods=["GET", "POST"])
@@ -290,18 +335,20 @@ def api_profile_preferences():
         if not profile:
             profile = cli._load_profile(cfg, raise_on_error=False) or {}
 
-        return jsonify({
-            "status": "success",
-            "preferences": {
-                "preferred_locations": profile.get("preferred_locations") or [],
-                "job_types": profile.get("job_types") or [],
-                "experience_level": profile.get("experience_level") or "",
-                "min_salary_lpa": profile.get("min_salary_lpa") or 0,
-                "preferred_sectors": profile.get("preferred_sectors") or [],
-                "target_keywords": profile.get("target_keywords") or [],
-                "exclude_keywords": profile.get("exclude_keywords") or [],
+        return jsonify(
+            {
+                "status": "success",
+                "preferences": {
+                    "preferred_locations": profile.get("preferred_locations") or [],
+                    "job_types": profile.get("job_types") or [],
+                    "experience_level": profile.get("experience_level") or "",
+                    "min_salary_lpa": profile.get("min_salary_lpa") or 0,
+                    "preferred_sectors": profile.get("preferred_sectors") or [],
+                    "target_keywords": profile.get("target_keywords") or [],
+                    "exclude_keywords": profile.get("exclude_keywords") or [],
+                },
             }
-        })
+        )
 
     elif request.method == "POST":
         data = request.get_json(silent=True) or {}
@@ -320,18 +367,21 @@ def api_profile_preferences():
             profile_path.parent.mkdir(parents=True, exist_ok=True)
             with open(profile_path, "w", encoding="utf-8") as f:
                 import json
+
                 json.dump(merged, f, indent=2)
         except Exception as e:
             logger.warning(f"Could not cache preferences locally: {e}")
 
-        return jsonify({
-            "status": "success",
-            "message": "Search preferences updated successfully.",
-            "preferences": {
-                "preferred_locations": merged.get("preferred_locations") or [],
-                "job_types": merged.get("job_types") or [],
-                "experience_level": merged.get("experience_level") or "",
-                "min_salary_lpa": merged.get("min_salary_lpa") or 0,
-                "preferred_sectors": merged.get("preferred_sectors") or [],
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Search preferences updated successfully.",
+                "preferences": {
+                    "preferred_locations": merged.get("preferred_locations") or [],
+                    "job_types": merged.get("job_types") or [],
+                    "experience_level": merged.get("experience_level") or "",
+                    "min_salary_lpa": merged.get("min_salary_lpa") or 0,
+                    "preferred_sectors": merged.get("preferred_sectors") or [],
+                },
             }
-        })
+        )

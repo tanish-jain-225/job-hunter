@@ -1,4 +1,5 @@
 """Unit test suite for Flask Web Dashboard (app.py)."""
+
 from __future__ import annotations
 
 import pytest
@@ -125,7 +126,9 @@ def test_api_run_mock(client, monkeypatch):
         "notification_email": "test@example.com",
         "profile_json": {"name": "Test User", "core_skills": ["Python"]},
     }
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile
+    )
     monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
     res = client.post("/api/run", json={"mock": True})
     assert res.status_code == 200
@@ -136,14 +139,17 @@ def test_api_run_mock(client, monkeypatch):
 def test_api_jobs_add_delete_and_unmark(client):
     """Verify custom job addition, status toggling, and deletion via API."""
     # 1. Add custom job
-    res_add = client.post("/api/jobs/add", json={
-        "title": "Lead AI Architect",
-        "company": "Antigravity Corp",
-        "location": "San Francisco, CA",
-        "url": "https://antigravity.ai/jobs/1",
-        "score": 9.2,
-        "applied": False
-    })
+    res_add = client.post(
+        "/api/jobs/add",
+        json={
+            "title": "Lead AI Architect",
+            "company": "Antigravity Corp",
+            "location": "San Francisco, CA",
+            "url": "https://antigravity.ai/jobs/1",
+            "score": 9.2,
+            "applied": False,
+        },
+    )
     assert res_add.status_code == 200
     add_data = res_add.get_json()
     assert add_data["status"] == "success"
@@ -180,12 +186,10 @@ def test_api_jobs_add_delete_and_unmark(client):
 def test_api_end_to_end_digest_rebuild(client):
     """Verify force rebuild of digest HTML dynamically syncs shortlist changes."""
     # Add high-score job
-    res_add = client.post("/api/jobs/add", json={
-        "title": "Principal Systems Engineer",
-        "company": "SyncCorp",
-        "score": 9.8,
-        "applied": False
-    })
+    res_add = client.post(
+        "/api/jobs/add",
+        json={"title": "Principal Systems Engineer", "company": "SyncCorp", "score": 9.8, "applied": False},
+    )
     assert res_add.status_code == 200
 
     # Request digest with force rebuild timestamp
@@ -303,6 +307,7 @@ def test_api_health(client, monkeypatch):
 def test_app_get_project_root_fallback(monkeypatch):
     import app as app_module
     from pathlib import Path
+
     # If no candidate has templates/index.html, it returns candidates[0]
     monkeypatch.setattr(Path, "is_file", lambda self: False)
     root = app_module._get_project_root()
@@ -311,6 +316,7 @@ def test_app_get_project_root_fallback(monkeypatch):
 
 def test_serve_logo_missing(client, monkeypatch):
     from pathlib import Path
+
     monkeypatch.setattr(Path, "is_file", lambda self: False)
     res = client.get("/logo.png")
     assert res.status_code == 204
@@ -337,11 +343,11 @@ def test_app_handle_exception_and_http_exception(client):
 
 def test_api_config_yaml_error(client, monkeypatch):
     import yaml
+
     monkeypatch.setattr(yaml, "safe_load", lambda *a, **kw: (_ for _ in ()).throw(ValueError("YAML syntax error")))
     res = client.get("/api/config")
     assert res.status_code == 200
     assert res.get_json()["companies_count"] == 0
-
 
 
 def test_api_jobs_filters_more(client):
@@ -378,7 +384,9 @@ def test_api_run_vercel_mode(client, monkeypatch):
         "profile_json": {"name": "Test User", "core_skills": ["Python"]},
     }
     monkeypatch.setenv("VERCEL", "1")
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile
+    )
     monkeypatch.setattr("jobhunt.cli.run_pipeline", lambda **kw: 0)
 
     # 1. Unset token -> guides to GitHub Actions
@@ -397,9 +405,11 @@ def test_api_run_vercel_mode(client, monkeypatch):
 
     # 3. With GH_TOKEN -> dispatches to GitHub Actions
     monkeypatch.setenv("GH_TOKEN", "mock_gh_pat_token")
+
     class MockResp:
         status_code = 204
         text = ""
+
     monkeypatch.setattr("requests.post", lambda *a, **kw: MockResp())
     res_dispatch = client.post("/api/run")
     assert res_dispatch.status_code == 200
@@ -416,10 +426,13 @@ def test_api_run_fallback_and_error(client, monkeypatch):
         "notification_email": "test@example.com",
         "profile_json": {"name": "Test User", "core_skills": ["Python"]},
     }
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile)
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: completed_profile
+    )
 
     # First call fails, second succeeds (fallback to keyword)
     call_count = [0]
+
     def mock_run_pipeline(**kw):
         call_count[0] += 1
         if call_count[0] == 1:
@@ -439,11 +452,9 @@ def test_api_run_fallback_and_error(client, monkeypatch):
 
 
 def test_api_jobs_add_invalid_score_fallback(client):
-    res = client.post("/api/jobs/add", json={
-        "title": "Fallback Score Dev",
-        "company": "ScoreCo",
-        "score": "not_a_number"
-    })
+    res = client.post(
+        "/api/jobs/add", json={"title": "Fallback Score Dev", "company": "ScoreCo", "score": "not_a_number"}
+    )
     assert res.status_code == 200
     assert res.get_json()["status"] == "success"
 
@@ -478,7 +489,9 @@ def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
 
     monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (test_email, "mock_token"))
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
-    set_user_pipeline_state(test_email, running=True, step="running", message="Dispatched to GitHub Actions...", dispatched_at=now_ts)
+    set_user_pipeline_state(
+        test_email, running=True, step="running", message="Dispatched to GitHub Actions...", dispatched_at=now_ts
+    )
 
     mock_history = [
         {
@@ -487,11 +500,13 @@ def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
             "jobs_scanned": 1000,
             "shortlisted": 2,
             "status": "completed",
-            "logs": "Old run from days ago"
+            "logs": "Old run from days ago",
         }
     ]
 
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=1, token=None: mock_history)
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=1, token=None: mock_history
+    )
 
     res = client.get("/api/sync")
     assert res.status_code == 200
@@ -507,10 +522,13 @@ def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
             "jobs_scanned": 1200,
             "shortlisted": 5,
             "status": "completed",
-            "logs": "Cloud Radar completed: 5 shortlisted out of 1200 scanned."
+            "logs": "Cloud Radar completed: 5 shortlisted out of 1200 scanned.",
         }
     ]
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=1, token=None: mock_history_fresh)
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_pipeline_history",
+        lambda self, email, limit=1, token=None: mock_history_fresh,
+    )
 
     res_fresh = client.get("/api/sync")
     assert res_fresh.status_code == 200
@@ -518,11 +536,3 @@ def test_pipeline_api_sync_dispatched_at_filtering(client, monkeypatch):
     assert data_fresh["pipeline"]["running"] is False
     assert data_fresh["pipeline"]["step"] == "completed"
     assert "Cloud Radar completed" in data_fresh["pipeline"]["message"]
-
-
-
-
-
-
-
-

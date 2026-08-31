@@ -3,6 +3,7 @@
 Equipped with persistent Supabase PostgreSQL memory synchronization
 keyed on the user's authenticated email.
 """
+
 from __future__ import annotations
 
 import csv
@@ -17,8 +18,11 @@ from typing import Optional
 
 import urllib.parse
 
+import threading
 from .fetch import Job
 from .memory import SupabaseMemory
+
+_CSV_EXPORT_LOCK = threading.Lock()
 
 
 def sanitize_job_url(
@@ -75,7 +79,6 @@ def sanitize_job_url(
     return f"https://www.google.com/search?q={urllib.parse.quote_plus(full_query)}"
 
 
-
 _WRITABLE_DIR_CACHE: set[Path] = set()
 
 
@@ -115,8 +118,6 @@ def get_writable_path(path: str | Path) -> Path:
         tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
         tmp_dir.mkdir(parents=True, exist_ok=True)
         return tmp_dir / target.name
-
-
 
 
 def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
@@ -201,7 +202,7 @@ class Store:
                 # Purge local jobs that are no longer present in Supabase remote store
                 local_keys = set(self.data.keys())
                 remote_keys = set(remote_jobs.keys())
-                for k in (local_keys - remote_keys):
+                for k in local_keys - remote_keys:
                     del self.data[k]
                 # Merge remote jobs with local store
                 for jid, rjob in remote_jobs.items():
@@ -401,46 +402,65 @@ class Store:
         }
 
     def export_csv(self, path: str | Path = "out/tracker.csv") -> Path:
-        resolved_path = path
-        if str(path) in ("out/tracker.csv", "tracker.csv") and self.user_email:
-            user_hash = hashlib.md5(self.user_email.encode("utf-8")).hexdigest()[:12]
-            resolved_path = f"out/tracker_{user_hash}.csv"
-        target_path = get_writable_path(resolved_path)
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        cols = ["first_seen", "company", "title", "location", "score", "score_100", "queue_category", "india_eligibility", "best_project",
-                "reason", "applied", "applied_on", "url"]
-        tmp_csv = target_path.with_suffix(".tmp")
-        with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
-            w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
-            w.writeheader()
-            for jid, row in sorted(self.data.items(),
-                                   key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
-                score_val = row.get("score")
-                score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
-                if score_100 >= 90:
-                    cat = "🔥 Exceptional"
-                elif score_100 >= 80:
-                    cat = "🟢 Strong Apply"
-                elif score_100 >= 70:
-                    cat = "🟡 Apply"
-                elif score_100 >= 60:
-                    cat = "⚪ Consider"
-                else:
-                    cat = "🔴 Skip"
 
-                draft = row.get("draft") or {}
-                row_copy = dict(row)
-                row_copy["score_100"] = score_100
-                row_copy["queue_category"] = cat
-                row_copy["india_eligibility"] = draft.get("india_eligibility") or "Verified India-Friendly"
-                row_copy["best_project"] = draft.get("best_project") or "Project Match"
-                w.writerow({"job_id": jid, **row_copy})
-        _atomic_replace(tmp_csv, target_path)
-        return target_path
+        with _CSV_EXPORT_LOCK:
+            resolved_path = path
+            if str(path) in ("out/tracker.csv", "tracker.csv") and self.user_email:
+                user_hash = hashlib.md5(self.user_email.encode("utf-8")).hexdigest()[:12]
+                resolved_path = f"out/tracker_{user_hash}.csv"
+            target_path = get_writable_path(resolved_path)
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            cols = [
+                "first_seen",
+                "company",
+                "title",
+                "location",
+                "score",
+                "score_100",
+                "queue_category",
+                "india_eligibility",
+                "best_project",
+                "reason",
+                "applied",
+                "applied_on",
+                "url",
+            ]
+            unique_tmp_suffix = f".tmp.{os.getpid()}_{threading.get_ident()}"
+            tmp_csv = target_path.with_suffix(unique_tmp_suffix)
+            with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
+                w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
+                w.writeheader()
+                for jid, row in sorted(self.data.items(), key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
+                    score_val = row.get("score")
+                    score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
+                    if score_100 >= 90:
+                        cat = "🔥 Exceptional"
+                    elif score_100 >= 80:
+                        cat = "🟢 Strong Apply"
+                    elif score_100 >= 70:
+                        cat = "🟡 Apply"
+                    elif score_100 >= 60:
+                        cat = "⚪ Consider"
+                    else:
+                        cat = "🔴 Skip"
+
+                    draft = row.get("draft") or {}
+                    row_copy = dict(row)
+                    row_copy["score_100"] = score_100
+                    row_copy["queue_category"] = cat
+                    row_copy["india_eligibility"] = draft.get("india_eligibility") or "Verified India-Friendly"
+                    row_copy["best_project"] = draft.get("best_project") or "Project Match"
+                    w.writerow({"job_id": jid, **row_copy})
+            _atomic_replace(tmp_csv, target_path)
+            return target_path
 
     def prune_old_jobs(self) -> None:
         """Keep database footprint small by purging stale jobs under configurable limits."""
-        is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production" or os.environ.get("CI") == "true"
+        is_prod = (
+            os.environ.get("VERCEL") == "1"
+            or os.environ.get("FLASK_ENV") == "production"
+            or os.environ.get("CI") == "true"
+        )
         has_env_limit = "MAX_TRACKED_JOBS_COUNT" in os.environ
 
         if not is_prod and not has_env_limit:
@@ -457,9 +477,9 @@ class Store:
             key=lambda x: (
                 x[1].get("applied", False),
                 x[1].get("application_stage", "") in keep_stages,
-                x[1].get("first_seen") or x[1].get("created_at") or ""
+                x[1].get("first_seen") or x[1].get("created_at") or "",
             ),
-            reverse=True
+            reverse=True,
         )
 
         excess_count = len(self.data) - max_count
@@ -490,8 +510,7 @@ class Store:
         self.prune_old_jobs()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False),
-                       encoding="utf-8")
+        tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
         _atomic_replace(tmp, self.path)
         if auto_export:
             try:

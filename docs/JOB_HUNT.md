@@ -69,7 +69,9 @@ jobhunt/
   ├── memory.py      # Supabase PostgreSQL client (tenant isolated)
   ├── multi.py       # Single-pass multi-tenant batch execution engine
   ├── mock.py        # Native ATS fixtures for testing
-  ├── cli.py         # argparse: profile / run / multi-run / applied / stats / web
+  ├── clean.py       # Temporary file and test store cleanup utility
+  ├── verify.py      # Live ATS career board auditor
+  ├── cli.py         # argparse: profile / run / multi-run / applied / stats / verify / clean / web
   └── web/           # Modular Flask Web Dashboard & REST API
       ├── __init__.py # create_app Application Factory & global hooks
       ├── state.py   # Thread-safe pipeline state & context resolution

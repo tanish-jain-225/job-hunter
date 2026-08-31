@@ -41,7 +41,7 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## 🧪 Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full test suite without any network requests or API keys (303 tests with 95%+ coverage):
+Run the full test suite without any network requests or API keys (357 tests with 98%+ coverage):
 ```bash
 pytest
 ```
@@ -74,6 +74,7 @@ jobhunt run --mock --scorer keyword
 jobhunt/
   ├── __init__.py       # Package version & public symbols
   ├── auth.py           # Supabase Auth, JWT verification & @require_auth decorator
+  ├── clean.py          # Temporary file and test store cleanup utility
   ├── cli.py            # CLI argument parsing and subcommand dispatcher
   ├── digest.py         # Responsive HTML email digest generator
   ├── fetch.py          # Job dataclass & 9 ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
@@ -85,6 +86,7 @@ jobhunt/
   ├── prefilter.py      # Pre-LLM deterministic title/location/age filtering
   ├── providers.py      # Swappable LLM clients (Gemini, Anthropic, Groq, OpenAI-compat, Ollama)
   ├── store.py          # seen.json state management & CSV exporter
+  ├── verify.py         # Live ATS career board auditor
   └── web/              # Modular Flask Web Dashboard & REST API
       ├── __init__.py   # Application Factory (create_app), error handlers & security headers
       ├── state.py      # Thread-safe pipeline execution state & context resolution

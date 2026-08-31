@@ -1,4 +1,5 @@
 """Unit tests for auto.py master automation script."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,7 +24,7 @@ def test_auto_with_existing_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         f"digest_file: {(tmp_path / 'out' / 'digest.html').as_posix()}\n"
         f"profile_file: {(tmp_path / 'profile.json').as_posix()}\n"
         f"filters:\n  include_titles: ['.*']\n",
-        encoding="utf-8"
+        encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SMTP_PASS", raising=False)
@@ -48,11 +49,12 @@ def test_auto_fallback_on_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     monkeypatch.delenv("SMTP_PASS", raising=False)
 
     call_count = [0]
+
     def mock_cmd_run(args: argparse.Namespace) -> int:
         call_count[0] += 1
         if call_count[0] == 1:
             return 1  # First call fails
-        return 0      # Fallback succeeds
+        return 0  # Fallback succeeds
 
     monkeypatch.setattr(cli, "cmd_run", mock_cmd_run)
 
@@ -93,6 +95,7 @@ def test_auto_profile_from_resume_pdf(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.delenv("CI", raising=False)
 
     called_profile = []
+
     def mock_cmd_profile(args):
         called_profile.append(True)
         (tmp_path / "profile.json").write_text('{"name": "Auto"}', encoding="utf-8")
@@ -156,6 +159,7 @@ def test_auto_cli_custom_flags(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
 
     passed_args = []
+
     def mock_cmd_run(args: argparse.Namespace) -> int:
         passed_args.append(args)
         return 0
@@ -177,7 +181,7 @@ def test_auto_staged_env_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     """When .env is tracked in git, auto.py prints a security warning."""
     monkeypatch.setattr(auto, "ROOT", tmp_path)
     (tmp_path / "profile.json").write_text('{"name": "Auto"}', encoding="utf-8")
-    (tmp_path / ".git").mkdir() # Mock that git folder exists
+    (tmp_path / ".git").mkdir()  # Mock that git folder exists
     monkeypatch.chdir(tmp_path)
 
     # Mock subprocess.run to return exit code 0 (meaning .env is tracked)
@@ -192,7 +196,3 @@ def test_auto_staged_env_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
     out = capsys.readouterr().out
     assert "WARNING: Your sensitive .env file is currently tracked in Git!" in out
-
-
-
-

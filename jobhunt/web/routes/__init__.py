@@ -1,4 +1,5 @@
 """Flask Blueprints for Job Hunter Web Dashboard and REST API."""
+
 from .views import views_bp
 from .jobs import jobs_bp
 from .profile import profile_bp

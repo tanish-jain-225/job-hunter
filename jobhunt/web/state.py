@@ -1,4 +1,5 @@
 """State management, context resolution, and project root utilities for Job Hunter Web."""
+
 from __future__ import annotations
 
 import hashlib
@@ -25,6 +26,7 @@ def get_project_root() -> Path:
     ]
     try:
         import jobhunt
+
         candidates.append(Path(jobhunt.__file__).resolve().parent.parent)
     except Exception:
         pass
@@ -102,12 +104,13 @@ def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
         return dict(_USER_PIPELINE_STATES[key])
 
 
-
 def get_store_version(st: Store) -> str:
     """Generate a deterministic fast hash/version token representing current store state."""
     try:
-        items = [f"{jid}:{d.get('applied', False)}:{d.get('score', '')}:{d.get('first_seen', '')}"
-                 for jid, d in sorted(st.data.items())]
+        items = [
+            f"{jid}:{d.get('applied', False)}:{d.get('score', '')}:{d.get('first_seen', '')}"
+            for jid, d in sorted(st.data.items())
+        ]
         content = f"{len(st.data)}|" + "|".join(items)
         return hashlib.md5(content.encode("utf-8")).hexdigest()[:16]
     except Exception:

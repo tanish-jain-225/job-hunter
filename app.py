@@ -2,6 +2,7 @@
 
 Public Multi-Tenant AI Career Intelligence Engine WSGI Entrypoint.
 """
+
 from __future__ import annotations
 
 import sys
@@ -13,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from jobhunt.cli import _load_env
+
 _load_env()
 
 from jobhunt.web import (
@@ -48,6 +50,7 @@ __all__ = [
 
 if __name__ == "__main__":
     import os
+
     print("=" * 60)
     print(" [*] Job Hunter Web Dashboard (Public Multi-Tenant Ready)")
     print(" Server running at: http://localhost:5000")

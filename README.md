@@ -33,7 +33,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 │ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
 │ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Kanban Board & Mail │
 └─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (9 Major ATS Engines)        (0 API Cost Filter)           (Groq Llama / Gemini)         (Dashboard / Inbox)
+  (9 Major ATS Engines)        (0 API Cost Filter)           (Groq / Gemini)               (Dashboard / Inbox)
 ```
 
 > [!TIP]
@@ -54,7 +54,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
 - [🤖 Supported LLM Providers \& Cost Matrix](#-supported-llm-providers--cost-matrix)
 - [💻 Complete CLI Command Reference](#-complete-cli-command-reference)
-- [🚀 Daily Workflows & Dashboard](#-daily-workflows--dashboard)
+- [🚀 Daily Workflows \& Dashboard](#-daily-workflows--dashboard)
 - [📊 Tracking \& Deduplication (`seen.json`)](#-tracking--deduplication-seenjson)
 - [🤖 Automated Execution \& GitHub Actions](#-automated-execution--github-actions)
 - [🛡️ Continuous Integration (CI Pipeline)](#%EF%B8%8F-continuous-integration-ci-pipeline)
@@ -280,18 +280,24 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 | `jobhunt run` | `-c, --config <path>` | `config.yaml` | Run single-user career intelligence radar. |
 | | `--mock` | `false` | Run offline using bundled ATS JSON mock fixtures. |
 | | `--send` | `false` | Send HTML digest via SMTP email after generation. |
+| | `--strict-llm` | `false` | Enforce 100% real AI execution (disables keyword fallback on rate limit). |
 | | `--scorer {llm, keyword}` | `llm` | Select scoring engine (`llm` or offline `keyword` stub). |
 | `jobhunt multi-run` | `-c, --config <path>` | `config.yaml` | **Single-Pass Multi-Tenant Engine**: Crawls all ATS boards once, screens per-candidate profiles, and dispatches individual email briefings. |
 | | `--mock` | `false` | Run batch pipeline using offline mock fixtures. |
 | | `--send` | `false` | Dispatch briefings to users with email notifications enabled. |
+| | `--strict-llm` | `false` | Enforce 100% real AI execution for all candidate runs. |
+| `jobhunt verify` | `--companies <path>` | `companies.yaml` | Audit target company career boards live against public ATS APIs. |
+| | `--workers <count>` | `25` | Max parallel HTTP request worker threads. |
+| `jobhunt clean` | `--dry-run` | `false` | Safely purge temporary test stores (`seen_*.json`) and transient artifacts from root. |
 | `jobhunt profile` | `--resume <path>` | *(required)* | Parse resume (`.pdf`, `.txt`, `.md`) to build `profile.json`. |
 | | `--yaml` | `false` | Output profile as YAML format instead of JSON. |
 | `jobhunt applied` | `<job_id>` | *(required)* | Mark job ID (`ats:slug:id`) as applied in `seen.json`. |
 | | `-c, --config <path>` | `config.yaml` | Path to custom config file. |
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `jobhunt web` | `--host <host>, --port <port>` | `5000` | Launch the executive Flask Web Dashboard. |
-| `python auto.py` | *(none)* | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
+| `python auto.py` | *(none)` | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
 | `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, Kanban stage transitions (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), Resume Studio, CSV export, and kit modal viewer. |
+
 
 ---
 
@@ -349,7 +355,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (319+ tests with $\ge 98\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (357+ tests with $\ge 98\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -361,7 +367,8 @@ job-hunter/
 ├── jobhunt/
 │   ├── __init__.py           # Package version (1.0.0) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
-│   ├── cli.py                # Argparse subcommands (profile, run, multi-run, applied, stats, web)
+│   ├── clean.py              # Temporary file and test store cleanup utility
+│   ├── cli.py                # Argparse subcommands (profile, run, multi-run, applied, stats, verify, clean, web)
 │   ├── fetch.py              # Job dataclass & 9 ATS API parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
 │   ├── prefilter.py          # Safe regex compilation, deterministic location, and freshness filter
 │   ├── providers.py          # Provider interface + Gemini/Anthropic/Groq/OpenAI/Ollama clients
@@ -372,6 +379,7 @@ job-hunter/
 │   ├── digest.py             # Responsive HTML digest generator with inline CSS & XSS escaping
 │   ├── mailer.py             # SMTP client for email delivery
 │   ├── mock.py               # Native ATS JSON fixtures for offline testing
+│   ├── verify.py             # Live ATS career board auditor
 │   └── web/                  # Modular Flask Web Dashboard & REST API
 │       ├── __init__.py       # Application Factory (create_app), error handlers & security headers
 │       ├── state.py          # Thread-safe pipeline execution state & context resolution
@@ -387,7 +395,7 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 319 comprehensive automated test cases (98%+ line coverage)
+├── tests/                    # 357 comprehensive automated test cases (98%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
@@ -399,10 +407,12 @@ job-hunter/
 │   ├── test_multi_user_batch.py # Multi-user batch execution & candidate isolation tests
 │   ├── test_multi_user_dynamic.py # Dynamic candidate prompts & store isolation tests
 │   ├── test_auto.py          # Master automation script & fallback tests
+│   ├── test_clean_and_verify.py # Clean and verify CLI subcommand tests
 │   ├── test_cli.py           # CLI argument parsing & subcommand execution tests
 │   ├── test_digest_mailer.py # HTML digest builder, XSS escaping, mail message tests
 │   ├── test_fetch.py         # ATS network fetching, session pooling & concurrency tests
 │   ├── test_llm.py           # LLM batching, truncation, JSON parsing & stub tests
+│   ├── test_llm_resilience.py # LLM resilience and error recovery tests
 │   ├── test_parsers.py       # 9 ATS JSON parsers & deterministic prefilter tests
 │   ├── test_providers.py     # Provider resolution, env preflight, fallback tests
 │   └── test_store.py         # Store persistence, corrupt state recovery, CSV export tests

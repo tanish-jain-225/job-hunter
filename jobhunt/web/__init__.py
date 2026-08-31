@@ -1,4 +1,5 @@
 """Job Hunter Web Application Factory and Flask Engine."""
+
 from __future__ import annotations
 
 import logging
@@ -35,22 +36,13 @@ def handle_exception(e: Exception):
     Full details are always logged server-side regardless of environment.
     """
     if isinstance(e, HTTPException):
-        return jsonify({
-            "status": "error",
-            "message": e.description or str(e)
-        }), e.code
+        return jsonify({"status": "error", "message": e.description or str(e)}), e.code
     import traceback
+
     logger.error("Unhandled Exception in Flask app:\n%s", traceback.format_exc())
     # In production: generic message. In development: include the error for easier debugging.
-    client_msg = (
-        "An internal error occurred. Please try again later."
-        if _IS_PROD
-        else f"Internal Error: {str(e)}"
-    )
-    return jsonify({
-        "status": "error",
-        "message": client_msg
-    }), 500
+    client_msg = "An internal error occurred. Please try again later." if _IS_PROD else f"Internal Error: {str(e)}"
+    return jsonify({"status": "error", "message": client_msg}), 500
 
 
 def add_cache_headers(response):
@@ -110,6 +102,7 @@ def create_app(
     try:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
+
         limiter = Limiter(
             key_func=get_remote_address,
             app=app,
@@ -120,8 +113,7 @@ def create_app(
         app.extensions["limiter"] = limiter
         logger.debug("flask-limiter enabled (default: 500 req/hour per IP)")
     except ImportError:
-        logger.debug("flask-limiter not installed — rate limiting disabled. "
-                     "Install with: pip install flask-limiter")
+        logger.debug("flask-limiter not installed — rate limiting disabled. Install with: pip install flask-limiter")
 
     # Register global hooks & error handlers
     app.after_request(add_cache_headers)

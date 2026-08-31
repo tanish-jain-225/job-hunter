@@ -10,6 +10,7 @@ tier with no card on file.
 
 Nothing here parses JSON or knows what a Job is. That lives in llm.py.
 """
+
 from __future__ import annotations
 
 import base64
@@ -33,6 +34,42 @@ class UnsupportedDocument(LLMError):
 # ---------------------------------------------------------------------------
 
 
+_KEY_COOLDOWN_MAP: dict[str, float] = {}
+_LAST_CALL_MAP: dict[str, float] = {}
+MIN_CALL_INTERVALS: dict[str, float] = {
+    "gemini": 2.5,
+    "groq": 1.5,
+    "anthropic": 1.0,
+    "openai-compatible": 1.2,
+    "ollama": 0.1,
+}
+
+
+def _enforce_rate_limit_throttle(provider_name: str) -> None:
+    """Enforce leaky-bucket inter-call spacing per provider to prevent RPM quota bursts."""
+    min_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
+    last_time = _LAST_CALL_MAP.get(provider_name.lower(), 0.0)
+    now = time.time()
+    elapsed = now - last_time
+    if elapsed < min_interval:
+        time.sleep(min_interval - elapsed)
+    _LAST_CALL_MAP[provider_name.lower()] = time.time()
+
+
+def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0) -> None:
+    """Mark an API key as cooling down until time.time() + cooldown_seconds."""
+    if key:
+        _KEY_COOLDOWN_MAP[key] = time.time() + max(10.0, cooldown_seconds)
+
+
+def _get_active_api_keys(key_env: str) -> list[str]:
+    """Get list of API keys that are not currently in cooldown reset period."""
+    all_keys = Provider._get_api_keys(key_env)
+    now = time.time()
+    active = [k for k in all_keys if now >= _KEY_COOLDOWN_MAP.get(k, 0.0)]
+    return active if active else all_keys
+
+
 class Provider:
     name = "base"
     required_env: str | None = None
@@ -42,24 +79,28 @@ class Provider:
         if self.required_env:
             self._env(self.required_env)
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int,
-                 json_mode: bool = False) -> str:
+    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
         raise NotImplementedError
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes,
-                          max_tokens: int) -> str:
-        raise UnsupportedDocument(
-            f"{self.name} cannot read PDFs here - pass a .txt/.md resume instead"
-        )
+    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
+        raise UnsupportedDocument(f"{self.name} cannot read PDFs here - pass a .txt/.md resume instead")
 
     @staticmethod
     def _env(key: str) -> str:
-        from .auth import _load_env_if_needed
-        _load_env_if_needed()
-        value = (os.environ.get(key) or "").strip()
-        if not value:
+        keys = Provider._get_api_keys(key)
+        if not keys:
             raise LLMError(f"{key} is not set (see .env.example)")
-        return value
+        return keys[0]
+
+    @staticmethod
+    def _get_api_keys(key: str) -> list[str]:
+        from .auth import _load_env_if_needed
+
+        _load_env_if_needed()
+        raw = (os.environ.get(key) or "").strip()
+        if not raw:
+            return []
+        return [k.strip() for k in raw.split(",") if k.strip()]
 
 
 class AnthropicProvider(Provider):
@@ -82,8 +123,7 @@ class AnthropicProvider(Provider):
     def _text(msg) -> str:
         return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int,
-                 json_mode: bool = False) -> str:
+    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -97,34 +137,45 @@ class AnthropicProvider(Provider):
             except Exception as e:
                 if attempt < max_retries - 1:
                     delay = 3 * (attempt + 1)
-                    print(f"  ! anthropic rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    print(
+                        f"  ! anthropic rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
+                    )
                     time.sleep(delay)
                     continue
                 raise LLMError(f"anthropic error: {e}") from e
         raise LLMError("anthropic failed after maximum retries")
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes,
-                           max_tokens: int) -> str:
+    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 msg = self._client().messages.create(
                     model=model,
                     max_tokens=max_tokens,
-                    messages=[{"role": "user", "content": [
-                        {"type": "document", "source": {
-                            "type": "base64",
-                            "media_type": "application/pdf",
-                            "data": base64.b64encode(pdf).decode(),
-                        }},
-                        {"type": "text", "text": prompt},
-                    ]}],
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "document",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": "application/pdf",
+                                        "data": base64.b64encode(pdf).decode(),
+                                    },
+                                },
+                                {"type": "text", "text": prompt},
+                            ],
+                        }
+                    ],
                 )
                 return self._text(msg)
             except Exception as e:
                 if attempt < max_retries - 1:
                     delay = 3 * (attempt + 1)
-                    print(f"  ! anthropic document rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    print(
+                        f"  ! anthropic document rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
+                    )
                     time.sleep(delay)
                     continue
                 raise LLMError(f"anthropic document error: {e}") from e
@@ -139,10 +190,17 @@ class GeminiProvider(Provider):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def _post(self, model: str, body: dict) -> str:
-        max_retries = 4
+        import random
+
+        keys = _get_active_api_keys("GEMINI_API_KEY")
+        if not keys:
+            raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
+        max_retries = max(4, len(keys) * 2)
         url = f"{self.BASE}/{model}:generateContent"
-        key = self._env("GEMINI_API_KEY")
+
         for attempt in range(max_retries):
+            key = keys[attempt % len(keys)]
+            _enforce_rate_limit_throttle(self.name)
             try:
                 r = requests.post(
                     url,
@@ -152,13 +210,31 @@ class GeminiProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    delay = max(float(retry_after), 5.0) if (retry_after and retry_after.isdigit()) else 6.0 * (attempt + 1)
-                    print(f"  ! gemini rate limit (HTTP 429) — cooling down for {delay}s ({attempt + 1}/{max_retries})...")
-                    time.sleep(delay)
+                    delay = (
+                        max(float(retry_after), 15.0)
+                        if (retry_after and retry_after.isdigit())
+                        else 15.0 * (attempt + 1)
+                    )
+                    _record_key_cooldown(key, delay)
+                    if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
+                        print(
+                            f"  ! gemini rate limit (HTTP 429) — rotating to active API key {(attempt + 1) % len(keys) + 1}/{len(keys)}..."
+                        )
+                        time.sleep(0.3 + random.uniform(0.1, 0.5))
+                        continue
+                    jitter = random.uniform(0.2, 1.2)
+                    total_delay = delay + jitter
+                    print(
+                        f"  ! gemini rate limit (HTTP 429) — cooling down for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
+                    )
+                    time.sleep(total_delay)
                     continue
+
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3.0 * (attempt + 1)
-                    print(f"  ! gemini HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    delay = 3.0 * (attempt + 1) + random.uniform(0.1, 0.8)
+                    print(
+                        f"  ! gemini HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
+                    )
                     time.sleep(delay)
                     continue
                 if r.status_code != 200:
@@ -197,10 +273,7 @@ class GeminiProvider(Provider):
                 raise LLMError(f"gemini network error: {e}") from e
         raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
 
-
-
-    def complete(self, model: str, system: str, user: str, max_tokens: int,
-                 json_mode: bool = False) -> str:
+    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
         gen: dict[str, Any] = {"maxOutputTokens": max_tokens, "temperature": 0.2}
         if json_mode:
             gen["responseMimeType"] = "application/json"
@@ -212,16 +285,22 @@ class GeminiProvider(Provider):
             body["system_instruction"] = {"parts": [{"text": system}]}
         return self._post(model, body)
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes,
-                          max_tokens: int) -> str:
-        return self._post(model, {
-            "contents": [{"role": "user", "parts": [
-                {"inline_data": {"mime_type": "application/pdf",
-                                 "data": base64.b64encode(pdf).decode()}},
-                {"text": prompt},
-            ]}],
-            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.2},
-        })
+    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
+        return self._post(
+            model,
+            {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {"inline_data": {"mime_type": "application/pdf", "data": base64.b64encode(pdf).decode()}},
+                            {"text": prompt},
+                        ],
+                    }
+                ],
+                "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.2},
+            },
+        )
 
 
 class OpenAICompatProvider(Provider):
@@ -232,38 +311,58 @@ class OpenAICompatProvider(Provider):
     default_base = "https://api.groq.com/openai/v1"
     key_env = "GROQ_API_KEY"
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int,
-                 json_mode: bool = False) -> str:
+    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+        import random
+
         base = os.getenv("LLM_BASE_URL", self.default_base).rstrip("/")
-        messages = ([{"role": "system", "content": system}] if system else []) + \
-                   [{"role": "user", "content": user}]
-        payload: dict[str, Any] = {"model": model, "messages": messages,
-                                   "max_tokens": max_tokens, "temperature": 0.2}
+        keys = _get_active_api_keys(self.key_env)
+        if not keys:
+            raise LLMError(f"{self.key_env} is not set (see .env.example)")
+
+        messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
+        payload: dict[str, Any] = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.2}
         if json_mode and self.name != "groq":
             payload["response_format"] = {"type": "json_object"}
-        max_retries = 4
+
+        max_retries = max(4, len(keys) * 2)
         for attempt in range(max_retries):
+            key = keys[attempt % len(keys)]
+            _enforce_rate_limit_throttle(self.name)
             try:
                 r = requests.post(
                     f"{base}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._env(self.key_env)}"},
+                    headers={"Authorization": f"Bearer {key}"},
                     json=payload,
                     timeout=TIMEOUT,
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
                     if self.name in ("groq", "openai-compatible"):
-                        delay = 62.0
+                        delay = max(float(retry_after), 15.0) if (retry_after and retry_after.isdigit()) else 15.0
                     elif retry_after and retry_after.isdigit():
                         delay = max(float(retry_after), 5.0)
                     else:
                         delay = 5.0 * (attempt + 1)
-                    print(f"  ! {self.name} rate limit (HTTP 429) — cooling down for {delay:.1f}s ({attempt + 1}/{max_retries})...")
-                    time.sleep(delay)
+                    _record_key_cooldown(key, delay)
+                    if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
+                        print(
+                            f"  ! {self.name} rate limit (HTTP 429) — rotating to active API key {(attempt + 1) % len(keys) + 1}/{len(keys)}..."
+                        )
+                        time.sleep(0.3 + random.uniform(0.1, 0.5))
+                        continue
+                    jitter = random.uniform(0.2, 1.2)
+                    total_delay = delay + jitter
+                    print(
+                        f"  ! {self.name} rate limit (HTTP 429) — cooling down for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
+                    )
+                    time.sleep(total_delay)
                     continue
+
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3.0 * (attempt + 1)
-                    print(f"  ! {self.name} HTTP {r.status_code} — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    delay = 3.0 * (attempt + 1) + random.uniform(0.1, 0.8)
+                    print(
+                        f"  ! {self.name} HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
+                    )
                     time.sleep(delay)
                     continue
                 if r.status_code != 200:
@@ -275,13 +374,14 @@ class OpenAICompatProvider(Provider):
             except requests.RequestException as e:
                 if attempt < max_retries - 1:
                     delay = 3 * (attempt + 1)
-                    print(f"  ! {self.name} network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+
+                    print(
+                        f"  ! {self.name} network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
+                    )
                     time.sleep(delay)
                     continue
                 raise LLMError(f"{self.name} network error: {e}") from e
         raise LLMError(f"{self.name} failed after {max_retries} attempts")  # pragma: no cover
-
-
 
 
 class GroqProvider(OpenAICompatProvider):
@@ -293,24 +393,25 @@ class OllamaProvider(Provider):
 
     name = "ollama"
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int,
-                 json_mode: bool = False) -> str:
+    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
         base = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
-        messages = ([{"role": "system", "content": system}] if system else []) + \
-                   [{"role": "user", "content": user}]
+        messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
         payload: dict[str, Any] = {
-            "model": model, "messages": messages, "stream": False,
+            "model": model,
+            "messages": messages,
+            "stream": False,
             "options": {"temperature": 0.2, "num_predict": max_tokens},
         }
         if json_mode:
             payload["format"] = "json"
         try:
             r = requests.post(
-                f"{base}/api/chat", json=payload, timeout=TIMEOUT,
+                f"{base}/api/chat",
+                json=payload,
+                timeout=TIMEOUT,
             )
         except requests.RequestException as e:
-            raise LLMError(
-                f"ollama unreachable at {base} - is `ollama serve` running?") from e
+            raise LLMError(f"ollama unreachable at {base} - is `ollama serve` running?") from e
         if r.status_code != 200:
             raise LLMError(f"ollama HTTP {r.status_code}: {r.text[:300]}")
         try:
@@ -340,9 +441,7 @@ def get_provider(name: str) -> Provider:
     try:
         return PROVIDERS[name]()
     except KeyError:
-        raise LLMError(
-            f"unknown provider {name!r}; pick one of {', '.join(PROVIDERS)}"
-        ) from None
+        raise LLMError(f"unknown provider {name!r}; pick one of {', '.join(PROVIDERS)}") from None
 
 
 def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
@@ -360,6 +459,7 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
        - Fallback -> "gemini"
     """
     from .auth import _load_env_if_needed
+
     _load_env_if_needed()
 
     has_groq = bool((os.getenv("GROQ_API_KEY") or "").strip())
@@ -385,9 +485,7 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
         else:
             default_provider = "gemini"
 
-    name = (os.getenv(f"{stage.upper()}_PROVIDER")
-            or os.getenv("LLM_PROVIDER")
-            or default_provider).strip().lower()
+    name = (os.getenv(f"{stage.upper()}_PROVIDER") or os.getenv("LLM_PROVIDER") or default_provider).strip().lower()
 
     provider = get_provider(name)
     explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip()
@@ -395,7 +493,11 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
     # Avoid provider-model mismatch (e.g. legacy SCREEN_MODEL=gemini-3.5-flash in .env when provider is groq)
     if explicit_model and name == "groq" and ("gemini" in explicit_model.lower() or "claude" in explicit_model.lower()):
         model = DEFAULT_MODELS.get(name, {}).get(stage)
-    elif explicit_model and name == "gemini" and ("llama" in explicit_model.lower() or "gpt" in explicit_model.lower() or "claude" in explicit_model.lower()):
+    elif (
+        explicit_model
+        and name == "gemini"
+        and ("llama" in explicit_model.lower() or "gpt" in explicit_model.lower() or "claude" in explicit_model.lower())
+    ):
         model = DEFAULT_MODELS.get(name, {}).get(stage)
     else:
         model = explicit_model or DEFAULT_MODELS.get(name, {}).get(stage)
@@ -405,3 +507,28 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
     if check:
         provider.preflight()
     return provider, model
+
+
+def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Provider, str] | None:
+    """Find the next available configured live provider when primary provider quota is exhausted."""
+    from .auth import _load_env_if_needed
+
+    _load_env_if_needed()
+
+    candidates = ["gemini", "groq", "anthropic", "openai-compatible"]
+    current_clean = (current_name or "").strip().lower()
+
+    for candidate in candidates:
+        if candidate == current_clean:
+            continue
+        req_env = PROVIDERS[candidate].required_env
+        if req_env and bool((os.getenv(req_env) or "").strip()):
+            try:
+                prov = get_provider(candidate)
+                prov.preflight()
+                model = DEFAULT_MODELS.get(candidate, {}).get(stage, "gemini-3.6-flash")
+                return prov, model
+            except Exception:
+                continue
+
+    return None

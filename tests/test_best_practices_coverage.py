@@ -1,4 +1,5 @@
 """Targeted unit tests covering edge cases, fallbacks, and error handlers across all modules."""
+
 from __future__ import annotations
 
 import io
@@ -25,6 +26,7 @@ def client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 # ==============================================================================
 # 1. app.py Edge Cases & Error Boundaries
 # ==============================================================================
+
 
 def test_app_get_project_root_import_error():
     with patch("builtins.__import__", side_effect=ImportError("No module named jobhunt")):
@@ -54,11 +56,14 @@ def test_app_api_profile_post_without_email(client, monkeypatch: pytest.MonkeyPa
 
 def test_app_api_profile_post_skills_extraction_from_resume_text(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app._get_current_user_context", lambda: ("candidate_extract@example.com", "fake-token"))
-    resp = client.post("/api/profile", json={
-        "name": "Alex",
-        "resume_text": "Experienced building applications with Python, PostgreSQL, Docker, and REST APIs at scale.",
-        "skills": [],
-    })
+    resp = client.post(
+        "/api/profile",
+        json={
+            "name": "Alex",
+            "resume_text": "Experienced building applications with Python, PostgreSQL, Docker, and REST APIs at scale.",
+            "skills": [],
+        },
+    )
     assert resp.status_code == 200
     data = resp.json
     assert "Python" in data["profile"]["skills"]
@@ -68,9 +73,10 @@ def test_app_api_profile_post_skills_extraction_from_resume_text(client, monkeyp
 def test_app_api_history_endpoint(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app._get_current_user_context", lambda: ("history_user@example.com", "token123"))
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_pipeline_history", lambda self, email, limit=15, token=None: [
-        {"id": 1, "jobs_scanned": 10, "status": "completed"}
-    ])
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_pipeline_history",
+        lambda self, email, limit=15, token=None: [{"id": 1, "jobs_scanned": 10, "status": "completed"}],
+    )
     resp = client.get("/api/history")
     assert resp.status_code == 200
     assert len(resp.json["history"]) == 1
@@ -126,12 +132,10 @@ def test_app_api_email_test_delivery_exception(client, monkeypatch: pytest.Monke
 def test_app_api_run_profile_stub_guard(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app._get_current_user_context", lambda: ("stub_user@example.com", "token"))
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda *a, **kw: {
-        "onboarding_completed": False,
-        "name": "",
-        "skills": [],
-        "target_keywords": []
-    })
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile",
+        lambda *a, **kw: {"onboarding_completed": False, "name": "", "skills": [], "target_keywords": []},
+    )
     r = client.post("/api/run", json={"mock": True})
     assert r.status_code == 400
     assert "complete your candidate profile" in r.json["message"]
@@ -140,16 +144,19 @@ def test_app_api_run_profile_stub_guard(client, monkeypatch: pytest.MonkeyPatch)
 def test_app_api_run_pipeline_exception_handling(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app._get_current_user_context", lambda: ("user_err@example.com", "token"))
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
-    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda *a, **kw: {
-        "onboarding_completed": True,
-        "name": "Tester",
-        "title": "Engineer",
-        "skills": ["Python"],
-        "target_keywords": ["Engineer"],
-        "education": "BS",
-        "experience_years": 3,
-        "exclude_keywords": ["Manager"],
-    })
+    monkeypatch.setattr(
+        "jobhunt.memory.SupabaseMemory.get_user_profile",
+        lambda *a, **kw: {
+            "onboarding_completed": True,
+            "name": "Tester",
+            "title": "Engineer",
+            "skills": ["Python"],
+            "target_keywords": ["Engineer"],
+            "education": "BS",
+            "experience_years": 3,
+            "exclude_keywords": ["Manager"],
+        },
+    )
     monkeypatch.setattr("jobhunt.cli.run_pipeline", MagicMock(side_effect=RuntimeError("Fatal pipeline explosion")))
     r = client.post("/api/run", json={"mock": True})
     assert r.status_code == 500
@@ -172,13 +179,16 @@ def test_app_api_add_with_ai_scoring(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("jobhunt.llm.screen", mock_screen)
     monkeypatch.setattr("jobhunt.llm.draft", mock_draft)
 
-    r = client.post("/api/jobs/add", json={
-        "title": "Staff Infrastructure Engineer",
-        "company": "Cloudflare",
-        "location": "Remote",
-        "description": "Distributed systems, edge computing, Go, and Linux systems engineering.",
-        "run_ai": True,
-    })
+    r = client.post(
+        "/api/jobs/add",
+        json={
+            "title": "Staff Infrastructure Engineer",
+            "company": "Cloudflare",
+            "location": "Remote",
+            "description": "Distributed systems, edge computing, Go, and Linux systems engineering.",
+            "run_ai": True,
+        },
+    )
     assert r.status_code == 200
     assert r.json["job"]["score"] == 8.8
     assert r.json["job"]["draft"]["fit_summary"] == "Great fit summary"
@@ -192,10 +202,10 @@ def test_app_api_resume_upload_pdf_multipart_and_smart_fallback(client, monkeypa
     # Simulate LLM raising error to trigger smart local parsing
     monkeypatch.setattr("jobhunt.llm.resolve", MagicMock(side_effect=Exception("Quota exceeded")))
 
-    fake_pdf_content = b"%PDF-1.4 ... Fake PDF header ... Candidate Resume: Jane Doe. Python, SQL, REST APIs, Docker, PostgreSQL."
-    data = {
-        "file": (io.BytesIO(fake_pdf_content), "jane_resume.pdf")
-    }
+    fake_pdf_content = (
+        b"%PDF-1.4 ... Fake PDF header ... Candidate Resume: Jane Doe. Python, SQL, REST APIs, Docker, PostgreSQL."
+    )
+    data = {"file": (io.BytesIO(fake_pdf_content), "jane_resume.pdf")}
     r = client.post("/api/resume/upload", data=data, content_type="multipart/form-data")
     assert r.status_code == 200
     assert r.json["profile"]["resume_filename"] == "jane_resume.pdf"
@@ -212,6 +222,7 @@ def test_app_api_resume_upload_unauthenticated(client, monkeypatch: pytest.Monke
 # 2. jobhunt/memory.py String Normalization & Error Resilience
 # ==============================================================================
 
+
 def test_memory_upsert_string_skills_and_targets(monkeypatch: pytest.MonkeyPatch):
     mem = memory.SupabaseMemory()
     mem.url = "https://example.supabase.co"
@@ -221,13 +232,16 @@ def test_memory_upsert_string_skills_and_targets(monkeypatch: pytest.MonkeyPatch
     mock_resp.status_code = 201
     monkeypatch.setattr(requests, "post", lambda *a, **kw: mock_resp)
 
-    success = mem.upsert_user_profile("user_str@example.com", {
-        "name": "String Skills User",
-        "skills": "Python, Go, Docker , Kubernetes",
-        "target_keywords": "Backend Engineer, Systems Engineer",
-        "exclude_keywords": "Manager, Director",
-        "experience_years": "5",
-    })
+    success = mem.upsert_user_profile(
+        "user_str@example.com",
+        {
+            "name": "String Skills User",
+            "skills": "Python, Go, Docker , Kubernetes",
+            "target_keywords": "Backend Engineer, Systems Engineer",
+            "exclude_keywords": "Manager, Director",
+            "experience_years": "5",
+        },
+    )
     assert success is True
 
 
@@ -258,6 +272,7 @@ def test_memory_network_error_resilience(monkeypatch: pytest.MonkeyPatch):
 # 3. jobhunt/cli.py CLI multi-run & Resolve Relative
 # ==============================================================================
 
+
 def test_cli_cmd_multi_run(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("jobhunt.multi.run_multi_user_pipeline", lambda **kw: {"status": "success"})
     args = MagicMock()
@@ -278,6 +293,7 @@ def test_cli_resolve_relative_vercel(monkeypatch: pytest.MonkeyPatch):
 # ==============================================================================
 # 4. jobhunt/auth.py Caching & Expiry
 # ==============================================================================
+
 
 def test_auth_token_cache_expiration():
     auth.clear_token_cache()

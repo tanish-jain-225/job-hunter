@@ -1,4 +1,5 @@
 """Exhaustive test suite covering 100% of edge cases, fallbacks, and recovery branches."""
+
 from __future__ import annotations
 
 import time
@@ -25,6 +26,7 @@ def client(monkeypatch):
 # 1. auth.py Exhaustive Branch Coverage
 # ==============================================================================
 
+
 def test_auth_verify_token_invalid_inputs():
     assert auth.verify_token("") is None
     assert auth.verify_token(None) is None  # type: ignore
@@ -40,7 +42,9 @@ def test_auth_verify_token_cache_expiration(monkeypatch):
     # Pre-populate expired cache entry
     auth._TOKEN_CACHE[token_hash] = ({"email": "cached@test.com"}, time.time() - 100)
 
-    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: {"id": "123", "email": "fresh@test.com"})):
+    with patch(
+        "requests.get", return_value=MagicMock(status_code=200, json=lambda: {"id": "123", "email": "fresh@test.com"})
+    ):
         res = auth.verify_token(token)
         assert res is not None
         assert res["email"] == "fresh@test.com"
@@ -110,6 +114,7 @@ def test_auth_require_auth_decorator_blocked(client, monkeypatch):
 # 2. digest.py Username Derivation & Formatting Coverage
 # ==============================================================================
 
+
 def test_digest_build_username_from_email():
     j = Job(
         job_id="greenhouse:stripe:101",
@@ -121,21 +126,17 @@ def test_digest_build_username_from_email():
         description="Python systems",
         score=8.5,
         reason="Good fit",
-        draft={"fit_summary": "Great match", "best_project": "Payments API"}
+        draft={"fit_summary": "Great match", "best_project": "Payments API"},
     )
     subject, html_content = digest.build(
-        [j], scanned=50, candidates=10, stats={"tracked": 50},
-        profile={"email": "sarah.connor_cyber@example.com"}
+        [j], scanned=50, candidates=10, stats={"tracked": 50}, profile={"email": "sarah.connor_cyber@example.com"}
     )
     assert "Sarah Connor Cyber" in subject or "Sarah Connor Cyber" in html_content
     assert "Stripe" in html_content
 
 
 def test_digest_build_empty_profile_name():
-    subject, html_content = digest.build(
-        [], scanned=20, candidates=0, stats={"tracked": 20},
-        profile={}
-    )
+    subject, html_content = digest.build([], scanned=20, candidates=0, stats={"tracked": 20}, profile={})
     assert "Candidate" in html_content
     assert "No new remote matches" in subject
 
@@ -143,6 +144,7 @@ def test_digest_build_empty_profile_name():
 # ==============================================================================
 # 3. cli.py Branch & Pipeline Customizations
 # ==============================================================================
+
 
 def test_cli_resolve_relative_vercel_and_root(monkeypatch, tmp_path):
     monkeypatch.setenv("VERCEL", "1")
@@ -178,13 +180,12 @@ def test_cli_build_and_send_digest_direct():
         description="High throughput systems",
         score=9.0,
         reason="Direct match",
-        draft={"fit_summary": "Excellent match"}
+        draft={"fit_summary": "Excellent match"},
     )
     st = store.Store("seen_test_cli.json")
     with patch("jobhunt.mailer.send") as mock_mailer:
         subj, body = cli._build_and_send_digest(
-            [j], [j], [j], [j], st, send_or_args=True, cfg={},
-            profile={"name": "Alice"}, to_email="alice@test.com"
+            [j], [j], [j], [j], st, send_or_args=True, cfg={}, profile={"name": "Alice"}, to_email="alice@test.com"
         )
         assert mock_mailer.called
         assert "Systems Engineer" in body
@@ -193,6 +194,7 @@ def test_cli_build_and_send_digest_direct():
 # ==============================================================================
 # 4. fetch.py ATS Cache, Parsers, & HTTP Retries
 # ==============================================================================
+
 
 def test_fetch_ats_cache_ttl():
     fetch.clear_ats_cache()
@@ -229,6 +231,7 @@ def test_fetch_parsers_with_malformed_lists():
 # 5. llm.py PDF Extraction & Keyword Screen Branch Coverage
 # ==============================================================================
 
+
 def test_llm_extract_text_from_pdf_none():
     assert llm.extract_text_from_pdf(None) == ""
     assert llm.extract_text_from_pdf(b"") == ""
@@ -259,6 +262,7 @@ def test_llm_keyword_screen_project_phrase_matching():
 # 6. store.py Sanitization for All ATS Types & Atomic Retry
 # ==============================================================================
 
+
 def test_store_sanitize_job_url_all_ats_types():
     assert "greenhouse" in store.sanitize_job_url("", job_id="greenhouse:stripe:123")
     assert "lever" in store.sanitize_job_url("", job_id="lever:netflix:456")
@@ -283,18 +287,22 @@ def test_store_atomic_replace_retry(tmp_path):
 # 7. memory.py Supabase Error & History Coverage
 # ==============================================================================
 
+
 def test_memory_upsert_string_and_invalid_formats(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://mock.supabase.co")
     monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-key")
     mem = memory.SupabaseMemory()
 
     with patch("requests.post", return_value=MagicMock(status_code=201)):
-        ok = mem.upsert_user_profile("user@test.com", {
-            "skills": "Python, Docker, SQL",
-            "target_keywords": "Backend, SRE",
-            "exclude_keywords": "Manager, Sales",
-            "min_score_notification": "8.5",
-        })
+        ok = mem.upsert_user_profile(
+            "user@test.com",
+            {
+                "skills": "Python, Docker, SQL",
+                "target_keywords": "Backend, SRE",
+                "exclude_keywords": "Manager, Sales",
+                "min_score_notification": "8.5",
+            },
+        )
         assert ok is True
 
 
@@ -303,8 +311,10 @@ def test_memory_pipeline_runs_and_job_sync(monkeypatch):
     monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-key")
     mem = memory.SupabaseMemory()
 
-    with patch("requests.post", return_value=MagicMock(status_code=201)), \
-         patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [{"id": 1, "jobs_scanned": 50}])):
+    with (
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [{"id": 1, "jobs_scanned": 50}])),
+    ):
         mem.record_pipeline_run("user@test.com", {"jobs_scanned": 50, "status": "completed"})
         history = mem.get_pipeline_history("user@test.com")
         assert len(history) == 1
@@ -316,25 +326,32 @@ def test_memory_job_crud_operations(monkeypatch):
     monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-key")
     mem = memory.SupabaseMemory()
 
-    with patch("requests.post", return_value=MagicMock(status_code=201)), \
-         patch("requests.delete", return_value=MagicMock(status_code=204)), \
-         patch("requests.patch", return_value=MagicMock(status_code=200)), \
-         patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])):
-
+    with (
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+        patch("requests.delete", return_value=MagicMock(status_code=204)),
+        patch("requests.patch", return_value=MagicMock(status_code=200)),
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])),
+    ):
         # Save single job
-        saved = mem.save_user_job("user@test.com", {
-            "job_id": "greenhouse:stripe:99",
-            "company": "Stripe",
-            "title": "Engineer",
-            "applied": True,
-        })
+        saved = mem.save_user_job(
+            "user@test.com",
+            {
+                "job_id": "greenhouse:stripe:99",
+                "company": "Stripe",
+                "title": "Engineer",
+                "applied": True,
+            },
+        )
         assert saved is True
 
         # Bulk upsert
-        count = mem.bulk_upsert_user_jobs("user@test.com", [
-            {"job_id": "lever:acme:1", "company": "Acme", "title": "Dev"},
-            {"job_id": "ashby:ramp:2", "company": "Ramp", "title": "Dev"}
-        ])
+        count = mem.bulk_upsert_user_jobs(
+            "user@test.com",
+            [
+                {"job_id": "lever:acme:1", "company": "Acme", "title": "Dev"},
+                {"job_id": "ashby:ramp:2", "company": "Ramp", "title": "Dev"},
+            ],
+        )
         assert count == 2
 
         # Applied & stage toggles
@@ -349,6 +366,7 @@ def test_memory_job_crud_operations(monkeypatch):
 # ==============================================================================
 # 8. multi.py Batch Execution Coverage
 # ==============================================================================
+
 
 def test_multi_user_pipeline_execution_branches(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://mock.supabase.co")
@@ -365,10 +383,11 @@ def test_multi_user_pipeline_execution_branches(monkeypatch):
         }
     ]
 
-    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_users)), \
-         patch("jobhunt.multi.fetch_all_mock", return_value=mock.fetch_all_mock()), \
-         patch("requests.post", return_value=MagicMock(status_code=201)):
-
+    with (
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_users)),
+        patch("jobhunt.multi.fetch_all_mock", return_value=mock.fetch_all_mock()),
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+    ):
         res = multi.run_multi_user_pipeline(mock=True, scorer="keyword")
         assert res["status"] == "success"
         assert res["users_processed"] >= 1
@@ -377,6 +396,7 @@ def test_multi_user_pipeline_execution_branches(monkeypatch):
 # ==============================================================================
 # 9. web routes (jobs, pipeline, views) Comprehensive Coverage
 # ==============================================================================
+
 
 def test_web_routes_jobs_filtering_and_sorting(client, monkeypatch):
     monkeypatch.setenv("AUTH_REQUIRED", "false")
@@ -451,6 +471,7 @@ def test_web_routes_pipeline_run_status_and_exit_code(client, monkeypatch):
     monkeypatch.setenv("AUTH_REQUIRED", "false")
     monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("stream_user@test.com", "tok"))
     from jobhunt.web.state import set_user_pipeline_state
+
     set_user_pipeline_state("stream_user@test.com", running=False, step="idle", exit_code=0, message="Ready")
 
     res = client.get("/api/sync")
@@ -460,8 +481,13 @@ def test_web_routes_pipeline_run_status_and_exit_code(client, monkeypatch):
     assert data["pipeline"]["step"] == "idle"
 
     # Test POST /api/run with mock mode
-    with patch("jobhunt.cli.run_pipeline", return_value=0), \
-         patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={"name": "Sarah", "skills": ["Python"], "onboarding_completed": True}):
+    with (
+        patch("jobhunt.cli.run_pipeline", return_value=0),
+        patch(
+            "jobhunt.memory.SupabaseMemory.get_user_profile",
+            return_value={"name": "Sarah", "skills": ["Python"], "onboarding_completed": True},
+        ),
+    ):
         res_run = client.post("/api/run", json={"mock": True})
         assert res_run.status_code == 200
         assert res_run.get_json()["status"] == "success"
@@ -470,8 +496,10 @@ def test_web_routes_pipeline_run_status_and_exit_code(client, monkeypatch):
 def test_web_routes_profile_cache_write_warning(client, monkeypatch):
     monkeypatch.setenv("AUTH_REQUIRED", "false")
     monkeypatch.setattr("jobhunt.web.routes.profile.get_current_user_context", lambda: ("user_warn@test.com", "token"))
-    with patch("jobhunt.web.routes.profile.get_writable_path", side_effect=OSError("Read-only file system")), \
-         patch("requests.post", return_value=MagicMock(status_code=201)):
+    with (
+        patch("jobhunt.web.routes.profile.get_writable_path", side_effect=OSError("Read-only file system")),
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+    ):
         res = client.post("/api/profile", json={"name": "Test User", "skills": ["Python"]})
         assert res.status_code == 200
 
@@ -541,7 +569,7 @@ def test_multi_user_pipeline_real_fetch_and_llm_mode(monkeypatch):
             "skills": ["Cobol", "Fortran"],
             "target_keywords": ["Mainframe Architect"],
             "email_notifications_enabled": False,
-        }
+        },
     ]
 
     mock_job = Job(
@@ -555,13 +583,14 @@ def test_multi_user_pipeline_real_fetch_and_llm_mode(monkeypatch):
         score=8.5,
     )
 
-    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_users)), \
-         patch("jobhunt.multi.fetch_all", return_value=[mock_job]), \
-         patch("jobhunt.multi.llm.screen", return_value=None), \
-         patch("jobhunt.multi.llm.draft", return_value={"fit_summary": "Solid"}), \
-         patch("jobhunt.multi.mailer.send", return_value=True), \
-         patch("requests.post", return_value=MagicMock(status_code=201)):
-
+    with (
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_users)),
+        patch("jobhunt.multi.fetch_all", return_value=[mock_job]),
+        patch("jobhunt.multi.llm.screen", return_value=None),
+        patch("jobhunt.multi.llm.draft", return_value={"fit_summary": "Solid"}),
+        patch("jobhunt.multi.mailer.send", return_value=True),
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+    ):
         # Run with mock=False and scorer="llm" (using mock LLM mocks above)
         res = multi.run_multi_user_pipeline(mock=False, scorer="gemini")
         assert res["status"] == "success"
@@ -575,12 +604,15 @@ def test_memory_profile_type_coercion_and_history_error(monkeypatch):
 
     # Pass numbers/booleans for list fields to trigger coercion
     with patch("requests.post", return_value=MagicMock(status_code=201)):
-        ok = mem.upsert_user_profile("user@test.com", {
-            "skills": 12345,
-            "target_keywords": True,
-            "exclude_keywords": {"nested": "dict"},
-            "profile_json": "not-a-dict",
-        })
+        ok = mem.upsert_user_profile(
+            "user@test.com",
+            {
+                "skills": 12345,
+                "target_keywords": True,
+                "exclude_keywords": {"nested": "dict"},
+                "profile_json": "not-a-dict",
+            },
+        )
         assert ok is True
 
     # History API non-200 / error
@@ -655,12 +687,11 @@ def test_web_routes_api_sync_github_actions_status_polling(client, monkeypatch):
 
     # Mock in-progress GitHub run
     from jobhunt.web.state import set_user_pipeline_state
+
     set_user_pipeline_state("sync_gh@test.com", running=True, step="running", dispatched_at=time.time() - 30)
 
     mock_gh_in_progress = {
-        "workflow_runs": [
-            {"status": "in_progress", "conclusion": None, "created_at": "2026-08-24T12:00:00Z"}
-        ]
+        "workflow_runs": [{"status": "in_progress", "conclusion": None, "created_at": "2026-08-24T12:00:00Z"}]
     }
     with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_in_progress)):
         res = client.get("/api/sync")
@@ -670,9 +701,7 @@ def test_web_routes_api_sync_github_actions_status_polling(client, monkeypatch):
 
     # Mock completed success GitHub run
     mock_gh_completed = {
-        "workflow_runs": [
-            {"status": "completed", "conclusion": "success", "created_at": "2026-08-24T12:05:00Z"}
-        ]
+        "workflow_runs": [{"status": "completed", "conclusion": "success", "created_at": "2026-08-24T12:05:00Z"}]
     }
     with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_completed)):
         res = client.get("/api/sync")
@@ -683,9 +712,7 @@ def test_web_routes_api_sync_github_actions_status_polling(client, monkeypatch):
     # Mock completed failure GitHub run
     set_user_pipeline_state("sync_gh@test.com", running=True, step="running", dispatched_at=time.time() - 30)
     mock_gh_failed = {
-        "workflow_runs": [
-            {"status": "completed", "conclusion": "failure", "created_at": "2026-08-24T12:10:00Z"}
-        ]
+        "workflow_runs": [{"status": "completed", "conclusion": "failure", "created_at": "2026-08-24T12:10:00Z"}]
     }
     with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_gh_failed)):
         res = client.get("/api/sync")
@@ -725,10 +752,12 @@ def test_providers_document_and_error_handling(monkeypatch):
     # Gemini document completion mock
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     gemini = GeminiProvider()
-    with patch("requests.post", return_value=MagicMock(
-        status_code=200,
-        json=lambda: {"candidates": [{"content": {"parts": [{"text": "Extracted doc"}]}}]}
-    )):
+    with patch(
+        "requests.post",
+        return_value=MagicMock(
+            status_code=200, json=lambda: {"candidates": [{"content": {"parts": [{"text": "Extracted doc"}]}}]}
+        ),
+    ):
         res = gemini.complete_document("gemini-3.6-flash", "extract", b"pdf_bytes", 1000)
         assert res == "Extracted doc"
 
@@ -744,44 +773,53 @@ def test_web_routes_api_run_experience_levels_and_dispatch_failures(client, monk
     monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("exp_user@test.com", "token"))
 
     # Mock user profile with fresher experience level and mock mode
-    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
-        "name": "Fresher Candidate",
-        "skills": ["Python", "Flask"],
-        "experience_level": "fresher",
-        "onboarding_completed": True,
-    }), patch("jobhunt.cli.run_pipeline", return_value=0):
+    with (
+        patch(
+            "jobhunt.memory.SupabaseMemory.get_user_profile",
+            return_value={
+                "name": "Fresher Candidate",
+                "skills": ["Python", "Flask"],
+                "experience_level": "fresher",
+                "onboarding_completed": True,
+            },
+        ),
+        patch("jobhunt.cli.run_pipeline", return_value=0),
+    ):
         res_fresher = client.post("/api/run", json={"mock": True})
         assert res_fresher.status_code == 200
 
     # Mock user profile with 1-3 experience level
-    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
-        "name": "Mid Candidate",
-        "skills": ["Python", "FastAPI"],
-        "experience_level": "1-3",
-        "preferred_locations": ["Bengaluru"],
-        "job_types": ["fulltime"],
-        "onboarding_completed": True,
-    }), patch("jobhunt.cli.run_pipeline", return_value=0):
+    with (
+        patch(
+            "jobhunt.memory.SupabaseMemory.get_user_profile",
+            return_value={
+                "name": "Mid Candidate",
+                "skills": ["Python", "FastAPI"],
+                "experience_level": "1-3",
+                "preferred_locations": ["Bengaluru"],
+                "job_types": ["fulltime"],
+                "onboarding_completed": True,
+            },
+        ),
+        patch("jobhunt.cli.run_pipeline", return_value=0),
+    ):
         res_mid = client.post("/api/run", json={"mock": True})
         assert res_mid.status_code == 200
 
     # Vercel mode with GitHub Actions dispatch non-200 failure
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("GH_TOKEN", "mock_token")
-    with patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={
-        "name": "Cloud Candidate",
-        "skills": ["Go", "Kubernetes"],
-        "onboarding_completed": True,
-    }), patch("requests.post", return_value=MagicMock(status_code=422, text="Unprocessable Entity")), \
-       patch("jobhunt.cli.run_pipeline", return_value=0):
+    with (
+        patch(
+            "jobhunt.memory.SupabaseMemory.get_user_profile",
+            return_value={
+                "name": "Cloud Candidate",
+                "skills": ["Go", "Kubernetes"],
+                "onboarding_completed": True,
+            },
+        ),
+        patch("requests.post", return_value=MagicMock(status_code=422, text="Unprocessable Entity")),
+        patch("jobhunt.cli.run_pipeline", return_value=0),
+    ):
         res_gh_fail = client.post("/api/run", json={"mock": True})
         assert res_gh_fail.status_code == 200
-
-
-
-
-
-
-
-
-

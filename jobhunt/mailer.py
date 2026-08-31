@@ -1,4 +1,5 @@
 """Send the digest over SMTP. Gmail: use an App Password, not your login."""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +9,7 @@ from email.message import EmailMessage
 
 def send(subject: str, html_body: str, to_email: str | None = None) -> None:
     from .auth import _load_env_if_needed
+
     _load_env_if_needed()
     host = (os.getenv("SMTP_HOST") or "smtp.gmail.com").strip()
     raw_port = (os.getenv("SMTP_PORT") or "587").strip()
@@ -30,7 +32,9 @@ def send(subject: str, html_body: str, to_email: str | None = None) -> None:
             s.send_message(msg)
         print(f"  mailed -> {to_addr}")
     except smtplib.SMTPAuthenticationError as e:
-        print(f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password.")
+        print(
+            f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password."
+        )
         raise
     except Exception as e:
         print(f"::error::SMTP sending failed ({type(e).__name__}): {e}")

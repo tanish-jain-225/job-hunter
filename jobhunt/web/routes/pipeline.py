@@ -1,4 +1,5 @@
 """Pipeline execution, real-time synchronization, history, digest, and email test routes."""
+
 from __future__ import annotations
 
 import logging
@@ -91,6 +92,7 @@ def api_sync():
                 if run_ts_raw and dispatched_at:
                     try:
                         from datetime import datetime
+
                         clean_ts = run_ts_raw.replace("Z", "+00:00")
                         run_dt = datetime.fromisoformat(clean_ts).timestamp()
                         if run_dt >= (dispatched_at - 5):  # 5s clock skew tolerance
@@ -101,7 +103,10 @@ def api_sync():
                     is_newer = False
 
                 if is_newer:
-                    run_logs = last_run.get("logs") or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
+                    run_logs = (
+                        last_run.get("logs")
+                        or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
+                    )
                     pipe_state["last_remote_run"] = run_ts_raw
                     pipe_state["running"] = False
                     pipe_state["step"] = "completed"
@@ -110,15 +115,25 @@ def api_sync():
                     set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
                 elif pipe_state.get("running"):
                     # Check GitHub Actions API for live workflow execution state
-                    gh_token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or "").strip()
+                    gh_token = (
+                        os.environ.get("GH_TOKEN")
+                        or os.environ.get("GITHUB_TOKEN")
+                        or os.environ.get("GITHUB_PAT")
+                        or ""
+                    ).strip()
                     if gh_token:
                         try:
                             import requests
+
                             v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
                             v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
                             v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
-                            repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
-                            gh_url = f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
+                            repo_name = (
+                                os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter"
+                            ).strip()
+                            gh_url = (
+                                f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
+                            )
                             gh_headers = {
                                 "Authorization": f"Bearer {gh_token}",
                                 "Accept": "application/vnd.github+json",
@@ -129,11 +144,14 @@ def api_sync():
                                 runs_data = gh_r.json().get("workflow_runs", [])
                                 if runs_data:
                                     top_run = runs_data[0]
-                                    run_created_raw = str(top_run.get("run_started_at") or top_run.get("created_at") or "")
+                                    run_created_raw = str(
+                                        top_run.get("run_started_at") or top_run.get("created_at") or ""
+                                    )
                                     is_gh_newer = True
                                     if run_created_raw and dispatched_at:
                                         try:
                                             from datetime import datetime
+
                                             clean_gh_ts = run_created_raw.replace("Z", "+00:00")
                                             gh_dt = datetime.fromisoformat(clean_gh_ts).timestamp()
                                             if gh_dt < (dispatched_at - 10):
@@ -144,27 +162,42 @@ def api_sync():
                                     if not is_gh_newer:
                                         pipe_state["running"] = True
                                         pipe_state["step"] = "running"
-                                        pipe_state["message"] = "Cloud Radar: Workflow dispatching in GitHub Actions cloud..."
+                                        pipe_state["message"] = (
+                                            "Cloud Radar: Workflow dispatching in GitHub Actions cloud..."
+                                        )
                                     else:
                                         gh_status = top_run.get("status")  # queued, in_progress, completed
                                         gh_conclusion = top_run.get("conclusion")  # success, failure, etc.
                                         if gh_status in ("queued", "in_progress"):
                                             pipe_state["running"] = True
                                             pipe_state["step"] = "running"
-                                            pipe_state["message"] = f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
+                                            pipe_state["message"] = (
+                                                f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
+                                            )
                                         elif gh_status == "completed":
                                             if gh_conclusion == "success":
                                                 pipe_state["running"] = False
                                                 pipe_state["step"] = "completed"
-                                                pipe_state["message"] = "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
+                                                pipe_state["message"] = (
+                                                    "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
+                                                )
                                                 pipe_state.pop("dispatched_at", None)
-                                                set_user_pipeline_state(email, running=False, step="completed", message=pipe_state["message"])
+                                                set_user_pipeline_state(
+                                                    email,
+                                                    running=False,
+                                                    step="completed",
+                                                    message=pipe_state["message"],
+                                                )
                                             else:
                                                 pipe_state["running"] = False
                                                 pipe_state["step"] = "error"
-                                                pipe_state["message"] = f"GitHub Actions completed with status: {gh_conclusion}"
+                                                pipe_state["message"] = (
+                                                    f"GitHub Actions completed with status: {gh_conclusion}"
+                                                )
                                                 pipe_state.pop("dispatched_at", None)
-                                                set_user_pipeline_state(email, running=False, step="error", message=pipe_state["message"])
+                                                set_user_pipeline_state(
+                                                    email, running=False, step="error", message=pipe_state["message"]
+                                                )
                         except Exception:
                             pass
         except Exception:
@@ -172,17 +205,19 @@ def api_sync():
 
     version = get_store_version(st)
 
-    return jsonify({
-        "status": "success",
-        "version": version,
-        "stats": stats,
-        "ats_counts": ats_counts,
-        "pipeline": pipe_state,
-        "user_email": email,
-        "user_profile": user_profile,
-        "memory_connected": memory.is_configured,
-        "timestamp": time.time()
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "version": version,
+            "stats": stats,
+            "ats_counts": ats_counts,
+            "pipeline": pipe_state,
+            "user_email": email,
+            "user_profile": user_profile,
+            "memory_connected": memory.is_configured,
+            "timestamp": time.time(),
+        }
+    )
 
 
 @pipeline_bp.route("/api/digest")
@@ -192,7 +227,11 @@ def api_digest():
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
-    force_rebuild = request.args.get("t") is not None or request.args.get("force") is not None or request.args.get("live") is not None
+    force_rebuild = (
+        request.args.get("t") is not None
+        or request.args.get("force") is not None
+        or request.args.get("live") is not None
+    )
 
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
@@ -205,6 +244,7 @@ def api_digest():
     if not target.is_file() or force_rebuild:
         from ... import digest
         from ...fetch import Job
+
         jobs_list = []
         for jid, d in st.data.items():
             if (d.get("score") or 0) >= 7.0 and not d.get("applied"):
@@ -223,7 +263,7 @@ def api_digest():
                 jobs_list.append(j)
 
         # Sort shortlist by score descending
-        jobs_list.sort(key=lambda x: (x.score if x.score is not None else -1.0), reverse=True)
+        jobs_list.sort(key=lambda x: x.score if x.score is not None else -1.0, reverse=True)
 
         memory = SupabaseMemory(token=token)
         profile_data = None
@@ -270,6 +310,7 @@ def api_run():
     free-tier LLM quota from runaway clients or accidental retry loops.
     """
     from flask import current_app
+
     limiter = current_app.extensions.get("limiter")
     if limiter:
         try:
@@ -305,22 +346,26 @@ def api_run():
             user_profile = cli._load_profile(cfg_temp, raise_on_error=False)
 
     # Guard: block pipeline if candidate profile is still empty/incomplete
-    profile_is_stub = (
-        not user_profile
-        or (
-            not bool(user_profile.get("onboarding_completed"))
-            and not (user_profile.get("name") or "").strip()
-            and not (user_profile.get("skills") or [])
-            and not (user_profile.get("target_keywords") or [])
-        )
+    profile_is_stub = not user_profile or (
+        not bool(user_profile.get("onboarding_completed"))
+        and not (user_profile.get("name") or "").strip()
+        and not (user_profile.get("skills") or [])
+        and not (user_profile.get("target_keywords") or [])
     )
     if profile_is_stub:
-        set_user_pipeline_state(email, running=False, step="idle", exit_code=0,
-                                message="System ready. Click 'Run Job Hunt Now' to start scanning.")
-        return jsonify({
-            "status": "error",
-            "message": "Please complete your candidate profile before running the job hunt pipeline."
-        }), 400
+        set_user_pipeline_state(
+            email,
+            running=False,
+            step="idle",
+            exit_code=0,
+            message="System ready. Click 'Run Job Hunt Now' to start scanning.",
+        )
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Please complete your candidate profile before running the job hunt pipeline.",
+            }
+        ), 400
 
     target_email = email or ""
     if user_profile:
@@ -348,7 +393,9 @@ def api_run():
     seen_file = cfg.get("seen_file", "seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
-    gh_token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or "").strip()
+    gh_token = (
+        os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or ""
+    ).strip()
     v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
     v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
     v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
@@ -359,6 +406,7 @@ def api_run():
     if prefer_cloud and gh_token and not use_mock:
         try:
             import requests
+
             gh_url = f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/dispatches"
             gh_headers = {
                 "Authorization": f"Bearer {gh_token}",
@@ -366,10 +414,7 @@ def api_run():
                 "User-Agent": "Job-Hunter-Web-App",
                 "X-GitHub-Api-Version": "2022-11-28",
             }
-            gh_payload = {
-                "ref": "main",
-                "inputs": {"mode": "multi"}
-            }
+            gh_payload = {"ref": "main", "inputs": {"mode": "multi"}}
             gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
             if gh_resp.status_code in (200, 204):
                 msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 100+ company boards in the cloud..."
@@ -383,15 +428,17 @@ def api_run():
                 )
                 pipe_st = get_user_pipeline_state(email)
                 pipe_st["dispatched_at"] = dispatched_time
-                return jsonify({
-                    "status": "dispatched",
-                    "mode": "github_actions",
-                    "message": msg,
-                    "dispatched_at": dispatched_time,
-                    "pipeline": pipe_st,
-                    "version": get_store_version(st),
-                    "stats": st.stats(),
-                }), 200
+                return jsonify(
+                    {
+                        "status": "dispatched",
+                        "mode": "github_actions",
+                        "message": msg,
+                        "dispatched_at": dispatched_time,
+                        "pipeline": pipe_st,
+                        "version": get_store_version(st),
+                        "stats": st.stats(),
+                    }
+                ), 200
             else:
                 logger.warning("GitHub workflow_dispatch returned %s: %s", gh_resp.status_code, gh_resp.text)
         except Exception as gh_err:
@@ -401,15 +448,17 @@ def api_run():
     if is_vercel and not gh_token and not use_mock:
         gh_actions_url = f"https://github.com/{repo_name}/actions/workflows/daily.yml"
         msg = "Cloud Radar: GitHub Actions is ready to crawl 100+ live boards. Triggering workflow..."
-        return jsonify({
-            "status": "need_github_dispatch",
-            "mode": "github_actions",
-            "message": msg,
-            "actions_url": gh_actions_url,
-            "pipeline": get_user_pipeline_state(email),
-            "version": get_store_version(st),
-            "stats": st.stats(),
-        }), 200
+        return jsonify(
+            {
+                "status": "need_github_dispatch",
+                "mode": "github_actions",
+                "message": msg,
+                "actions_url": gh_actions_url,
+                "pipeline": get_user_pipeline_state(email),
+                "version": get_store_version(st),
+                "stats": st.stats(),
+            }
+        ), 200
 
     # Build custom_filters from user's search preferences
     custom_filters = {}
@@ -508,30 +557,36 @@ def api_run():
         version = get_store_version(st)
         p_state = get_user_pipeline_state(email)
         if p_state.get("exit_code") == 0:
-            return jsonify({
-                "status": "success",
-                "message": p_state.get("message"),
-                "version": version,
-                "stats": st.stats(),
-                "pipeline": p_state,
-            })
+            return jsonify(
+                {
+                    "status": "success",
+                    "message": p_state.get("message"),
+                    "version": version,
+                    "stats": st.stats(),
+                    "pipeline": p_state,
+                }
+            )
         else:
-            return jsonify({
-                "status": "error",
-                "message": p_state.get("message"),
-                "version": version,
-                "pipeline": p_state,
-            }), 500
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": p_state.get("message"),
+                    "version": version,
+                    "pipeline": p_state,
+                }
+            ), 500
     else:
         t = threading.Thread(target=worker, daemon=True)
         t.start()
-        return jsonify({
-            "status": "success",
-            "message": "Pipeline execution started in background.",
-            "version": get_store_version(st),
-            "stats": st.stats(),
-            "pipeline": get_user_pipeline_state(email),
-        }), 202
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Pipeline execution started in background.",
+                "version": get_store_version(st),
+                "stats": st.stats(),
+                "pipeline": get_user_pipeline_state(email),
+            }
+        ), 202
 
 
 @pipeline_bp.route("/api/history")
@@ -544,11 +599,7 @@ def api_history():
     if email and memory.is_configured:
         history = memory.get_pipeline_history(email, limit=15, token=token)
 
-    return jsonify({
-        "status": "success",
-        "email": email,
-        "history": history
-    })
+    return jsonify({"status": "success", "email": email, "history": history})
 
 
 @pipeline_bp.route("/api/email/test", methods=["POST"])
@@ -576,10 +627,12 @@ def api_email_test():
 
     smtp_pass = os.environ.get("SMTP_PASS", "")
     if not smtp_pass or "your-gmail" in smtp_pass or "paste-your" in smtp_pass:
-        return jsonify({
-            "status": "error",
-            "message": "SMTP is not configured on the server. Please set SMTP_USER and SMTP_PASS in .env"
-        }), 400
+        return jsonify(
+            {
+                "status": "error",
+                "message": "SMTP is not configured on the server. Please set SMTP_USER and SMTP_PASS in .env",
+            }
+        ), 400
 
     from ... import digest, mailer
     from ...fetch import Job
@@ -600,14 +653,14 @@ def api_email_test():
             "best_project": "Distributed Systems & API Platform",
             "tailored_bullets": [
                 "Engineered high-throughput backend services handling thousands of RPS.",
-                "Optimized SQL query latency and automated CI/CD deployment pipelines."
+                "Optimized SQL query latency and automated CI/CD deployment pipelines.",
             ],
             "matching_skills": ["Python", "Go", "PostgreSQL", "Docker", "REST APIs"],
             "gaps": ["Review specific cloud architecture requirements."],
             "cover_note": "Hi Hiring Team, I am reaching out regarding the Software Engineer opening at Razorpay. My background in building high-throughput backend services aligns directly with your infrastructure requirements.",
             "cold_outreach": "Hi! Saw your Software Engineer role at Razorpay. Built scalable backend systems and distributed services. Would love to connect!",
-            "questions_to_ask": ["What are the primary latency and scale milestones for this team?"]
-        }
+            "questions_to_ask": ["What are the primary latency and scale milestones for this team?"],
+        },
     )
 
     subject, html_content = digest.build(
@@ -620,13 +673,12 @@ def api_email_test():
 
     try:
         mailer.send(f"[Test Briefing] {subject}", html_content, to_email=target_email)
-        return jsonify({
-            "status": "success",
-            "message": f"Test briefing successfully sent to {target_email}!",
-            "target_email": target_email
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"Test briefing successfully sent to {target_email}!",
+                "target_email": target_email,
+            }
+        )
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": f"SMTP delivery failed: {str(e)}"
-        }), 500
+        return jsonify({"status": "error", "message": f"SMTP delivery failed: {str(e)}"}), 500

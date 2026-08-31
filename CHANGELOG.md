@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to **Job Hunter** are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
@@ -15,12 +15,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `flask-limiter` rate limiting: `/api/run` capped at 5 calls/hour/IP; global default of 500 req/hour/IP
 
 ### Added
+- Expanded automated test suite from 319 to 357 unit & integration test cases with 98%+ line coverage
+- Refactored `jobhunt verify` (live ATS auditor) and `jobhunt clean` (test store purger) into modular CLI package tools (`jobhunt/verify.py` and `jobhunt/clean.py`)
 - `--version` flag to `jobhunt` CLI (`jobhunt --version` -> `jobhunt 1.0.0`)
 - `region_context` and `region_hint` configuration keys in `config.yaml` — LLM screening prompt regional context is now fully configurable; set `region_context: global` to remove India-specific hints
 - `@register_ats` decorator now emits `warnings.warn` on accidental duplicate registration (silent overwrite prevention)
 - `threading.Lock` protection around `_GLOBAL_ATS_CACHE` for thread-safe concurrent ATS fetching
 - 10 MB hard response size cap in `fetch_board()` — prevents OOM from oversized or malformed ATS endpoints
 - `hypothesis>=6.0.0` added as a dev dependency for property-based fuzzing
+- Synchronized technical narrative across all markdown documentation files (`README.md`, `METRICS.md`, `docs/`)
 - `CHANGELOG.md`, `SECURITY.md`, `docs/API.md` added
 
 ### Changed

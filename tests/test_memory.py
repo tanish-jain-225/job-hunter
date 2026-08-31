@@ -1,4 +1,5 @@
 """Unit tests for Supabase PostgreSQL memory module (jobhunt.memory)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -26,6 +27,7 @@ def test_supabase_memory_is_configured(mock_supabase_env):
 
 def test_supabase_memory_unconfigured(monkeypatch):
     import jobhunt.auth as auth_mod
+
     monkeypatch.setattr(auth_mod, "_ENV_LOADED", True)
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
@@ -40,12 +42,14 @@ def test_get_user_profile_success(mock_supabase_env):
     mem = SupabaseMemory()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = [{
-        "email": "candidate@test.com",
-        "name": "Jane Doe",
-        "title": "Senior Backend Engineer",
-        "skills": ["Python", "Go", "PostgreSQL"],
-    }]
+    mock_resp.json.return_value = [
+        {
+            "email": "candidate@test.com",
+            "name": "Jane Doe",
+            "title": "Senior Backend Engineer",
+            "skills": ["Python", "Go", "PostgreSQL"],
+        }
+    ]
 
     with patch("requests.get", return_value=mock_resp) as mock_get:
         profile = mem.get_user_profile("candidate@test.com")
@@ -61,11 +65,14 @@ def test_upsert_user_profile(mock_supabase_env):
     mock_resp.status_code = 201
 
     with patch("requests.post", return_value=mock_resp) as mock_post:
-        ok = mem.upsert_user_profile("candidate@test.com", {
-            "name": "Jane Doe",
-            "title": "Staff Engineer",
-            "experience_years": 8,
-        })
+        ok = mem.upsert_user_profile(
+            "candidate@test.com",
+            {
+                "name": "Jane Doe",
+                "title": "Staff Engineer",
+                "experience_years": 8,
+            },
+        )
         assert ok is True
         mock_post.assert_called_once()
 
@@ -94,12 +101,15 @@ def test_load_and_save_user_jobs(mock_supabase_env):
     mock_post_resp = MagicMock()
     mock_post_resp.status_code = 201
     with patch("requests.post", return_value=mock_post_resp):
-        ok = mem.save_user_job("candidate@test.com", {
-            "job_id": "lever:acme:202",
-            "company": "Acme",
-            "title": "Staff SRE",
-            "score": 8.8,
-        })
+        ok = mem.save_user_job(
+            "candidate@test.com",
+            {
+                "job_id": "lever:acme:202",
+                "company": "Acme",
+                "title": "Staff SRE",
+                "score": 8.8,
+            },
+        )
         assert ok is True
 
 
@@ -108,10 +118,13 @@ def test_bulk_upsert_and_mark_applied(mock_supabase_env):
     mock_post_resp = MagicMock()
     mock_post_resp.status_code = 201
     with patch("requests.post", return_value=mock_post_resp):
-        count = mem.bulk_upsert_user_jobs("candidate@test.com", [
-            {"job_id": "ashby:openai:301", "company": "OpenAI", "title": "Research Engineer"},
-            {"job_id": "ashby:openai:302", "company": "OpenAI", "title": "Systems Engineer"},
-        ])
+        count = mem.bulk_upsert_user_jobs(
+            "candidate@test.com",
+            [
+                {"job_id": "ashby:openai:301", "company": "OpenAI", "title": "Research Engineer"},
+                {"job_id": "ashby:openai:302", "company": "OpenAI", "title": "Systems Engineer"},
+            ],
+        )
         assert count == 2
 
     mock_patch_resp = MagicMock()
@@ -135,13 +148,16 @@ def test_pipeline_runs_history(mock_supabase_env):
     mock_post_resp = MagicMock()
     mock_post_resp.status_code = 201
     with patch("requests.post", return_value=mock_post_resp):
-        ok = mem.record_pipeline_run("candidate@test.com", {
-            "scanned": 450,
-            "matched": 12,
-            "shortlisted": 5,
-            "status": "completed",
-            "logs": "Successful scan",
-        })
+        ok = mem.record_pipeline_run(
+            "candidate@test.com",
+            {
+                "scanned": 450,
+                "matched": 12,
+                "shortlisted": 5,
+                "status": "completed",
+                "logs": "Successful scan",
+            },
+        )
         assert ok is True
 
     mock_get_resp = MagicMock()
@@ -195,6 +211,7 @@ def test_supabase_memory_session_retry_setup(monkeypatch):
 
     import requests
     from requests.adapters import HTTPAdapter
+
     assert isinstance(sess, requests.Session)
     assert "https://" in sess.adapters
     adapter = sess.adapters["https://"]
@@ -202,4 +219,3 @@ def test_supabase_memory_session_retry_setup(monkeypatch):
     assert adapter.max_retries.total == 3
     assert adapter.max_retries.backoff_factor == 0.5
     assert 502 in adapter.max_retries.status_forcelist
-

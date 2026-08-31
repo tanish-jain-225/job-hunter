@@ -1,4 +1,5 @@
 """Unit tests for resilience, scaling, bounded memory, caching, and safe regex parsing."""
+
 from __future__ import annotations
 
 import time
@@ -37,16 +38,24 @@ def test_safe_compile_with_special_characters():
     p_empty = _safe_compile("")
     assert p_empty is not None
 
-
     # Test within prefilter directly
     jobs = [
-        Job(job_id="1", ats="lever", company="A", title="C++ Core Developer", location="Remote", url="#", description=""),
-        Job(job_id="2", ats="lever", company="B", title="Frontend React Developer", location="Remote", url="#", description=""),
+        Job(
+            job_id="1", ats="lever", company="A", title="C++ Core Developer", location="Remote", url="#", description=""
+        ),
+        Job(
+            job_id="2",
+            ats="lever",
+            company="B",
+            title="Frontend React Developer",
+            location="Remote",
+            url="#",
+            description="",
+        ),
     ]
     filtered = prefilter(jobs, {"include_titles": ["C++"]})
     assert len(filtered) == 1
     assert filtered[0].title == "C++ Core Developer"
-
 
 
 def test_token_cache_pruning():

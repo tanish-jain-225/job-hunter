@@ -1,4 +1,5 @@
 """Build the daily HTML digest. Inline CSS + mobile media queries for responsive email clients down to 300px."""
+
 from __future__ import annotations
 
 import html
@@ -20,10 +21,13 @@ def _badge(job: Job) -> str:
     color = "#15803d" if s >= 90 else "#166534" if s >= 80 else "#b45309" if s >= 70 else "#475569"
     bg = "#dcfce7" if s >= 90 else "#f0fdf4" if s >= 80 else "#fef3c7" if s >= 70 else "#f1f5f9"
     badge_label = f"{job.queue_category} ({s}/100)"
-    return (f'<span style="background:{bg};color:{color};font-weight:800;'
-            f'padding:5px 12px;border-radius:999px;font-size:12.5px;border:1px solid {LINE};'
-            f'display:inline-block;text-align:center;'
-            f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{badge_label}</span>')
+    return (
+        f'<span style="background:{bg};color:{color};font-weight:800;'
+        f"padding:5px 12px;border-radius:999px;font-size:12.5px;border:1px solid {LINE};"
+        f"display:inline-block;text-align:center;"
+        f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{badge_label}</span>'
+    )
+
 
 def _job_type_badge(j: Job) -> str:
     hay = f"{j.title} {j.location}".lower()
@@ -36,29 +40,36 @@ def _job_type_badge(j: Job) -> str:
     else:
         return '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #e2e8f0;">🏢 On-Site</span>'
 
+
 def _bullets(items: list[str]) -> str:
     if not items:
         return ""
     lis = "".join(
         f'<li style="margin:0 0 6px 0;color:#334155;font-size:13.5px;line-height:1.5;'
         f'word-break:break-word;overflow-wrap:anywhere;">'
-        f'{html.escape(str(i))}</li>' for i in items)
+        f"{html.escape(str(i))}</li>"
+        for i in items
+    )
     return f'<ul style="margin:8px 0 0 0;padding-left:18px;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">{lis}</ul>'
 
 
 def _section(label: str, body: str) -> str:
     if not body:
         return ""
-    return (f'<div style="margin-top:14px;width:100%;box-sizing:border-box;display:block;clear:both;">'
-            f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
-            f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;">{label}</div>{body}</div>')
+    return (
+        f'<div style="margin-top:14px;width:100%;box-sizing:border-box;display:block;clear:both;">'
+        f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
+        f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;">{label}</div>{body}</div>'
+    )
 
 
 def _para(t: str) -> str:
     if not t:
         return ""
-    return (f'<p style="margin:8px 0 0 0;color:#334155;font-size:13.5px;'
-            f'line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">{html.escape(t)}</p>')
+    return (
+        f'<p style="margin:8px 0 0 0;color:#334155;font-size:13.5px;'
+        f'line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">{html.escape(t)}</p>'
+    )
 
 
 def _card(j: Job) -> str:
@@ -69,9 +80,23 @@ def _card(j: Job) -> str:
     india_badge = d.get("india_eligibility")
     if not india_badge:
         location_lower = (j.location or "").lower()
-        india_keywords = ["india", "bengaluru", "bangalore", "mumbai", "delhi", "hyderabad",
-                           "pune", "chennai", "noida", "gurugram", "gurgaon", "remote",
-                           "work from home", "wfh", "anywhere"]
+        india_keywords = [
+            "india",
+            "bengaluru",
+            "bangalore",
+            "mumbai",
+            "delhi",
+            "hyderabad",
+            "pune",
+            "chennai",
+            "noida",
+            "gurugram",
+            "gurgaon",
+            "remote",
+            "work from home",
+            "wfh",
+            "anywhere",
+        ]
         if any(kw in location_lower for kw in india_keywords):
             india_badge = "🇮🇳 India-Based Role"
         elif not j.location or j.location.strip() == "":
@@ -144,7 +169,11 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         subject = f"{len(jobs)} Remote Role{'s' if len(jobs) != 1 else ''} Matched for {name} — {today}"
         body = "".join(_card(j) for j in jobs)
     else:
-        subject = f"No new remote matches today for {name} — {today}" if name != "Candidate" else f"No new remote matches today — {today}"
+        subject = (
+            f"No new remote matches today for {name} — {today}"
+            if name != "Candidate"
+            else f"No new remote matches today — {today}"
+        )
         body = f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
@@ -200,7 +229,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     <div class="digest-title" style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin-bottom:6px;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
     <div style="color:{MUTED};font-size:12.5px;margin:0 0 20px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
       {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
-      Tracker: {stats.get('tracked', 0)} total seen
+      Tracker: {stats.get("tracked", 0)} total seen
     </div>
     {body}
     <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:20px;border-top:1px solid {LINE};padding-top:12px;display:block;clear:both;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
@@ -214,6 +243,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
 
 def write(html_doc: str, path: str | Path = "out/digest.html") -> Path:
     from .store import get_writable_path
+
     target_path = get_writable_path(path)
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(html_doc, encoding="utf-8")

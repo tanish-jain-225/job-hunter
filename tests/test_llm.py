@@ -6,6 +6,7 @@ Asserts the four things that actually break in production:
   3. the JSON parser survives fences, preambles and object-or-array replies
   4. scores land on the right job, and a bad batch does not kill the run
 """
+
 from __future__ import annotations
 
 import json
@@ -20,8 +21,12 @@ from jobhunt import llm
 from jobhunt.fetch import Job
 from jobhunt.providers import Provider
 
-PROFILE = {"core_skills": ["Go", "Kubernetes"], "target_titles": ["Backend Engineer"],
-           "seniority": "mid", "years_experience": 3}
+PROFILE = {
+    "core_skills": ["Go", "Kubernetes"],
+    "target_titles": ["Backend Engineer"],
+    "seniority": "mid",
+    "years_experience": 3,
+}
 
 
 class StubProvider(Provider):
@@ -34,8 +39,9 @@ class StubProvider(Provider):
         self.calls: list[dict] = []
 
     def complete(self, model, system, user, max_tokens, json_mode=False):
-        self.calls.append({"model": model, "system": system, "user": user,
-                           "max_tokens": max_tokens, "json_mode": json_mode})
+        self.calls.append(
+            {"model": model, "system": system, "user": user, "max_tokens": max_tokens, "json_mode": json_mode}
+        )
         if not self.replies:
             return "[]"
         reply = self.replies.pop(0)
@@ -49,28 +55,39 @@ class StubProvider(Provider):
 
 
 def make_jobs(n: int, desc: str = "Go and Kubernetes at scale.") -> list[Job]:
-    return [Job(job_id=f"greenhouse:acme:{i}", ats="greenhouse", company="Acme",
-                title=f"Backend Engineer {i}", location="Bangalore",
-                url=f"https://example.com/{i}", description=desc)
-            for i in range(n)]
+    return [
+        Job(
+            job_id=f"greenhouse:acme:{i}",
+            ats="greenhouse",
+            company="Acme",
+            title=f"Backend Engineer {i}",
+            location="Bangalore",
+            url=f"https://example.com/{i}",
+            description=desc,
+        )
+        for i in range(n)
+    ]
 
 
 def scores_reply(jobs, score=8.0, reason="fits"):
-    return json.dumps([{"job_id": j.job_id, "score": score, "reason": reason}
-                       for j in jobs])
+    return json.dumps([{"job_id": j.job_id, "score": score, "reason": reason} for j in jobs])
 
 
 # ------------------------------------------------------- tolerant JSON -----
 
-@pytest.mark.parametrize("raw,expected", [
-    ('[{"a": 1}]', [{"a": 1}]),
-    ('```json\n[{"a": 1}]\n```', [{"a": 1}]),
-    ('```\n[{"a": 1}]\n```', [{"a": 1}]),
-    ('Here is the JSON you asked for:\n[{"a": 1}]', [{"a": 1}]),
-    ('[{"a": 1}]\n\nLet me know if you need anything else!', [{"a": 1}]),
-    ('```json\nSure —\n{"a": 1}\n```\nDone.', {"a": 1}),
-    ('  {"a": 1}  ', {"a": 1}),
-])
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ('[{"a": 1}]', [{"a": 1}]),
+        ('```json\n[{"a": 1}]\n```', [{"a": 1}]),
+        ('```\n[{"a": 1}]\n```', [{"a": 1}]),
+        ('Here is the JSON you asked for:\n[{"a": 1}]', [{"a": 1}]),
+        ('[{"a": 1}]\n\nLet me know if you need anything else!', [{"a": 1}]),
+        ('```json\nSure —\n{"a": 1}\n```\nDone.', {"a": 1}),
+        ('  {"a": 1}  ', {"a": 1}),
+    ],
+)
 def test_parse_json_survives_real_model_habits(raw, expected):
     assert llm.parse_json(raw) == expected
 
@@ -89,9 +106,10 @@ def test_as_list_accepts_array_wrapped_object_and_bare_object():
 
 # ------------------------------------------------------------- batching ----
 
+
 def test_screen_splits_into_batches_of_the_configured_size():
     jobs = make_jobs(20)
-    stub = StubProvider([scores_reply(jobs[i:i + 8]) for i in (0, 8, 16)])
+    stub = StubProvider([scores_reply(jobs[i : i + 8]) for i in (0, 8, 16)])
 
     llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m")
 
@@ -121,13 +139,16 @@ def test_screen_truncates_jd_to_the_configured_length():
 
 # ------------------------------------------------------------ resilience ----
 
+
 def test_screen_assigns_scores_to_the_right_job():
     jobs = make_jobs(2)
     # Model returns results out of order
-    reply = json.dumps([
-        {"job_id": jobs[1].job_id, "score": 9.5, "reason": "strong"},
-        {"job_id": jobs[0].job_id, "score": 4.0, "reason": "weak"},
-    ])
+    reply = json.dumps(
+        [
+            {"job_id": jobs[1].job_id, "score": 9.5, "reason": "strong"},
+            {"job_id": jobs[0].job_id, "score": 4.0, "reason": "weak"},
+        ]
+    )
     stub = StubProvider([reply])
 
     llm.screen(jobs, PROFILE, provider=stub, model="m")
@@ -150,10 +171,12 @@ def test_screen_survives_a_failed_batch_and_continues():
 
 def test_screen_clamps_scores_to_0_10():
     jobs = make_jobs(2)
-    reply = json.dumps([
-        {"job_id": jobs[0].job_id, "score": 15.0},
-        {"job_id": jobs[1].job_id, "score": -3.0},
-    ])
+    reply = json.dumps(
+        [
+            {"job_id": jobs[0].job_id, "score": 15.0},
+            {"job_id": jobs[1].job_id, "score": -3.0},
+        ]
+    )
     stub = StubProvider([reply])
 
     llm.screen(jobs, PROFILE, provider=stub, model="m")
@@ -163,6 +186,7 @@ def test_screen_clamps_scores_to_0_10():
 
 
 # ----------------------------------------------------------------- draft ----
+
 
 def test_draft_populates_every_key_the_digest_template_expects():
     jobs = make_jobs(1)
@@ -198,8 +222,7 @@ def test_screen_concurrency_and_delays():
     jobs = make_jobs(16)
     stub = StubProvider([scores_reply(jobs[:8]), scores_reply(jobs[8:])])
 
-    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m",
-               delay_seconds=0, max_workers=2)
+    llm.screen(jobs, PROFILE, batch_size=8, provider=stub, model="m", delay_seconds=0, max_workers=2)
 
     assert len(stub.calls) == 2
     assert all(j.score == 8.0 for j in jobs)
@@ -210,13 +233,27 @@ def test_enhanced_keyword_screen():
         "core_skills": ["Go", "Python"],
         "target_titles": ["Backend Engineer"],
         "domains": ["Distributed Systems"],
-        "seniority": "junior"
+        "seniority": "junior",
     }
 
-    matching_job = Job("greenhouse:a:1", "greenhouse", "Acme", "Backend Engineer", "Remote",
-                       "http://ex.com", "Go Python Distributed Systems core engineering")
-    staff_job = Job("greenhouse:a:2", "greenhouse", "Acme", "Staff Software Engineer", "Remote",
-                    "http://ex.com", "Go Python Distributed Systems core engineering")
+    matching_job = Job(
+        "greenhouse:a:1",
+        "greenhouse",
+        "Acme",
+        "Backend Engineer",
+        "Remote",
+        "http://ex.com",
+        "Go Python Distributed Systems core engineering",
+    )
+    staff_job = Job(
+        "greenhouse:a:2",
+        "greenhouse",
+        "Acme",
+        "Staff Software Engineer",
+        "Remote",
+        "http://ex.com",
+        "Go Python Distributed Systems core engineering",
+    )
 
     jobs = [matching_job, staff_job]
     llm.keyword_screen(jobs, profile)
@@ -247,6 +284,7 @@ def test_build_profile_pdf_error(monkeypatch: pytest.MonkeyPatch):
     class ErrDocProvider(Provider):
         def complete_document(self, *a, **kw):
             from jobhunt.providers import LLMError
+
             raise LLMError("PDF error")
 
     p = ErrDocProvider()
@@ -261,10 +299,12 @@ def test_as_list_single_key_fallback():
 
 def test_screen_concurrency_invalid_score(monkeypatch: pytest.MonkeyPatch):
     jobs = make_jobs(2)
-    reply = json.dumps([
-        {"job_id": jobs[0].job_id, "score": "invalid_score"},
-        {"job_id": jobs[1].job_id, "score": 8.0},
-    ])
+    reply = json.dumps(
+        [
+            {"job_id": jobs[0].job_id, "score": "invalid_score"},
+            {"job_id": jobs[1].job_id, "score": 8.0},
+        ]
+    )
     stub = StubProvider([reply])
     llm.screen(jobs, PROFILE, batch_size=2, provider=stub, model="m", max_workers=2)
     assert jobs[0].score == 0.0
@@ -278,7 +318,7 @@ def test_dynamic_prompt_builders():
         "years_experience": 2,
         "core_skills": ["Rust", "Python", "System Design"],
         "notable_projects": ["Custom DB Engine — Rust key-value store"],
-        "github": "https://github.com/janedev"
+        "github": "https://github.com/janedev",
     }
     screen_sys = llm._build_screen_system(prof)
     assert "candidate Jane Developer" in screen_sys
@@ -351,21 +391,11 @@ def test_parse_json_secondary_candidate_loop():
 def test_screen_multi_worker_missing_and_invalid_score():
     jobs = make_jobs(3)
     # Return batch where job_id is missing and one has invalid score
-    reply1 = json.dumps([
-        {"job_id": jobs[0].job_id, "score": "not-a-number", "reason": "invalid score test"}
-    ])
-    reply2 = json.dumps([
-        {"job_id": "unmatched-job-id", "score": 9.0}
-    ])
+    reply1 = json.dumps([{"job_id": jobs[0].job_id, "score": "not-a-number", "reason": "invalid score test"}])
+    reply2 = json.dumps([{"job_id": "unmatched-job-id", "score": 9.0}])
     stub = StubProvider([reply1, reply2])
     # batch_size=1 and 3 jobs creates 3 batches (> 1), triggering concurrent ThreadPoolExecutor
     llm.screen(jobs[:2], PROFILE, batch_size=1, provider=stub, model="m", max_workers=2)
     assert jobs[0].score == 0.0
     assert jobs[0].reason == "invalid score test"
     assert jobs[1].score is None
-
-
-
-
-
-

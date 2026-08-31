@@ -1,4 +1,5 @@
 """jobhunt: Autonomous AI-Powered Career Intelligence & Job Hunting Agent."""
+
 from __future__ import annotations
 
 from . import digest, llm, memory, providers, store
@@ -10,6 +11,7 @@ from .store import Store
 from .web import create_app
 
 from .auth import _load_env_if_needed
+
 _load_env_if_needed()
 
 __version__ = "1.0.0"

@@ -1,4 +1,5 @@
 """Comprehensive multi-user dynamic execution and tenant isolation test suite."""
+
 from __future__ import annotations
 
 from unittest.mock import patch, MagicMock
@@ -37,9 +38,9 @@ def test_llm_dynamic_system_prompts():
         "domains": ["high-throughput AI training", "GPU kernels"],
         "notable_projects": [
             "Skynet Neural Engine — 100k GPU cluster orchestration with custom CUDA kernels",
-            "Terminator Vision — Real-time computer vision inference with 2ms p99 latency"
+            "Terminator Vision — Real-time computer vision inference with 2ms p99 latency",
         ],
-        "github": "https://github.com/sarahconnor"
+        "github": "https://github.com/sarahconnor",
     }
 
     screen_prompt = llm._build_screen_system(custom_profile)
@@ -61,11 +62,7 @@ def test_llm_dynamic_system_prompts():
 
 def test_digest_build_dynamic_rendering():
     """Verify digest.build renders dynamic candidate identity and briefing."""
-    profile_a = {
-        "name": "Alex Mercer",
-        "education": "B.Tech Computer Science",
-        "email": "alex@mercer.dev"
-    }
+    profile_a = {"name": "Alex Mercer", "education": "B.Tech Computer Science", "email": "alex@mercer.dev"}
 
     jobs = [
         Job(
@@ -87,8 +84,8 @@ def test_digest_build_dynamic_rendering():
                 "gaps": ["None"],
                 "cover_note": "Cover note for Alex",
                 "cold_outreach": "Hi team, I am Alex...",
-                "questions_to_ask": ["How do you handle checkpointing?"]
-            }
+                "questions_to_ask": ["How do you handle checkpointing?"],
+            },
         )
     ]
 
@@ -113,10 +110,7 @@ def test_store_multi_tenant_isolation(tmp_path, monkeypatch):
 
     # User A adds a job
     job_a_id = store_user_a.add_job(
-        title="Backend Engineer",
-        company="Company Alpha",
-        score=8.5,
-        reason="Python & SQL match"
+        title="Backend Engineer", company="Company Alpha", score=8.5, reason="Python & SQL match"
     )
 
     # User B should NOT have User A's job
@@ -167,7 +161,9 @@ def test_run_pipeline_dynamic_execution(tmp_path, monkeypatch):
 
 def test_flask_per_user_pipeline_state():
     """Verify Flask app maintains isolated thread-safe pipeline states per user."""
-    state_a = flask_app._set_user_pipeline_state("user1@site.com", running=True, step="scanning", message="User 1 Scanning")
+    state_a = flask_app._set_user_pipeline_state(
+        "user1@site.com", running=True, step="scanning", message="User 1 Scanning"
+    )
     state_b = flask_app._set_user_pipeline_state("user2@site.com", running=False, step="idle", message="User 2 Idle")
 
     assert state_a["running"] is True
@@ -200,7 +196,7 @@ def test_store_supabase_purge_deleted_jobs(tmp_path, monkeypatch):
         lambda self, email, token=None: {
             "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0},
             "lever:warp:3": {"job_id": "lever:warp:3", "company": "Warp", "score": 7.0},
-        }
+        },
     )
 
     # Initialize store again to trigger cloud sync pull & check for purging
@@ -214,9 +210,11 @@ def test_store_supabase_purge_deleted_jobs(tmp_path, monkeypatch):
 
 import pytest
 
+
 @pytest.fixture
 def client():
     from app import app
+
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -225,7 +223,9 @@ def client():
 def test_api_run_async_endpoint(client, monkeypatch):
     """Verify that /api/run endpoint starts execution asynchronously and returns HTTP 202."""
     monkeypatch.setenv("AUTH_REQUIRED", "false")
-    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("async_user@test.com", "token123"))
+    monkeypatch.setattr(
+        "jobhunt.web.routes.pipeline.get_current_user_context", lambda: ("async_user@test.com", "token123")
+    )
     monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
     monkeypatch.setattr(
         "jobhunt.memory.SupabaseMemory.get_user_profile",
@@ -238,7 +238,7 @@ def test_api_run_async_endpoint(client, monkeypatch):
             "education": "BS",
             "experience_years": 3,
             "exclude_keywords": ["Manager"],
-        }
+        },
     )
 
     # Mock threading.Thread to assert it gets spawned but don't actually run it to save time
@@ -247,6 +247,7 @@ def test_api_run_async_endpoint(client, monkeypatch):
 
     # Call /api/run in production-like non-testing mode by patching app.testing
     from app import app
+
     monkeypatch.setattr(app, "testing", False)
 
     res = client.post("/api/run", json={"mock": True})
@@ -263,11 +264,46 @@ def test_store_auto_pruning_limits(tmp_path, monkeypatch):
 
     # Setup 5 jobs
     st.data = {
-        "greenhouse:stripe:1": {"job_id": "greenhouse:stripe:1", "company": "Stripe", "score": 9.0, "applied": True, "application_stage": "applied", "first_seen": "2026-08-01T10:00:00"},
-        "ashby:ramp:2": {"job_id": "ashby:ramp:2", "company": "Ramp", "score": 8.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-02T10:00:00"},
-        "lever:warp:3": {"job_id": "lever:warp:3", "company": "Warp", "score": 7.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-03T10:00:00"},
-        "ashby:warp:4": {"job_id": "ashby:warp:4", "company": "Warp", "score": 6.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-04T10:00:00"},
-        "greenhouse:warp:5": {"job_id": "greenhouse:warp:5", "company": "Warp", "score": 5.0, "applied": False, "application_stage": "to_apply", "first_seen": "2026-08-05T10:00:00"},
+        "greenhouse:stripe:1": {
+            "job_id": "greenhouse:stripe:1",
+            "company": "Stripe",
+            "score": 9.0,
+            "applied": True,
+            "application_stage": "applied",
+            "first_seen": "2026-08-01T10:00:00",
+        },
+        "ashby:ramp:2": {
+            "job_id": "ashby:ramp:2",
+            "company": "Ramp",
+            "score": 8.0,
+            "applied": False,
+            "application_stage": "to_apply",
+            "first_seen": "2026-08-02T10:00:00",
+        },
+        "lever:warp:3": {
+            "job_id": "lever:warp:3",
+            "company": "Warp",
+            "score": 7.0,
+            "applied": False,
+            "application_stage": "to_apply",
+            "first_seen": "2026-08-03T10:00:00",
+        },
+        "ashby:warp:4": {
+            "job_id": "ashby:warp:4",
+            "company": "Warp",
+            "score": 6.0,
+            "applied": False,
+            "application_stage": "to_apply",
+            "first_seen": "2026-08-04T10:00:00",
+        },
+        "greenhouse:warp:5": {
+            "job_id": "greenhouse:warp:5",
+            "company": "Warp",
+            "score": 5.0,
+            "applied": False,
+            "application_stage": "to_apply",
+            "first_seen": "2026-08-05T10:00:00",
+        },
     }
 
     # Restrict limit to 3 tracked jobs
@@ -314,5 +350,3 @@ def test_run_pipeline_jobs_throttling(tmp_path, monkeypatch):
 
     # Only 2 jobs should have been screened and added to the store (due to throttle cap of 2)
     assert len(user_store.data) == 2
-
-

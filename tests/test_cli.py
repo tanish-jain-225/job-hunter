@@ -1,4 +1,5 @@
 """Unit tests for jobhunt.cli commands and environment/config loading."""
+
 from __future__ import annotations
 
 import argparse
@@ -53,7 +54,9 @@ def test_load_profile_missing_both(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 def test_fetch_jobs_real(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(cli, "fetch_all", lambda file, max_workers: [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")])
+    monkeypatch.setattr(
+        cli, "fetch_all", lambda file, max_workers: [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]
+    )
     args = argparse.Namespace(mock=False)
     cfg = {"companies_file": "companies.yaml", "filters": {}}
     raw, cand = cli._fetch_jobs(args, cfg)
@@ -66,6 +69,7 @@ def test_screen_jobs_llm_flow(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli, "resolve", lambda stage: (dummy_prov, "test-model"))
 
     called = []
+
     def mock_screen(jobs, profile, **kwargs):
         called.append(True)
         for j in jobs:
@@ -97,6 +101,7 @@ def test_screen_jobs_llm_fallback_to_keyword(monkeypatch: pytest.MonkeyPatch):
 def test_screen_jobs_llm_resolve_error(monkeypatch: pytest.MonkeyPatch):
     def mock_resolve(stage):
         raise LLMError("No API key")
+
     monkeypatch.setattr(cli, "resolve", mock_resolve)
     jobs = [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]
     args = argparse.Namespace(scorer="llm")
@@ -123,6 +128,7 @@ def test_draft_kits_llm_and_error(monkeypatch: pytest.MonkeyPatch):
 
     def mock_draft(jobs, profile, **kwargs):
         pass
+
     monkeypatch.setattr(cli.llm, "draft", mock_draft)
 
     shortlist = [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]
@@ -130,6 +136,7 @@ def test_draft_kits_llm_and_error(monkeypatch: pytest.MonkeyPatch):
 
     def mock_resolve_error(stage):
         raise LLMError("Draft key missing")
+
     monkeypatch.setattr(cli, "resolve", mock_resolve_error)
     cli._draft_kits(shortlist, {}, "llm", {})
 
@@ -140,6 +147,7 @@ def test_build_and_send_digest_with_send(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.chdir(tmp_path)
 
     from jobhunt.store import Store
+
     st = Store(tmp_path / "seen.json")
     args = argparse.Namespace(send=True)
     cfg = {"digest_file": str(tmp_path / "out" / "digest.html"), "tracker_csv": str(tmp_path / "out" / "tracker.csv")}
@@ -154,7 +162,9 @@ def test_cmd_run_no_jobs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     (tmp_path / "seen.json").write_text(json.dumps({"1": {"title": "Dev", "applied": False}}), encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(cli, "_fetch_jobs", lambda args, cfg: ([], [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]))
+    monkeypatch.setattr(
+        cli, "_fetch_jobs", lambda args, cfg: ([], [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")])
+    )
 
     args = argparse.Namespace(config=None, mock=True, scorer="keyword", send=False)
     assert cli.cmd_run(args) == 0
@@ -167,8 +177,16 @@ def test_cmd_run_llm_error_exit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
     def mock_screen_error(jobs, profile, args, cfg):
         raise LLMError("API Error")
+
     monkeypatch.setattr(cli, "_screen_jobs", mock_screen_error)
-    monkeypatch.setattr(cli, "_fetch_jobs", lambda args, cfg: ([Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")], [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")]))
+    monkeypatch.setattr(
+        cli,
+        "_fetch_jobs",
+        lambda args, cfg: (
+            [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")],
+            [Job("1", "gh", "Acme", "Dev", "remote", "http://x", "desc")],
+        ),
+    )
 
     args = argparse.Namespace(config=None, mock=True, scorer="llm", send=False)
     assert cli.cmd_run(args) == 1
@@ -176,9 +194,7 @@ def test_cmd_run_llm_error_exit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 def test_cmd_applied(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     seen_file = tmp_path / "seen.json"
-    seen_file.write_text(json.dumps({
-        "greenhouse:acme:1": {"title": "Engineer", "applied": False}
-    }), encoding="utf-8")
+    seen_file.write_text(json.dumps({"greenhouse:acme:1": {"title": "Engineer", "applied": False}}), encoding="utf-8")
 
     config_file = tmp_path / "config.yaml"
     config_file.write_text(f"seen_file: {seen_file.as_posix()}\n", encoding="utf-8")
@@ -193,15 +209,10 @@ def test_cmd_applied(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 def test_cmd_stats(tmp_path: Path, capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch):
     seen_file = tmp_path / "seen.json"
-    seen_file.write_text(json.dumps({
-        "greenhouse:acme:1": {"title": "Engineer", "applied": True}
-    }), encoding="utf-8")
+    seen_file.write_text(json.dumps({"greenhouse:acme:1": {"title": "Engineer", "applied": True}}), encoding="utf-8")
 
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(
-        f"seen_file: {seen_file.as_posix()}\n",
-        encoding="utf-8"
-    )
+    config_file.write_text(f"seen_file: {seen_file.as_posix()}\n", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
     args = argparse.Namespace()
@@ -217,6 +228,7 @@ def test_cmd_profile_llm_resolve_error(tmp_path: Path, monkeypatch: pytest.Monke
 
     def mock_resolve_err(stage):
         raise LLMError("Resolution error")
+
     monkeypatch.setattr(cli, "resolve", mock_resolve_err)
 
     args = argparse.Namespace(resume=str(resume_file), yaml=False)
@@ -227,9 +239,11 @@ def test_cmd_profile_llm_resolve_error(tmp_path: Path, monkeypatch: pytest.Monke
 def test_main_cli_routing_all(monkeypatch: pytest.MonkeyPatch):
     for cmd in ["run", "applied", "stats", "profile"]:
         called: list[str] = []
+
         def _mock_cmd(args, c=cmd):
             called.append(c)
             return 0
+
         monkeypatch.setattr(cli, f"cmd_{cmd}", _mock_cmd)
         argv = ["jobhunt", cmd]
         if cmd == "applied":
@@ -332,7 +346,7 @@ def test_cmd_run_full_pipeline_success(tmp_path: Path, monkeypatch: pytest.Monke
         f"score_threshold: 6.0\n"
         f"max_per_digest: 5\n"
         f"screen_batch_size: 5\n",
-        encoding="utf-8"
+        encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
 
@@ -343,7 +357,3 @@ def test_cmd_run_full_pipeline_success(tmp_path: Path, monkeypatch: pytest.Monke
     assert (tmp_path / "out" / "digest.html").exists()
     assert (tmp_path / "seen.json").exists()
     assert (tmp_path / "out" / "tracker.csv").exists()
-
-
-
-

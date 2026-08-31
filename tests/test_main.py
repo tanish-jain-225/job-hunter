@@ -1,4 +1,5 @@
 """Unit test for jobhunt.__main__ entrypoint."""
+
 from __future__ import annotations
 
 import runpy

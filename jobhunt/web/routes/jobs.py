@@ -1,4 +1,5 @@
 """Job tracking, stage transitions, manual job creation, stats, and CSV export routes."""
+
 from __future__ import annotations
 
 import logging
@@ -26,24 +27,27 @@ def api_config():
     if companies_file.is_file():
         try:
             import yaml
+
             data = yaml.safe_load(companies_file.read_text(encoding="utf-8")) or {}
             company_count = len(data.get("companies", [])) if isinstance(data, dict) else len(data)
         except Exception:
             pass
 
-    return jsonify({
-        "status": "success",
-        "companies_count": company_count,
-        "filters": {
-            "include_titles_count": len(filters.get("include_titles", [])),
-            "exclude_titles_count": len(filters.get("exclude_titles", [])),
-            "locations": filters.get("locations", []),
-            "allow_remote": bool(filters.get("allow_remote", True)),
-            "max_age_days": filters.get("max_age_days", 28),
-        },
-        "score_threshold": cfg.get("score_threshold", 7.0),
-        "max_per_digest": cfg.get("max_per_digest", 7),
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "companies_count": company_count,
+            "filters": {
+                "include_titles_count": len(filters.get("include_titles", [])),
+                "exclude_titles_count": len(filters.get("exclude_titles", [])),
+                "locations": filters.get("locations", []),
+                "allow_remote": bool(filters.get("allow_remote", True)),
+                "max_age_days": filters.get("max_age_days", 28),
+            },
+            "score_threshold": cfg.get("score_threshold", 7.0),
+            "max_per_digest": cfg.get("max_per_digest", 7),
+        }
+    )
 
 
 @jobs_bp.route("/api/companies")
@@ -56,8 +60,11 @@ def api_companies():
     if companies_file.is_file():
         try:
             import yaml
+
             data = yaml.safe_load(companies_file.read_text(encoding="utf-8")) or {}
-            companies = data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+            companies = (
+                data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+            )
         except Exception as e:
             logger.warning(f"Failed to load companies.yaml: {e}")
 
@@ -76,12 +83,14 @@ def api_companies():
             continue
         filtered.append(c)
 
-    return jsonify({
-        "status": "success",
-        "total": len(companies),
-        "count": len(filtered),
-        "companies": filtered,
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "total": len(companies),
+            "count": len(filtered),
+            "companies": filtered,
+        }
+    )
 
 
 @jobs_bp.route("/api/stats")
@@ -106,7 +115,7 @@ def api_stats():
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
-        "version": get_store_version(st)
+        "version": get_store_version(st),
     }
     return jsonify(stats)
 
@@ -121,12 +130,7 @@ def api_export_csv():
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
     csv_path = Path(st.export_csv(tracker_csv)).resolve()
-    return send_file(
-        str(csv_path),
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="tracker.csv"
-    )
+    return send_file(str(csv_path), mimetype="text/csv", as_attachment=True, download_name="tracker.csv")
 
 
 @jobs_bp.route("/api/jobs")
@@ -167,7 +171,9 @@ def api_jobs():
 
         # Filter search text
         if search:
-            searchable = f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats}".lower()
+            searchable = (
+                f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats}".lower()
+            )
             if search not in searchable:
                 continue
 
@@ -175,17 +181,16 @@ def api_jobs():
 
     # Sort logic
     if sort_by == "score":
-        jobs_list.sort(key=lambda j: (j.get("score") if j.get("score") is not None else -1.0, j.get("first_seen", "")), reverse=True)
+        jobs_list.sort(
+            key=lambda j: (j.get("score") if j.get("score") is not None else -1.0, j.get("first_seen", "")),
+            reverse=True,
+        )
     elif sort_by == "company":
         jobs_list.sort(key=lambda j: j.get("company", "").lower())
     else:  # default: date
         jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
 
-    return jsonify({
-        "status": "success",
-        "count": len(jobs_list),
-        "jobs": jobs_list
-    })
+    return jsonify({"status": "success", "count": len(jobs_list), "jobs": jobs_list})
 
 
 @jobs_bp.route("/api/applied", methods=["POST"])
@@ -215,19 +220,18 @@ def api_applied():
     if success:
         st.export_csv(tracker_csv)
         version = get_store_version(st)
-        return jsonify({
-            "status": "success",
-            "message": msg_str,
-            "job_id": job_id,
-            "applied": action != "unmark",
-            "version": version,
-            "stats": st.stats()
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": msg_str,
+                "job_id": job_id,
+                "applied": action != "unmark",
+                "version": version,
+                "stats": st.stats(),
+            }
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": f"Job ID '{job_id}' not found in tracking store."
-        }), 404
+        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
 
 
 @jobs_bp.route("/api/delete", methods=["POST", "DELETE"])
@@ -249,18 +253,17 @@ def api_delete():
     if st.delete_job(job_id):
         st.export_csv(tracker_csv)
         version = get_store_version(st)
-        return jsonify({
-            "status": "success",
-            "message": f"Job '{job_id}' removed from tracking store.",
-            "job_id": job_id,
-            "version": version,
-            "stats": st.stats()
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"Job '{job_id}' removed from tracking store.",
+                "job_id": job_id,
+                "version": version,
+                "stats": st.stats(),
+            }
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": f"Job ID '{job_id}' not found in tracking store."
-        }), 404
+        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
 
 
 @jobs_bp.route("/api/jobs/stage", methods=["POST"])
@@ -283,15 +286,17 @@ def api_jobs_stage():
     if st.update_stage(job_id, stage):
         st.export_csv(tracker_csv)
         version = get_store_version(st)
-        return jsonify({
-            "status": "success",
-            "message": f"Updated stage for '{job_id}' to '{stage}'.",
-            "job_id": job_id,
-            "stage": stage,
-            "applied": st.data.get(job_id, {}).get("applied", False),
-            "version": version,
-            "stats": st.stats()
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"Updated stage for '{job_id}' to '{stage}'.",
+                "job_id": job_id,
+                "stage": stage,
+                "applied": st.data.get(job_id, {}).get("applied", False),
+                "version": version,
+                "stats": st.stats(),
+            }
+        )
     else:
         return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
 
@@ -313,12 +318,14 @@ def api_jobs_notes():
     st = Store(seen_file, user_email=email, token=token)
 
     if st.update_notes(job_id, notes):
-        return jsonify({
-            "status": "success",
-            "message": "Notes saved.",
-            "job_id": job_id,
-            "notes": notes,
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Notes saved.",
+                "job_id": job_id,
+                "notes": notes,
+            }
+        )
     else:
         return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
 
@@ -356,6 +363,7 @@ def api_add():
         cfg_temp = cli._cfg(raise_on_error=False)
         user_prof = cli._load_profile(cfg_temp, raise_on_error=False) or {}
         from ...fetch import Job
+
         temp_job = Job(
             job_id="custom:temp:1",
             ats=ats,
@@ -410,11 +418,13 @@ def api_add():
 
     new_job_data = st.data.get(job_id, {})
 
-    return jsonify({
-        "status": "success",
-        "message": f"Added job '{title}' ({job_id}).",
-        "job_id": job_id,
-        "job": {"job_id": job_id, **new_job_data},
-        "version": version,
-        "stats": st.stats()
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "message": f"Added job '{title}' ({job_id}).",
+            "job_id": job_id,
+            "job": {"job_id": job_id, **new_job_data},
+            "version": version,
+            "stats": st.stats(),
+        }
+    )
