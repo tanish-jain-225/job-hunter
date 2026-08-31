@@ -215,11 +215,9 @@ jobhunt profile --resume resume.pdf
 Copy `.env.example` to `.env` and insert your credentials:
 
 ```ini
-# AI Intelligence Providers (High-Speed Zero-Quota Split Architecture)
-# • GROQ_API_KEY: 30 RPM, 14,400 RPD for ultra-fast candidate screening (console.groq.com)
-# • GEMINI_API_KEY: Rich tailored application kit drafting (aistudio.google.com)
-# (When both keys are set, Job-Hunter automatically routes screening to Groq and drafting to Gemini!)
-GROQ_API_KEY=gsk_your_groq_api_key_here
+# AI Intelligence Provider (Google Gemini Flash — 1M Tokens/Day per project)
+# • GEMINI_API_KEY: High-throughput screening & tailored kit drafting (aistudio.google.com)
+# Supports comma-separated keys for instant multi-key rotation: key1,key2,key3
 GEMINI_API_KEY=AIzaSy_your_gemini_api_key_here
 
 # Central Outbound SMTP Server (Gmail App Password)
@@ -250,21 +248,20 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 ---
 
-## 🤖 Supported LLM Providers & Zero-Quota Architecture
+## 🤖 Primary AI Engine: Google Gemini Flash (`gemini-3.6-flash`)
 
-Job Hunter features an **intelligent split pipeline**: screening dozens of jobs requires ultra-high throughput (handled by **Groq** at 30 RPM / 14,400 RPD), while drafting application kits requires rich context (handled by **Google Gemini** or **Anthropic Claude**).
+Job Hunter is powered by **Google Gemini Flash (`gemini-3.6-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation.
 
 ```mermaid
 flowchart LR
-    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Groq (openai/gpt-oss-20b)<br/>14,400 Requests/Day Free"]
+    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Google Gemini (3.6 Flash)<br/>1M Tokens/Day per Key"]
     B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.6 Flash)<br/>Cover Note, Cold Message, Bullets"]
     C --> D["Daily Briefing & Web Kanban"]
 ```
 
 | Provider | Default Model | Environment Key | Native PDF | Best Recommended Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Groq** | `openai/gpt-oss-20b` | `GROQ_API_KEY` | ❌ | **Default Screening:** Blazing-fast batch inference (30 RPM, 14,400 RPD free) |
-| **Google Gemini** | `gemini-3.6-flash` | `GEMINI_API_KEY` | ✅ | **Default Drafting:** Generous free tier context window for tailored kits |
+| **Google Gemini** | `gemini-3.6-flash` | `GEMINI_API_KEY` | ✅ | **Primary Engine:** Screening & Drafting (1M Tokens/Day per key, CSV rotation) |
 | **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-haiku` | `ANTHROPIC_API_KEY` | ✅ | High-reasoning drafting and native PDF resume analysis |
 | **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |
 | **Ollama** | `llama3.1` | `OLLAMA_HOST` | ❌ | 100% Offline local model execution |

@@ -86,8 +86,8 @@ filters:
   max_age_days: 21
 
 # --- LLM stages & concurrency -----------------------------------------------
-screen_batch_size: 10       # 10 jobs/call — high-throughput screening on Gemini Flash
-screen_jd_chars: 1400       # Rich context truncation for precise Gemini evaluation
+screen_batch_size: 8        # 8 jobs/call — optimal batch payload for Gemini Flash
+screen_jd_chars: 1000       # Precise context truncation for evaluation
 draft_jd_chars: 6000        # Full context for kit drafting
 score_threshold: 7.0        # High bar: 7.0 drafts kits only for strong matches
 max_per_digest: 7           # Hard cap on drafted kits per run
@@ -95,7 +95,7 @@ max_per_digest: 7           # Hard cap on drafted kits per run
 # Concurrency & rate-limit tuning
 fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
 llm_max_workers: 1        # Sequential processing to strictly prevent rate limit bursts
-llm_delay_seconds: 1.5    # Pacing delay between batch calls
+llm_delay_seconds: 4.0    # Exactly 4.0s delay = 15 RPM (matches Gemini 15 RPM free tier ceiling)
 
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml
