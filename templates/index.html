@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.0.1">
 </head>
 <body>
 
@@ -37,6 +37,6 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- Client-side JavaScript -->
-  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=1.0.1" defer></script>
 </body>
 </html>

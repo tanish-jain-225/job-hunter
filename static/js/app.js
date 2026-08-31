@@ -3538,6 +3538,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set active tab without firing unauthenticated network requests
   switchTab(appState.activeTab, false);
 
+  // Set default initial view to landing page for clean unauthenticated baseline render
+  setAppView('landing');
+
   // Initialize draft saving & dropzones
   initDraftSaving();
   initDropzoneHandlers();
