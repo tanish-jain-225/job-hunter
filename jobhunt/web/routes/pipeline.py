@@ -21,6 +21,7 @@ from ..state import (
 )
 
 pipeline_bp = Blueprint("pipeline", __name__)
+logger = logging.getLogger(__name__)
 
 _GH_STATUS_CACHE: dict[str, tuple[float, list]] = {}
 
