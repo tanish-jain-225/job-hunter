@@ -257,7 +257,6 @@ def screen(
     delay_seconds: float = 1.5,
     max_workers: int = 1,
 ) -> list[Job]:
-    is_explicit_provider = provider is not None
     if provider is None or model is None:
         provider, model = resolve("screen")
 
