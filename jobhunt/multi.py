@@ -12,9 +12,13 @@ Enables hundreds of users to receive daily job intelligence at zero infrastructu
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Any
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True, encoding="utf-8", errors="replace")
 
 from . import cli, digest, llm, mailer
 from .fetch import fetch_all

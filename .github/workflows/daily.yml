@@ -55,6 +55,7 @@ jobs:
 
       - name: Execute Autonomous Job Hunter Radar
         env:
+          PYTHONUNBUFFERED: "1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -76,13 +77,13 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.mode }}" = "mock" ]; then
             echo "Running mock dry run..."
-            python -m jobhunt run --mock --scorer keyword
+            python -u -m jobhunt run --mock --scorer keyword
           elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ "${{ github.event.inputs.mode }}" != "single" ]; then
             echo "Running Centralized Multi-User Batch Pipeline..."
-            python -m jobhunt multi-run --send
+            python -u -m jobhunt multi-run --send
           else
             echo "Running Single-User Pipeline..."
-            python -m jobhunt run --send
+            python -u -m jobhunt run --send
           fi
 
       - name: Save Digest Briefing Artifact (Single-User Mode)
