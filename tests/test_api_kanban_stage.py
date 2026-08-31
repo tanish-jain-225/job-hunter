@@ -79,3 +79,26 @@ def test_api_email_test_endpoint(client, monkeypatch):
     assert data["status"] == "success"
     assert data["target_email"]
     assert mock_send.called
+
+
+def test_api_jobs_stage_invalid_stage(client):
+    resp = client.post("/api/jobs/stage", json={"job_id": "test:1", "stage": "invalid_stage_xyz"})
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert data["status"] == "error"
+    assert "Invalid stage" in data["message"]
+
+
+def test_api_add_job_score_clamping(client):
+    resp = client.post(
+        "/api/jobs/add",
+        json={
+            "title": "Principal Architect",
+            "company": "Stripe",
+            "score": 99.0,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["job"]["score"] == 10.0
+

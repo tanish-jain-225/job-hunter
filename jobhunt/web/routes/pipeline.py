@@ -20,9 +20,9 @@ from ..state import (
     set_user_pipeline_state,
 )
 
-logger = logging.getLogger(__name__)
-
 pipeline_bp = Blueprint("pipeline", __name__)
+
+_GH_STATUS_CACHE: dict[str, tuple[float, list]] = {}
 
 
 @pipeline_bp.route("/api/sync")
@@ -131,73 +131,85 @@ def api_sync():
                             repo_name = (
                                 os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter"
                             ).strip()
-                            gh_url = (
-                                f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
-                            )
-                            gh_headers = {
-                                "Authorization": f"Bearer {gh_token}",
-                                "Accept": "application/vnd.github+json",
-                                "User-Agent": "Job-Hunter-Web-App",
-                            }
-                            gh_r = requests.get(gh_url, headers=gh_headers, timeout=4)
-                            if gh_r.status_code == 200:
-                                runs_data = gh_r.json().get("workflow_runs", [])
-                                if runs_data:
-                                    top_run = runs_data[0]
-                                    run_created_raw = str(
-                                        top_run.get("run_started_at") or top_run.get("created_at") or ""
+
+                            now_ts = time.time()
+                            cached_ts, cached_runs = _GH_STATUS_CACHE.get(repo_name, (0.0, []))
+                            runs_data = []
+
+                            if now_ts - cached_ts < 15.0 and cached_runs:
+                                runs_data = cached_runs
+                            else:
+                                gh_url = (
+                                    f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
+                                )
+                                gh_headers = {
+                                    "Authorization": f"Bearer {gh_token}",
+                                    "Accept": "application/vnd.github+json",
+                                    "User-Agent": "Job-Hunter-Web-App",
+                                }
+                                gh_r = requests.get(gh_url, headers=gh_headers, timeout=4)
+                                if gh_r.status_code == 200:
+                                    runs_data = gh_r.json().get("workflow_runs", [])
+                                    _GH_STATUS_CACHE[repo_name] = (now_ts, runs_data)
+                                else:
+                                    runs_data = cached_runs
+
+                            if runs_data:
+                                top_run = runs_data[0]
+                                run_created_raw = str(
+                                    top_run.get("run_started_at") or top_run.get("created_at") or ""
+                                )
+                                is_gh_newer = True
+                                if run_created_raw and dispatched_at:
+                                    try:
+                                        from datetime import datetime
+
+                                        clean_gh_ts = run_created_raw.replace("Z", "+00:00")
+                                        gh_dt = datetime.fromisoformat(clean_gh_ts).timestamp()
+                                        if gh_dt < (dispatched_at - 10):
+                                            is_gh_newer = False
+                                    except Exception:
+                                        pass
+
+                                if not is_gh_newer:
+                                    pipe_state["running"] = True
+                                    pipe_state["step"] = "running"
+                                    pipe_state["message"] = (
+                                        "Cloud Radar: Workflow dispatching in GitHub Actions cloud..."
                                     )
-                                    is_gh_newer = True
-                                    if run_created_raw and dispatched_at:
-                                        try:
-                                            from datetime import datetime
-
-                                            clean_gh_ts = run_created_raw.replace("Z", "+00:00")
-                                            gh_dt = datetime.fromisoformat(clean_gh_ts).timestamp()
-                                            if gh_dt < (dispatched_at - 10):
-                                                is_gh_newer = False
-                                        except Exception:
-                                            pass
-
-                                    if not is_gh_newer:
+                                else:
+                                    gh_status = top_run.get("status")  # queued, in_progress, completed
+                                    gh_conclusion = top_run.get("conclusion")  # success, failure, etc.
+                                    if gh_status in ("queued", "in_progress"):
                                         pipe_state["running"] = True
                                         pipe_state["step"] = "running"
                                         pipe_state["message"] = (
-                                            "Cloud Radar: Workflow dispatching in GitHub Actions cloud..."
+                                            f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
                                         )
-                                    else:
-                                        gh_status = top_run.get("status")  # queued, in_progress, completed
-                                        gh_conclusion = top_run.get("conclusion")  # success, failure, etc.
-                                        if gh_status in ("queued", "in_progress"):
-                                            pipe_state["running"] = True
-                                            pipe_state["step"] = "running"
+                                    elif gh_status == "completed":
+                                        if gh_conclusion == "success":
+                                            pipe_state["running"] = False
+                                            pipe_state["step"] = "completed"
                                             pipe_state["message"] = (
-                                                f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
+                                                "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
                                             )
-                                        elif gh_status == "completed":
-                                            if gh_conclusion == "success":
-                                                pipe_state["running"] = False
-                                                pipe_state["step"] = "completed"
-                                                pipe_state["message"] = (
-                                                    "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
-                                                )
-                                                pipe_state.pop("dispatched_at", None)
-                                                set_user_pipeline_state(
-                                                    email,
-                                                    running=False,
-                                                    step="completed",
-                                                    message=pipe_state["message"],
-                                                )
-                                            else:
-                                                pipe_state["running"] = False
-                                                pipe_state["step"] = "error"
-                                                pipe_state["message"] = (
-                                                    f"GitHub Actions completed with status: {gh_conclusion}"
-                                                )
-                                                pipe_state.pop("dispatched_at", None)
-                                                set_user_pipeline_state(
-                                                    email, running=False, step="error", message=pipe_state["message"]
-                                                )
+                                            pipe_state.pop("dispatched_at", None)
+                                            set_user_pipeline_state(
+                                                email,
+                                                running=False,
+                                                step="completed",
+                                                message=pipe_state["message"],
+                                            )
+                                        else:
+                                            pipe_state["running"] = False
+                                            pipe_state["step"] = "error"
+                                            pipe_state["message"] = (
+                                                f"GitHub Actions completed with status: {gh_conclusion}"
+                                            )
+                                            pipe_state.pop("dispatched_at", None)
+                                            set_user_pipeline_state(
+                                                email, running=False, step="error", message=pipe_state["message"]
+                                            )
                         except Exception:
                             pass
         except Exception:
@@ -310,14 +322,16 @@ def api_run():
     free-tier LLM quota from runaway clients or accidental retry loops.
     """
     from flask import current_app
+    from werkzeug.exceptions import HTTPException
 
     limiter = current_app.extensions.get("limiter")
-    if limiter:
+    if limiter and not current_app.testing:
         try:
             limiter.limit("5 per hour")(lambda: None)()
+        except HTTPException:
+            raise
         except Exception:
-            # If rate limit exceeded, flask-limiter raises 429 automatically.
-            # Any other exception means limiter is misconfigured — skip silently.
+            # Skip misconfiguration errors silently
             pass
     data = request.get_json(silent=True) or {}
     use_mock = bool(data.get("mock", False))

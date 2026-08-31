@@ -180,9 +180,18 @@ def api_jobs():
         jobs_list.append(item)
 
     # Sort logic
+    def _safe_score(j: dict) -> float:
+        val = j.get("score")
+        if val is None:
+            return -1.0
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return -1.0
+
     if sort_by == "score":
         jobs_list.sort(
-            key=lambda j: (j.get("score") if j.get("score") is not None else -1.0, j.get("first_seen", "")),
+            key=lambda j: (_safe_score(j), j.get("first_seen", "")),
             reverse=True,
         )
     elif sort_by == "company":
@@ -266,6 +275,9 @@ def api_delete():
         return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
 
 
+VALID_KANBAN_STAGES = {"to_apply", "applied", "interviewing", "offer", "rejected"}
+
+
 @jobs_bp.route("/api/jobs/stage", methods=["POST"])
 @require_auth
 def api_jobs_stage():
@@ -277,6 +289,10 @@ def api_jobs_stage():
 
     if not job_id:
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
+
+    if stage not in VALID_KANBAN_STAGES:
+        allowed = ", ".join(sorted(VALID_KANBAN_STAGES))
+        return jsonify({"status": "error", "message": f"Invalid stage '{stage}'. Must be one of: {allowed}"}), 400
 
     cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "seen.json")
@@ -352,7 +368,8 @@ def api_add():
     stage = data.get("stage", "applied" if applied else "to_apply")
 
     try:
-        score = float(data.get("score", 7.5))
+        raw_score = float(data.get("score", 7.5))
+        score = max(0.0, min(10.0, raw_score))
     except (TypeError, ValueError):
         score = 7.5
 

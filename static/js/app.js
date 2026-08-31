@@ -77,6 +77,7 @@ const appState = {
   isSyncing: false,
   isSavingProfile: false,
   isOffline: !navigator.onLine,
+  authInitialized: false,
   lastSyncTimestamp: Date.now()
 };
 
@@ -255,10 +256,14 @@ async function authFetch(url, options = {}) {
   try {
     const res = await fetch(url, opts);
     if (res.status === 401 && authConfig.auth_required) {
-      console.warn('Unauthorized API access (401). Prompting login.');
-      stopHeartbeat();
-      openAuthModal('signin');
-      setAuthFeedback('Your secure session has expired or authentication is required. Please sign in.', 'error');
+      // ONLY prompt login modal if user previously had an active session that expired
+      if (currentAuthSession) {
+        console.warn('Session expired mid-usage (401). Prompting re-authentication.');
+        currentAuthSession = null;
+        stopHeartbeat();
+        openAuthModal('signin');
+        setAuthFeedback('Your secure session has expired. Please sign in again.', 'error');
+      }
     }
     return res;
   } catch (err) {
@@ -490,6 +495,7 @@ function renderMetrics(stats) {
 
 // Master Zero-Refresh Sync Engine: Checks version and reconciles data
 async function syncDashboard(force = false) {
+  if (!appState.authInitialized) return;
   if (authConfig.auth_required && !currentAuthSession) return;
   if (appState.isSavingProfile) return;
   if (appState.isSyncing && !force) return;
@@ -2985,6 +2991,7 @@ async function refreshDigest(force = false) {
   const container = document.getElementById('digest-frame');
   if (!container) return;
 
+  if (!appState.authInitialized) return;
   if (authConfig.auth_required && !currentAuthSession) {
     return;
   }
@@ -3095,7 +3102,8 @@ window.addEventListener('pagehide', () => {
 
 // Keyboard Shortcuts: '/' to search, 'Esc' to close modal
 document.addEventListener('keydown', (e) => {
-  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+  const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  if (e.key === '/' && !isTyping) {
     e.preventDefault();
     switchTab('tracker');
     const input = document.getElementById('tracker-search-input');
@@ -3104,8 +3112,8 @@ document.addEventListener('keydown', (e) => {
       input.select();
     }
   } else if (e.key === 'Escape') {
-    if (document.getElementById('custom-job-modal')?.classList.contains('active')) {
-      closeCustomJobModal();
+    if (document.getElementById('add-job-modal')?.classList.contains('active')) {
+      closeAddJobModal();
     } else if (document.getElementById('kit-modal')?.classList.contains('active')) {
       closeKitModal();
     } else if (document.getElementById('profile-modal')?.classList.contains('active')) {
@@ -3123,9 +3131,9 @@ document.addEventListener('keydown', (e) => {
 
 // Click outside modal to close
 document.addEventListener('click', (e) => {
-  const customJobModal = document.getElementById('custom-job-modal');
-  if (customJobModal && e.target === customJobModal) {
-    closeCustomJobModal();
+  const addJobModal = document.getElementById('add-job-modal');
+  if (addJobModal && e.target === addJobModal) {
+    closeAddJobModal();
   }
   const kitModal = document.getElementById('kit-modal');
   if (kitModal && e.target === kitModal) {
@@ -3459,6 +3467,7 @@ async function initAuth() {
       });
  
       // Initialize View based on restored session
+      appState.authInitialized = true;
       if (currentAuthSession) {
         setAppView('dashboard');
         updateUserHeader(currentAuthSession);
@@ -3472,11 +3481,13 @@ async function initAuth() {
         stopHeartbeat();
       }
     } else {
+      appState.authInitialized = true;
       setAppView('landing');
       stopHeartbeat();
     }
   } catch (err) {
     console.warn('Auth configuration init error:', err);
+    appState.authInitialized = true;
     setAppView('landing');
     stopHeartbeat();
   }

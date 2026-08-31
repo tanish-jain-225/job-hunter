@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.0.1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.0.2">
 </head>
 <body>
 
@@ -34,9 +34,9 @@
   {% include 'partials/add_job.html' %}
 
   <!-- Toast Notification Portal Container -->
-  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+  <div class="toast-container" id="toast-container" role="alert" aria-live="polite"></div>
 
   <!-- Client-side JavaScript -->
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=1.0.1" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=1.0.2" defer></script>
 </body>
 </html>

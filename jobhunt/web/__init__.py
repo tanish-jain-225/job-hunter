@@ -92,6 +92,7 @@ def create_app(
     )
 
     app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24).hex()
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
     is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
     app.config["SESSION_COOKIE_SECURE"] = is_prod
     app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -100,7 +101,7 @@ def create_app(
     # Rate limiting — gracefully degrades if flask-limiter is not installed.
     # Protects free-tier LLM quota from runaway clients or accidental loops.
     try:
-        from flask_limiter import Limiter
+        from flask_limiter import Limiter, RateLimitExceeded
         from flask_limiter.util import get_remote_address
 
         limiter = Limiter(
@@ -112,6 +113,10 @@ def create_app(
         # Expose the limiter so blueprint routes can apply tighter per-endpoint limits
         app.extensions["limiter"] = limiter
         logger.debug("flask-limiter enabled (default: 500 req/hour per IP)")
+
+        @app.errorhandler(RateLimitExceeded)
+        def handle_rate_limit_exceeded(e):
+            return jsonify({"status": "error", "message": "Rate limit exceeded. Please wait before retrying."}), 429
     except ImportError:
         logger.debug("flask-limiter not installed — rate limiting disabled. Install with: pip install flask-limiter")
 
