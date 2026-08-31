@@ -3220,12 +3220,12 @@ function updateUserHeader(session) {
   const userAvatar = document.getElementById('user-avatar');
 
   if (session && session.user) {
-    setAppView('dashboard');
     const email = session.user.email || 'User';
     if (userEmail) userEmail.innerText = email;
     if (userAvatar) userAvatar.innerText = email.charAt(0).toUpperCase();
   } else {
-    setAppView('landing');
+    if (userEmail) userEmail.innerText = '';
+    if (userAvatar) userAvatar.innerText = '?';
   }
 }
 
