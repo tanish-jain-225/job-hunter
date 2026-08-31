@@ -3454,9 +3454,7 @@ async function initAuth() {
           }
         } else {
           stopHeartbeat();
-          if (authConfig.auth_required) {
-            setAppView('landing');
-          }
+          setAppView('landing');
         }
       });
  
@@ -3469,29 +3467,18 @@ async function initAuth() {
           syncDashboard(true);
         }
         startHeartbeat();
-      } else if (authConfig.auth_required) {
+      } else {
         setAppView('landing');
         stopHeartbeat();
-      } else {
-        // Local dev mode with auth bypassed
-        setAppView('dashboard');
-        if (!initialAuthSynced) {
-          initialAuthSynced = true;
-          syncDashboard(true);
-        }
-        startHeartbeat();
       }
     } else {
-      // Local dev mode with auth bypassed / disabled
-      setAppView('dashboard');
-      syncDashboard(true);
-      startHeartbeat();
+      setAppView('landing');
+      stopHeartbeat();
     }
   } catch (err) {
     console.warn('Auth configuration init error:', err);
-    setAppView('dashboard');
-    syncDashboard(true);
-    startHeartbeat();
+    setAppView('landing');
+    stopHeartbeat();
   }
 }
 
