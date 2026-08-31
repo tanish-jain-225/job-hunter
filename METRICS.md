@@ -40,12 +40,12 @@ flowchart LR
 
 ## 3. Component-by-Component Infrastructure Breakdown
 
-### A. Stage 1 Batch Screening (Groq Cloud)
-* **Default Model**: `openai/gpt-oss-20b` *(with fallback to `openai/gpt-oss-120b` / `qwen/qwen3.6-27b`)*
-* **Batch Size**: 8 jobs per screening request (optimal token budget under provider TPM caps).
-* **Batch Pacing & Concurrency**: 2.0s delay between requests with single-worker sequential execution (`max_workers: 1`), keeping token traffic continuously under provider TPM limits.
-* **429 Cooldown Recovery**: Automatic 20.0s capped reset window on HTTP 429 rate limit responses, triggering immediate secondary provider fallback to ensure **100% AI screening completion**.
-* **Daily Free Quota**: **14,400 requests / day**.
+### A. Stage 1 Batch Screening (Google Gemini Flash)
+* **Default Model**: `gemini-3.6-flash`
+* **Batch Size**: 10 jobs per screening request (high-throughput evaluation pass).
+* **Batch Pacing & Concurrency**: 1.5s delay between requests with single-worker sequential execution (`max_workers: 1`).
+* **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`key1,key2,key3`) with 20s capped retry delay.
+* **Daily Free Quota**: **1,000,000+ tokens / day per project**.
 * **Capacity**:
   * 100 Users: 200 calls (**1.4%** of quota)
   * 300 Users: 600 calls (**4.2%** of quota)

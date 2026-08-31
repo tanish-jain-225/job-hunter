@@ -360,7 +360,7 @@ def screen(
 
             results = process_batch_with_split(idx + 1, batch)
             # Live provider failover cascade when current provider fails (and wasn't explicitly pinned by unit test)
-            if not results:
+            if not results and getattr(provider, "name", "") != "stub":
                 curr_name = getattr(provider, "name", "primary")
                 fallback_info = get_fallback_provider(curr_name, stage="screen")
                 if fallback_info:

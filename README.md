@@ -21,8 +21,8 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Groq (`openai/gpt-oss-20b` / `qwen/qwen3.6-27b`, 14,400 RPD)** or **Google Gemini (`gemini-3.6-flash`)** (with automatic offline fallback).
-4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions using **Google Gemini (`gemini-3.6-flash`)**, **Groq**, or Claude.
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.6-flash`, 1M tokens/day)** with multi-key CSV rotation and automatic offline fallback.
+4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions using **Google Gemini (`gemini-3.6-flash`)**.
 5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), delivers HTML briefings, and leverages Edge CDN static assets offloading.
 
 > [!IMPORTANT]
@@ -183,8 +183,8 @@ filters:
   job_types: []
   max_age_days: 21
 
-screen_batch_size: 8      # Jobs per screening LLM call (optimal token budget under TPM caps)
-screen_jd_chars: 800      # Concise context truncation for fast screening
+screen_batch_size: 10     # Jobs per screening LLM call (high-throughput Gemini screening)
+screen_jd_chars: 1400     # Rich context truncation for precise evaluation
 draft_jd_chars: 6000      # Full context for kit drafting
 score_threshold: 7.0      # Score threshold (1.0 to 10.0 bar for shortlist)
 max_per_digest: 7         # Maximum job kits per digest briefing
@@ -192,7 +192,7 @@ max_per_digest: 7         # Maximum job kits per digest briefing
 # High-Performance Concurrency & Zero-Cost Rate Limits
 fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
 llm_max_workers: 1        # Sequential batch workers to strictly prevent rate limit spikes
-llm_delay_seconds: 2.0    # Throttle delay (2.0s = 30 RPM, 0 rate-limit pauses)
+llm_delay_seconds: 1.5    # Pacing delay between batch calls
 ```
 
 ---
