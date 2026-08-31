@@ -82,21 +82,20 @@ filters:
   # If true, anything reading as remote passes the location gate.
   allow_remote: true
 
-  # Drop postings older than this. Set to 28 days for fresh weekly/daily runs.
-  max_age_days: 28
+  # Drop postings older than this. Set to 21 days for fresh weekly/daily runs.
+  max_age_days: 21
 
 # --- LLM stages & concurrency -----------------------------------------------
-screen_batch_size: 10     # 10 jobs/call ≈ 4300 tokens — safely under Groq 8000 TPM cap
-screen_jd_chars: 1400     # JD truncation for screening
-draft_jd_chars: 8000      # JD truncation for drafting
-score_threshold: 6.0      # score bar: catches genuine matches while dropping poor fits
-max_per_digest: 10        # hard cap on drafted kits per run
+screen_batch_size: 15     # 15 jobs/call — reduces API call volume by ~33%
+screen_jd_chars: 1200     # JD truncation for screening
+draft_jd_chars: 6000      # JD truncation for drafting
+score_threshold: 7.0      # High bar: 7.0 drafts kits only for strong matches
+max_per_digest: 7         # Hard cap on drafted kits per run
 
 # Concurrency & rate-limit tuning
-# 800 jobs → 80 batches × 1.5s = 2 min delay (vs old 161 batches × 3.5s = 9.4 min)
-fetch_max_workers: 12     # parallel HTTP requests across ATS boards
-llm_max_workers: 1        # sequential batch workers to prevent rate limit spikes
-llm_delay_seconds: 1.5    # 1.5s between calls is plenty at 4300 tokens/call
+fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
+llm_max_workers: 1        # Sequential batch workers to prevent rate limit spikes
+llm_delay_seconds: 2.0    # Exactly 2.0s delay = 30 RPM (0 rate-limit pauses)
 
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml

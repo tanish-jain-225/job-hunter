@@ -23,7 +23,7 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
 * **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`.
 * **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
-* **Date Freshness:** Discards jobs published longer than `max_age_days` (default `28` days) ago.
+* **Date Freshness:** Discards jobs published longer than `max_age_days` (default `21` days) ago.
 
 *Typically, this phase drops ~98% of jobs, reducing a crawl of 2,000 listings down to ~40 candidates for LLM screening.*
 

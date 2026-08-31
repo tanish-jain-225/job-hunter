@@ -31,7 +31,7 @@ flowchart LR
 | **Stage 1 Screening Calls (Groq)** | ~200 | ~400 | ~600 | ~1,000 | ~2,000 |
 | **Stage 2 Drafting Calls (Gemini)** | ~400 | ~800 | ~1,200 | ~2,000 | ~4,000 |
 | **Emails Dispatched / Day** | 100 | 200 | 300 | 500 | 1,000 |
-| **Daily Cron Runtime (GitHub Actions)** | ~6.5 mins | ~11 mins | ~17 mins | ~27 mins | ~50 mins |
+| **Daily Cron Runtime (GitHub Actions)** | ~2.5 mins | ~4.5 mins | ~6.5 mins | ~11 mins | ~20 mins |
 | **Permanent DB Size Plateau** | ~45 MB | ~90 MB | ~135 MB | ~225 MB | ~450 MB |
 | **Total Monthly Running Cost** | **$0.00** | **$0.00** | **$0.00** | **~$1 – $5** | **~$10 – $15** |
 | **Free Tier Status** | 🟢 100% Free | 🟢 100% Free | 🟢 100% Free | 🟡 Minor Tweaks | 🔴 Paid Tier |

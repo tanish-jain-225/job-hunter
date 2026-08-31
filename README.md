@@ -181,18 +181,18 @@ filters:
 
   # Accept all employment types (fulltime, internship, remote, hybrid, onsite)
   job_types: []
-  max_age_days: 60
+  max_age_days: 21
 
-screen_batch_size: 8      # Jobs per screening LLM call
-screen_jd_chars: 1800     # Rich context truncation for screening
-draft_jd_chars: 8000      # Full context for drafting
-score_threshold: 5.0      # Score threshold (1.0 to 10.0 bar for shortlist)
-max_per_digest: 10        # Maximum job kits per digest briefing
+screen_batch_size: 15     # Jobs per screening LLM call (reduces API calls by ~33%)
+screen_jd_chars: 1200     # Concise context truncation for fast screening
+draft_jd_chars: 6000      # Full context for kit drafting
+score_threshold: 7.0      # Score threshold (1.0 to 10.0 bar for shortlist)
+max_per_digest: 7         # Maximum job kits per digest briefing
 
-# High-Performance Concurrency
-fetch_max_workers: 12     # Parallel HTTP requests across 260+ ATS boards
-llm_max_workers: 3        # Concurrent LLM batch workers
-llm_delay_seconds: 1.5    # Throttle delay between LLM calls
+# High-Performance Concurrency & Zero-Cost Rate Limits
+fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
+llm_max_workers: 1        # Sequential batch workers to strictly prevent rate limit spikes
+llm_delay_seconds: 2.0    # Throttle delay (2.0s = 30 RPM, 0 rate-limit pauses)
 ```
 
 ---
