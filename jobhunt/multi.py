@@ -282,6 +282,9 @@ def run_multi_user_pipeline(
 
                 scored_jobs = [j for j in unseen_jobs if j.score is not None]
                 shortlist = [j for j in scored_jobs if (j.score or 0) >= effective_threshold]
+                if not shortlist and scored_jobs:
+                    # Guarantee UI dashboard Kanban board is populated with candidate matches
+                    shortlist = [j for j in sorted(scored_jobs, key=lambda x: x.score or 0, reverse=True) if (j.score or 0) >= 5.0]
                 shortlist.sort(key=lambda j: j.score or 0, reverse=True)
                 shortlist = shortlist[:max_per_digest]
                 print(

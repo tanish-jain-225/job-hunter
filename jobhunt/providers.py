@@ -245,6 +245,9 @@ class GeminiProvider(Provider):
                     )
                     time.sleep(delay)
                     continue
+                if r.status_code == 404 and model == "gemini-3.6-flash":
+                    print("  ! gemini-3.6-flash HTTP 404 — retrying with model fallback gemini-1.5-flash...")
+                    return self._post("gemini-1.5-flash", body)
                 if r.status_code != 200:
                     raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
                 try:

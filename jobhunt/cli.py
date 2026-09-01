@@ -173,6 +173,8 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
 
     scored_jobs = [j for j in jobs if j.score is not None]
     shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
+    if not shortlist and scored_jobs:
+        shortlist = [j for j in sorted(scored_jobs, key=lambda x: x.score or 0, reverse=True) if (j.score or 0) >= 5.0]
     shortlist.sort(key=lambda j: j.score or 0, reverse=True)
     shortlist = shortlist[:top_n]
 
