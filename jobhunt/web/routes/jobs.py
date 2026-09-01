@@ -99,7 +99,7 @@ def api_stats():
     """Return tracker stats JSON with complete count breakdown."""
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     score_threshold = float(cfg.get("score_threshold", 7.0))
@@ -126,7 +126,7 @@ def api_export_csv():
     """Serve job tracker data exported as CSV file download (strictly user isolated)."""
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
     csv_path = Path(st.export_csv(tracker_csv)).resolve()
@@ -139,7 +139,7 @@ def api_jobs():
     """Return list of all tracked jobs with filtering and sorting support (strictly user isolated)."""
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     status = request.args.get("status", "all").lower()
@@ -215,7 +215,7 @@ def api_applied():
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
 
@@ -255,7 +255,7 @@ def api_delete():
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
 
@@ -295,7 +295,7 @@ def api_jobs_stage():
         return jsonify({"status": "error", "message": f"Invalid stage '{stage}'. Must be one of: {allowed}"}), 400
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
 
@@ -330,7 +330,7 @@ def api_jobs_notes():
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     if st.update_notes(job_id, notes):
@@ -412,7 +412,7 @@ def api_add():
             pass
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
 

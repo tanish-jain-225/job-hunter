@@ -3,8 +3,8 @@ run-name: 🏹 Daily Job Hunter Automated Radar (${{ github.event_name }})
 
 on:
   schedule:
-    # 03:30 UTC = 09:00 IST (Every Single Day, Monday through Sunday)
-    - cron: '30 3 * * *'
+    # 00:30 UTC = 06:00 IST (Every Single Day, Monday through Sunday)
+    - cron: '30 0 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -47,6 +47,7 @@ jobs:
           path: |
             seen.json
             seen_*.json
+            state/
             out/
           key: jobhunt-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |

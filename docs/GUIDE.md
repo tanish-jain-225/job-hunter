@@ -116,7 +116,7 @@ pip install -e .
 ---
 
 ### Mode 2: Native Windows Daily Automated Task
-To receive your email digest every morning at 9:00 AM automatically on your computer:
+To receive your email digest every morning at 6:00 AM automatically on your computer:
 1. Open PowerShell or Command Prompt as **Administrator**.
 2. Run `setup_daily_task.bat` (or double-click `setup_daily_task.bat`).
 3. Windows Task Scheduler (`JobHunterDailyDigest`) will handle execution every morning in the background.

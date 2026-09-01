@@ -9,7 +9,7 @@ Job Hunter is engineered to support hundreds of concurrent job seekers indefinit
 ```text
                                ┌────────────────────────────────┐
                                │  GitHub Actions / Local Cron   │
-                               │  (Scheduled Daily at 09:00 IST)│
+                               │  (Scheduled Daily at 06:00 IST)│
                                └───────────────┬────────────────┘
                                                │
                                                ▼
@@ -80,7 +80,7 @@ python -m jobhunt multi-run --send
 
 ### Via GitHub Actions:
 - Trigger manually from the **Actions** tab by choosing `multi` mode.
-- Automated daily schedule runs Monday through Friday at 03:30 UTC (09:00 IST).
+- Automated daily schedule runs every single day at 00:30 UTC (06:00 IST).
 
 ---
 

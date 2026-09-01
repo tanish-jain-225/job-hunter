@@ -330,7 +330,7 @@ def run_pipeline(
         candidates = prefilter(raw_jobs, filters)
 
         # Store
-        seen_file = cfg.get("seen_file", "seen.json")
+        seen_file = cfg.get("seen_file", "state/seen.json")
         st = store or Store(seen_file, user_email=user_email, token=token)
         jobs = st.unseen(candidates)
         max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))

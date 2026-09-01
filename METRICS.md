@@ -70,7 +70,7 @@ flowchart LR
 
 ### E. Compute & Automation (GitHub Actions Cloud)
 * **Free Monthly Minutes**: **2,000 minutes / month** (or unlimited if repository is public).
-* **Schedule**: Daily at **09:00 AM IST** (`30 3 * * *`).
+* **Schedule**: Daily at **06:00 AM IST** (`30 0 * * *`).
 * **Capacity**:
   * 100 Users: 7 min/day $\times$ 30 = **210 mins/mo** (**10.5%** of quota)
   * 300 Users: 17 min/day $\times$ 30 = **510 mins/mo** (**25.5%** of quota)

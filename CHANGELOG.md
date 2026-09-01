@@ -42,7 +42,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - **9 ATS parsers**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint
-- **Two-stage LLM pipeline**: Groq Llama 3.3 70B batch screening + Google Gemini 3.5 Flash application kit drafting
+- **Two-stage LLM pipeline**: Groq (openai/gpt-oss-20b) batch screening + Google Gemini (gemini-3.6-flash) application kit drafting
 - **5 LLM provider backends**: Groq, Google Gemini, Anthropic Claude, OpenAI-compatible, Ollama (offline)
 - **Automatic quota circuit breaker**: Falls back to keyword scoring when consecutive LLM batches fail
 - **Multi-tenant single-pass batch engine** (`multi.py`): Fetches all ATS boards once, fans out per-user with Supabase RLS isolation
@@ -50,7 +50,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Supabase PostgreSQL integration**: JWT + RLS, user profiles, job tracking, pipeline run history
 - **Resume Studio**: PDF/TXT upload -> AI profile extraction
 - **GitHub Actions CI/CD**: 4-Python matrix (3.9-3.12) with Ruff, Mypy, pytest (>=98% coverage)
-- **Daily digest workflow**: Cron at 03:30 UTC, caches state, dispatches HTML briefings via SMTP
+- **Daily digest workflow**: Cron at 00:30 UTC (06:00 IST), caches state, dispatches HTML briefings via SMTP
 - **Vercel serverless deployment** via `api/index.py` WSGI adapter
 - **319 automated tests** with 98%+ line coverage enforced in CI
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT

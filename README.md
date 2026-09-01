@@ -331,7 +331,7 @@ jobhunt stats
 
 ## 🤖 Automated Execution & GitHub Actions
 
-The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every weekday at 09:00 IST (03:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
+The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every single day at 06:00 IST (00:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
 
 ### 🔑 Required Repository Secrets
 Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:

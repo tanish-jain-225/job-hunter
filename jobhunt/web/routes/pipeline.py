@@ -32,7 +32,7 @@ def api_sync():
     """High-speed real-time synchronization endpoint for client zero-refresh sync."""
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     # Ensure a minimal FK-safe stub exists for new users, then fetch their profile.
@@ -246,7 +246,7 @@ def api_digest():
         or request.args.get("live") is not None
     )
 
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     writable_path = get_writable_path(digest_file)
@@ -405,7 +405,7 @@ def api_run():
     send_email = bool(has_smtp and target_email and not is_vercel)
 
     cfg = cli._cfg(raise_on_error=False)
-    seen_file = cfg.get("seen_file", "seen.json")
+    seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
     gh_token = (

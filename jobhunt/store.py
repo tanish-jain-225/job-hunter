@@ -140,7 +140,7 @@ def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05)
 class Store:
     def __init__(
         self,
-        path: str | Path = "seen.json",
+        path: str | Path = "state/seen.json",
         user_email: Optional[str] = None,
         token: Optional[str] = None,
     ):
@@ -152,7 +152,13 @@ class Store:
 
         if self.user_email:
             user_hash = hashlib.md5(self.user_email.encode("utf-8")).hexdigest()[:12]
-            self.path = get_writable_path(f"seen_{user_hash}.json")
+            parent_dir = self.original_path.parent
+            user_target = (
+                parent_dir / f"seen_{user_hash}.json"
+                if parent_dir != Path(".")
+                else Path("state") / f"seen_{user_hash}.json"
+            )
+            self.path = get_writable_path(user_target)
         else:
             self.path = get_writable_path(self.original_path)
 

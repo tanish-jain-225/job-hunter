@@ -1,4 +1,4 @@
-﻿# Job Hunter — REST API Reference
+# Job Hunter — REST API Reference
 
 All endpoints require authentication via `Authorization: Bearer <token>` header
 or `sb_access_token` HttpOnly cookie.
@@ -43,6 +43,12 @@ Returns the latest digest as an HTML document.
 **Auth:** Required  
 **Query params:** `?force` or `?live` to force a live rebuild  
 **Response:** `text/html`
+
+### POST /api/email/test
+Dispatches a live test career briefing email to verify SMTP delivery credentials.
+
+**Auth:** Required  
+**Response:** `{"status": "success", "message": "Test briefing successfully sent to user@example.com!", "target_email": "user@example.com"}`
 
 ---
 

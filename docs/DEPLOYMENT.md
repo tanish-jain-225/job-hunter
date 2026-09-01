@@ -19,7 +19,7 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 ┌────────────────────────────────┐       ┌─────────────────────────────────┐
 │   Zero-Quota AI Intelligence   │       │       Daily Cron Engine         │
 │ Groq + Gemini Split (Free)     │       │     GitHub Actions (Free)       │
-│  - Groq 14,400 RPD Screening   │       │  - Scheduled 9:00 AM Run        │
+│  - Groq 14,400 RPD Screening   │       │  - Scheduled 6:00 AM Run        │
 │  - Gemini Rich Kit Drafting    │       │  - Single-Pass 9-ATS Crawl      │
 │  - Automatic Keyword Fallback  │       │  - Daily Morning Email Briefing │
 └────────────────────────────────┘       └─────────────────────────────────┘
@@ -108,7 +108,7 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 ---
 
-## ⏰ Step 5: Configure Automated Daily 9:00 AM Cron (GitHub Actions)
+## ⏰ Step 5: Configure Automated Daily 6:00 AM Cron (GitHub Actions)
 
 Job Hunter automatically executes a centralized single-pass crawl across all active users every weekday morning via GitHub Actions.
 
@@ -135,7 +135,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 2. Signs in with email/password or Magic Link.
 3. The **Onboarding Wizard** pops up:
    * Candidate picks a 1-click role preset (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product Lead*) or uploads a resume to extract skills in-memory.
-   * Chooses their notification preference (*Instant On-Demand* or *Daily 9:00 AM Morning Briefing*).
+   * Chooses their notification preference (*Instant On-Demand* or *Daily 6:00 AM Morning Briefing*).
    * Clicks **"Complete & Launch First Hunt"**.
 4. The system immediately screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private Kanban tracker!
 

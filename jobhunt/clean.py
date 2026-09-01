@@ -31,19 +31,25 @@ def find_cleanable_files(root: Path | str | None = None) -> list[Path]:
     }
 
     try:
-        for p in base.iterdir():
-            if p.is_dir():
-                continue
-            name = p.name
-            if name in protected:
-                continue
+        dirs_to_scan = [base]
+        state_dir = base / "state"
+        if state_dir.is_dir():
+            dirs_to_scan.append(state_dir)
 
-            # 1. Target leftover seen_*.json test/scratch stores (e.g. seen_111d68d06e2d.json, seen_test_cli.json)
-            if name.startswith("seen_") and name.endswith(".json"):
-                cleanable.append(p)
-            # 2. Target temporary write tests or transient atomic files
-            elif name.startswith(".writable_test") or name.endswith(".tmp") or name.endswith(".bak"):
-                cleanable.append(p)
+        for search_dir in dirs_to_scan:
+            for p in search_dir.iterdir():
+                if p.is_dir():
+                    continue
+                name = p.name
+                if name in protected:
+                    continue
+
+                # 1. Target leftover seen_*.json test/scratch stores (e.g. seen_111d68d06e2d.json, seen_test_cli.json)
+                if name.startswith("seen_") and name.endswith(".json"):
+                    cleanable.append(p)
+                # 2. Target temporary write tests or transient atomic files
+                elif name.startswith(".writable_test") or name.endswith(".tmp") or name.endswith(".bak"):
+                    cleanable.append(p)
     except Exception as e:
         logger.warning(f"Error scanning directory for cleanup: {e}")
 
