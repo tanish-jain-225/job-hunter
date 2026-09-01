@@ -96,7 +96,7 @@ max_jobs_to_screen: 30      # Max unseen jobs evaluated per run to protect rate 
 # Concurrency & rate-limit tuning
 fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
 llm_max_workers: 1        # Sequential processing to strictly prevent rate limit bursts
-llm_delay_seconds: 4.0    # Exactly 4.0s delay = 15 RPM (matches Gemini 15 RPM free tier ceiling)
+llm_delay_seconds: 6.0    # Exactly 6.0s delay = 10 RPM (matches Gemini 10 RPM free tier ceiling)
 
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml

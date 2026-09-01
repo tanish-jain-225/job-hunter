@@ -43,7 +43,7 @@ flowchart LR
 ### A. Primary AI Engine: Google Gemini Flash (`gemini-3.6-flash`)
 * **Default Model**: `gemini-3.6-flash`
 * **Batch Size**: 8 jobs per screening request (high-throughput evaluation pass).
-* **Batch Pacing**: 4.0s delay between requests = 15 RPM exact speed matching.
+* **Batch Pacing**: 6.0s delay between requests = 10 RPM exact speed matching (dynamically accelerated via multi-key round-robin rotation).
 * **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`).
 * **Daily Free Quota**: **1,500 requests / day** and **1,000,000+ tokens / day** per project key.
 * **Per-User Daily Consumption**: ~6 API calls (3 screening batches + 3 kit drafts).

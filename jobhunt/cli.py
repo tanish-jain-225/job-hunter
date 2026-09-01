@@ -184,7 +184,7 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
 
 def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
     """Stage 4: Generate application kits for the shortlist."""
-    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 2.5))
+    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 6.0))
 
     if shortlist and scorer == "llm":
         try:
