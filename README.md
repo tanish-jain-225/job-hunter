@@ -134,12 +134,12 @@ Define target company career boards in [`companies.yaml`](companies.yaml). The `
 | Board URL | `ats` | `slug` |
 |---|---|---|
 | `boards.greenhouse.io/stripe` | `greenhouse` | `stripe` |
-| `jobs.lever.co/netlify` | `lever` | `netlify` |
-| `jobs.ashbyhq.com/ramp` | `ashby` | `ramp` |
+| `jobs.lever.co/meesho` | `lever` | `meesho` |
+| `jobs.ashbyhq.com/openai` | `ashby` | `openai` |
 | `apply.workable.com/vector` | `workable` | `vector` |
 | `jobs.smartrecruiters.com/visa` | `smartrecruiters` | `visa` |
 | `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
-| `careers.recruitee.com/hotjar` | `recruitee` | `hotjar` |
+| `bunq.recruitee.com` | `recruitee` | `bunq` |
 | `breezy.hr/acme` | `breezy` | `acme` |
 | `pinpoint.work/company` | `pinpoint` | `company` |
 
@@ -147,13 +147,13 @@ Define target company career boards in [`companies.yaml`](companies.yaml). The `
 companies:
   - {ats: greenhouse, slug: stripe, name: Stripe}
   - {ats: ashby, slug: openai, name: OpenAI}
-  - {ats: lever, slug: fampay, name: FamPay}
+  - {ats: lever, slug: meesho, name: Meesho}
   - {ats: workable, slug: vector, name: Vector}
   - {ats: smartrecruiters, slug: visa, name: Visa}
   - {ats: bamboohr, slug: acme, name: Acme}
-  - {ats: recruitee, slug: hotjar, name: Hotjar}
-  - {ats: breezy, slug: automattic, name: Automattic}
-  - {ats: pinpoint, slug: monzo, name: Monzo}
+  - {ats: recruitee, slug: bunq, name: Bunq}
+  - {ats: greenhouse, slug: razorpaysoftwareprivatelimited, name: Razorpay}
+  - {ats: ashby, slug: ramp, name: Ramp}
 ```
 
 > [!NOTE]

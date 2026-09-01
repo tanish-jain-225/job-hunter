@@ -234,7 +234,7 @@ def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
     return out
 
 
-@register_ats("workable", "https://apply.workable.com/api/v2/accounts/{slug}/jobs")
+@register_ats("workable", "https://apply.workable.com/api/v1/widget/accounts/{slug}")
 def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
     out = []
     jobs_list = (
