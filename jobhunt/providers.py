@@ -34,6 +34,9 @@ class UnsupportedDocument(LLMError):
 # ---------------------------------------------------------------------------
 
 
+import threading
+
+_RATE_LOCK = threading.Lock()
 _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _LAST_CALL_MAP: dict[str, float] = {}
 MIN_CALL_INTERVALS: dict[str, float] = {
@@ -50,25 +53,29 @@ def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
     base_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
     effective_keys = max(1, num_keys)
     min_interval = max(0.3, base_interval / effective_keys)
-    last_time = _LAST_CALL_MAP.get(provider_name.lower(), 0.0)
-    now = time.time()
-    elapsed = now - last_time
+    with _RATE_LOCK:
+        last_time = _LAST_CALL_MAP.get(provider_name.lower(), 0.0)
+        now = time.time()
+        elapsed = now - last_time
     if elapsed < min_interval:
         time.sleep(min_interval - elapsed)
-    _LAST_CALL_MAP[provider_name.lower()] = time.time()
+    with _RATE_LOCK:
+        _LAST_CALL_MAP[provider_name.lower()] = time.time()
 
 
 def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0) -> None:
     """Mark an API key as cooling down until time.time() + cooldown_seconds."""
     if key:
-        _KEY_COOLDOWN_MAP[key] = time.time() + max(10.0, cooldown_seconds)
+        with _RATE_LOCK:
+            _KEY_COOLDOWN_MAP[key] = time.time() + max(10.0, cooldown_seconds)
 
 
 def _get_active_api_keys(key_env: str) -> list[str]:
     """Get list of API keys that are not currently in cooldown reset period."""
     all_keys = Provider._get_api_keys(key_env)
     now = time.time()
-    active = [k for k in all_keys if now >= _KEY_COOLDOWN_MAP.get(k, 0.0)]
+    with _RATE_LOCK:
+        active = [k for k in all_keys if now >= _KEY_COOLDOWN_MAP.get(k, 0.0)]
     return active if active else all_keys
 
 
@@ -332,7 +339,7 @@ class OpenAICompatProvider(Provider):
 
         messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
         payload: dict[str, Any] = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.2}
-        if json_mode and self.name != "groq":
+        if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
         max_retries = max(6, len(all_configured_keys) * 3)
@@ -446,7 +453,7 @@ PROVIDERS = {
 DEFAULT_MODELS = {
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "gemini": {"screen": "gemini-3.6-flash", "draft": "gemini-3.6-flash"},
-    "groq": {"screen": "openai/gpt-oss-20b", "draft": "openai/gpt-oss-120b"},
+    "groq": {"screen": "llama-3.1-8b-instant", "draft": "llama-3.3-70b-versatile"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
     "ollama": {"screen": "llama3.1", "draft": "llama3.1"},
 }

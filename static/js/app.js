@@ -198,7 +198,7 @@ async function updateJobStageDirect(jobId, newStage) {
     const data = await parseJsonResponse(res);
     if (data.status === 'success') {
       if (data.version) appState.version = data.version;
-      if (data.stats) updateStatsDisplay(data.stats);
+      if (data.stats) renderMetrics(data.stats);
       broadcastSync('STATE_MUTATED', { job_id: jobId, stage: newStage });
     } else {
       throw new Error(data.message || 'Stage update failed');
@@ -1636,6 +1636,11 @@ function selectNotificationMode(isDaily) {
 }
 
 async function saveOnboardingProfile(launchScan = false) {
+  const btn = document.getElementById('btn-save-onboarding') || document.getElementById('btn-finish-onboarding');
+  const spinner = document.getElementById('onboard-save-spinner');
+  if (btn) btn.disabled = true;
+  if (spinner) spinner.style.display = 'inline-block';
+
   const targetsInput = document.getElementById('onboard-prof-targets');
   const targets = targetsInput
     ? targetsInput.value.split(',').map(s => s.trim()).filter(Boolean)
@@ -2860,6 +2865,11 @@ async function toggleAppliedDirect(jobId, action) {
   // 1. Optimistic Local State Update
   if (job) {
     job.applied = !isUnmark;
+    if (!isUnmark && (!job.application_stage || job.application_stage === 'to_apply')) {
+      job.application_stage = 'applied';
+    } else if (isUnmark && job.application_stage === 'applied') {
+      job.application_stage = 'to_apply';
+    }
     if (appState.activeKitId === jobId) {
       updateModalAppliedButton(job);
     }
@@ -2876,7 +2886,7 @@ async function toggleAppliedDirect(jobId, action) {
 
   // 2.5. Optimistic Card Removal for Active Status Filter
   if ((appState.filter === 'applied' && isUnmark) || (appState.filter === 'unapplied' && !isUnmark)) {
-    const card = document.getElementById('job-card-' + jobId);
+    const card = document.getElementById('job-card-' + jobId) || document.getElementById('kanban-card-' + jobId);
     if (card) {
       card.style.transition = 'all 0.25s ease';
       card.style.opacity = '0';
@@ -2884,7 +2894,7 @@ async function toggleAppliedDirect(jobId, action) {
       setTimeout(() => {
         card.remove();
         const container = document.getElementById('job-list-container');
-        if (container && !container.querySelector('.job-card')) {
+        if (container && !container.querySelector('.job-item') && !container.querySelector('.kanban-card')) {
           container.innerHTML = `
             <div class="empty-state">
               <div class="empty-state-icon">
@@ -2942,7 +2952,7 @@ async function deleteJobDirect(jobId) {
     return;
   }
 
-  const card = document.getElementById('job-card-' + jobId);
+  const card = document.getElementById('job-card-' + jobId) || document.getElementById('kanban-card-' + jobId);
   if (card) {
     card.classList.add('removing');
   }
@@ -3546,6 +3556,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCandidateSummary(cachedProfile);
   }
 
+  // Hydrate Tracker View Mode (Table vs Kanban)
+  appState.trackerView = Storage.get(localStorage, 'jobhunt_tracker_view', 'table');
+  const btnTable = document.getElementById('btn-view-table');
+  const btnKanban = document.getElementById('btn-view-kanban');
+  if (btnTable) btnTable.classList.toggle('active', appState.trackerView === 'table');
+  if (btnKanban) btnKanban.classList.toggle('active', appState.trackerView === 'kanban');
+
   // Set active tab without firing unauthenticated network requests
   switchTab(appState.activeTab, false);
 
@@ -3700,8 +3717,8 @@ async function handleAddJobSubmit(e) {
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
-    if (res.ok && data.status === 'success') {
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success') {
       showToast(`Tracked '${title}' at ${company}!`, 'success');
       closeAddJobModal();
 

@@ -334,12 +334,15 @@ def api_jobs_notes():
     st = Store(seen_file, user_email=email, token=token)
 
     if st.update_notes(job_id, notes):
+        version = get_store_version(st)
         return jsonify(
             {
                 "status": "success",
                 "message": "Notes saved.",
                 "job_id": job_id,
                 "notes": notes,
+                "version": version,
+                "stats": st.stats(),
             }
         )
     else:
@@ -367,6 +370,7 @@ def api_add():
     applied = bool(data.get("applied", False))
     stage = data.get("stage", "applied" if applied else "to_apply")
 
+    has_explicit_score = "score" in data and data["score"] is not None and str(data["score"]).strip() != ""
     try:
         raw_score = float(data.get("score", 7.5))
         score = max(0.0, min(10.0, raw_score))
@@ -376,7 +380,7 @@ def api_add():
     draft = data.get("draft") or {}
 
     # On-demand AI scoring if description provided and score not explicitly set
-    if description and (data.get("run_ai") or not data.get("score")):
+    if description and (data.get("run_ai") or not has_explicit_score):
         cfg_temp = cli._cfg(raise_on_error=False)
         user_prof = cli._load_profile(cfg_temp, raise_on_error=False) or {}
         from ...fetch import Job

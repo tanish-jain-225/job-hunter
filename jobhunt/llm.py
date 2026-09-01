@@ -50,22 +50,42 @@ def parse_json(raw: str) -> Any:
     """Parse a model reply that is *supposed* to be JSON."""
     if raw is None:
         raise ValueError("empty model reply")
-    cleaned = _FENCE_CLOSE.sub("", _FENCE_OPEN.sub("", raw)).strip()
+    # Strip <think>...</think> reasoning blocks from thinking models
+    cleaned = re.sub(r"<think>.*?</think>", "", str(raw), flags=re.DOTALL)
+    cleaned = _FENCE_CLOSE.sub("", _FENCE_OPEN.sub("", cleaned)).strip()
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
+
+    # Sanitize trailing commas before closing braces/brackets e.g. {"a": 1,} -> {"a": 1}
+    sanitized = re.sub(r",\s*([\]}])", r"\1", cleaned)
+    try:
+        return json.loads(sanitized)
+    except json.JSONDecodeError:
+        pass
+
     candidates = []
     for opener, closer in (("[", "]"), ("{", "}")):
-        i, k = cleaned.find(opener), cleaned.rfind(closer)
+        i, k = sanitized.find(opener), sanitized.rfind(closer)
         if i != -1 and k > i:
-            candidates.append((i, cleaned[i : k + 1]))
+            candidates.append((i, sanitized[i : k + 1]))
     for _, blob in sorted(candidates):
         try:
             return json.loads(blob)
         except json.JSONDecodeError:
             continue
     raise ValueError(f"could not parse JSON from model reply: {cleaned[:300]!r}")
+
+
+def _ensure_list(val: Any) -> list[str]:
+    """Safely convert list or newline-separated string into a list of non-empty strings."""
+    if isinstance(val, list):
+        return [str(x).strip() for x in val if str(x).strip()]
+    if isinstance(val, str):
+        lines = [line.strip().lstrip("-*•1234567890. ") for line in val.split("\n") if line.strip()]
+        return [l for l in lines if l]
+    return []
 
 
 def _as_list(payload: Any) -> list[dict]:
@@ -483,12 +503,12 @@ def draft(
                 "job_type": str(kit.get("job_type") or "onsite"),
                 "salary_range_inr": str(kit.get("salary_range_inr") or ""),
                 "best_project": str(kit.get("best_project") or default_proj),
-                "tailored_bullets": [str(b) for b in (kit.get("tailored_bullets") or [])],
-                "matching_skills": [str(s) for s in (kit.get("matching_skills") or [])],
-                "gaps": [str(g) for g in (kit.get("gaps") or [])],
+                "tailored_bullets": _ensure_list(kit.get("tailored_bullets")),
+                "matching_skills": _ensure_list(kit.get("matching_skills")),
+                "gaps": _ensure_list(kit.get("gaps")),
                 "cover_note": str(kit.get("cover_note") or ""),
                 "cold_outreach": str(kit.get("cold_outreach") or ""),
-                "questions_to_ask": [str(q) for q in (kit.get("questions_to_ask") or [])],
+                "questions_to_ask": _ensure_list(kit.get("questions_to_ask")),
             }
             print(f"  drafted {j.title} @ {j.company}")
         except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:

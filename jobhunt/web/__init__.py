@@ -98,6 +98,13 @@ def create_app(
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
+    # Support reverse proxy headers (Vercel edge proxies) for accurate remote IP rate limiting
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    except Exception:
+        pass
+
     # Rate limiting — gracefully degrades if flask-limiter is not installed.
     # Protects free-tier LLM quota from runaway clients or accidental loops.
     try:

@@ -108,7 +108,7 @@ def get_store_version(st: Store) -> str:
     """Generate a deterministic fast hash/version token representing current store state."""
     try:
         items = [
-            f"{jid}:{d.get('applied', False)}:{d.get('score', '')}:{d.get('first_seen', '')}"
+            f"{jid}:{d.get('applied', False)}:{d.get('application_stage', '')}:{d.get('score', '')}:{d.get('notes', '')}:{d.get('first_seen', '')}"
             for jid, d in sorted(st.data.items())
         ]
         content = f"{len(st.data)}|" + "|".join(items)

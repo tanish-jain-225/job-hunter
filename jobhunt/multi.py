@@ -233,7 +233,7 @@ def run_multi_user_pipeline(
             print(f"  Pre-filtered: {len(raw_jobs)} -> {len(user_candidates)} candidate postings")
 
             seen_file = cfg.get("seen_file", "seen.json")
-            st = Store(seen_file, user_email=user_email)
+            st = Store(seen_file, user_email=user_email, use_service_key=True)
             unseen_jobs = st.unseen(user_candidates) if user_candidates else []
             print(
                 f"  New unseen jobs to evaluate: {len(unseen_jobs)} (skipping {len(user_candidates) - len(unseen_jobs)} seen)"
@@ -307,7 +307,7 @@ def run_multi_user_pipeline(
                     except Exception as e:
                         print(f"  ! Drafting error ({e}). Using standard kit drafts.")
 
-                st.record(scored_jobs, emailed=bool(user.get("email_notifications_enabled", False)) or force_send)
+                st.record(scored_jobs, emailed=False)
             else:
                 if not user_candidates:
                     print("  No candidate matches passed pre-filter for this user.")
@@ -336,6 +336,24 @@ def run_multi_user_pipeline(
                     dispatched = True
                     dispatched_emails += 1
                     print("  ✓ Email briefing dispatched successfully!")
+
+                    # Mark shortlisted jobs as emailed now that SMTP transmission succeeded
+                    for j in shortlist:
+                        if j.job_id in st.data:
+                            st.data[j.job_id]["emailed"] = True
+                    st.save(auto_export=False)
+                    if memory.is_configured and shortlist:
+                        try:
+                            memory.bulk_upsert_user_jobs(
+                                user_email,
+                                [st.data[j.job_id] for j in shortlist if j.job_id in st.data],
+                                use_service_key=True,
+                            )
+                        except TypeError:
+                            memory.bulk_upsert_user_jobs(
+                                user_email,
+                                [st.data[j.job_id] for j in shortlist if j.job_id in st.data],
+                            )
                 except Exception as e:
                     print(f"  ! Email dispatch failed: {e}")
 
@@ -343,16 +361,17 @@ def run_multi_user_pipeline(
             if memory.is_configured:
                 try:
                     run_log_msg = f"Screened {len(unseen_jobs)} new jobs, {len(shortlist)} shortlisted out of {len(raw_jobs)} scanned, email={'sent' if dispatched else 'skipped'}"
-                    memory.record_pipeline_run(
-                        user_email,
-                        {
-                            "scanned": len(raw_jobs),
-                            "matched": len(user_candidates),
-                            "shortlisted": len(shortlist),
-                            "status": "completed",
-                            "logs": run_log_msg,
-                        },
-                    )
+                    run_payload = {
+                        "scanned": len(raw_jobs),
+                        "matched": len(user_candidates),
+                        "shortlisted": len(shortlist),
+                        "status": "completed",
+                        "logs": run_log_msg,
+                    }
+                    try:
+                        memory.record_pipeline_run(user_email, run_payload, use_service_key=True)
+                    except TypeError:
+                        memory.record_pipeline_run(user_email, run_payload)
                 except Exception as e:
                     print(f"  ! Failed to record pipeline run in Supabase: {e}")
 
@@ -361,6 +380,21 @@ def run_multi_user_pipeline(
             total_shortlisted += len(shortlist)
         except Exception as err:
             print(f"  ! Error processing candidate {user_name} ({user_email}): {err}")
+            if memory.is_configured:
+                try:
+                    fail_payload = {
+                        "scanned": len(raw_jobs),
+                        "matched": 0,
+                        "shortlisted": 0,
+                        "status": "failed",
+                        "logs": f"Error: {err}",
+                    }
+                    try:
+                        memory.record_pipeline_run(user_email, fail_payload, use_service_key=True)
+                    except TypeError:
+                        memory.record_pipeline_run(user_email, fail_payload)
+                except Exception:
+                    pass
             users_processed += 1
 
     summary: dict[str, Any] = {

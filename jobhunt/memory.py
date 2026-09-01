@@ -96,15 +96,16 @@ class SupabaseMemory:
                    Should ONLY be True for admin/batch operations (e.g., multi-run pipeline that
                    must read all users). Never set True for user-facing reads or writes.
         """
-        active_token = token or self.token
-        key = self.service_key or self.anon_key
-        # Use service key (bypasses RLS) only when explicitly requested for admin operations
+        active_token = None if use_service_key else (token or self.token)
         if use_service_key and self.service_key:
             auth_val = f"Bearer {self.service_key}"
+            key = self.service_key
         elif active_token:
             auth_val = f"Bearer {active_token}"
+            key = self.anon_key or self.service_key
         else:
-            auth_val = f"Bearer {self.anon_key}"
+            auth_val = f"Bearer {self.service_key or self.anon_key}"
+            key = self.service_key or self.anon_key
         return {
             "apikey": key,
             "Authorization": auth_val,
@@ -134,6 +135,8 @@ class SupabaseMemory:
             endpoint = f"{self.url}/rest/v1/user_profiles"
             params = {"email": f"eq.{clean_email}", "select": "*"}
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
+            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
+                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 if data and isinstance(data, list) and len(data) > 0:
@@ -446,9 +449,14 @@ class SupabaseMemory:
                 "limit": str(limit),
             }
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
+            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
+                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
-                records = resp.json()
+                raw_json = resp.json()
+                records = raw_json if isinstance(raw_json, list) else []
                 for r in records:
+                    if not isinstance(r, dict):
+                        continue
                     jid = r.get("job_id")
                     if jid:
                         applied = bool(r.get("applied"))
@@ -478,18 +486,24 @@ class SupabaseMemory:
             print(f"[SupabaseMemory] load_user_jobs error for {clean_email}: {e}")
             return {}
 
-    def save_user_job(self, email: str, job_dict: Dict[str, Any], token: Optional[str] = None) -> bool:
-        """Save or update a single job record in Supabase for user email."""
-        if not self.is_configured or not email:
+    def save_user_job(
+        self,
+        email: str,
+        job_dict: Dict[str, Any],
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
+        """Upsert a single tracked job into Supabase PostgreSQL memory."""
+        if not self.is_configured or not email or not job_dict:
             return False
 
         clean_email = email.lower().strip()
         invalidate_user_cache(clean_email)
+        self._ensure_user_profile_exists(clean_email, token)
+
         jid = str(job_dict.get("job_id", "")).strip()
         if not jid:
             return False
-
-        self._ensure_user_profile_exists(clean_email, token)
 
         applied = bool(job_dict.get("applied", False))
         stage = job_dict.get("application_stage") or ("applied" if applied else "to_apply")
@@ -517,7 +531,7 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
             resp = _get_session().post(
                 endpoint,
@@ -531,7 +545,13 @@ class SupabaseMemory:
             print(f"[SupabaseMemory] save_user_job error for {clean_email} ({jid}): {e}")
             return False
 
-    def bulk_upsert_user_jobs(self, email: str, jobs: List[Dict[str, Any]], token: Optional[str] = None) -> int:
+    def bulk_upsert_user_jobs(
+        self,
+        email: str,
+        jobs: List[Dict[str, Any]],
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> int:
         """Bulk upsert multiple jobs into Supabase PostgreSQL memory for user email."""
         if not self.is_configured or not email or not jobs:
             return 0
@@ -580,7 +600,7 @@ class SupabaseMemory:
             chunk = records[i : i + chunk_size]
             try:
                 endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-                headers = self._headers(token)
+                headers = self._headers(token, use_service_key=use_service_key)
                 headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
                 resp = _get_session().post(
                     endpoint,
@@ -708,7 +728,13 @@ class SupabaseMemory:
     # --------------------------------------------------------------------------
     # 3. Pipeline Execution History & Memory Logs
     # --------------------------------------------------------------------------
-    def record_pipeline_run(self, email: str, run_data: Dict[str, Any], token: Optional[str] = None) -> bool:
+    def record_pipeline_run(
+        self,
+        email: str,
+        run_data: Dict[str, Any],
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Log a pipeline execution history event into Supabase PostgreSQL."""
         if not self.is_configured or not email:
             return False
@@ -728,7 +754,7 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_pipeline_runs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "return=minimal"
             resp = _get_session().post(endpoint, headers=headers, json=payload, timeout=self.timeout)
             return resp.status_code in (200, 201, 204)
@@ -751,8 +777,11 @@ class SupabaseMemory:
                 "limit": str(limit),
             }
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
+            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
+                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                return data if isinstance(data, list) else []
             return []
         except Exception as e:
             print(f"[SupabaseMemory] get_pipeline_history error for {clean_email}: {e}")

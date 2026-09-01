@@ -56,7 +56,6 @@ companies:
   - {ats: greenhouse, slug: toast, name: Toast Inc.}
   - {ats: greenhouse, slug: brex, name: Brex}
   - {ats: greenhouse, slug: klaviyo, name: Klaviyo}
-  - {ats: greenhouse, slug: marqeta, name: Marqeta}
   - {ats: greenhouse, slug: chime, name: Chime}
   - {ats: smartrecruiters, slug: visa, name: Visa}
   - {ats: lever, slug: palantir, name: Palantir}

@@ -135,7 +135,10 @@ def _detect_job_type(j: Job) -> set[str]:
 
     is_remote = any(h in hay for h in REMOTE_HINTS) and not any(neg in hay for neg in REMOTE_NEGATIONS)
     is_hybrid = any(h in hay for h in HYBRID_HINTS)
-    is_intern = any(h in hay for h in INTERNSHIP_HINTS) and not any(neg in hay for neg in INTERN_NEGATIONS)
+    is_intern = any(
+        (re.search(rf"\b{re.escape(h)}\b", hay) if len(h) <= 6 else h in hay)
+        for h in INTERNSHIP_HINTS
+    ) and not any(neg in hay for neg in INTERN_NEGATIONS)
 
     if is_remote:
         types.add("remote")
@@ -167,6 +170,15 @@ def _safe_compile(pattern: str, flags: int = re.I) -> re.Pattern:
         return re.compile(pattern, flags)
     except re.error:
         return re.compile(re.escape(p_clean), flags)
+
+
+def _matches_location(target_loc: str, text: str) -> bool:
+    """Check if target location matches text, using word boundaries for short country codes."""
+    if not target_loc or not text:
+        return False
+    if len(target_loc) <= 2:
+        return bool(re.search(rf"\b{re.escape(target_loc)}\b", text, flags=re.I))
+    return target_loc in text
 
 
 def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
@@ -201,11 +213,12 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
         # Location filter
         loc_lower = (j.location or "").lower()
         hay = f"{j.location} {j.title}".lower()
-        is_in_target = any(loc in hay for loc in locs) if locs else True
 
-        if exc_locs_re and _match(exc_locs_re, loc_lower) and (not locs or not is_in_target):
+        if exc_locs_re and _match(exc_locs_re, loc_lower):
             stats["location"] += 1
             continue
+
+        is_in_target = any(_matches_location(loc, hay) for loc in locs) if locs else True
 
         if locs:
             is_remote = allow_remote and any(h in hay for h in REMOTE_HINTS)

@@ -8,17 +8,17 @@ or `sb_access_token` HttpOnly cookie.
 ## Pipeline
 
 ### GET /api/sync
-Returns current pipeline state, live job stats, and user profile summary.
+Returns current pipeline state, live job stats, and user profile summary for real-time zero-refresh synchronization.
 
 **Auth:** Required  
 **Response:**
 ```json
 {
   "status": "success",
-  "version": 42,
-  "stats": {"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12},
-  "ats_counts": {"greenhouse": 40, "lever": 22, ...},
-  "pipeline": {"running": false, "step": "completed", "message": "..."},
+  "version": "a1b2c3d4e5f60718",
+  "stats": {"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115},
+  "ats_counts": {"greenhouse": 40, "lever": 22, "ashby": 30, "smartrecruiters": 15, "workable": 8, "bamboohr": 5},
+  "pipeline": {"running": false, "step": "completed", "message": "Pipeline completed successfully!"},
   "user_email": "user@example.com",
   "user_profile": {...},
   "memory_connected": true,
@@ -62,7 +62,7 @@ Returns all tracked jobs with filtering and sorting.
 | Param | Values | Default |
 |-------|--------|---------|
 | `status` | `all` / `shortlisted` / `applied` / `unapplied` | `all` |
-| `ats` | `greenhouse` / `lever` / ... / `all` | `all` |
+| `ats` | `greenhouse` / `lever` / `ashby` / `workable` / `smartrecruiters` / `bamboohr` / `recruitee` / `breezy` / `pinpoint` / `all` | `all` |
 | `search` | free text | — |
 | `min_score` | float | — |
 | `sort` | `date` / `score` / `company` | `date` |
@@ -73,20 +73,23 @@ Returns all tracked jobs with filtering and sorting.
 Update the Kanban application stage for a job.
 
 **Auth:** Required  
-**Body:** `{"job_id": "greenhouse:acme:1234", "stage": "interviewing"}`  
-**Stages:** `to_apply` | `applied` | `interviewing` | `offer` | `rejected`
+**Body:** `{"job_id": "greenhouse:stripe:4089201", "stage": "interviewing"}`  
+**Stages:** `to_apply` | `applied` | `interviewing` | `offer` | `rejected`  
+**Response:** `{"status": "success", "message": "...", "job_id": "...", "stage": "interviewing", "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
 ### POST /api/jobs/notes
 Update private candidate notes for a tracked job.
 
 **Auth:** Required  
-**Body:** `{"job_id": "lever:company:abc", "notes": "Great culture fit, ask about remote"}`
+**Body:** `{"job_id": "lever:company:abc", "notes": "Great culture fit, ask about remote"}`  
+**Response:** `{"status": "success", "message": "Notes saved.", "job_id": "...", "notes": "...", "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
 ### POST /api/applied
 Mark or unmark a job as applied.
 
 **Auth:** Required  
-**Body:** `{"job_id": "...", "action": "mark"}` — action: `mark` | `unmark`
+**Body:** `{"job_id": "...", "action": "mark"}` — action: `mark` | `unmark`  
+**Response:** `{"status": "success", "applied": true, "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
 ### POST /api/jobs/add (alias: POST /api/add)
 Manually add a custom job entry with optional AI scoring.
@@ -108,7 +111,8 @@ Manually add a custom job entry with optional AI scoring.
 Delete a job from the tracking store.
 
 **Auth:** Required  
-**Body:** `{"job_id": "..."}`
+**Body:** `{"job_id": "..."}`  
+**Response:** `{"status": "success", "job_id": "...", "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
 ### GET /api/export/csv
 Download tracked jobs as a CSV file attachment.
@@ -120,7 +124,7 @@ Download tracked jobs as a CSV file attachment.
 Returns a summary of job tracking stats.
 
 **Auth:** Required  
-**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "version": 42}`
+**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115, "version": "a1b2c3d4e5f60718"}`
 
 ### GET /api/config
 Returns active configuration summary (company count, filters, score threshold).

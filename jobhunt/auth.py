@@ -107,10 +107,26 @@ def extract_bearer_token() -> Optional[str]:
     if query_token and query_token.strip():
         return query_token.strip()
 
-    # 3. HttpOnly cookie fallback
-    cookie_token = request.cookies.get("sb_access_token") or request.cookies.get("supabase_token")
-    if cookie_token and cookie_token.strip():
-        return cookie_token.strip()
+    # 3. HttpOnly cookie fallback (supports standard and Supabase SSR formats)
+    for c_name in ("sb_access_token", "supabase_token"):
+        cookie_token = request.cookies.get(c_name)
+        if cookie_token and cookie_token.strip():
+            return cookie_token.strip()
+
+    for k, v in request.cookies.items():
+        if k.startswith("sb-") and k.endswith("-auth-token"):
+            try:
+                import json
+                import urllib.parse
+
+                raw_val = urllib.parse.unquote(v)
+                c_data = json.loads(raw_val)
+                if isinstance(c_data, dict) and c_data.get("access_token"):
+                    return c_data["access_token"]
+                elif isinstance(c_data, list) and len(c_data) > 0 and isinstance(c_data[0], str):
+                    return c_data[0]
+            except Exception:
+                pass
 
     return None
 
@@ -153,9 +169,11 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                 "user_metadata": decoded.get("user_metadata", {}),
                 "app_metadata": decoded.get("app_metadata", {}),
             }
+            jwt_exp = decoded.get("exp")
+            cache_exp = min(now + _CACHE_TTL_SECONDS, float(jwt_exp)) if jwt_exp else now + _CACHE_TTL_SECONDS
             with _TOKEN_CACHE_LOCK:
                 _prune_token_cache_locked(now)
-                _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
+                _TOKEN_CACHE[token_hash] = (user_data, cache_exp)
             return user_data
         except Exception:
             # Fall through to Supabase Auth API verification
@@ -215,8 +233,10 @@ def require_auth(fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not is_auth_required():
-            # Auth is disabled for local single-user dev mode
-            g.user = {"id": "local_dev_user", "email": "developer@local", "role": "authenticated"}
+            # In dev mode with auth disabled, still extract token identity if passed
+            tok = extract_bearer_token()
+            user_info = verify_token(tok) if tok else None
+            g.user = user_info or {"id": "local_dev_user", "email": "developer@local", "role": "authenticated"}
             return fn(*args, **kwargs)
 
         token = extract_bearer_token()

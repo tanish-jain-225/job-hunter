@@ -84,6 +84,9 @@ def api_sync():
     if email and memory.is_configured:
         try:
             recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
+            # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
+            if not recent_runs and token:
+                recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
             if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
                 last_run = recent_runs[0]
                 run_ts_raw = str(last_run.get("run_timestamp") or "")
@@ -252,6 +255,7 @@ def api_digest():
         request.args.get("t") is not None
         or request.args.get("force") is not None
         or request.args.get("live") is not None
+        or os.environ.get("VERCEL") == "1"
     )
 
     seen_file = cfg.get("seen_file", "state/seen.json")
@@ -296,6 +300,9 @@ def api_digest():
             if remote_profile:
                 profile_data = remote_profile.get("profile_json") or remote_profile
             recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
+            # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
+            if not recent_runs and token:
+                recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
             if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
                 latest_run = recent_runs[0]
                 if latest_run.get("jobs_scanned"):

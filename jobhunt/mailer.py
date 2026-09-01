@@ -16,6 +16,8 @@ def send(subject: str, html_body: str, to_email: str | None = None) -> None:
     port = int(raw_port) if raw_port.isdigit() else 587
     user = os.environ["SMTP_USER"].strip()
     password = os.environ["SMTP_PASS"].strip()
+    if not user or not password:
+        raise ValueError("SMTP_USER and SMTP_PASS environment variables must not be empty.")
     to_addr = (to_email or os.getenv("MAIL_TO") or user).strip()
 
     msg = EmailMessage()

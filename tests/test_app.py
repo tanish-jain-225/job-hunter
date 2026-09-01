@@ -8,6 +8,7 @@ from app import app
 
 
 import os
+from pathlib import Path
 
 
 @pytest.fixture(autouse=True)
@@ -22,10 +23,22 @@ def bypass_auth_for_app_tests():
 
 
 @pytest.fixture
-def client():
+def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from jobhunt.memory import invalidate_user_cache
+    invalidate_user_cache()
     app.config["TESTING"] = True
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: False))
+    monkeypatch.setattr("jobhunt.store.SupabaseMemory.is_configured", property(lambda self: False))
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.SupabaseMemory.is_configured", property(lambda self: False))
+    seen_tmp = tmp_path / "seen.json"
+    seen_tmp.write_text("{}", encoding="utf-8")
+    target_fn = lambda p: tmp_path / Path(p).name
+    monkeypatch.setattr("jobhunt.store.get_writable_path", target_fn)
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_writable_path", target_fn)
     with app.test_client() as client:
         yield client
+    invalidate_user_cache()
 
 
 def test_index_route(client):

@@ -1595,13 +1595,64 @@ input:checked + .slider::before {
   min-width: 120px;
 }
 
-/* Filter Status Pills */
+/* Filter Status Pills & View Toggle Row */
+.filter-pills-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
 .filter-pills {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
-  width: 100%;
+  flex: 1 1 auto;
+}
+
+.view-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 9999px);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.btn-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.btn-view-toggle:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.btn-view-toggle.active {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+}
+
+.btn-view-toggle svg {
+  flex-shrink: 0;
 }
 
 .pill {

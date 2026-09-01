@@ -111,19 +111,32 @@
           </button>
         </div>
 
-        <div class="filter-pills">
-          <button class="pill active" id="pill-all" onclick="setFilter('all')">
-            <span>All Jobs</span>
-            <span class="pill-count" id="count-all">0</span>
-          </button>
-          <button class="pill" id="pill-applied" onclick="setFilter('applied')">
-            <span>Applied</span>
-            <span class="pill-count" id="count-applied">0</span>
-          </button>
-          <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">
-            <span>Unapplied</span>
-            <span class="pill-count" id="count-unapplied">0</span>
-          </button>
+        <div class="filter-pills-row">
+          <div class="filter-pills">
+            <button class="pill active" id="pill-all" onclick="setFilter('all')">
+              <span>All Jobs</span>
+              <span class="pill-count" id="count-all">0</span>
+            </button>
+            <button class="pill" id="pill-applied" onclick="setFilter('applied')">
+              <span>Applied</span>
+              <span class="pill-count" id="count-applied">0</span>
+            </button>
+            <button class="pill" id="pill-unapplied" onclick="setFilter('unapplied')">
+              <span>Unapplied</span>
+              <span class="pill-count" id="count-unapplied">0</span>
+            </button>
+          </div>
+
+          <div class="view-toggle-group" role="group" aria-label="Job Board View Mode">
+            <button class="btn-view-toggle active" id="btn-view-table" onclick="switchTrackerView('table')" title="List / Table View" type="button" aria-label="Table View">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              <span>Table</span>
+            </button>
+            <button class="btn-view-toggle" id="btn-view-kanban" onclick="switchTrackerView('kanban')" title="Kanban Pipeline Board" type="button" aria-label="Kanban View">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="11" rx="1"></rect></svg>
+              <span>Kanban</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -36,21 +36,24 @@ You can configure the host and port using command-line arguments or environment 
 
 The dashboard is designed as a single-page application with a premium Light Mode theme, supporting the following features:
 
-### 1. 📋 Visual Kanban Pipeline
-* Organize opportunities across 5 interactive pipeline stages:
+### 1. 📋 Dual-Mode View Switcher (Table & Visual Kanban Pipeline)
+* **Table / List View**: High-density interactive table showing job match scores, ATS tags, company, location, applied toggle, and application kit inspector.
+* **Visual Kanban Pipeline**: Organize opportunities across 5 interactive pipeline stages:
   * **To Apply** (`to_apply`)
   * **Applied** (`applied`)
   * **Interviewing** (`interviewing`)
   * **Offer** (`offer`)
-  * **Rejected** (`rejected`)
-* Real-time stage transitions with instant Supabase PostgreSQL and `tracker.csv` synchronization.
+  * **Rejected / Archived** (`rejected`)
+* Instant 1-click stage dropdown selectors and seamless view switching with persistent preference stored in `localStorage`.
 
 ### 2. 📄 Resume Studio & AI Profile Extraction
 * In-dashboard PDF and text resume uploader.
-* Automatically parses uploaded resumes via Google Gemini / Claude document analysis into structured candidate skills, target titles, seniority, and notable projects.
+* Automatically parses uploaded resumes via **Google Gemini (`gemini-3.6-flash`)** / Claude document analysis into structured candidate skills, target titles, seniority, and notable projects.
+* **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
 
 ### 3. ⚡ Zero-Refresh Real-Time State Sync
-* Changes made in any tab (stage updates, notes, manual additions) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.
+* Changes made in any tab (stage updates, notes, manual additions, applied toggles) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.
+* Deterministic version tokens dynamically hash job stages, private notes, fit scores, and timestamps.
 * A **Live Synced** status pill in the top header provides visual pulse indicators and one-click manual synchronization.
 
 ### 4. 📊 Executive Metrics Panel

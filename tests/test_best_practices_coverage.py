@@ -306,3 +306,45 @@ def test_auth_token_cache_expiration():
     # verify_token should evict expired entry
     _ = auth.verify_token(token)
     assert token_hash not in auth._TOKEN_CACHE
+
+
+# ==============================================================================
+# 5. Real-Time Store Versioning & Stage/Notes Reactivity
+# ==============================================================================
+
+
+def test_store_version_reacts_to_stage_and_notes():
+    mock_store = MagicMock()
+    mock_store.data = {
+        "greenhouse:stripe:101": {
+            "applied": True,
+            "application_stage": "applied",
+            "score": 8.5,
+            "notes": "",
+            "first_seen": "2026-08-20T10:00:00",
+        }
+    }
+    v1 = _get_store_version(mock_store)
+
+    # 1. Moving to Interviewing stage must produce a distinct version hash
+    mock_store.data["greenhouse:stripe:101"]["application_stage"] = "interviewing"
+    v2 = _get_store_version(mock_store)
+    assert v1 != v2
+
+    # 2. Adding notes must produce a distinct version hash
+    mock_store.data["greenhouse:stripe:101"]["notes"] = "Phone screen completed"
+    v3 = _get_store_version(mock_store)
+    assert v2 != v3
+    assert v1 != v3
+
+
+def test_api_jobs_notes_returns_version_and_stats(client, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("app._get_current_user_context", lambda: ("notes_user@example.com", "token123"))
+    monkeypatch.setattr("jobhunt.store.Store.update_notes", lambda self, jid, n: True)
+    resp = client.post("/api/jobs/notes", json={"job_id": "greenhouse:stripe:101", "notes": "Top fit"})
+    assert resp.status_code == 200
+    data = resp.json
+    assert data["status"] == "success"
+    assert "version" in data
+    assert "stats" in data
+    assert data["notes"] == "Top fit"

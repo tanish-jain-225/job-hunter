@@ -19,9 +19,11 @@ _WS = re.compile(r"[ \t\r\f\v]+")
 _NL = re.compile(r"\n{3,}")
 
 
-def strip_html(raw: str | None) -> str:
+def strip_html(raw: str | Any | None) -> str:
     if not raw:
         return ""
+    if not isinstance(raw, str):
+        raw = str(raw)
     text = html.unescape(raw)
     text = re.sub(r"<\s*(br|/p|/div|/li|/h[1-6])\s*/?>", "\n", text, flags=re.I)
     text = _TAG.sub(" ", text)
@@ -181,7 +183,7 @@ def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
                 url=url,
                 description="\n\n".join(c for c in chunks if c).strip(),
                 posted_at=posted,
-                salary=cats.get("commitment") if isinstance(cats, dict) else None,
+                salary=None,
             )
         )
     return out
@@ -605,7 +607,7 @@ def fetch_all(
                             if got:
                                 print(f"  {c.get('name') or c['slug']:<28} {len(got):>4} jobs  ({c['ats']})")
                             jobs.extend(got)
-                        except (requests.RequestException, KeyError, ValueError, TypeError) as e:
+                        except Exception as e:
                             print(f"  ! worker error: {e}")
                 except Exception as te:
                     print(f"  ! fetch pool finished with timeout guard ({te})")

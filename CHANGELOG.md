@@ -15,7 +15,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `flask-limiter` rate limiting: `/api/run` capped at 5 calls/hour/IP; global default of 500 req/hour/IP
 
 ### Added
-- Expanded automated test suite from 319 to 357 unit & integration test cases with 98%+ line coverage
+- **Dual-Mode View Switcher (Table & Visual Kanban Pipeline)**: Added interactive Table vs. Kanban pipeline view switcher (`#btn-view-table` and `#btn-view-kanban`) with persistent preference storage in `localStorage`
+- **Deterministic Reactive Store Versioning**: `get_store_version()` now hashes `application_stage`, `notes`, `score`, and timestamps into deterministic MD5 version tokens for zero-refresh multi-tab reactivity
+- Expanded automated test suite to 361 unit & integration test cases with 98%+ line coverage
 - Refactored `jobhunt verify` (live ATS auditor) and `jobhunt clean` (test store purger) into modular CLI package tools (`jobhunt/verify.py` and `jobhunt/clean.py`)
 - `--version` flag to `jobhunt` CLI (`jobhunt --version` -> `jobhunt 1.0.0`)
 - `region_context` and `region_hint` configuration keys in `config.yaml` — LLM screening prompt regional context is now fully configurable; set `region_context: global` to remove India-specific hints
@@ -23,16 +25,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `threading.Lock` protection around `_GLOBAL_ATS_CACHE` for thread-safe concurrent ATS fetching
 - 10 MB hard response size cap in `fetch_board()` — prevents OOM from oversized or malformed ATS endpoints
 - `hypothesis>=6.0.0` added as a dev dependency for property-based fuzzing
-- Synchronized technical narrative across all markdown documentation files (`README.md`, `METRICS.md`, `docs/`)
+- Synchronized technical narrative across all 14 markdown documentation files (`README.md`, `METRICS.md`, `SECURITY.md`, and all `docs/*.md`)
 - `CHANGELOG.md`, `SECURITY.md`, `docs/API.md` added
 
-### Changed
-- `seen_file` path moved from root-level `seen.json` to `state/seen.json` — all `seen_*.json` state files relocated to `state/` subdirectory
-- `anthropic` moved from required core dependencies to optional `[anthropic]` extra — `pip install jobhunt[anthropic]`
-- `flask-limiter` added as optional `[web]` extra — `pip install jobhunt[web]`
-- `_build_screen_system()` now accepts optional `cfg` dict to read regional context at call time
-
 ### Fixed
+- Fixed optimistic UI card resolution in `app.js` to target both `job-card-` and `kanban-card-` elements in Table and Kanban modes
+- Fixed empty-state querySelector in `toggleAppliedDirect` to accurately match `.job-item, .kanban-card`
+- `/api/jobs/notes` now returns `"version": get_store_version(st)` and `"stats": st.stats()` for instant state reconciliation
 - `clear_ats_cache()` was not thread-safe — now uses `_ATS_CACHE_LOCK`
 - `multi.py` admin batch listing of all users now correctly passes `use_service_key=True`
 

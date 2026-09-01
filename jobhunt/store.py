@@ -143,10 +143,12 @@ class Store:
         path: str | Path = "state/seen.json",
         user_email: Optional[str] = None,
         token: Optional[str] = None,
+        use_service_key: bool = False,
     ):
         self.original_path = Path(path)
         self.user_email = (user_email or "").strip().lower() if user_email else None
         self.token = token
+        self.use_service_key = use_service_key
         self.memory = SupabaseMemory(token=self.token)
         self.data: dict[str, dict] = {}
 
@@ -204,6 +206,9 @@ class Store:
         # 2. If user_email provided and Supabase is configured, pull from Supabase PostgreSQL memory
         if self.user_email and self.memory.is_configured:
             remote_jobs = self.memory.load_user_jobs(self.user_email, token=self.token)
+            # Fallback: if user JWT read returned empty, retry with service key
+            if not remote_jobs and (self.token or self.use_service_key):
+                remote_jobs = self.memory.load_user_jobs(self.user_email, token=None)
             if remote_jobs:
                 # Purge local jobs that are no longer present in Supabase remote store
                 local_keys = set(self.data.keys())
@@ -215,7 +220,12 @@ class Store:
                     self.data[jid] = rjob
             elif self.data:
                 # Initial cloud sync of existing local jobs for this user
-                self.memory.bulk_upsert_user_jobs(self.user_email, list(self.data.values()), token=self.token)
+                self.memory.bulk_upsert_user_jobs(
+                    self.user_email,
+                    list(self.data.values()),
+                    token=self.token,
+                    use_service_key=self.use_service_key,
+                )
 
         # Ensure all stored jobs have valid, sanitized apply URLs
         changed_urls = False
@@ -272,7 +282,12 @@ class Store:
 
         # Cloud sync to Supabase PostgreSQL memory
         if self.user_email and self.memory.is_configured and new_jobs:
-            self.memory.bulk_upsert_user_jobs(self.user_email, new_jobs, token=self.token)
+            self.memory.bulk_upsert_user_jobs(
+                self.user_email,
+                new_jobs,
+                token=self.token,
+                use_service_key=self.use_service_key,
+            )
 
     def mark_applied(self, job_id: str) -> bool:
         if job_id not in self.data:
@@ -438,7 +453,10 @@ class Store:
                 w.writeheader()
                 for jid, row in sorted(self.data.items(), key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
                     score_val = row.get("score")
-                    score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
+                    try:
+                        score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
+                    except (ValueError, TypeError):
+                        score_100 = 0
                     if score_100 >= 90:
                         cat = "🔥 Exceptional"
                     elif score_100 >= 80:
@@ -477,7 +495,7 @@ class Store:
         if len(self.data) <= max_count:
             return
 
-        keep_stages = {"applied", "interviewing", "offer"}
+        keep_stages = {"applied", "interviewing", "offer", "rejected"}
         # Sort so oldest unapplied jobs come first for eviction
         sorted_jobs = sorted(
             self.data.items(),
@@ -515,7 +533,8 @@ class Store:
     def save(self, auto_export: bool = True) -> None:
         self.prune_old_jobs()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
+        unique_tmp_suffix = f".tmp.{os.getpid()}_{threading.get_ident()}"
+        tmp = self.path.with_suffix(unique_tmp_suffix)
         tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
         _atomic_replace(tmp, self.path)
         if auto_export:
@@ -525,8 +544,13 @@ class Store:
                 print(f"  ! Store auto-export CSV warning: {e}")
 
 
-def init(path: str | Path = "seen.json", user_email: Optional[str] = None, token: Optional[str] = None) -> Store:
-    return Store(path, user_email=user_email, token=token)
+def init(
+    path: str | Path = "seen.json",
+    user_email: Optional[str] = None,
+    token: Optional[str] = None,
+    use_service_key: bool = False,
+) -> Store:
+    return Store(path, user_email=user_email, token=token, use_service_key=use_service_key)
 
 
 def unseen(store: Store, jobs: list[Job]) -> list[Job]:
