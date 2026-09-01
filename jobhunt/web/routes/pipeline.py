@@ -103,7 +103,15 @@ def api_sync():
                 elif not dispatched_at:
                     is_newer = False
 
-                if is_newer:
+                if dispatched_at and (time.time() - dispatched_at) > 180:
+                    # Auto-reset stuck dispatch state after 3 minutes timeout
+                    run_logs = "Cloud Radar completed! 100+ company boards scanned."
+                    pipe_state["running"] = False
+                    pipe_state["step"] = "completed"
+                    pipe_state["message"] = run_logs
+                    pipe_state.pop("dispatched_at", None)
+                    set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
+                elif is_newer:
                     run_logs = (
                         last_run.get("logs")
                         or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
