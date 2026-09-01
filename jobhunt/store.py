@@ -478,19 +478,19 @@ class Store:
             return
 
         keep_stages = {"applied", "interviewing", "offer"}
+        # Sort so oldest unapplied jobs come first for eviction
         sorted_jobs = sorted(
             self.data.items(),
             key=lambda x: (
-                x[1].get("applied", False),
+                bool(x[1].get("applied")),
                 x[1].get("application_stage", "") in keep_stages,
                 x[1].get("first_seen") or x[1].get("created_at") or "",
             ),
-            reverse=True,
         )
 
         excess_count = len(self.data) - max_count
         purged = 0
-        for jid, job in reversed(sorted_jobs):
+        for jid, job in sorted_jobs:
             if excess_count <= 0:
                 break
 
