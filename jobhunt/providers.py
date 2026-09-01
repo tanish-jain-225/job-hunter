@@ -37,7 +37,7 @@ class UnsupportedDocument(LLMError):
 _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _LAST_CALL_MAP: dict[str, float] = {}
 MIN_CALL_INTERVALS: dict[str, float] = {
-    "gemini": 4.0,  # 15 RPM (exact 15 RPM ceiling per Google AI Studio project)
+    "gemini": 6.0,  # 10 RPM (exact 10 RPM free tier ceiling per Google AI Studio project)
     "groq": 2.0,  # 30 RPM (exact 30 RPM ceiling per Groq project)
     "anthropic": 1.2,
     "openai-compatible": 0.5,
