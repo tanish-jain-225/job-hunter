@@ -70,6 +70,7 @@ screen_jd_chars: 1000       # Precise context truncation for evaluation
 draft_jd_chars: 6000        # Full context for kit drafting
 score_threshold: 7.0        # High bar: 7.0 drafts kits only for strong matches
 max_per_digest: 7           # Hard cap on drafted kits per run
+max_jobs_to_screen: 30      # Max unseen jobs evaluated per run to protect rate limits
 
 # Concurrency & rate-limit tuning
 fetch_max_workers: 16       # Parallel HTTP requests across ATS company boards

@@ -251,7 +251,17 @@ def run_multi_user_pipeline(
             )
 
             if unseen_jobs:
-                # Stage C: LLM Screening with fallback
+                max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 40))
+                if len(unseen_jobs) > max_jobs_to_screen:
+                    # Pass 1: Instant keyword pre-ranking across ALL unseen jobs (0.01s)
+                    llm.keyword_screen(unseen_jobs, profile_dict)
+                    unseen_jobs.sort(key=lambda j: j.score or 0.0, reverse=True)
+                    print(
+                        f"  [hybrid-rank] Pre-ranked {len(unseen_jobs)} unseen jobs via keyword engine -> selecting top {max_jobs_to_screen} high-relevance roles for LLM screening."
+                    )
+                    unseen_jobs = unseen_jobs[:max_jobs_to_screen]
+
+                # Pass 2: LLM Frontier Screening with provider-aware rate limiting
                 if scorer == "keyword" or mock:
                     llm.keyword_screen(unseen_jobs, profile_dict)
                 else:
@@ -263,7 +273,7 @@ def run_multi_user_pipeline(
                             profile_dict,
                             batch_size=int(cfg.get("screen_batch_size", 8)),
                             jd_chars=int(cfg.get("screen_jd_chars", 800)),
-                            delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
+                            delay_seconds=float(cfg.get("llm_delay_seconds", 4.0)),
                             max_workers=int(cfg.get("llm_max_workers", 1)),
                         )
                     except Exception as e:
@@ -289,7 +299,7 @@ def run_multi_user_pipeline(
                             jd_chars=int(cfg.get("draft_jd_chars", 7000)),
                             provider=d_provider,
                             model=d_model,
-                            delay_seconds=float(cfg.get("llm_delay_seconds", 2.0)),
+                            delay_seconds=float(cfg.get("llm_delay_seconds", 4.0)),
                         )
                     except Exception as e:
                         print(f"  ! Drafting error ({e}). Using standard kit drafts.")

@@ -37,17 +37,19 @@ class UnsupportedDocument(LLMError):
 _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _LAST_CALL_MAP: dict[str, float] = {}
 MIN_CALL_INTERVALS: dict[str, float] = {
-    "gemini": 2.5,
-    "groq": 1.5,
-    "anthropic": 1.0,
-    "openai-compatible": 1.2,
-    "ollama": 0.1,
+    "gemini": 4.0,  # 15 RPM (exact 15 RPM ceiling per Google AI Studio project)
+    "groq": 2.0,  # 30 RPM (exact 30 RPM ceiling per Groq project)
+    "anthropic": 1.2,
+    "openai-compatible": 0.5,
+    "ollama": 0.05,
 }
 
 
-def _enforce_rate_limit_throttle(provider_name: str) -> None:
-    """Enforce leaky-bucket inter-call spacing per provider to prevent RPM quota bursts."""
-    min_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
+def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
+    """Enforce leaky-bucket inter-call spacing per provider scaled by active API key count."""
+    base_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
+    effective_keys = max(1, num_keys)
+    min_interval = max(0.3, base_interval / effective_keys)
     last_time = _LAST_CALL_MAP.get(provider_name.lower(), 0.0)
     now = time.time()
     elapsed = now - last_time
@@ -192,15 +194,20 @@ class GeminiProvider(Provider):
     def _post(self, model: str, body: dict) -> str:
         import random
 
-        keys = _get_active_api_keys("GEMINI_API_KEY")
-        if not keys:
+        all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
+        if not all_configured_keys:
             raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
-        max_retries = max(4, len(keys) * 2)
+        max_retries = max(6, len(all_configured_keys) * 3)
         url = f"{self.BASE}/{model}:generateContent"
 
         for attempt in range(max_retries):
-            key = keys[attempt % len(keys)]
-            _enforce_rate_limit_throttle(self.name)
+            active_keys = _get_active_api_keys("GEMINI_API_KEY")
+            if not active_keys:
+                # All keys in temporary cooldown — wait briefly for key window reset
+                time.sleep(3.0)
+                active_keys = all_configured_keys
+            key = active_keys[attempt % len(active_keys)]
+            _enforce_rate_limit_throttle(self.name, num_keys=len(active_keys))
             try:
                 r = requests.post(
                     url,
@@ -210,24 +217,23 @@ class GeminiProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    raw_delay = 15.0 * (attempt + 1)
+                    cooldown = 60.0
                     if retry_after:
                         try:
-                            raw_delay = max(float(str(retry_after).strip()), 5.0)
+                            cooldown = max(float(str(retry_after).strip()), 15.0)
                         except (ValueError, TypeError):
                             pass
-                    delay = min(raw_delay, 20.0)
-                    _record_key_cooldown(key, delay)
-                    if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
+                    _record_key_cooldown(key, cooldown)
+                    remaining_keys = [k for k in active_keys if k != key]
+                    if remaining_keys:
                         print(
-                            f"  ! gemini rate limit (HTTP 429) — rotating to active API key {(attempt + 1) % len(keys) + 1}/{len(keys)}..."
+                            f"  ! gemini key rate limited (HTTP 429) — rotating to active API key ({len(remaining_keys)} fresh keys remaining)..."
                         )
-                        time.sleep(0.3 + random.uniform(0.1, 0.5))
+                        time.sleep(0.1 + random.uniform(0.05, 0.15))
                         continue
-                    jitter = random.uniform(0.2, 1.2)
-                    total_delay = delay + jitter
+                    total_delay = min(cooldown, 15.0) + random.uniform(0.2, 0.8)
                     print(
-                        f"  ! gemini rate limit (HTTP 429) — cooling down for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
+                        f"  ! gemini all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
                     )
                     time.sleep(total_delay)
                     continue
@@ -317,8 +323,8 @@ class OpenAICompatProvider(Provider):
         import random
 
         base = os.getenv("LLM_BASE_URL", self.default_base).rstrip("/")
-        keys = _get_active_api_keys(self.key_env)
-        if not keys:
+        all_configured_keys = Provider._get_api_keys(self.key_env)
+        if not all_configured_keys:
             raise LLMError(f"{self.key_env} is not set (see .env.example)")
 
         messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
@@ -326,10 +332,14 @@ class OpenAICompatProvider(Provider):
         if json_mode and self.name != "groq":
             payload["response_format"] = {"type": "json_object"}
 
-        max_retries = max(4, len(keys) * 2)
+        max_retries = max(6, len(all_configured_keys) * 3)
         for attempt in range(max_retries):
-            key = keys[attempt % len(keys)]
-            _enforce_rate_limit_throttle(self.name)
+            active_keys = _get_active_api_keys(self.key_env)
+            if not active_keys:
+                time.sleep(3.0)
+                active_keys = all_configured_keys
+            key = active_keys[attempt % len(active_keys)]
+            _enforce_rate_limit_throttle(self.name, num_keys=len(active_keys))
             try:
                 r = requests.post(
                     f"{base}/chat/completions",
@@ -339,24 +349,23 @@ class OpenAICompatProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    raw_delay = 5.0 * (attempt + 1)
+                    cooldown = 60.0
                     if retry_after:
                         try:
-                            raw_delay = max(float(str(retry_after).strip()), 5.0)
+                            cooldown = max(float(str(retry_after).strip()), 10.0)
                         except (ValueError, TypeError):
                             pass
-                    delay = min(raw_delay, 20.0)
-                    _record_key_cooldown(key, delay)
-                    if len(keys) > 1 and (attempt + 1) % len(keys) != 0:
+                    _record_key_cooldown(key, cooldown)
+                    remaining_keys = [k for k in active_keys if k != key]
+                    if remaining_keys:
                         print(
-                            f"  ! {self.name} rate limit (HTTP 429) — rotating to active API key {(attempt + 1) % len(keys) + 1}/{len(keys)}..."
+                            f"  ! {self.name} key rate limited (HTTP 429) — rotating to active API key ({len(remaining_keys)} fresh keys remaining)..."
                         )
-                        time.sleep(0.3 + random.uniform(0.1, 0.5))
+                        time.sleep(0.1 + random.uniform(0.05, 0.15))
                         continue
-                    jitter = random.uniform(0.2, 1.2)
-                    total_delay = delay + jitter
+                    total_delay = min(cooldown, 15.0) + random.uniform(0.2, 0.8)
                     print(
-                        f"  ! {self.name} rate limit (HTTP 429) — cooling down for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
+                        f"  ! {self.name} all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
                     )
                     time.sleep(total_delay)
                     continue

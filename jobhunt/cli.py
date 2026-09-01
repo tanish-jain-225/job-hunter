@@ -333,10 +333,13 @@ def run_pipeline(
         seen_file = cfg.get("seen_file", "state/seen.json")
         st = store or Store(seen_file, user_email=user_email, token=token)
         jobs = st.unseen(candidates)
-        max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 24))
+        max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 40))
         if len(jobs) > max_jobs_to_screen:
+            # Pass 1: Instant keyword pre-ranking across ALL unseen jobs (0.01s)
+            llm.keyword_screen(jobs, profile or {})
+            jobs.sort(key=lambda j: j.score or 0.0, reverse=True)
             print(
-                f"  [throttle] {len(jobs)} unseen jobs found. Throttling to first {max_jobs_to_screen} to stay under AI rate limits."
+                f"  [hybrid-rank] Pre-ranked {len(jobs)} unseen jobs via keyword engine -> selecting top {max_jobs_to_screen} high-relevance roles for LLM screening."
             )
             jobs = jobs[:max_jobs_to_screen]
         print(f"  new since last run: {len(jobs)}")
