@@ -119,7 +119,7 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 # Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
 # LLM_PROVIDER=gemini
 # SCREEN_MODEL=openai/gpt-oss-20b
-# DRAFT_MODEL=gemini-3.6-flash
+# DRAFT_MODEL=gemini-3.7-flash
 ```
 
 Extract your candidate profile from your resume:

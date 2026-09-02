@@ -40,8 +40,8 @@ flowchart LR
 
 ## 3. Component-by-Component Infrastructure Breakdown
 
-### A. Primary AI Engine: Google Gemini Flash (`gemini-3.6-flash`)
-* **Default Model**: `gemini-3.6-flash`
+### A. Primary AI Engine: Google Gemini Flash (`gemini-3.7-flash`)
+* **Default Model**: `gemini-3.7-flash`
 * **Batch Size**: 8 jobs per screening request (high-throughput evaluation pass).
 * **Batch Pacing**: 6.0s delay between requests = 10 RPM exact speed matching (dynamically accelerated via multi-key round-robin rotation).
 * **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`).

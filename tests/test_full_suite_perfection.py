@@ -758,7 +758,7 @@ def test_providers_document_and_error_handling(monkeypatch):
             status_code=200, json=lambda: {"candidates": [{"content": {"parts": [{"text": "Extracted doc"}]}}]}
         ),
     ):
-        res = gemini.complete_document("gemini-3.6-flash", "extract", b"pdf_bytes", 1000)
+        res = gemini.complete_document("gemini-3.7-flash", "extract", b"pdf_bytes", 1000)
         assert res == "Extracted doc"
 
     # Anthropic missing key

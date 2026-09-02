@@ -2422,7 +2422,7 @@ async function handleResumeFileSelectedAndParse(event) {
   if (nextBtn) nextBtn.disabled = false;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  const timeoutId = setTimeout(() => controller.abort(), 18000);
 
   try {
     const formData = new FormData();

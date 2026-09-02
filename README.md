@@ -21,8 +21,8 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.6-flash`, 1M tokens/day)** with multi-key CSV rotation and automatic offline fallback.
-4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.6-flash`)**.
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.7-flash`, 1M tokens/day)** with multi-key CSV rotation and automatic offline fallback.
+4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.7-flash`)**.
 5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings.
 
 > [!IMPORTANT]
@@ -242,26 +242,26 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 # Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
 # LLM_PROVIDER=gemini
 # SCREEN_MODEL=openai/gpt-oss-20b
-# DRAFT_MODEL=gemini-3.6-flash
+# DRAFT_MODEL=gemini-3.7-flash
 ```
 
 
 ---
 
-## 🤖 Primary AI Engine: Google Gemini Flash (`gemini-3.6-flash`)
+## 🤖 Primary AI Engine: Google Gemini Flash (`gemini-3.7-flash`)
 
-Job Hunter is powered by **Google Gemini Flash (`gemini-3.6-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation.
+Job Hunter is powered by **Google Gemini Flash (`gemini-3.7-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation.
 
 ```mermaid
 flowchart LR
-    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Google Gemini (3.6 Flash)<br/>1M Tokens/Day per Key"]
-    B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.6 Flash)<br/>Cover Note, Cold Message, Bullets"]
+    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Google Gemini (3.7 Flash)<br/>1M Tokens/Day per Key"]
+    B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.7 Flash)<br/>Cover Note, Cold Message, Bullets"]
     C --> D["Daily Briefing & Web Kanban"]
 ```
 
 | Provider | Default Model | Environment Key | Native PDF | Best Recommended Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Google Gemini** | `gemini-3.6-flash` | `GEMINI_API_KEY` | ✅ | **Primary Engine:** Screening & Drafting (1M Tokens/Day per key, CSV rotation) |
+| **Google Gemini** | `gemini-3.7-flash` | `GEMINI_API_KEY` | ✅ | **Primary Engine:** Screening & Drafting (1M Tokens/Day per key, CSV rotation) |
 | **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-haiku` | `ANTHROPIC_API_KEY` | ✅ | High-reasoning drafting and native PDF resume analysis |
 | **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |
 | **Ollama** | `llama3.1` | `OLLAMA_HOST` | ❌ | 100% Offline local model execution |
@@ -474,7 +474,7 @@ pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 > **Zero jobs returned for a company?** The slug in `companies.yaml` may be invalid or migrated to a different ATS. Verify the company's public job board URL in your browser.
 
 > [!NOTE]
-> **Zero API Costs?** Google Gemini Flash (`gemini-3.6-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).
+> **Zero API Costs?** Google Gemini Flash (`gemini-3.7-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).
 
 ---
 

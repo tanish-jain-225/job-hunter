@@ -49,7 +49,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - **9 ATS parsers**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint
-- **Two-stage LLM pipeline**: Groq (openai/gpt-oss-20b) batch screening + Google Gemini (gemini-3.6-flash) application kit drafting
+- **Two-stage LLM pipeline**: Groq (openai/gpt-oss-20b) batch screening + Google Gemini (gemini-3.7-flash) application kit drafting
 - **5 LLM provider backends**: Groq, Google Gemini, Anthropic Claude, OpenAI-compatible, Ollama (offline)
 - **Automatic quota circuit breaker**: Falls back to keyword scoring when consecutive LLM batches fail
 - **Multi-tenant single-pass batch engine** (`multi.py`): Fetches all ATS boards once, fans out per-user with Supabase RLS isolation

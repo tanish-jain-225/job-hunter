@@ -48,7 +48,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 2. 📄 Resume Studio & AI Profile Extraction
 * In-dashboard PDF and text resume uploader.
-* Automatically parses uploaded resumes via **Google Gemini (`gemini-3.6-flash`)** / Claude document analysis into structured candidate skills, target titles, seniority, and notable projects.
+* Automatically parses uploaded resumes via **Google Gemini (`gemini-3.7-flash`)** / Claude document analysis into structured candidate skills, target titles, seniority, and notable projects.
 * **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
 
 ### 3. ⚡ Zero-Refresh Real-Time State Sync

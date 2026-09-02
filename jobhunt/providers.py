@@ -20,7 +20,7 @@ from typing import Any
 
 import requests
 
-TIMEOUT = 120
+TIMEOUT = 25
 
 
 class LLMError(RuntimeError):
@@ -204,14 +204,14 @@ class GeminiProvider(Provider):
         all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
         if not all_configured_keys:
             raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
-        max_retries = max(6, len(all_configured_keys) * 3)
+        max_retries = max(2, min(4, len(all_configured_keys)))
         url = f"{self.BASE}/{model}:generateContent"
 
         for attempt in range(max_retries):
             active_keys = _get_active_api_keys("GEMINI_API_KEY")
             if not active_keys:
                 # All keys in temporary cooldown — wait briefly for key window reset
-                time.sleep(3.0)
+                time.sleep(1.0)
                 active_keys = all_configured_keys
             key = active_keys[attempt % len(active_keys)]
             _enforce_rate_limit_throttle(self.name, num_keys=len(active_keys))
@@ -224,10 +224,10 @@ class GeminiProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    cooldown = 60.0
+                    cooldown = 30.0
                     if retry_after:
                         try:
-                            cooldown = max(float(str(retry_after).strip()), 15.0)
+                            cooldown = max(float(str(retry_after).strip()), 10.0)
                         except (ValueError, TypeError):
                             pass
                     _record_key_cooldown(key, cooldown)
@@ -238,7 +238,7 @@ class GeminiProvider(Provider):
                         )
                         time.sleep(0.1 + random.uniform(0.05, 0.15))
                         continue
-                    total_delay = min(cooldown, 15.0) + random.uniform(0.2, 0.8)
+                    total_delay = min(cooldown, 5.0) + random.uniform(0.1, 0.4)
                     print(
                         f"  ! gemini all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
                     )
@@ -246,15 +246,19 @@ class GeminiProvider(Provider):
                     continue
 
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3.0 * (attempt + 1) + random.uniform(0.1, 0.8)
+                    delay = 1.0 * (attempt + 1) + random.uniform(0.1, 0.4)
                     print(
                         f"  ! gemini HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
                     )
                     time.sleep(delay)
                     continue
-                if r.status_code == 404 and model == "gemini-3.6-flash":
-                    print("  ! gemini-3.6-flash HTTP 404 — retrying with model fallback gemini-1.5-flash...")
-                    return self._post("gemini-1.5-flash", body)
+                if r.status_code == 404:
+                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"):
+                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-2.5-flash...")
+                        return self._post("gemini-2.5-flash", body)
+                    elif model != "gemini-flash-latest":
+                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-flash-latest...")
+                        return self._post("gemini-flash-latest", body)
                 if r.status_code != 200:
                     raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
                 try:
@@ -452,7 +456,7 @@ PROVIDERS = {
 
 DEFAULT_MODELS = {
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
-    "gemini": {"screen": "gemini-3.6-flash", "draft": "gemini-3.6-flash"},
+    "gemini": {"screen": "gemini-3.7-flash", "draft": "gemini-3.7-flash"},
     "groq": {"screen": "llama-3.1-8b-instant", "draft": "llama-3.3-70b-versatile"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
     "ollama": {"screen": "llama3.1", "draft": "llama3.1"},
@@ -548,7 +552,7 @@ def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Pro
             try:
                 prov = get_provider(candidate)
                 prov.preflight()
-                model = DEFAULT_MODELS.get(candidate, {}).get(stage, "gemini-3.6-flash")
+                model = DEFAULT_MODELS.get(candidate, {}).get(stage, "gemini-3.7-flash")
                 return prov, model
             except Exception:
                 continue
