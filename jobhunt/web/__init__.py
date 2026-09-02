@@ -101,7 +101,7 @@ def create_app(
     # Support reverse proxy headers (Vercel edge proxies) for accurate remote IP rate limiting
     try:
         from werkzeug.middleware.proxy_fix import ProxyFix
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)  # type: ignore[method-assign]
     except Exception:
         pass
 
