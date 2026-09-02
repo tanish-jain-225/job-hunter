@@ -32,7 +32,7 @@ One daily run performs the following automated funnel:
 - **Greenhouse**: `GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
 - **Lever**: `GET https://api.lever.co/v0/postings/{slug}?mode=json`
 - **Ashby**: `GET https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
-- **Workable**: `GET https://apply.workable.com/api/v2/accounts/{slug}/jobs`
+- **Workable**: `GET https://apply.workable.com/api/v1/widget/accounts/{slug}`
 - **SmartRecruiters**: `GET https://api.smartrecruiters.com/v1/companies/{slug}/postings`
 - **BambooHR**: `GET https://{slug}.bamboohr.com/careers/list`
 - **Recruitee**: `GET https://{slug}.recruitee.com/api/offers/`
@@ -60,9 +60,12 @@ Keep HTTP separate from parsing — each ATS gets a pure `parse_x(slug, company,
 
 ```text
 jobhunt/
+  ├── __init__.py    # Package version & exports
+  ├── auth.py        # Supabase Auth, JWT validation & @require_auth decorator
   ├── fetch.py       # Job dataclass, strip_html, 9 ATS parsers, fetch_all
   ├── prefilter.py   # title include/exclude regex, location, max_age_days
   ├── llm.py         # provider-agnostic screen() + draft() + build_profile()
+  ├── providers.py   # Swappable LLM clients (Gemini, Anthropic, Groq, OpenAI-compat, Ollama)
   ├── digest.py      # HTML email digest builder
   ├── mailer.py      # SMTP email dispatcher
   ├── store.py       # seen.json dedupe + application tracker + CSV export

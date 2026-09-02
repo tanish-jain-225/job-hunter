@@ -34,6 +34,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `/api/jobs/notes` now returns `"version": get_store_version(st)` and `"stats": st.stats()` for instant state reconciliation
 - `clear_ats_cache()` was not thread-safe — now uses `_ATS_CACHE_LOCK`
 - `multi.py` admin batch listing of all users now correctly passes `use_service_key=True`
+- Fixed Mypy `method-assign` typing error on `ProxyFix` middleware assignment in `jobhunt/web/__init__.py`
+- Switched Workable scraper to the official GET endpoint (`api/v1/widget/accounts/{slug}`)
+- Synchronized all documentation ATS tables, YAML examples, and verified all 88 target company slugs to live HTTP 200 OK status
 
 ---
 
