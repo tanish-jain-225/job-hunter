@@ -169,6 +169,24 @@ def run_multi_user_pipeline(
 
     print(f"\n[2/4] Loaded {len(users_to_process)} candidate profiles for screening.")
 
+    # Merge custom target companies from all active users into global pool
+    all_custom_comps: list[dict] = []
+    for u in users_to_process:
+        pjson_raw = u.get("profile_json")
+        pjson: dict[str, Any] = pjson_raw if isinstance(pjson_raw, dict) else {}
+        u_custom = u.get("custom_companies") or pjson.get("custom_companies") or []
+        if isinstance(u_custom, list):
+            for c in u_custom:
+                if isinstance(c, dict) and c.get("ats") and c.get("slug"):
+                    all_custom_comps.append(c)
+    if all_custom_comps and not mock:
+        extra_jobs = fetch_all([], max_workers=fetch_max_workers, custom_companies=all_custom_comps, use_cache=True)
+        if extra_jobs:
+            existing_jids = {j.job_id for j in raw_jobs}
+            new_extras = [j for j in extra_jobs if j.job_id not in existing_jids]
+            raw_jobs.extend(new_extras)
+            print(f"  Added {len(new_extras)} postings from user custom target boards.")
+
     users_processed = 0
     total_matches = 0
     total_shortlisted = 0

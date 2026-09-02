@@ -1,0 +1,72 @@
+﻿<div class="modal-overlay" id="add-company-modal" onclick="if(event.target===this) closeAddCompanyModal();">
+  <div class="modal-content modal-content-medium">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title">Track Target Company Board</div>
+        <div class="modal-subtitle">Add any Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or custom ATS portal</div>
+      </div>
+      <button class="modal-close" onclick="closeAddCompanyModal()" aria-label="Close modal">×</button>
+    </div>
+
+    <form id="form-add-company" onsubmit="handleAddCompanySubmit(event)">
+      <div class="form-group">
+        <label class="form-label" for="add-company-url">
+          <span>Company Career Board URL</span>
+          <span style="color:var(--danger)">*</span>
+        </label>
+        <input type="url" class="form-input" id="add-company-url" 
+               placeholder="e.g. https://boards.greenhouse.io/stripe or https://jobs.lever.co/meesho" 
+               oninput="handleCompanyUrlInput(this.value)" required>
+        <span class="form-hint">Paste any career portal link — ATS platform and company slug are auto-detected instantly.</span>
+      </div>
+
+      <!-- Live Auto-Detection Pill & Details -->
+      <div class="add-company-detected-card" id="add-company-detected" style="display:none; margin-bottom:14px;">
+        <div class="detected-badge-row" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span class="badge-ats" id="detected-ats-badge" style="text-transform:uppercase; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:700; background:var(--accent-light, #e0f2fe); color:var(--accent, #0284c7);">Greenhouse</span>
+          <span class="detected-slug-text" id="detected-slug-text" style="font-size:12px; color:var(--muted); font-family:monospace;">slug: stripe</span>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="add-company-name">Company Display Name</label>
+            <input type="text" class="form-input" id="add-company-name" placeholder="e.g. Stripe">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-company-ats-override">Detected ATS</label>
+            <select class="form-input" id="add-company-ats-override">
+              <option value="greenhouse">Greenhouse</option>
+              <option value="lever">Lever</option>
+              <option value="ashby">Ashby</option>
+              <option value="workable">Workable</option>
+              <option value="smartrecruiters">SmartRecruiters</option>
+              <option value="bamboohr">BambooHR</option>
+              <option value="recruitee">Recruitee</option>
+              <option value="breezy">Breezy HR</option>
+              <option value="pinpoint">Pinpoint</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="studio-alert" id="add-company-status-alert" style="display:none; margin-bottom:12px;"></div>
+
+      <div class="modal-actions-row">
+        <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-company">
+          <span class="spinner" id="save-company-spinner" style="display:none;"></span>
+          <span>Verify &amp; Add Board 🚀</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Active Custom Companies List -->
+    <div class="custom-companies-section" style="margin-top:20px; border-top:1px solid var(--border, #e2e8f0); padding-top:14px;">
+      <div class="custom-companies-title" style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:8px;">
+        Your Custom Target Boards
+      </div>
+      <div class="custom-companies-list" id="custom-companies-list" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:12px; color:var(--muted);">No custom boards added yet. Paste a link above to add one!</span>
+      </div>
+    </div>
+  </div>
+</div>

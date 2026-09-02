@@ -220,15 +220,21 @@
             </div>
             <div class="mode-card-desc">Receive an on-the-spot email briefing whenever you click "Run Job Hunt Now" in the app.</div>
           </div>
-          <div class="mode-card" id="mode-card-daily" onclick="selectNotificationMode(true)">
+          <div class="mode-card active" id="mode-card-daily" onclick="selectNotificationMode(true)">
             <div class="mode-card-header">
-              <div class="mode-card-badge">📬 Daily 6:00 AM Radar</div>
-              <div class="mode-card-radio" id="mode-radio-daily">○</div>
+              <div class="mode-card-badge">📬 Daily 6:00 AM Radar (Recommended)</div>
+              <div class="mode-card-radio" id="mode-radio-daily">●</div>
             </div>
             <div class="mode-card-desc">Automated career intelligence briefing dispatched to your email every morning with fresh matches.</div>
           </div>
         </div>
-        <input type="checkbox" id="onboard-toggle-email-alerts" style="display:none;" aria-label="Receive Daily Email Alerts">
+        <input type="checkbox" id="onboard-toggle-email-alerts" checked style="display:none;" aria-label="Receive Daily Email Alerts">
+      </div>
+
+      <!-- Notification Email Input -->
+      <div class="form-group" style="margin-top:14px;" id="onboard-email-container">
+        <label class="form-label" for="onboard-prof-email">Notification Email Address <span class="form-hint-inline">(Where your briefings will be delivered)</span></label>
+        <input type="email" class="form-input" id="onboard-prof-email" placeholder="your-email@example.com">
       </div>
 
       <div class="wizard-actions-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">

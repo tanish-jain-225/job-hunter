@@ -606,3 +606,42 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         }
 
     return jobs
+
+
+def generate_followup_note(
+    job_title: str,
+    company: str,
+    candidate_name: str = "",
+    applied_on: str = "",
+    stage: str = "applied",
+) -> dict[str, str]:
+    """Generate professional follow-up templates (email & LinkedIn) for applied opportunities."""
+    name = (candidate_name or "Candidate").strip()
+    title = (job_title or "Software Engineer").strip()
+    comp = (company or "Hiring Team").strip()
+    date_str = f" on {applied_on}" if applied_on else " recently"
+
+    subject = f"Following up: {title} application - {name}"
+
+    email_body = (
+        f"Hi {comp} Recruiting Team,\n\n"
+        f"I hope you're having a great week!\n\n"
+        f"I am following up on my application for the {title} role submitted{date_str}. "
+        f"I remain very enthusiastic about {comp}'s mission and would love to reiterate my strong interest in contributing to your engineering team.\n\n"
+        f"Please let me know if you need any additional portfolio samples, code repositories, or background details from my side.\n\n"
+        f"Thank you for your time and consideration,\n"
+        f"{name}"
+    )
+
+    linkedin_dm = (
+        f"Hi! Hope you're doing well. I recently applied for the {title} position at {comp}{date_str}. "
+        f"I'm very excited about what your team is building and wanted to briefly touch base. "
+        f"Looking forward to connecting and happy to share any details! — {name}"
+    )
+
+    return {
+        "subject": subject,
+        "email_body": email_body,
+        "linkedin_dm": linkedin_dm,
+    }
+

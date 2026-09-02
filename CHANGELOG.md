@@ -15,6 +15,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `flask-limiter` rate limiting: `/api/run` capped at 5 calls/hour/IP; global default of 500 req/hour/IP
 
 ### Added
+- **Real-Time Server-Sent Events (SSE) Live Radar Log Streaming**: Added `GET /api/pipeline/stream` and circular thread-safe user log streaming buffers in `jobhunt/web/state.py` for live terminal console updates without polling delay
+- **Custom Target ATS Career Board Manager ("+ Add Board")**: Added `detect_ats_from_url()` in `jobhunt/fetch.py` supporting all 9 ATS platforms with live HTTP 200 verification, accompanied by `POST /api/companies/add`, `GET /api/companies/custom`, and `DELETE /api/companies/custom` endpoints and interactive web modal
+- **Smart Follow-Up Nudges & Generator**: Added automated elapsed-time badges (`⏳ 5d ago · Send Follow-up`) on applied roles in Table and Kanban views, paired with `POST /api/jobs/followup` and 1-click tailored email/LinkedIn outreach generation
+- **Onboarding Setup Wizard Daily Briefing Default**: Pre-selected Daily 6:00 AM Radar mode by default with dedicated notification email input field
+- **Comprehensive Flow Perfection Test Suite**: Added `tests/test_flow_perfection.py` expanding test suite to **372 passed unit & integration tests with >90.8% code coverage**
 - **Dual-Mode View Switcher (Table & Visual Kanban Pipeline)**: Added interactive Table vs. Kanban pipeline view switcher (`#btn-view-table` and `#btn-view-kanban`) with persistent preference storage in `localStorage`
 - **Deterministic Reactive Store Versioning**: `get_store_version()` now hashes `application_stage`, `notes`, `score`, and timestamps into deterministic MD5 version tokens for zero-refresh multi-tab reactivity
 - Expanded automated test suite to 361 unit & integration test cases with 98%+ line coverage

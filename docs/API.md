@@ -26,6 +26,17 @@ Returns current pipeline state, live job stats, and user profile summary for rea
 }
 ```
 
+### GET /api/pipeline/stream
+Stream real-time log execution events from active background crawls to the connected browser client using Server-Sent Events (SSE).
+
+**Auth:** Required  
+**Content-Type:** `text/event-stream`  
+**Payload Shape:**
+```json
+data: {"type": "log", "log": "Step 1/5: Scanning Ashby boards...", "step": "running", "running": true}
+data: {"type": "done", "pipeline": {"running": false, "step": "completed", "message": "Pipeline completed successfully!"}}
+```
+
 ### POST /api/run
 Triggers the full job intelligence radar pipeline for the authenticated user.
 
@@ -132,10 +143,37 @@ Returns active configuration summary (company count, filters, score threshold).
 **Auth:** Required
 
 ### GET /api/companies
-Returns the parsed company list with filtering by name or ATS type.
+Returns the parsed default company list with filtering by name or ATS type.
 
 **Auth:** Required  
 **Query params:** `?search=stripe&ats=greenhouse`
+
+### GET /api/companies/custom
+Returns the list of custom added target company boards configured by the candidate.
+
+**Auth:** Required  
+**Response:** `{"status": "success", "count": 2, "companies": [{"ats": "lever", "slug": "meesho", "name": "Meesho"}]}`
+
+### POST /api/companies/add
+Auto-detects ATS platform from an arbitrary career URL, validates live HTTP accessibility, and registers the company board under the candidate's profile.
+
+**Auth:** Required  
+**Body:** `{"url": "https://jobs.lever.co/meesho", "name": "Meesho"}` or `{"ats": "lever", "slug": "meesho"}`  
+**Response:** `{"status": "success", "message": "Successfully registered and verified Meesho (lever)!", "company": {...}}`
+
+### DELETE /api/companies/custom
+Removes a custom ATS target board from the candidate's radar.
+
+**Auth:** Required  
+**Body:** `{"ats": "lever", "slug": "meesho"}`  
+**Response:** `{"status": "success", "message": "Removed lever:meesho from custom companies"}`
+
+### POST /api/jobs/followup
+Generates a tailored follow-up outreach note (email and LinkedIn DM) for an applied job posting based on candidate profile and elapsed application days.
+
+**Auth:** Required  
+**Body:** `{"title": "Senior Engineer", "company": "Stripe", "applied_on": "2026-08-25", "stage": "applied"}`  
+**Response:** `{"status": "success", "followup": {"subject": "...", "email_body": "...", "linkedin_dm": "..."}}`
 
 ---
 

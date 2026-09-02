@@ -258,9 +258,20 @@ def run_pipeline(
     scorer: str | None = None,
     mock: bool | None = None,
     config_path: str | Path | None = None,
+    custom_companies: list[dict] | None = None,
 ) -> int:
     """Orchestrate the full pipeline dynamically with per-user context."""
     cfg = _cfg(config_path or (getattr(args, "config", None) if args else None))
+
+    def _log(msg: str):
+        print(msg)
+        if user_email:
+            try:
+                from .web.state import publish_user_pipeline_log
+
+                publish_user_pipeline_log(user_email, msg)
+            except Exception:
+                pass
 
     if getattr(args, "strict_llm", False):
         os.environ["STRICT_LLM"] = "true"
@@ -318,18 +329,31 @@ def run_pipeline(
         use_scorer = scorer if scorer is not None else (getattr(args, "scorer", "llm") if args else "llm")
         target_to_email = to_email or (profile.get("notification_email") if profile else None)
 
+        # Extract custom companies from profile if not explicitly passed
+        active_custom_comps = list(custom_companies or [])
+        if profile and not active_custom_comps:
+            pjson_comps = (profile.get("profile_json") or {}).get("custom_companies") if isinstance(profile.get("profile_json"), dict) else []
+            raw_custom = profile.get("custom_companies") or pjson_comps or []
+            if isinstance(raw_custom, list):
+                active_custom_comps = [c for c in raw_custom if isinstance(c, dict)]
+
         # 1. Fetch
         fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
-        print("[1/5] fetching boards")
+        _log("[1/5] fetching boards")
         if use_mock:
             raw_jobs = fetch_all_mock()
         else:
             companies_file = _resolve_relative(Path(cfg.get("companies_file", "companies.yaml")))
-            raw_jobs = fetch_all(companies_file, max_workers=fetch_max_workers)
+            raw_jobs = fetch_all(
+                companies_file,
+                max_workers=fetch_max_workers,
+                custom_companies=active_custom_comps if active_custom_comps else None,
+            )
 
         # 2. Filter
-        print("\n[2/5] filtering")
+        _log("\n[2/5] filtering")
         candidates = prefilter(raw_jobs, filters)
+        _log(f"  {len(candidates)} candidates passed prefilter rules")
 
         # Store
         seen_file = cfg.get("seen_file", "state/seen.json")

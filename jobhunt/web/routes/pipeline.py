@@ -18,12 +18,62 @@ from ..state import (
     get_store_version,
     get_user_pipeline_state,
     set_user_pipeline_state,
+    publish_user_pipeline_log,
+    get_user_pipeline_logs,
+    clear_user_pipeline_logs,
 )
 
 pipeline_bp = Blueprint("pipeline", __name__)
 logger = logging.getLogger(__name__)
 
 _GH_STATUS_CACHE: dict[str, tuple[float, list]] = {}
+
+
+@pipeline_bp.route("/api/pipeline/stream")
+@require_auth
+def api_pipeline_stream():
+    """Stream real-time pipeline execution logs to connected client via Server-Sent Events (SSE)."""
+    import json
+    from flask import Response, stream_with_context
+
+    email, _ = get_current_user_context()
+
+    def generate():
+        last_idx = 0
+        max_idle_ticks = 180  # ~90 seconds safety cutoff
+        idle_ticks = 0
+
+        # Emit initial synchronization payload
+        initial_st = get_user_pipeline_state(email)
+        yield f"data: {json.dumps({'type': 'init', 'pipeline': initial_st})}\n\n"
+
+        while idle_ticks < max_idle_ticks:
+            logs = get_user_pipeline_logs(email)
+            st = get_user_pipeline_state(email)
+
+            if len(logs) > last_idx:
+                for line in logs[last_idx:]:
+                    yield f"data: {json.dumps({'type': 'log', 'log': line, 'step': st.get('step', 'running'), 'running': st.get('running', False)})}\n\n"
+                last_idx = len(logs)
+                idle_ticks = 0
+            else:
+                idle_ticks += 1
+
+            if not st.get("running") and last_idx >= len(logs):
+                yield f"data: {json.dumps({'type': 'done', 'pipeline': st})}\n\n"
+                break
+
+            time.sleep(0.1)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @pipeline_bp.route("/api/sync")
@@ -356,6 +406,9 @@ def api_run():
     email, token = get_current_user_context()
     cli._load_env()
     memory = SupabaseMemory(token=token)
+
+    clear_user_pipeline_logs(email)
+    publish_user_pipeline_log(email, "🚀 Initializing Job Hunter autonomous radar...")
 
     now_utc = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     set_user_pipeline_state(

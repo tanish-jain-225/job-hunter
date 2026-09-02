@@ -74,6 +74,18 @@ The engine sends the full job description (up to **8,000 characters**, configure
 
 ---
 
+## ⏳ Phase 4: Smart Follow-Up Outreach Engine
+
+For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapsed time since application date. If more than 4 days have elapsed without response:
+
+* **Automated Nudges**: Injects `⏳ Xd ago · Follow Up` badges across both Table and visual Kanban cards.
+* **On-Demand Generation (`jobhunt.llm.generate_followup_note`)**: Produces context-aware follow-up templates:
+  * **Email Subject & Body**: References the exact job title, company name, submission date, and reiterates enthusiasm without being pushy.
+  * **LinkedIn Networking DM**: Compact (<80 words) direct message to connect with recruiters or hiring team members.
+* **1-Click Copy**: Integrated into the Application Kit modal for instant clipboard copy.
+
+---
+
 ## 🔌 Swappable Providers & Zero-Quota Split Architecture
 
 The system is provider-agnostic and auto-routes tasks intelligently when keys are set:

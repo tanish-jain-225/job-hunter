@@ -22,8 +22,8 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
 3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.6-flash`, 1M tokens/day)** with multi-key CSV rotation and automatic offline fallback.
-4. ✍️ **Drafts Application Kits**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and interview questions using **Google Gemini (`gemini-3.6-flash`)**.
-5. 📊 **Visual Kanban & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), delivers HTML briefings, and leverages Edge CDN static assets offloading.
+4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.6-flash`)**.
+5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never auto-submits applications. It handles scouting, filtering, ranking, and drafting—leaving final application submission strictly under your control.
@@ -352,7 +352,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (357+ tests with $\ge 98\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (372+ tests with $\ge 90.8\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -379,12 +379,12 @@ job-hunter/
 │   ├── verify.py             # Live ATS career board auditor
 │   └── web/                  # Modular Flask Web Dashboard & REST API
 │       ├── __init__.py       # Application Factory (create_app), error handlers & security headers
-│       ├── state.py          # Thread-safe pipeline execution state & context resolution
+│       ├── state.py          # Thread-safe pipeline execution state, SSE circular buffers & context resolution
 │       └── routes/           # Domain-specific Flask Blueprints
 │           ├── views.py      # Landing UI, dashboard, health check, logo, auth config
-│           ├── jobs.py       # Jobs API, Kanban stage transitions, custom job additions, CSV export
+│           ├── jobs.py       # Jobs API, Kanban stage transitions, custom company additions, CSV export
 │           ├── profile.py    # Candidate profile, notification settings & Resume Studio PDF/TXT parser
-│           └── pipeline.py   # Trigger run, sync heartbeat, execution history, HTML digest
+│           └── pipeline.py   # Trigger run, SSE log streaming, sync heartbeat, execution history, HTML digest
 ├── templates/
 │   └── index.html            # Web dashboard single-page HTML layout & auth modals
 ├── static/
@@ -392,12 +392,13 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 357 comprehensive automated test cases (98%+ line coverage)
+├── tests/                    # 372 comprehensive automated test cases (90.8%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
 │   ├── test_api_kanban_stage.py # Kanban pipeline stage transitions & email test endpoint
 │   ├── test_auth.py          # Supabase auth token verification & endpoint protection tests
+│   ├── test_flow_perfection.py # URL auto-detection, custom company CRUD, SSE stream, follow-up tests
 │   ├── test_resume_studio.py # Resume Studio PDF/TXT parsing & AI profile extraction tests
 │   ├── test_memory.py        # Supabase PostgreSQL storage & tenant isolation tests
 │   ├── test_resilience_scaling.py # Bounded memory, caching, safe regex & scaling tests
@@ -451,13 +452,13 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (357 unit & integration tests):
+Run the full test suite locally (372 unit & integration tests):
 ```bash
 pytest
 ```
 
 
-Run test suite with detailed 98%+ coverage reporting:
+Run test suite with detailed 90%+ coverage reporting:
 ```bash
 pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 ```

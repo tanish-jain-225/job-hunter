@@ -39,7 +39,8 @@ Job Hunter is engineered to support hundreds of concurrent job seekers indefinit
 When running in multi-user mode (`python -m jobhunt multi-run`):
 
 1. **Shared Board Fetching (`fetch_all`)**:
-   - The engine crawls all configured target company ATS boards across Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint **exactly once**.
+   - The engine aggregates both baseline company boards (`companies.yaml`) and all custom company boards added by registered candidates via the "+ Add Board" feature.
+   - It crawls all target ATS boards across Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint **exactly once**.
    - Postings are cached in a thread-safe in-memory cache with an 1800-second TTL.
    - This eliminates rate limits and redundant network I/O regardless of whether there are 5 or 500 users.
 

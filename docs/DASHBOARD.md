@@ -80,6 +80,18 @@ The dashboard is designed as a single-page application with a premium Light Mode
 * Click **"+ Add Opportunity"** directly on the Tracker toolbar to track external roles found via LinkedIn, company career portals, or personal referrals.
 * Automatically scores fit and drafts an Application Kit on demand using your candidate profile.
 
+### 10. 🏢 Custom Target Board Manager ("+ Add Board")
+* Click **"+ Add Board"** on the Tracker toolbar to add any arbitrary company careers URL.
+* Built-in ATS engine auto-detection identifies Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint portals with live HTTP verification.
+* Custom boards are saved to your profile and automatically crawled in morning runs.
+
+### 11. ⏳ Smart Follow-Up Nudges & Outreach Generator
+* Applied roles automatically display elapsed-time badges (`⏳ 5d ago · Follow Up`) on both Table and Kanban cards.
+* Click to generate personalized follow-up emails and LinkedIn networking DMs with 1-click clipboard copy.
+
+### 12. ⚡ Real-Time Server-Sent Events (SSE) Live Radar Log Streaming
+* The on-demand pipeline console streams live logs line-by-line via Server-Sent Events (`/api/pipeline/stream`) without polling lag.
+
 ---
 
 ## 📡 REST API Reference

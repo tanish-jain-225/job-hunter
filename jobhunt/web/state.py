@@ -58,18 +58,21 @@ def get_current_user_context() -> Tuple[Optional[str], Optional[str]]:
 
 
 _USER_PIPELINE_STATES: dict[str, dict] = {}
+_USER_LOG_BUFFERS: dict[str, list[str]] = {}
 _PIPELINE_LOCK = threading.Lock()
 _MAX_PIPELINE_STATES = 500
+_MAX_LOGS_PER_USER = 200
 
 
 def _prune_pipeline_states_locked() -> None:
-    """Evict oldest idle pipeline states when capacity exceeds limits."""
+    """Evict oldest idle pipeline states and log buffers when capacity exceeds limits."""
     if len(_USER_PIPELINE_STATES) > _MAX_PIPELINE_STATES:
         # Filter non-running states first for eviction
         idle_keys = [k for k, v in _USER_PIPELINE_STATES.items() if not v.get("running") and k != "anonymous"]
         excess = len(_USER_PIPELINE_STATES) - _MAX_PIPELINE_STATES
         for k in idle_keys[:excess]:
             _USER_PIPELINE_STATES.pop(k, None)
+            _USER_LOG_BUFFERS.pop(k, None)
 
 
 def get_user_pipeline_state(email: Optional[str]) -> dict:
@@ -104,6 +107,34 @@ def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
         return dict(_USER_PIPELINE_STATES[key])
 
 
+def publish_user_pipeline_log(email: Optional[str], message: str) -> None:
+    """Append a real-time log event to user's circular log stream buffer."""
+    if not message:
+        return
+    key = (email or "anonymous").lower().strip()
+    with _PIPELINE_LOCK:
+        if key not in _USER_LOG_BUFFERS:
+            _USER_LOG_BUFFERS[key] = []
+        buf = _USER_LOG_BUFFERS[key]
+        buf.append(message)
+        if len(buf) > _MAX_LOGS_PER_USER:
+            _USER_LOG_BUFFERS[key] = buf[-_MAX_LOGS_PER_USER:]
+
+
+def get_user_pipeline_logs(email: Optional[str]) -> list[str]:
+    """Retrieve snapshot of current pipeline logs for user."""
+    key = (email or "anonymous").lower().strip()
+    with _PIPELINE_LOCK:
+        return list(_USER_LOG_BUFFERS.get(key, []))
+
+
+def clear_user_pipeline_logs(email: Optional[str]) -> None:
+    """Clear circular log stream buffer for user."""
+    key = (email or "anonymous").lower().strip()
+    with _PIPELINE_LOCK:
+        _USER_LOG_BUFFERS[key] = []
+
+
 def get_store_version(st: Store) -> str:
     """Generate a deterministic fast hash/version token representing current store state."""
     try:
@@ -115,3 +146,4 @@ def get_store_version(st: Store) -> str:
         return hashlib.md5(content.encode("utf-8")).hexdigest()[:16]
     except Exception:
         return str(int(time.time()))
+

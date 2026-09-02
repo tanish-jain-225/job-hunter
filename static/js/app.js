@@ -94,6 +94,26 @@ function switchTrackerView(viewMode) {
   }
 }
 
+function getElapsedAppliedInfo(j) {
+  const stage = j.application_stage || (j.applied ? 'applied' : 'to_apply');
+  if (stage !== 'applied' && stage !== 'interviewing') return null;
+  const appliedDateStr = j.applied_on || j.first_seen || j.created_at;
+  if (!appliedDateStr) return null;
+  try {
+    const appliedTime = new Date(appliedDateStr).getTime();
+    if (isNaN(appliedTime)) return null;
+    const diffDays = Math.floor((Date.now() - appliedTime) / (1000 * 60 * 60 * 24));
+    if (diffDays >= 4) {
+      return {
+        days: diffDays,
+        badgeText: `⏳ ${diffDays}d ago · Follow Up`,
+        isDue: diffDays >= 5
+      };
+    }
+  } catch (e) {}
+  return null;
+}
+
 function renderKanbanCardHtml(j) {
   const score = j.score != null ? Number(j.score).toFixed(1) : 'N/A';
   const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
@@ -101,6 +121,7 @@ function renderKanbanCardHtml(j) {
   const searchQuery = appState.search;
   const applyUrl = resolveJobUrl(j);
   const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach);
+  const followupInfo = getElapsedAppliedInfo(j);
 
   return `
     <div class="kanban-card" id="kanban-card-${escapeHtml(j.job_id)}" onclick="if(event.target.tagName!=='SELECT'&&event.target.tagName!=='A'&&event.target.tagName!=='BUTTON') openKitModal('${escapeHtml(j.job_id)}')">
@@ -114,6 +135,11 @@ function renderKanbanCardHtml(j) {
         <span>·</span>
         <span class="ats-tag" style="font-size:10px;">${escapeHtml(j.ats || 'ats')}</span>
       </div>
+      ${followupInfo ? `
+        <div style="margin: 6px 0;">
+          <button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.job_id)}')" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>
+        </div>
+      ` : ''}
       <div class="kanban-card-actions">
         <select class="kanban-stage-select" aria-label="Application stage for ${escapeHtml(j.title || 'Job')} at ${escapeHtml(j.company || 'Company')}" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
           <option value="to_apply" ${stage==='to_apply'?'selected':''}>To Apply</option>
@@ -763,6 +789,7 @@ function renderJobCardHtml(j, isNew = false) {
   const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach);
   const applyUrl = resolveJobUrl(j);
   const searchQuery = appState.search;
+  const followupInfo = getElapsedAppliedInfo(j);
 
   return `
     <div class="job-item ${isNew ? 'job-item-new' : ''}" id="job-card-${escapeHtml(j.job_id)}">
@@ -771,6 +798,7 @@ function renderJobCardHtml(j, isNew = false) {
           <span class="job-title">${highlightText(j.title, searchQuery)}</span>
           <span class="ats-tag">${escapeHtml(j.ats || 'ats')}</span>
           ${isNew ? '<span class="badge-live-sync">New Discovery</span>' : ''}
+          ${followupInfo ? `<button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.job_id)}')" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
         </div>
         <div class="job-sub">
           <span class="job-sub-company"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>${highlightText(j.company, searchQuery)}</span>
@@ -1022,6 +1050,8 @@ function copySectionText(textId, btnId) {
       originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
     } else if (type === 'cover') {
       originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
+    } else if (type === 'followup') {
+      originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Follow-Up</span>`;
     }
 
     btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="color:#059669; font-weight:800;">Copied!</span>`;
@@ -1093,6 +1123,18 @@ function openKitModal(jobId) {
 
   const outreachLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
   const coverLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
+  const followupLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Follow-Up</span>`;
+
+  if (d.followup && d.followup.email_body) {
+    html += `
+      <div class="kit-section">
+        <div class="kit-label">
+          <span>⏳ Smart Follow-Up Email Outreach</span>
+          <button class="copy-btn" id="btn-copy-followup" data-original="followup" onclick="copySectionText('followup-text', 'btn-copy-followup')">${followupLabelSvg}</button>
+        </div>
+        <div class="cover-box" id="followup-text" style="background:var(--accent-light, #f0f9ff); border-color:var(--accent, #0284c7);">${escapeHtml(d.followup.email_body)}</div>
+      </div>`;
+  }
 
   if (d.cold_outreach) {
     html += `
@@ -1684,6 +1726,9 @@ async function saveOnboardingProfile(launchScan = false) {
   const expLevel = getSelectedExpLevel('onboard-exp');
   const preferredLocations = getLocationPreference('onboard-location-pref', 'onboard-specific-cities');
 
+  const notifEmailInput = document.getElementById('onboard-prof-email');
+  const notificationEmail = (notifEmailInput ? notifEmailInput.value.trim() : '') || currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
+
   const payload = {
     name,
     title,
@@ -1695,7 +1740,7 @@ async function saveOnboardingProfile(launchScan = false) {
     resume_text: resumeText,
     resume_filename: activeProfileData?.resume_filename || '',
     email_notifications_enabled: notifEnabled,
-    notification_email: currentAuthSession?.user?.email || activeProfileData?.notification_email || '',
+    notification_email: notificationEmail,
     min_score_notification: activeProfileData?.min_score_notification || null,
     onboarding_completed: Boolean(title || (skills.length > 0) || (targets.length > 0)),
     job_types: jobTypes,
@@ -3743,4 +3788,224 @@ async function handleAddJobSubmit(e) {
     if (submitBtn) submitBtn.disabled = false;
   }
 }
+
+
+// --------------------------------------------------------------------------
+// Follow-Up Note Modal Orchestrator
+// --------------------------------------------------------------------------
+async function openFollowupModal(jobId) {
+  const j = appState.jobsMap[jobId];
+  if (!j) return;
+  showToast('Generating smart follow-up note...', 'info', 2000);
+  try {
+    const res = await authFetch('/api/jobs/followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_id: jobId,
+        title: j.title,
+        company: j.company,
+        applied_on: j.applied_on || j.first_seen || '',
+        stage: j.application_stage || (j.applied ? 'applied' : 'to_apply')
+      })
+    });
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success' && data.followup) {
+      if (!j.draft) j.draft = {};
+      j.draft.followup = data.followup;
+    }
+  } catch (e) {
+    console.warn('Followup generation notice:', e);
+  }
+  openKitModal(jobId);
+}
+
+// --------------------------------------------------------------------------
+// Custom ATS Company Board Manager
+// --------------------------------------------------------------------------
+function openAddCompanyModal() {
+  const modal = document.getElementById('add-company-modal');
+  if (modal) {
+    modal.classList.add('active');
+    const urlInput = document.getElementById('add-company-url');
+    if (urlInput) {
+      urlInput.value = '';
+      urlInput.focus();
+    }
+    const detectedCard = document.getElementById('add-company-detected');
+    if (detectedCard) detectedCard.style.display = 'none';
+    const alertBox = document.getElementById('add-company-status-alert');
+    if (alertBox) alertBox.style.display = 'none';
+    fetchAndRenderCustomCompanies();
+  }
+}
+
+function closeAddCompanyModal() {
+  const modal = document.getElementById('add-company-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleCompanyUrlInput(rawUrl) {
+  if (!rawUrl || !rawUrl.trim()) {
+    const detectedCard = document.getElementById('add-company-detected');
+    if (detectedCard) detectedCard.style.display = 'none';
+    return;
+  }
+
+  const url = rawUrl.trim().toLowerCase();
+  let ats = null;
+  let slug = '';
+
+  if (url.includes('greenhouse.io')) {
+    ats = 'greenhouse';
+    const parts = url.split('/');
+    slug = parts[parts.length - 1] || parts[parts.length - 2] || '';
+  } else if (url.includes('lever.co')) {
+    ats = 'lever';
+    const parts = url.split('/');
+    slug = parts[parts.length - 1] || parts[parts.length - 2] || '';
+  } else if (url.includes('ashbyhq.com')) {
+    ats = 'ashby';
+    const parts = url.split('/');
+    slug = parts[parts.length - 1] || parts[parts.length - 2] || '';
+  } else if (url.includes('workable.com')) {
+    ats = 'workable';
+    if (url.includes('apply.workable.com')) {
+      const parts = url.split('/');
+      slug = parts[parts.length - 1] || parts[parts.length - 2] || '';
+    } else {
+      slug = url.replace('https://', '').replace('http://', '').split('.')[0];
+    }
+  } else if (url.includes('smartrecruiters.com')) {
+    ats = 'smartrecruiters';
+    const parts = url.split('/');
+    slug = parts[parts.length - 1] || parts[parts.length - 2] || '';
+  } else if (url.includes('bamboohr.com')) {
+    ats = 'bamboohr';
+    slug = url.replace('https://', '').replace('http://', '').split('.')[0];
+  } else if (url.includes('recruitee.com')) {
+    ats = 'recruitee';
+    slug = url.replace('https://', '').replace('http://', '').split('.')[0];
+  } else if (url.includes('breezy.hr')) {
+    ats = 'breezy';
+    slug = url.replace('https://', '').replace('http://', '').split('.')[0];
+  } else if (url.includes('pinpoint.work') || url.includes('pinpointhq.com')) {
+    ats = 'pinpoint';
+    slug = url.replace('https://', '').replace('http://', '').split('.')[0];
+  }
+
+  // Clean slug
+  slug = slug.split('?')[0].split('#')[0].replace(/[^a-zA-Z0-9_\-]/g, '');
+
+  const detectedCard = document.getElementById('add-company-detected');
+  const badge = document.getElementById('detected-ats-badge');
+  const slugEl = document.getElementById('detected-slug-text');
+  const nameInput = document.getElementById('add-company-name');
+  const overrideSelect = document.getElementById('add-company-ats-override');
+
+  if (ats && slug) {
+    if (detectedCard) detectedCard.style.display = 'block';
+    if (badge) badge.innerText = ats.toUpperCase();
+    if (slugEl) slugEl.innerText = `slug: ${slug}`;
+    if (nameInput && !nameInput.value.trim()) {
+      nameInput.value = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    if (overrideSelect) overrideSelect.value = ats;
+  }
+}
+
+async function handleAddCompanySubmit(event) {
+  event.preventDefault();
+  const urlInput = document.getElementById('add-company-url');
+  const nameInput = document.getElementById('add-company-name');
+  const atsSelect = document.getElementById('add-company-ats-override');
+  const spinner = document.getElementById('save-company-spinner');
+  const submitBtn = document.getElementById('btn-save-company');
+  const alertBox = document.getElementById('add-company-status-alert');
+
+  const url = urlInput ? urlInput.value.trim() : '';
+  const name = nameInput ? nameInput.value.trim() : '';
+  const ats = atsSelect ? atsSelect.value : '';
+
+  if (!url) {
+    showToast('Please provide a company career portal URL', 'error');
+    return;
+  }
+
+  if (spinner) spinner.style.display = 'inline-block';
+  if (submitBtn) submitBtn.disabled = true;
+  if (alertBox) alertBox.style.display = 'none';
+
+  try {
+    const res = await authFetch('/api/companies/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, name, ats })
+    });
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success') {
+      showToast(data.message || 'Target company board added successfully!', 'success', 5000);
+      if (urlInput) urlInput.value = '';
+      const detectedCard = document.getElementById('add-company-detected');
+      if (detectedCard) detectedCard.style.display = 'none';
+      fetchAndRenderCustomCompanies();
+      broadcastSync('STATE_MUTATED');
+    } else {
+      throw new Error(data.message || 'Could not verify company board URL');
+    }
+  } catch (err) {
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.className = 'studio-alert studio-alert-error';
+      alertBox.innerText = err.message;
+    }
+    showToast('Validation failed: ' + err.message, 'error');
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+async function fetchAndRenderCustomCompanies() {
+  const container = document.getElementById('custom-companies-list');
+  if (!container) return;
+
+  try {
+    const res = await authFetch('/api/companies/custom', { cache: 'no-store' });
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success' && data.companies && data.companies.length > 0) {
+      container.innerHTML = data.companies.map(c => `
+        <div class="custom-company-chip" style="display:inline-flex; align-items:center; gap:6px; background:var(--card-bg, #fff); border:1px solid var(--border, #e2e8f0); padding:4px 10px; border-radius:20px; font-size:12px;">
+          <span style="font-weight:600; color:var(--text);">${escapeHtml(c.name || c.slug)}</span>
+          <span style="font-size:10px; text-transform:uppercase; color:var(--muted); background:var(--bg, #f8fafc); padding:1px 5px; border-radius:4px;">${escapeHtml(c.ats)}</span>
+          <button type="button" onclick="deleteCustomCompany('${escapeHtml(c.ats)}', '${escapeHtml(c.slug)}')" style="background:none; border:none; cursor:pointer; color:var(--danger, #ef4444); font-size:13px; margin-left:2px;" title="Remove company board">×</button>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<span style="font-size:12px; color:var(--muted);">No custom boards added yet. Paste a link above to add one!</span>';
+    }
+  } catch (e) {
+    console.warn('Failed to load custom companies:', e);
+  }
+}
+
+async function deleteCustomCompany(ats, slug) {
+  if (!confirm(`Remove ${slug} (${ats}) from your custom target boards?`)) return;
+  try {
+    const res = await authFetch('/api/companies/custom', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ats, slug })
+    });
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success') {
+      showToast(data.message || 'Removed company board', 'success');
+      fetchAndRenderCustomCompanies();
+      broadcastSync('STATE_MUTATED');
+    }
+  } catch (err) {
+    showToast('Failed to remove: ' + err.message, 'error');
+  }
+}
+
 

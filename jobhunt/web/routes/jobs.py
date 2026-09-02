@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import logging
+from typing import Any
 from pathlib import Path
 from flask import Blueprint, jsonify, request, send_file
 
 from ... import cli, llm
 from ...auth import require_auth
-from ...store import Store
+from ...store import Store, get_writable_path
 from ..state import ROOT, get_current_user_context, get_store_version
 
 logger = logging.getLogger(__name__)
@@ -91,6 +93,174 @@ def api_companies():
             "companies": filtered,
         }
     )
+
+
+@jobs_bp.route("/api/companies/custom", methods=["GET"])
+@require_auth
+def api_get_custom_companies():
+    """List candidate's custom added ATS target boards."""
+    email, token = get_current_user_context()
+    from ...memory import SupabaseMemory
+
+    memory = SupabaseMemory(token=token)
+    custom_comps: list[dict] = []
+    if email and memory.is_configured:
+        prof = memory.get_user_profile(email, token=token) or {}
+        pjson_raw = prof.get("profile_json")
+        pjson: dict[str, Any] = pjson_raw if isinstance(pjson_raw, dict) else {}
+        custom_comps = prof.get("custom_companies") or pjson.get("custom_companies") or []
+    else:
+        cfg = cli._cfg(raise_on_error=False)
+        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        prof = {}
+        if profile_path.is_file():
+            try:
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    prof = json.load(f)
+            except Exception:
+                prof = {}
+        if not prof:
+            prof = cli._load_profile(cfg, raise_on_error=False) or {}
+        custom_comps = prof.get("custom_companies") or []
+
+    return jsonify({"status": "success", "count": len(custom_comps), "companies": custom_comps})
+
+
+@jobs_bp.route("/api/companies/add", methods=["POST"])
+@require_auth
+def api_add_custom_company():
+    """Validate and add a custom target company career board."""
+    from ...fetch import detect_ats_from_url, REGISTERED_ATS
+    from ...verify import check_single_board
+    from ...memory import SupabaseMemory
+
+    data = request.get_json(silent=True) or {}
+    url = str(data.get("url") or "").strip()
+    ats = str(data.get("ats") or "").strip().lower()
+    slug = str(data.get("slug") or "").strip()
+    name = str(data.get("name") or "").strip()
+
+    if url:
+        detected = detect_ats_from_url(url)
+        if not detected:
+            return jsonify({
+                "status": "error",
+                "message": "Could not identify ATS platform from URL. Supported: Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy, Pinpoint."
+            }), 400
+        ats = detected["ats"]
+        slug = detected["slug"]
+        if not name:
+            name = detected["name"]
+
+    if not ats or not slug:
+        return jsonify({"status": "error", "message": "ATS type and company slug are required."}), 400
+
+    if ats not in REGISTERED_ATS:
+        return jsonify({"status": "error", "message": f"Unsupported ATS '{ats}'. Supported: {', '.join(REGISTERED_ATS)}"}), 400
+
+    company_entry = {"ats": ats, "slug": slug, "name": name or slug.replace("-", " ").title()}
+
+    # Validate live HTTP accessibility before saving
+    _, is_valid, detail = check_single_board(company_entry, timeout=5)
+    if not is_valid:
+        return jsonify({
+            "status": "error",
+            "message": f"Board validation failed for {ats}:{slug} (HTTP {detail}). Please verify the slug or URL."
+        }), 400
+
+    email, token = get_current_user_context()
+    memory = SupabaseMemory(token=token)
+
+    if email and memory.is_configured:
+        prof = memory.get_user_profile(email, token=token) or {}
+        pjson_raw = prof.get("profile_json")
+        pjson: dict[str, Any] = dict(pjson_raw) if isinstance(pjson_raw, dict) else {}
+        existing = list(prof.get("custom_companies") or pjson.get("custom_companies") or [])
+        existing = [c for c in existing if not (c.get("ats") == ats and c.get("slug") == slug)]
+        existing.append(company_entry)
+        pjson["custom_companies"] = existing
+        prof["custom_companies"] = existing
+        prof["profile_json"] = pjson
+        memory.upsert_user_profile(email, prof, token=token)
+    else:
+        cfg = cli._cfg(raise_on_error=False)
+        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        prof = {}
+        if profile_path.is_file():
+            try:
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    prof = json.load(f)
+            except Exception:
+                prof = {}
+        if not prof:
+            prof = cli._load_profile(cfg, raise_on_error=False) or {}
+        existing = list(prof.get("custom_companies") or [])
+        existing = [c for c in existing if not (c.get("ats") == ats and c.get("slug") == slug)]
+        existing.append(company_entry)
+        prof["custom_companies"] = existing
+        try:
+            profile_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(profile_path, "w", encoding="utf-8") as f:
+                json.dump(prof, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Could not cache profile locally: {e}")
+
+    return jsonify({
+        "status": "success",
+        "message": f"Successfully registered and verified {company_entry['name']} ({ats})!",
+        "company": company_entry,
+    })
+
+
+@jobs_bp.route("/api/companies/custom", methods=["DELETE"])
+@require_auth
+def api_delete_custom_company():
+    """Remove a custom company board from candidate tracking profile."""
+    from ...memory import SupabaseMemory
+
+    data = request.get_json(silent=True) or {}
+    ats = str(data.get("ats") or "").strip().lower()
+    slug = str(data.get("slug") or "").strip()
+
+    if not ats or not slug:
+        return jsonify({"status": "error", "message": "ATS and slug are required"}), 400
+
+    email, token = get_current_user_context()
+    memory = SupabaseMemory(token=token)
+
+    if email and memory.is_configured:
+        prof = memory.get_user_profile(email, token=token) or {}
+        pjson_raw = prof.get("profile_json")
+        pjson: dict[str, Any] = dict(pjson_raw) if isinstance(pjson_raw, dict) else {}
+        existing = list(prof.get("custom_companies") or pjson.get("custom_companies") or [])
+        filtered = [c for c in existing if not (str(c.get("ats")).lower() == ats and str(c.get("slug")).lower() == slug)]
+        pjson["custom_companies"] = filtered
+        prof["custom_companies"] = filtered
+        prof["profile_json"] = pjson
+        memory.upsert_user_profile(email, prof, token=token)
+    else:
+        cfg = cli._cfg(raise_on_error=False)
+        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        prof = {}
+        if profile_path.is_file():
+            try:
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    prof = json.load(f)
+            except Exception:
+                prof = {}
+        if not prof:
+            prof = cli._load_profile(cfg, raise_on_error=False) or {}
+        existing = list(prof.get("custom_companies") or [])
+        filtered = [c for c in existing if not (str(c.get("ats")).lower() == ats and str(c.get("slug")).lower() == slug)]
+        prof["custom_companies"] = filtered
+        try:
+            profile_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(profile_path, "w", encoding="utf-8") as f:
+                json.dump(prof, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Could not cache profile locally: {e}")
+
+    return jsonify({"status": "success", "message": f"Removed {ats}:{slug} from custom companies"})
 
 
 @jobs_bp.route("/api/stats")
@@ -449,3 +619,37 @@ def api_add():
             "stats": st.stats(),
         }
     )
+
+
+@jobs_bp.route("/api/jobs/followup", methods=["POST"])
+@require_auth
+def api_job_followup():
+    """Generate tailored follow-up outreach templates for an applied opportunity."""
+    data = request.get_json(silent=True) or {}
+    title = str(data.get("title") or "").strip()
+    company = str(data.get("company") or "").strip()
+    applied_on = str(data.get("applied_on") or "").strip()
+    stage = str(data.get("stage") or "applied").strip()
+
+    email, token = get_current_user_context()
+    from ...memory import SupabaseMemory
+
+    candidate_name = ""
+    memory = SupabaseMemory(token=token)
+    if email and memory.is_configured:
+        prof = memory.get_user_profile(email, token=token) or {}
+        candidate_name = prof.get("name") or ""
+    if not candidate_name:
+        cfg = cli._cfg(raise_on_error=False)
+        prof = cli._load_profile(cfg, raise_on_error=False) or {}
+        candidate_name = prof.get("name") or ""
+
+    followup_data = llm.generate_followup_note(
+        job_title=title,
+        company=company,
+        candidate_name=candidate_name,
+        applied_on=applied_on,
+        stage=stage,
+    )
+    return jsonify({"status": "success", "followup": followup_data})
+
