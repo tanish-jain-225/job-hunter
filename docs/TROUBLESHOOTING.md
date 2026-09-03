@@ -60,6 +60,12 @@ This guide covers solutions to common errors, configurations, and questions enco
   * In `config.yaml`, set `llm_max_workers` to `1` for free-tier keys.
   * Adjust `screen_batch_size` (e.g., to `8`) to evaluate jobs efficiently per API call within token budget limits.
 
+### Notice: Gemini HTTP 503 (High Demand) or Resume Upload Latency
+* **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`.
+* **The Solution:**
+  * Job Hunter includes built-in exponential backoff retries and a generous 45-second client timeout window.
+  * Even if Google's servers take longer than 30s or fail completely, Job Hunter's **smart local regex fallback** automatically takes over in $\le 15$ seconds, extracting your candidate name, current title, education, technical skills, and target roles directly from plain text so you are never locked out of your dashboard!
+
 ---
 
 ## 📋 Data & Caching Questions

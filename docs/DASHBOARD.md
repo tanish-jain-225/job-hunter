@@ -34,7 +34,7 @@ You can configure the host and port using command-line arguments or environment 
 
 ## 🎨 User Interface Features
 
-The dashboard is designed as a single-page application with a premium Light Mode theme, supporting the following features:
+The dashboard is designed as a single-page application with a premium Light Mode theme and an ultra-responsive layout engineered to scale gracefully from multi-monitor 4K displays down to 300px mobile viewports without horizontal overflow, supporting the following features:
 
 ### 1. 📋 Dual-Mode View Switcher (Table & Visual Kanban Pipeline)
 * **Table / List View**: High-density interactive table showing job match scores, ATS tags, company, location, applied toggle, and application kit inspector.
@@ -47,8 +47,9 @@ The dashboard is designed as a single-page application with a premium Light Mode
 * Instant 1-click stage dropdown selectors and seamless view switching with persistent preference stored in `localStorage`.
 
 ### 2. 📄 Resume Studio & AI Profile Extraction
-* In-dashboard PDF and text resume uploader.
+* In-dashboard PDF and text resume uploader with drag-and-drop support.
 * Automatically parses uploaded resumes via the configured AI provider (default: **Google Gemini `gemini-3.7-flash`**; also supports **Anthropic Claude** native document blocks) into structured candidate skills, target titles, seniority, and notable projects.
+* **Resilient Latency Protection**: Enforces a 30s backend execution ceiling and 45s frontend timeout, with an automatic smart local regex fallback that guarantees candidate name, title, education, and technical skills are extracted even during upstream AI provider service spikes (e.g. HTTP 503).
 * **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
 
 ### 3. ⚡ Zero-Refresh Real-Time State Sync

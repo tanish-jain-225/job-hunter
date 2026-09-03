@@ -6,7 +6,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success)](https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-377%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/tests-391%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff)](https://github.com/astral-sh/ruff)
 
@@ -384,17 +384,19 @@ job-hunter/
 │       └── routes/           # Domain-specific Flask Blueprints
 │           ├── views.py      # Landing UI, dashboard, health check, logo, auth config
 │           ├── jobs.py       # Jobs API, Kanban stage transitions, custom company additions, CSV export
-│           ├── profile.py    # Candidate profile, notification settings & Resume Studio PDF/TXT parser
+│           ├── profile.py    # Candidate profile, notification settings & Resume Studio (30s AI ceiling + fallback parser)
 │           └── pipeline.py   # Trigger run, SSE log streaming, sync heartbeat, execution history, HTML digest
 ├── templates/
 │   └── index.html            # Web dashboard single-page HTML layout & auth modals
 ├── static/
-│   ├── css/style.css         # Clean responsive design system, typography & glassmorphic tokens
+│   ├── css/style.css         # Responsive design system down to 300px width, typography & glassmorphic tokens
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
-│   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 377 comprehensive automated test cases (91%+ line coverage)
+│   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
+│   └── teardown.sql          # Idempotent schema reset & companion teardown script
+├── tests/                    # 391 comprehensive automated test cases (91%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
+│   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
 │   ├── test_api_kanban_stage.py # Kanban pipeline stage transitions & email test endpoint

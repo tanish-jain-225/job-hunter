@@ -43,7 +43,7 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 
 1. Create a free account at [supabase.com](https://supabase.com) and create a new project (e.g. `job-hunter-prod`).
 2. Go to **SQL Editor** in your Supabase dashboard.
-3. Paste the contents of [`supabase/schema.sql`](../supabase/schema.sql) and click **Run**.
+3. Paste the contents of [`supabase/schema.sql`](../supabase/schema.sql) and click **Run**. *(To cleanly reset or tear down your tables at any point, use [`supabase/teardown.sql`](../supabase/teardown.sql))*.
 4. Go to **Project Settings > API Keys**:
    * Copy the **Project URL** (`https://xyzcompany.supabase.co`) -> `SUPABASE_URL`
    * Copy the **Public Anon Key** (`anon` `public`) -> `SUPABASE_ANON_KEY`

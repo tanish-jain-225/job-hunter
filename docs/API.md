@@ -196,11 +196,29 @@ Flush out the candidate profile, resume text, and notification preferences.
 **Auth:** Required
 
 ### POST /api/resume/upload
-Upload and parse a candidate resume (PDF or plain text).
+Upload and extract structured candidate profile data from a resume document (PDF or plain text).
 
 **Auth:** Required  
-**Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "..."}`)  
-**Response:** Parsed profile + extracted resume text
+**Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "...", "filename": "resume.pdf"}`)  
+**Timeout & Resilience:** 30.0s backend execution ceiling with automatic fallback to high-speed smart local regex parser during upstream AI provider load spikes (e.g. HTTP 503).  
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Resume text successfully extracted. You can review and alter your text context before saving.",
+  "resume_text": "...",
+  "profile": {
+    "name": "Tanish Sanghvi",
+    "title": "Full-Stack Developer",
+    "education": "B.E. in Automation & Robotics Engineering",
+    "experience_years": 0.0,
+    "skills": ["JavaScript", "Python", "React.js", "Node.js", "Express.js", "Next.js", "MongoDB"],
+    "target_keywords": ["Full Stack Developer", "Software Engineer"],
+    "resume_text": "..."
+  },
+  "parsed_profile": {...}
+}
+```
 
 ### GET /api/profile/preferences
 Returns search preference settings (locations, job types, salary floor).
