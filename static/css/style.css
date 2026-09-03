@@ -3563,10 +3563,16 @@ input:checked + .slider::before {
 }
 
 /* ==============================================================================
-   12. Pure Flexbox Ultra-Small Mobile Responsive Engine (Down to 300px)
+   12. Universal Mobile Responsive Engine (Down to 300px Width)
    ============================================================================== */
 
+/* --- 12.1 Small Mobile (<= 480px) --- */
 @media (max-width: 480px) {
+  body {
+    padding: 6px;
+    gap: 10px;
+  }
+
   .mail-mode-selector {
     flex-direction: column;
     gap: 8px;
@@ -3579,7 +3585,7 @@ input:checked + .slider::before {
   }
 
   .kanban-board-container {
-    gap: 12px;
+    gap: 10px;
   }
 
   .kanban-column {
@@ -3595,6 +3601,10 @@ input:checked + .slider::before {
     gap: 10px;
   }
 
+  .modal-overlay {
+    padding: 6px !important;
+  }
+
   .modal-content,
   .modal-content-studio,
   .modal-content-wizard,
@@ -3604,51 +3614,221 @@ input:checked + .slider::before {
     max-width: 100% !important;
     border-radius: 12px !important;
     max-height: 94vh !important;
+    padding: 14px 12px !important;
   }
 
   .modal-header {
-    padding: 12px 14px !important;
+    padding: 10px 12px !important;
   }
 
   .modal-body,
   .modal-body-studio {
-    padding: 12px 14px !important;
+    padding: 12px 10px !important;
   }
 }
 
-/* Ultra-Compact Screens & Foldable Displays (<= 340px down to 300px) */
-@media (max-width: 340px) {
+/* --- 12.2 Compact Mobile & Foldables (<= 380px) --- */
+@media (max-width: 380px) {
   body {
-    padding: 4px !important;
+    padding: 5px !important;
     gap: 8px !important;
   }
 
   .navbar {
-    padding: 6px 8px !important;
-    border-radius: 8px !important;
-  }
-
-  .navbar-container {
-    gap: 6px !important;
-  }
-
-  .brand-logo-frame {
-    width: 24px !important;
-    height: 24px !important;
+    padding: 8px !important;
   }
 
   .brand-title {
-    font-size: 13.5px !important;
+    font-size: 14.5px !important;
   }
 
   .brand-badge {
-    font-size: 8px !important;
+    font-size: 8.5px !important;
     padding: 1px 4px !important;
   }
 
   .sync-indicator {
+    padding: 2px 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .landing-hero-title {
+    font-size: 19px !important;
+  }
+
+  .landing-hero-desc {
+    font-size: 12.5px !important;
+  }
+
+  .pipeline-card,
+  .ats-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 12px !important;
+  }
+
+  *, *::before, *::after {
+    min-width: 0 !important;
+  }
+
+  .kanban-board-container {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .kanban-column {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .search-input-wrapper {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .tracker-select {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .studio-form-grid .form-group {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .tracker-controls-row .form-input,
+  .tracker-controls-row .tracker-select,
+  .tracker-controls-row .btn {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .modal-content,
+  .modal-content-studio,
+  .modal-content-wizard,
+  .modal-content-medium,
+  .modal-content-custom-job {
+    width: calc(100vw - 8px) !important;
+    max-width: 100% !important;
+    border-radius: 10px !important;
+    padding: 12px 8px !important;
+  }
+}
+
+/* --- 12.3 Ultra-Narrow Screens & Foldables (<= 340px down to 300px) --- */
+@media (max-width: 340px) {
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  body {
+    padding: 4px 4px 16px !important;
+    gap: 6px !important;
+    margin: 0 !important;
+  }
+
+  /* Universal Component Padding & Bounds */
+  *, *::before, *::after {
+    min-width: 0 !important;
+  }
+
+  /* 1. Header / Navbar */
+  .navbar {
+    padding: 6px 6px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .navbar-container {
+    gap: 4px !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .nav-brand-cluster {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .brand-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .brand-logo-frame {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    padding: 1px !important;
+    border-radius: 5px !important;
+  }
+
+  .brand-title {
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .brand-badge {
+    display: none !important;
+  }
+
+  .sync-indicator {
     padding: 2px 5px !important;
-    font-size: 9px !important;
+    font-size: 8.5px !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sync-indicator .status-dot {
+    width: 5px !important;
+    height: 5px !important;
+  }
+
+  .landing-nav-links {
+    width: 100% !important;
+    margin-top: 2px !important;
+  }
+
+  .landing-nav-btns {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .landing-nav-btns .btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 5px 3px !important;
+    font-size: 10.5px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  .landing-nav-btns svg {
+    display: none !important;
+  }
+
+  /* Authenticated Header Cluster */
+  .nav-actions-cluster,
+  #header-metrics {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
   }
 
   .metrics-bar {
@@ -3656,8 +3836,9 @@ input:checked + .slider::before {
     flex-direction: column !important;
     align-items: stretch !important;
     width: 100% !important;
-    gap: 4px !important;
-    padding: 6px 8px !important;
+    gap: 2px !important;
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
   }
 
   .metric-divider {
@@ -3672,19 +3853,41 @@ input:checked + .slider::before {
   }
 
   .metric-lbl {
-    font-size: 10px !important;
+    font-size: 9.5px !important;
   }
 
   .metric-val {
-    font-size: 11.5px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+
+  .nav-btn-group {
+    width: 100% !important;
+  }
+
+  .btn-nav-settings {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 10.5px !important;
+    padding: 5px 8px !important;
   }
 
   .user-auth-pill {
+    display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 6px !important;
-    padding: 6px 8px !important;
+    gap: 4px !important;
+    padding: 6px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 6px !important;
+  }
+
+  .user-avatar {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    font-size: 10px !important;
   }
 
   .user-info-text {
@@ -3693,59 +3896,446 @@ input:checked + .slider::before {
   }
 
   .user-email {
-    font-size: 11px !important;
+    font-size: 10px !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .user-status-badge {
+    font-size: 8px !important;
+    padding: 1px 4px !important;
   }
 
   .btn-auth-signout {
     width: 100% !important;
     justify-content: center !important;
+    font-size: 10.5px !important;
+    padding: 4px 6px !important;
   }
 
-  .tab-bar {
+  /* 2. Landing View Hero */
+  .landing-view {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .landing-hero-grid {
+    display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin: 0 !important;
+  }
+
+  .landing-hero-copy {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .landing-tag {
+    font-size: 9.5px !important;
+    padding: 2px 6px !important;
+    max-width: 100% !important;
+  }
+
+  .landing-hero-title {
+    font-size: 16.5px !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  .landing-hero-desc {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    word-break: break-word !important;
+  }
+
+  .landing-hero-features {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    width: 100% !important;
+  }
+
+  .hero-feat-card {
+    padding: 7px 6px !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    border-radius: 6px !important;
+  }
+
+  .feat-icon-box {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+  }
+
+  .feat-icon-box svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .feat-content strong {
+    font-size: 11px !important;
+  }
+
+  .feat-content p {
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .landing-auth-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .auth-card-inner {
+    padding: 10px 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 8px !important;
+  }
+
+  .auth-card-title {
+    font-size: 13.5px !important;
+  }
+
+  .auth-card-subtitle {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .auth-tabs {
+    display: flex !important;
+    gap: 3px !important;
+    width: 100% !important;
+  }
+
+  .auth-tab-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    font-size: 10px !important;
+    padding: 5px 2px !important;
+    text-align: center !important;
+  }
+
+  .form-group {
+    margin-bottom: 7px !important;
+    width: 100% !important;
+  }
+
+  .form-label {
+    font-size: 10.5px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .form-label-row {
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+  }
+
+  .auth-forgot-link {
+    font-size: 9.5px !important;
+  }
+
+  .form-input {
+    font-size: 11px !important;
+    padding: 5px 7px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .btn-submit {
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+    width: 100% !important;
+  }
+
+  .auth-divider {
+    margin: 7px 0 !important;
+    font-size: 9px !important;
+  }
+
+  .btn-social-auth {
+    font-size: 10px !important;
+    padding: 5px 6px !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .pipeline-grid,
+  .ats-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .pipeline-card,
+  .ats-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 8px !important;
+    border-radius: 6px !important;
+  }
+
+  .pipeline-card h3 {
+    font-size: 12.5px !important;
+  }
+
+  .pipeline-card p {
+    font-size: 10.5px !important;
+  }
+
+  .ats-header {
+    gap: 5px !important;
+  }
+
+  .ats-name {
+    font-size: 11.5px !important;
+  }
+
+  .ats-count {
+    font-size: 9px !important;
+  }
+
+  /* 3. Dashboard Layout & Sidebar */
+  .dashboard-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 6px !important;
+    margin: 0 !important;
+  }
+
+  .sidebar-pane {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .card-studio-summary {
+    padding: 8px 6px !important;
+    border-radius: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .card-title {
+    font-size: 11.5px !important;
+    gap: 5px !important;
+  }
+
+  .studio-profile-name {
+    font-size: 12px !important;
+    word-break: break-word !important;
+  }
+
+  .studio-profile-title {
+    font-size: 10.5px !important;
+    word-break: break-word !important;
+  }
+
+  .studio-tags-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+  }
+
+  .studio-skill-tag {
+    font-size: 8.5px !important;
+    padding: 1px 4px !important;
+    max-width: 100% !important;
+  }
+
+  .studio-notif-status {
+    margin-top: 3px !important;
+  }
+
+  .notif-badge-off,
+  .notif-badge-on {
+    font-size: 8.5px !important;
+    padding: 1px 4px !important;
+  }
+
+  .studio-btn-manage {
+    width: 100% !important;
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+    justify-content: center !important;
+  }
+
+  #btn-run {
+    width: 100% !important;
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+    justify-content: center !important;
+  }
+
+  .console {
+    font-size: 9px !important;
+    padding: 6px !important;
+    max-height: 110px !important;
+    word-break: break-word !important;
+    white-space: pre-wrap !important;
+  }
+
+  .main-viewport-pane {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 4. Tab Navigation */
+  .tab-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
     width: 100% !important;
   }
 
   .tab-btn {
     width: 100% !important;
     justify-content: center !important;
-    font-size: 11.5px !important;
-    padding: 8px !important;
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+    border-radius: 6px !important;
   }
 
-  .tracker-controls-row {
-    flex-direction: column !important;
-    gap: 6px !important;
-    width: 100% !important;
-  }
-
-  .tracker-controls-row .form-input,
-  .tracker-controls-row .tracker-select,
-  .tracker-controls-row .btn {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-  }
-
-  .filter-pills-row {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .filter-pills {
+  /* 5. Digest Viewport */
+  .digest-header-row {
     display: flex !important;
     flex-direction: column !important;
     gap: 4px !important;
     width: 100% !important;
   }
 
+  .digest-header-title-group {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+  }
+
+  .digest-preview-label {
+    font-size: 10px !important;
+    word-break: break-word !important;
+  }
+
+  .badge-live-sync {
+    font-size: 8px !important;
+    padding: 1px 3px !important;
+  }
+
+  .digest-header-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+  }
+
+  .viewport-frame {
+    min-height: 280px !important;
+    height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+  }
+
+  /* 6. Tracker Board & Search Controls */
+  .tracker-bar {
+    padding: 6px !important;
+    border-radius: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tracker-controls-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .search-input-wrapper {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .tracker-search {
+    width: 100% !important;
+    font-size: 11px !important;
+    padding: 5px 6px 5px 24px !important;
+    box-sizing: border-box !important;
+  }
+
+  .search-icon {
+    left: 6px !important;
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .search-kbd-hint {
+    display: none !important;
+  }
+
+  .search-clear-btn {
+    right: 5px !important;
+    width: 15px !important;
+    height: 15px !important;
+    font-size: 8px !important;
+  }
+
+  .tracker-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 10.5px !important;
+    padding: 4px 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #btn-add-company-board,
+  #btn-add-opportunity {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    font-size: 10.5px !important;
+    padding: 5px 6px !important;
+  }
+
+  .filter-pills-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .filter-pills {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    width: 100% !important;
+  }
+
   .filter-pills .pill {
     width: 100% !important;
+    display: flex !important;
     justify-content: space-between !important;
-    padding: 6px 10px !important;
-    font-size: 11.5px !important;
+    align-items: center !important;
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    border-radius: 5px !important;
   }
 
   .view-toggle-group {
@@ -3755,30 +4345,184 @@ input:checked + .slider::before {
 
   .btn-view-toggle {
     flex: 1 1 50% !important;
+    min-width: 0 !important;
     justify-content: center !important;
-    font-size: 11.5px !important;
-    padding: 6px !important;
+    font-size: 10px !important;
+    padding: 4px 2px !important;
   }
 
+  /* 7. Kanban View Pipeline */
   .kanban-board-container {
-    gap: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
     width: 100% !important;
+    min-width: 0 !important;
   }
 
   .kanban-column {
     flex: 1 1 100% !important;
     min-width: 0 !important;
     width: 100% !important;
-    border-radius: 8px !important;
+    border-radius: 6px !important;
+    min-height: auto !important;
   }
 
   .kanban-column-header {
-    padding: 8px 10px !important;
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .kanban-col-count {
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+  }
+
+  .kanban-cards-list {
+    padding: 4px !important;
+    gap: 4px !important;
   }
 
   .kanban-card {
-    padding: 8px 10px !important;
+    padding: 6px !important;
+    border-radius: 5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+  }
+
+  .kanban-card-title {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  .kanban-card-company {
+    font-size: 10px !important;
+    word-break: break-word !important;
+  }
+
+  .kanban-card-badges {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+    margin-top: 3px !important;
+  }
+
+  .kanban-card-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 3px !important;
+    margin-top: 4px !important;
+  }
+
+  .kanban-card-actions .btn,
+  .kanban-card-actions a.btn {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 9.5px !important;
+    padding: 3px 5px !important;
+  }
+
+  /* 8. Table List View */
+  .job-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 7px 6px !important;
     border-radius: 6px !important;
+    gap: 5px !important;
+  }
+
+  .job-item-main {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .job-title-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    width: 100% !important;
+  }
+
+  .job-title {
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  .job-company {
+    font-size: 10.5px !important;
+    word-break: break-word !important;
+  }
+
+  .job-meta {
+    font-size: 9.5px !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+  }
+
+  .job-badges {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+  }
+
+  .badge-score,
+  .badge-ats,
+  .badge-queue {
+    font-size: 8.5px !important;
+    padding: 1px 3px !important;
+  }
+
+  .job-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    border-top: 1px solid var(--border);
+    padding-top: 4px !important;
+  }
+
+  .job-action-btn-row {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 3px !important;
+  }
+
+  .job-action-btn-row .btn,
+  .job-action-btn-row a.btn {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+  }
+
+  .job-notes-row {
+    width: 100% !important;
+  }
+
+  .job-notes-input {
+    width: 100% !important;
+    font-size: 10px !important;
+    padding: 3px 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 9. All Modals & Dialog Windows */
+  .modal-overlay {
+    padding: 2px !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .modal-content,
@@ -3786,70 +4530,284 @@ input:checked + .slider::before {
   .modal-content-wizard,
   .modal-content-medium,
   .modal-content-custom-job {
-    width: calc(100vw - 6px) !important;
-    padding: 10px 6px !important;
-    border-radius: 8px !important;
+    width: calc(100vw - 4px) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 6px !important;
+    padding: 8px 6px !important;
+    max-height: 96vh !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .modal-header {
+    padding: 6px 4px !important;
+    margin-bottom: 6px !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .modal-header-info {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .modal-title {
-    font-size: 14.5px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
   }
 
   .modal-subtitle {
-    font-size: 11px !important;
+    font-size: 10px !important;
+    word-break: break-word !important;
   }
 
-  .wizard-progress-bar {
-    padding: 4px 4px 0 !important;
-    gap: 0 !important;
+  .modal-header-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+    display: flex !important;
+    align-items: center !important;
+    margin-top: 2px !important;
   }
 
-  .wizard-step-circle {
+  .modal-close {
     width: 22px !important;
     height: 22px !important;
-    font-size: 10px !important;
-  }
-
-  .wizard-step-label {
-    font-size: 9.5px !important;
-  }
-
-  .wizard-step-connector {
-    margin: 0 2px 14px !important;
-  }
-
-  .btn {
-    font-size: 11.5px !important;
-    padding: 6px 10px !important;
-  }
-
-  .btn-sm {
-    font-size: 10.5px !important;
-    padding: 4px 8px !important;
-  }
-
-  .job-item {
-    padding: 10px 8px !important;
-    border-radius: 8px !important;
-  }
-
-  .job-title {
+    min-width: 22px !important;
     font-size: 13px !important;
   }
 
-  .job-badges {
+  .form-grid-2 {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+
+  .studio-form-grid .form-group {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .modal-actions-row,
+  .wizard-actions-row {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    width: 100% !important;
     gap: 4px !important;
+    margin-top: 6px !important;
   }
 
-  .badge-score {
+  .modal-actions-row button,
+  .modal-actions-row .btn,
+  .wizard-actions-row button,
+  .wizard-actions-row .btn {
+    width: 100% !important;
+    justify-content: center !important;
     font-size: 10.5px !important;
+    padding: 5px 6px !important;
+  }
+
+  /* 10. Setup Wizard Steppers & Role Presets */
+  .wizard-stepper {
+    padding: 3px 2px !important;
+    width: 100% !important;
+    gap: 2px !important;
+    justify-content: space-between !important;
+  }
+
+  .step-node {
+    gap: 3px !important;
+  }
+
+  .step-circle {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 9px !important;
+  }
+
+  .step-label {
+    font-size: 8.5px !important;
+  }
+
+  .step-sub {
+    display: none !important;
+  }
+
+  .step-connector {
+    flex: 1 1 4px !important;
+    min-width: 4px !important;
+    height: 1px !important;
+  }
+
+  .wizard-progress-bar {
+    padding: 3px 2px 0 !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  .wizard-step-node {
+    gap: 2px !important;
+  }
+
+  .wizard-step-circle {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 9px !important;
+  }
+
+  .wizard-step-label {
+    font-size: 8px !important;
+  }
+
+  .wizard-step-connector {
+    flex: 1 1 4px !important;
+    min-width: 4px !important;
+    margin: 0 1px 8px !important;
+  }
+
+  .role-presets-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+    width: 100% !important;
+  }
+
+  .btn-preset-chip {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .resume-dropzone {
+    padding: 8px 4px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dropzone-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .dropzone-text {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  .dropzone-sub {
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+  }
+
+  /* 11. Application Kit Details */
+  .kit-modal-body {
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .kit-section {
+    width: 100% !important;
+    word-break: break-word !important;
+  }
+
+  .kit-label {
+    font-size: 9.5px !important;
+  }
+
+  .kit-content-card,
+  .cover-box,
+  pre,
+  code {
+    padding: 6px 6px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
+    white-space: pre-wrap !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
+  .tailored-bullets-list {
+    padding-left: 10px !important;
+    width: 100% !important;
+  }
+
+  .tailored-bullet-item {
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+    margin-bottom: 3px !important;
+    word-break: break-word !important;
+  }
+
+  #modal-applied-toggle-btn {
+    font-size: 9px !important;
     padding: 2px 5px !important;
   }
 
-  .badge-ats {
+  /* 12. Notification Modes Grid */
+  .notification-modes-grid,
+  .mail-mode-selector {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 5px !important;
+  }
+
+  .mail-mode-card {
+    width: 100% !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .mail-mode-title {
+    font-size: 11px !important;
+    padding-right: 18px !important;
+  }
+
+  .mail-mode-desc {
     font-size: 9.5px !important;
-    padding: 2px 5px !important;
+  }
+
+  /* 13. Toast Portal Notifications */
+  .toast-container {
+    left: 2px !important;
+    right: 2px !important;
+    bottom: 2px !important;
+    width: calc(100vw - 4px) !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    z-index: 99999 !important;
+  }
+
+  .toast {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 10.5px !important;
+    padding: 6px 8px !important;
+    word-break: break-word !important;
+    border-radius: 5px !important;
+  }
+
+  /* 14. Buttons & Badges Micro Sizes */
+  .btn {
+    font-size: 10.5px !important;
+    padding: 5px 8px !important;
+  }
+
+  .btn-sm {
+    font-size: 9.5px !important;
+    padding: 3px 6px !important;
   }
 }
+
 
 
