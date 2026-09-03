@@ -153,27 +153,48 @@ ALTER TABLE public.user_pipeline_runs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow user to view own profile" ON public.user_profiles;
 CREATE POLICY "Allow user to view own profile"
     ON public.user_profiles FOR SELECT
-    USING ((auth.jwt() ->> 'email') = email OR (auth.jwt() ->> 'role') = 'service_role');
+    USING (
+        lower((select auth.jwt()) ->> 'email') = lower(email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    );
 
 DROP POLICY IF EXISTS "Allow user to insert/update own profile" ON public.user_profiles;
 CREATE POLICY "Allow user to insert/update own profile"
     ON public.user_profiles FOR ALL
-    USING ((auth.jwt() ->> 'email') = email OR (auth.jwt() ->> 'role') = 'service_role')
-    WITH CHECK ((auth.jwt() ->> 'email') = email OR (auth.jwt() ->> 'role') = 'service_role');
+    USING (
+        lower((select auth.jwt()) ->> 'email') = lower(email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    )
+    WITH CHECK (
+        lower((select auth.jwt()) ->> 'email') = lower(email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    );
 
 -- user_tracked_jobs Policies
 DROP POLICY IF EXISTS "Allow user to access own tracked jobs" ON public.user_tracked_jobs;
 CREATE POLICY "Allow user to access own tracked jobs"
     ON public.user_tracked_jobs FOR ALL
-    USING ((auth.jwt() ->> 'email') = user_email OR (auth.jwt() ->> 'role') = 'service_role')
-    WITH CHECK ((auth.jwt() ->> 'email') = user_email OR (auth.jwt() ->> 'role') = 'service_role');
+    USING (
+        lower((select auth.jwt()) ->> 'email') = lower(user_email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    )
+    WITH CHECK (
+        lower((select auth.jwt()) ->> 'email') = lower(user_email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    );
 
 -- user_pipeline_runs Policies
 DROP POLICY IF EXISTS "Allow user to access own pipeline runs" ON public.user_pipeline_runs;
 CREATE POLICY "Allow user to access own pipeline runs"
     ON public.user_pipeline_runs FOR ALL
-    USING ((auth.jwt() ->> 'email') = user_email OR (auth.jwt() ->> 'role') = 'service_role')
-    WITH CHECK ((auth.jwt() ->> 'email') = user_email OR (auth.jwt() ->> 'role') = 'service_role');
+    USING (
+        lower((select auth.jwt()) ->> 'email') = lower(user_email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    )
+    WITH CHECK (
+        lower((select auth.jwt()) ->> 'email') = lower(user_email) 
+        OR ((select auth.jwt()) ->> 'role') = 'service_role'
+    );
 
 -- ------------------------------------------------------------------------------
 -- 7. Grant Table and Sequence Access

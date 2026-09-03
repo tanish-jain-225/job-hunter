@@ -6,7 +6,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success)](https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml)
-[![Daily Digest](https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/daily.yml?branch=main&style=for-the-badge&label=Daily%20Digest&color=blue)](https://github.com/tanish-jain-225/job-hunter/actions/workflows/daily.yml)
+[![Tests](https://img.shields.io/badge/tests-377%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff)](https://github.com/astral-sh/ruff)
 
@@ -45,8 +45,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 
 - [📖 The Narrative: Why Job Hunter?](#-the-narrative-why-job-hunter)
 - [⚡ Quick Start (30-Second Dry Run)](#-quick-start-30-second-dry-run)
-- [🚀 100% Free-Tier Production Stack](#-100-free-tier-production-stack)
-- [📦 Installation \& Packaging](#-installation--packaging)
+- [📦 Installation & Packaging](#-installation--packaging)
 - [⚙️ Step-by-Step Setup Guide](#%EF%B8%8F-step-by-step-setup-guide)
   - [1. Configure Target Companies (`companies.yaml`)](#1-configure-target-companies-companiesyaml)
   - [2. Tune Deterministic Filters (`config.yaml`)](#2-tune-deterministic-filters-configyaml)
@@ -54,15 +53,15 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
 - [🤖 AI Engine: Google Gemini Flash — Default & Recommended](#-ai-engine-google-gemini-flash-gemini-37-flash--default--recommended)
 - [💻 Complete CLI Command Reference](#-complete-cli-command-reference)
-- [🚀 Daily Workflows \& Dashboard](#-daily-workflows--dashboard)
-- [📊 Tracking \& Deduplication (`seen.json`)](#-tracking--deduplication-seenjson)
-- [🤖 Automated Execution \& GitHub Actions](#-automated-execution--github-actions)
+- [🚀 Daily Workflows](#-daily-workflows)
+- [📊 Tracking & Deduplication (`seen.json` / Supabase)](#-tracking--deduplication-seenjson--supabase)
+- [🤖 Automated Execution & GitHub Actions](#-automated-execution--github-actions)
 - [🛡️ Continuous Integration (CI Pipeline)](#%EF%B8%8F-continuous-integration-ci-pipeline)
-- [🏗️ Architecture \& Codebase Layout](#%EF%B8%8F-architecture--codebase-layout)
-- [⚡ ATS Quirks \& Edge Case Handling](#-ats-quirks--edge-case-handling)
+- [🏗️ Architecture & Codebase Layout](#%EF%B8%8F-architecture--codebase-layout)
+- [⚡ ATS Quirks & Edge Case Handling](#-ats-quirks--edge-case-handling)
 - [🧪 Automated Test Suite](#-automated-test-suite)
-- [❓ Troubleshooting \& FAQ](#-troubleshooting--faq)
-- [📄 Contributing \& License](#-contributing--license)
+- [❓ Troubleshooting & FAQ](#-troubleshooting--faq)
+- [📄 Contributing & License](#-contributing--license)
 
 ---
 
@@ -296,13 +295,12 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 | | `-c, --config <path>` | `config.yaml` | Path to custom config file. |
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `jobhunt web` | `--host <host>, --port <port>` | `5000` | Launch the executive Flask Web Dashboard. |
-| `python auto.py` | *(none)` | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
+| `python auto.py` | *(none)* | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
 | `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, Kanban stage transitions (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), Resume Studio, CSV export, and kit modal viewer. |
-
 
 ---
 
-## 🚀 Daily 2-Command Workflows
+## 🚀 Daily Workflows
 
 ### ☀️ Command 1 — Morning Run (Search + Screen + Draft + Email + Browser Preview)
 - **Windows**: `run.bat`
@@ -355,7 +353,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (370+ tests with $\ge 91\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (377+ tests with $\ge 91\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -395,7 +393,7 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 370 comprehensive automated test cases (91%+ line coverage)
+├── tests/                    # 377 comprehensive automated test cases (91%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
@@ -455,7 +453,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (370 unit & integration tests):
+Run the full test suite locally (377 unit & integration tests):
 ```bash
 pytest
 ```

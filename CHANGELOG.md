@@ -21,10 +21,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Smart Follow-Up Nudges & Generator**: Added automated elapsed-time badges (`⏳ 5d ago · Send Follow-up`) on applied roles in Table and Kanban views, paired with `POST /api/jobs/followup` and 1-click tailored email/LinkedIn outreach generation
 - **Onboarding Setup Wizard Daily Briefing Default**: Pre-selected Daily 5:00 AM Radar mode by default with dedicated notification email input field
 - **Optimized Automated Daily Cron**: Scheduled daily radar cron adjusted to 23:30 UTC (05:00 AM IST) in `.github/workflows/daily.yml` and `setup_daily_task.bat` for consistent early morning delivery before user wake-up
-- **Comprehensive Flow Perfection Test Suite**: Added `tests/test_flow_perfection.py` expanding test suite to **370 passed unit & integration tests with >91% code coverage**
+- **Comprehensive Flow Perfection Test Suite**: Added `tests/test_flow_perfection.py` expanding test suite to **377 passed unit & integration tests with >91% code coverage**
 - **Dual-Mode View Switcher (Table & Visual Kanban Pipeline)**: Added interactive Table vs. Kanban pipeline view switcher (`#btn-view-table` and `#btn-view-kanban`) with persistent preference storage in `localStorage`
 - **Deterministic Reactive Store Versioning**: `get_store_version()` now hashes `application_stage`, `notes`, `score`, and timestamps into deterministic MD5 version tokens for zero-refresh multi-tab reactivity
-- Expanded automated test suite to 361 unit & integration test cases with 98%+ line coverage
 - Refactored `jobhunt verify` (live ATS auditor) and `jobhunt clean` (test store purger) into modular CLI package tools (`jobhunt/verify.py` and `jobhunt/clean.py`)
 - `--version` flag to `jobhunt` CLI (`jobhunt --version` -> `jobhunt 1.0.0`)
 - `region_context` and `region_hint` configuration keys in `config.yaml` — LLM screening prompt regional context is now fully configurable; set `region_context: global` to remove India-specific hints
@@ -32,7 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `threading.Lock` protection around `_GLOBAL_ATS_CACHE` for thread-safe concurrent ATS fetching
 - 10 MB hard response size cap in `fetch_board()` — prevents OOM from oversized or malformed ATS endpoints
 - `hypothesis>=6.0.0` added as a dev dependency for property-based fuzzing
-- Synchronized technical narrative across all 14 markdown documentation files (`README.md`, `METRICS.md`, `SECURITY.md`, and all `docs/*.md`)
+- Synchronized technical narrative across all 15 markdown documentation files (`README.md`, `METRICS.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, and all `docs/*.md`)
 - `CHANGELOG.md`, `SECURITY.md`, `docs/API.md` added
 
 ### Fixed

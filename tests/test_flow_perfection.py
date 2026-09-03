@@ -2,11 +2,18 @@
 
 import json
 import os
+import time
 from pathlib import Path
 import pytest
 from unittest.mock import patch, MagicMock
 
 from app import app as flask_app
+from jobhunt.providers import (
+    AnthropicProvider,
+    GeminiProvider,
+    OpenAICompatProvider,
+    LLMError,
+)
 from jobhunt.fetch import detect_ats_from_url, fetch_all, Job
 from jobhunt.llm import generate_followup_note
 from jobhunt.multi import run_multi_user_pipeline
@@ -303,5 +310,234 @@ def test_custom_companies_local_file_lifecycle(client, tmp_path, monkeypatch):
         r_del = client.delete("/api/companies/custom", json={"ats": "lever", "slug": "localco"})
         assert r_del.status_code == 200
         assert "Removed" in r_del.get_json()["message"]
+
+
+def test_anthropic_complete_retries_and_raises():
+    """Test Anthropic retry loop on error and eventual LLMError."""
+    p = AnthropicProvider()
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = RuntimeError("Rate limit exceeded")
+    with patch.object(p, "_client", return_value=mock_client), patch("time.sleep"):
+        with pytest.raises(LLMError, match="anthropic error"):
+            p.complete(model="claude-3-haiku", system="sys", user="usr", max_tokens=100)
+
+
+def test_anthropic_complete_document_retries_and_raises():
+    """Test Anthropic document completion retry loop and error."""
+    p = AnthropicProvider()
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = RuntimeError("Doc failure")
+    with patch.object(p, "_client", return_value=mock_client), patch("time.sleep"):
+        with pytest.raises(LLMError, match="anthropic document error"):
+            p.complete_document(model="claude-3-haiku", prompt="test", pdf=b"%PDF-1.4", max_tokens=100)
+
+
+def test_gemini_429_all_keys_cooldown(monkeypatch: pytest.MonkeyPatch):
+    """Test Gemini 429 when single key is configured (all keys cooling down)."""
+    monkeypatch.setenv("GEMINI_API_KEY", "single_test_key")
+    p = GeminiProvider()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 429
+    mock_resp.headers = {"Retry-After": "15"}
+    mock_resp.text = "Too Many Requests"
+
+    with patch("requests.post", return_value=mock_resp), patch("time.sleep") as mock_sleep:
+        with pytest.raises(LLMError, match="gemini HTTP 429"):
+            p._post("gemini-3.7-flash", {"contents": []})
+        assert mock_sleep.called
+
+
+def test_gemini_404_model_fallbacks(monkeypatch: pytest.MonkeyPatch):
+    """Test Gemini 404 automatic model fallback to gemini-2.5-flash and gemini-flash-latest."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test_fallback_key")
+    p = GeminiProvider()
+
+    resp_404 = MagicMock()
+    resp_404.status_code = 404
+    resp_404.text = "Model not found"
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {
+        "candidates": [{"content": {"parts": [{"text": "Success from fallback"}]}}]
+    }
+
+    with patch("requests.post", side_effect=[resp_404, resp_200]):
+        res = p._post("gemini-3.7-flash", {"contents": []})
+        assert "Success from fallback" in res
+
+    with patch("requests.post", side_effect=[resp_404, resp_200]):
+        res2 = p._post("custom-old-model", {"contents": []})
+        assert "Success from fallback" in res2
+
+
+def test_openai_compat_429_and_500(monkeypatch: pytest.MonkeyPatch):
+    """Test OpenAI-compatible provider 429 cooldown and 500 retry."""
+    monkeypatch.setenv("GROQ_API_KEY", "groq_key_1")
+    p = OpenAICompatProvider()
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.headers = {"Retry-After": "20"}
+    resp_429.text = "Rate limited"
+
+    with patch("requests.post", return_value=resp_429), patch("time.sleep"):
+        with pytest.raises(LLMError, match="HTTP 429"):
+            p.complete(model="llama3", system="sys", user="usr", max_tokens=50)
+
+    resp_500 = MagicMock()
+    resp_500.status_code = 500
+    resp_500.text = "Internal error"
+    with patch("requests.post", return_value=resp_500), patch("time.sleep"):
+        with pytest.raises(LLMError, match="HTTP 500"):
+            p.complete(model="llama3", system="sys", user="usr", max_tokens=50)
+
+
+def test_pipeline_sync_github_actions_branches(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test the full GitHub Actions polling branches in /api/sync."""
+    monkeypatch.setenv("GH_TOKEN", "fake_gh_pat_123")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "test-org/job-hunter")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.SupabaseMemory.is_configured", property(lambda self: True))
+
+    dev_email = "developer@local"
+    from jobhunt.web.state import set_user_pipeline_state
+    from datetime import datetime, timezone
+    now = time.time()
+    set_user_pipeline_state(dev_email, running=True, step="running", message="Cloud dispatched", dispatched_at=now)
+
+    newer_iso = datetime.fromtimestamp(now + 60, timezone.utc).isoformat()
+    gh_resp_in_progress = MagicMock()
+    gh_resp_in_progress.status_code = 200
+    gh_resp_in_progress.json.return_value = {
+        "workflow_runs": [
+            {
+                "status": "in_progress",
+                "conclusion": None,
+                "created_at": newer_iso,
+                "run_started_at": newer_iso,
+            }
+        ]
+    }
+
+    # Mock get_pipeline_history to return an older run so it falls through to GH Actions polling
+    mock_mem = MagicMock()
+    mock_mem.is_configured = True
+    mock_mem.get_pipeline_history.return_value = [{"run_timestamp": "2020-01-01T00:00:00Z"}]
+    mock_mem.get_user_profile.return_value = None
+    mock_mem._ensure_user_profile_exists.return_value = None
+
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_mem), patch("requests.get", return_value=gh_resp_in_progress):
+        r = client.get("/api/sync")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["status"] == "success"
+        assert data["pipeline"]["running"] is True
+        assert "Crawling 100+ ATS" in data["pipeline"]["message"]
+
+    from jobhunt.web.routes.pipeline import _GH_STATUS_CACHE
+    _GH_STATUS_CACHE.clear()
+
+    gh_resp_success = MagicMock()
+    gh_resp_success.status_code = 200
+    gh_resp_success.json.return_value = {
+        "workflow_runs": [
+            {
+                "status": "completed",
+                "conclusion": "success",
+                "created_at": newer_iso,
+                "run_started_at": newer_iso,
+            }
+        ]
+    }
+
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_mem), patch("requests.get", return_value=gh_resp_success):
+        r = client.get("/api/sync")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["pipeline"]["running"] is False
+        assert data["pipeline"]["step"] == "completed"
+
+    _GH_STATUS_CACHE.clear()
+    set_user_pipeline_state(dev_email, running=True, step="running", message="Cloud dispatched", dispatched_at=now)
+    gh_resp_fail = MagicMock()
+    gh_resp_fail.status_code = 200
+    gh_resp_fail.json.return_value = {
+        "workflow_runs": [
+            {
+                "status": "completed",
+                "conclusion": "failure",
+                "created_at": newer_iso,
+                "run_started_at": newer_iso,
+            }
+        ]
+    }
+
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_mem), patch("requests.get", return_value=gh_resp_fail):
+        r = client.get("/api/sync")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["pipeline"]["running"] is False
+        assert data["pipeline"]["step"] == "error"
+
+    _GH_STATUS_CACHE.clear()
+    future_dispatch = now + 1000
+    set_user_pipeline_state(dev_email, running=True, step="running", message="Cloud dispatched", dispatched_at=future_dispatch)
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_mem), patch("requests.get", return_value=gh_resp_in_progress):
+        r = client.get("/api/sync")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert "Workflow dispatching in GitHub Actions cloud" in data["pipeline"]["message"]
+
+    stale_dispatch = now - 200
+    set_user_pipeline_state(dev_email, running=True, step="running", message="Stuck run", dispatched_at=stale_dispatch)
+    _GH_STATUS_CACHE.clear()
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    mock_memory = MagicMock()
+    mock_memory.is_configured = True
+    mock_memory.get_pipeline_history.return_value = [{"run_timestamp": "2026-09-01T00:00:00Z"}]
+    mock_memory.get_user_profile.return_value = None
+    mock_memory._ensure_user_profile_exists.return_value = None
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_memory):
+        r = client.get("/api/sync")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["pipeline"]["running"] is False
+        assert data["pipeline"]["step"] == "completed"
+
+
+def test_pipeline_stats_and_digest_rebuild(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test /api/sync stats calculation and /api/digest live generation with remote profile fallback."""
+    import hashlib
+    dev_email = "developer@local"
+    user_hash = hashlib.md5(dev_email.encode("utf-8")).hexdigest()[:12]
+    st_file = tmp_path / f"seen_{user_hash}.json"
+    st_data = {
+        "job1": {"title": "SWE", "company": "Stripe", "ats": "greenhouse", "score": 8.5, "applied": False, "emailed": True},
+        "job2": {"title": "Dev", "company": "Meesho", "ats": "lever", "score": 6.0, "applied": True, "emailed": False},
+        "custom:123": {"title": "Lead", "company": "Acme", "score": 9.0, "applied": False},
+    }
+    st_file.write_text(json.dumps(st_data), encoding="utf-8")
+
+    r = client.get("/api/sync")
+    assert r.status_code == 200
+    stats = r.get_json()["stats"]
+    assert stats["tracked"] == 3
+    assert stats["shortlisted"] == 2
+    assert stats["applied"] == 1
+    assert stats["unapplied"] == 2
+
+    mock_memory = MagicMock()
+    mock_memory.is_configured = True
+    mock_memory.get_user_profile.return_value = {
+        "profile_json": {"name": "Alex", "email": "alex@test.com", "target_roles": ["Engineer"]}
+    }
+    mock_memory.get_pipeline_history.return_value = [{"jobs_scanned": 150, "candidates_matched": 10}]
+    with patch("jobhunt.web.routes.pipeline.SupabaseMemory", return_value=mock_memory):
+        r2 = client.get("/api/digest?force=1")
+        assert r2.status_code == 200
+        assert "text/html" in r2.headers.get("Content-Type", "")
+
 
 
