@@ -249,7 +249,7 @@ def api_resume_upload():
             provider=provider,
             model=model,
         )
-        parsed_profile = future.result(timeout=14.0)
+        parsed_profile = future.result(timeout=30.0)
     except Exception as e:
         logger.warning(f"AI profile extraction notice ({e}), using smart local parser.")
     finally:
