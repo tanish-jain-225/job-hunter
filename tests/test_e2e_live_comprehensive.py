@@ -78,6 +78,7 @@ class TestE2ELiveSuite:
         monkeypatch.setattr("jobhunt.web.routes.jobs.get_current_user_context", lambda: (USER_EMAIL, "token"))
         monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (USER_EMAIL, "token"))
         monkeypatch.setattr("jobhunt.web.routes.profile.get_writable_path", lambda p: tmp_path / Path(p).name)
+        monkeypatch.setattr("jobhunt.verify.check_single_board", lambda entry, timeout=5: (entry.get("ats"), True, 200))
 
         def mock_get_profile(email, token=None):
             return self.mock_db.get(email, {})
@@ -138,8 +139,13 @@ class TestE2ELiveSuite:
         print(" [✓] 1.4 Security headers (CSP, Permissions-Policy, X-Frame-Options, etc.) verified")
 
     def test_05_unauthorized_rejection(self, client, monkeypatch):
-        # Temporarily remove auth mock to test actual 401 gate
+        # Temporarily enable AUTH_REQUIRED and clear user context to test actual 401 gate
+        monkeypatch.setenv("AUTH_REQUIRED", "true")
         monkeypatch.setattr("jobhunt.auth.verify_token", lambda token: None)
+        monkeypatch.setattr("jobhunt.web.state.get_current_user_context", lambda: (None, None))
+        monkeypatch.setattr("jobhunt.web.routes.profile.get_current_user_context", lambda: (None, None))
+        monkeypatch.setattr("jobhunt.web.routes.jobs.get_current_user_context", lambda: (None, None))
+        monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (None, None))
         resp = client.get("/api/stats")
         assert resp.status_code == 401
         data = resp.get_json()
