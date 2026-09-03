@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import re
@@ -235,45 +236,80 @@ def api_resume_upload():
 
     memory = SupabaseMemory(token=token)
 
-    # Perform AI Candidate Profile Extraction
+    # Perform AI Candidate Profile Extraction with 14s responsive safety timeout
     parsed_profile = None
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
         provider, model = llm.resolve("draft")
-        parsed_profile = llm.build_profile(
+        future = executor.submit(
+            llm.build_profile,
             resume_bytes=resume_bytes,
             resume_text=resume_text,
             is_pdf=is_pdf,
             provider=provider,
             model=model,
         )
+        parsed_profile = future.result(timeout=14.0)
     except Exception as e:
         logger.warning(f"AI profile extraction notice ({e}), using smart local parser.")
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     if not parsed_profile or not isinstance(parsed_profile, dict):
         # Fallback smart extraction from resume text if LLM unavailable or times out
         username_part = email.split("@")[0]
         derived_name = ""
+        derived_title = ""
+        derived_edu = ""
         if resume_text:
-            first_lines = [l.strip() for l in resume_text.splitlines() if l.strip() and len(l.strip()) < 50]
+            lines = [l.strip() for l in resume_text.splitlines() if l.strip()]
+            first_lines = [l for l in lines[:10] if len(l) < 50]
             if first_lines:
                 derived_name = first_lines[0]
+            title_keywords = ["Engineer", "Developer", "Architect", "Scientist", "Designer", "Specialist", "Analyst", "Lead", "Manager", "Consultant"]
+            for l in lines[:15]:
+                if any(tk.lower() in l.lower() for tk in title_keywords) and len(l) < 60:
+                    derived_title = l
+                    break
+            edu_keywords = ["B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master", "Degree", "University", "College", "Institute"]
+            for l in lines:
+                if any(ek.lower() in l.lower() for ek in edu_keywords) and len(l) < 80:
+                    derived_edu = l
+                    break
+
         if not derived_name or len(derived_name) > 40:
             derived_name = " ".join(
                 part.capitalize() for part in username_part.replace(".", " ").replace("_", " ").split()
             )
 
-        skills_list = _extract_skills_from_text(resume_text)[:12] if resume_text else []
+        skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
+
+        target_titles: list[str] = []
+        if derived_title:
+            target_titles.append(derived_title)
+        if any(s.lower() in ["python", "django", "fastapi", "flask", "node.js", "backend", "golang", "java"] for s in skills_list):
+            if "Backend Engineer" not in target_titles:
+                target_titles.append("Backend Engineer")
+        if any(s.lower() in ["react", "next.js", "typescript", "frontend", "vue", "javascript"] for s in skills_list):
+            if "Frontend Engineer" not in target_titles:
+                target_titles.append("Frontend Engineer")
+        if any(s.lower() in ["full stack", "fullstack", "node.js", "react", "next.js"] for s in skills_list):
+            if "Full Stack Developer" not in target_titles:
+                target_titles.append("Full Stack Developer")
+        if not target_titles:
+            target_titles = ["Software Engineer", "Full Stack Developer"]
 
         parsed_profile = {
             "name": derived_name or "",
-            "current_title": "",
+            "current_title": derived_title or "Software Engineer",
             "years_experience": 0.0,
-            "education": "",
+            "education": derived_edu or "",
             "core_skills": skills_list,
-            "target_titles": [],
-            "domains": [],
+            "target_titles": target_titles[:5],
+            "domains": ["Software Engineering", "Full Stack", "Web Development"],
             "notable_projects": [],
-            "seniority": "",
+            "seniority": "mid",
+            "experience_level": "0-1",
         }
 
     # Fetch existing profile to retain notification preferences

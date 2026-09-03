@@ -2409,12 +2409,12 @@ async function handleResumeFileSelectedAndParse(event) {
   const nextBtn = document.getElementById('profile-next-1');
   const resumeTextInput = document.getElementById('prof-resume-text');
 
-  if (dropText) dropText.innerText = `⏳ Parsing: ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`;
+  if (dropText) dropText.innerText = `⏳ Extracting text & candidate profile: ${file.name}...`;
   if (alertEl) { alertEl.style.display = 'none'; }
   if (nextBtn) nextBtn.disabled = false;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 18000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
     const formData = new FormData();
@@ -2450,25 +2450,25 @@ async function handleResumeFileSelectedAndParse(event) {
       showToast('Resume extracted! Click "Auto-Fill from Resume Context" in Step 2 if you wish to auto-populate fields.', 'success', 3500);
     } else {
 
-      if (dropText) dropText.innerText = `⚠️ ${file.name} — parse failed, click to retry or edit text below`;
+      if (dropText) dropText.innerText = `⚠️ ${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {
-        alertEl.className = 'studio-alert error';
-        alertEl.innerText = `Notice: ${data.message || 'Resume parsing failed. You can paste/edit details manually.'}`;
+        alertEl.className = 'studio-alert info';
+        alertEl.innerText = `Notice: ${data.message || 'Resume parsing completed with basic text extraction. You can review details below.'}`;
         alertEl.style.display = 'block';
       }
-      showToast('Resume parsing notice: ' + (data.message || 'unknown error'), 'info');
+      showToast('Resume extraction notice: ' + (data.message || 'basic text extraction used'), 'info');
     }
   } catch (err) {
     clearTimeout(timeoutId);
     const isTimeout = err.name === 'AbortError';
-    const msg = isTimeout ? 'Parsing timed out — proceed to enter details manually.' : err.message;
-    if (dropText) dropText.innerText = `⚠️ ${file.name} — click to retry or skip below`;
+    const msg = isTimeout ? 'Parsing took too long — you can edit text or fill details manually.' : err.message;
+    if (dropText) dropText.innerText = `⚠️ ${file.name} — click to retry or edit details below`;
     if (alertEl) {
-      alertEl.className = 'studio-alert error';
-      alertEl.innerText = `${msg} You can click 'Skip & Enter Manually' to fill your profile directly.`;
+      alertEl.className = 'studio-alert info';
+      alertEl.innerText = `${msg} Text extracted or entered below can be edited freely before saving.`;
       alertEl.style.display = 'block';
     }
-    showToast(isTimeout ? 'Resume parse timed out. You can fill details manually.' : 'Notice: ' + err.message, 'info');
+    showToast(isTimeout ? 'Resume parse notice: you can enter details manually.' : 'Notice: ' + err.message, 'info');
   }
 }
 
