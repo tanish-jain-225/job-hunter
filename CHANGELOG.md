@@ -15,11 +15,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `flask-limiter` rate limiting: `/api/run` capped at 5 calls/hour/IP; global default of 500 req/hour/IP
 
 ### Added
+- **Google Gemini (`gemini-3.7-flash`) as Default Intelligence Engine**: Standardized all candidate screening, fit scoring, application kit drafting, and PDF resume parsing to default to **Google Gemini (`gemini-3.7-flash`)**. Multi-provider support (Anthropic Claude, Groq, Ollama, OpenAI-compatible) retained and fully documented across all markdown files. Updated multi-key CSV rotation and leaky-bucket rate limiting to 6.0s/10 RPM for Gemini free tier.
 - **Real-Time Server-Sent Events (SSE) Live Radar Log Streaming**: Added `GET /api/pipeline/stream` and circular thread-safe user log streaming buffers in `jobhunt/web/state.py` for live terminal console updates without polling delay
 - **Custom Target ATS Career Board Manager ("+ Add Board")**: Added `detect_ats_from_url()` in `jobhunt/fetch.py` supporting all 9 ATS platforms with live HTTP 200 verification, accompanied by `POST /api/companies/add`, `GET /api/companies/custom`, and `DELETE /api/companies/custom` endpoints and interactive web modal
 - **Smart Follow-Up Nudges & Generator**: Added automated elapsed-time badges (`⏳ 5d ago · Send Follow-up`) on applied roles in Table and Kanban views, paired with `POST /api/jobs/followup` and 1-click tailored email/LinkedIn outreach generation
-- **Onboarding Setup Wizard Daily Briefing Default**: Pre-selected Daily 6:00 AM Radar mode by default with dedicated notification email input field
-- **Comprehensive Flow Perfection Test Suite**: Added `tests/test_flow_perfection.py` expanding test suite to **372 passed unit & integration tests with >90.8% code coverage**
+- **Onboarding Setup Wizard Daily Briefing Default**: Pre-selected Daily 5:00 AM Radar mode by default with dedicated notification email input field
+- **Optimized Automated Daily Cron**: Scheduled daily radar cron adjusted to 23:30 UTC (05:00 AM IST) in `.github/workflows/daily.yml` and `setup_daily_task.bat` for consistent early morning delivery before user wake-up
+- **Comprehensive Flow Perfection Test Suite**: Added `tests/test_flow_perfection.py` expanding test suite to **370 passed unit & integration tests with >91% code coverage**
 - **Dual-Mode View Switcher (Table & Visual Kanban Pipeline)**: Added interactive Table vs. Kanban pipeline view switcher (`#btn-view-table` and `#btn-view-kanban`) with persistent preference storage in `localStorage`
 - **Deterministic Reactive Store Versioning**: `get_store_version()` now hashes `application_stage`, `notes`, `score`, and timestamps into deterministic MD5 version tokens for zero-refresh multi-tab reactivity
 - Expanded automated test suite to 361 unit & integration test cases with 98%+ line coverage
@@ -34,6 +36,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `CHANGELOG.md`, `SECURITY.md`, `docs/API.md` added
 
 ### Fixed
+- Corrected `pyproject.toml`: removed duplicate `flask-limiter` from `dependencies[]` (it belongs only in `optional-dependencies[web]`)
+- Corrected `README.md`, `ENGINE.md`, `SETUP.md`, `GUIDE.md`, `DASHBOARD.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `providers.py` docstrings: replaced all "exclusively Google Gemini" claims with accurate multi-provider architecture documentation
+- Corrected `README.md` `config.yaml` example: `screen_batch_size` `10→8`, `screen_jd_chars` `1400→1000`, `llm_delay_seconds` `1.5→6.0`, added missing `max_jobs_to_screen: 30`
+- Corrected `ENGINE.md`: `draft_jd_chars` `8000→6000`, `score_threshold` range `5.0-7.0→7.0`
+- Corrected `GUIDE.md`: `max_age_days` example `28→21` (matches actual default)
+- Documented alternative provider keys (`ANTHROPIC_API_KEY`, `GROQ_API_KEY`, `OLLAMA_HOST`) in `.env.example`
 - Fixed optimistic UI card resolution in `app.js` to target both `job-card-` and `kanban-card-` elements in Table and Kanban modes
 - Fixed empty-state querySelector in `toggleAppliedDirect` to accurately match `.job-item, .kanban-card`
 - `/api/jobs/notes` now returns `"version": get_store_version(st)` and `"stats": st.stats()` for instant state reconciliation

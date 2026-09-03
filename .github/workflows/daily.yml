@@ -3,8 +3,8 @@ run-name: 🏹 Daily Job Hunter Automated Radar (${{ github.event_name }})
 
 on:
   schedule:
-    # 00:30 UTC = 06:00 IST (Every Single Day, Monday through Sunday)
-    - cron: '30 0 * * *'
+    # 23:30 UTC = 05:00 IST (Every Single Day, Monday through Sunday)
+    - cron: '30 23 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -58,13 +58,9 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER || '' }}
-          SCREEN_PROVIDER: ${{ secrets.SCREEN_PROVIDER || '' }}
-          DRAFT_PROVIDER: ${{ secrets.DRAFT_PROVIDER || '' }}
-          SCREEN_MODEL: ${{ secrets.SCREEN_MODEL || '' }}
-          DRAFT_MODEL: ${{ secrets.DRAFT_MODEL || '' }}
+          LLM_PROVIDER: "gemini"
+          SCREEN_MODEL: "gemini-3.7-flash"
+          DRAFT_MODEL: "gemini-3.7-flash"
           SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
           SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

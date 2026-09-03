@@ -116,10 +116,15 @@ GITHUB_REPOSITORY=your-username/job-hunter
 # Optional: Static Flask secret key for serverless session stability
 FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
-# Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
+# Optional: Stage / Provider overrides
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=openai/gpt-oss-20b
+# SCREEN_MODEL=gemini-3.7-flash
 # DRAFT_MODEL=gemini-3.7-flash
+
+# Optional: Alternative AI Providers (set LLM_PROVIDER to activate)
+# ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here  # pip install 'jobhunt[anthropic]'
+# GROQ_API_KEY=gsk_your-groq-api-key-here               # LLM_PROVIDER=groq
+# OLLAMA_HOST=http://localhost:11434                     # LLM_PROVIDER=ollama
 ```
 
 Extract your candidate profile from your resume:

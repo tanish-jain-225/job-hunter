@@ -60,10 +60,10 @@ The LLM returns a JSON list:
 
 ## ✍️ Phase 3: LLM Drafting (Application Kit Generation)
 
-Only jobs that score at or above the **`score_threshold`** (default `5.0`–`7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
+Only jobs that score at or above the **`score_threshold`** (default `7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
 
 ### High-Context Evaluation
-The engine sends the full job description (up to **8,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to **Google Gemini (`gemini-3.7-flash`)** or **Anthropic Claude (`claude-3-7-sonnet`)** to generate a complete application kit:
+The engine sends the full job description (up to **6,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to the configured AI provider (default: **Google Gemini `gemini-3.7-flash`**) to generate a complete application kit:
 
 * **Fit Summary:** A brief 2-sentence summary of why this role is a strong match.
 * **Tailored Resume Bullets:** 3 high-impact bullet points demonstrating skills matching the job requirements that you can insert into your resume.
@@ -86,24 +86,24 @@ For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapse
 
 ---
 
-## 🔌 Swappable Providers & Zero-Quota Split Architecture
+## 🔌 AI Providers (`providers.py`)
 
-The system is provider-agnostic and auto-routes tasks intelligently when keys are set:
+Job Hunter routes all intelligence phases through the configured AI provider — **Google Gemini (`gemini-3.7-flash`)** by default, with Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint supported via env var overrides.
 
 ```env
-GROQ_API_KEY=gsk_...       # Routes screening to Groq (30 RPM, 14,400 RPD)
-GEMINI_API_KEY=AIzaSy_...  # Routes drafting to Gemini (rich context window)
+GEMINI_API_KEY=AIzaSy_...        # Default: batch screening & rich drafting (1M tokens/day)
+# LLM_PROVIDER=anthropic         # Optional override (requires ANTHROPIC_API_KEY)
+# LLM_PROVIDER=groq              # Optional override (requires GROQ_API_KEY)
+# LLM_PROVIDER=ollama            # Local, no key needed
 ```
 
-### Supported Configurations
+### Key Capabilities
 
-| Provider | Default Model | Config Key | Role in Split Architecture |
+| Feature | Default Model | Config Key | Role in Job Hunter |
 | :--- | :--- | :--- | :--- |
-| **Groq** | `openai/gpt-oss-20b` | `GROQ_API_KEY` | **Screening:** Ultra-fast high-throughput batch evaluation (14,400 RPD free). |
-| **Google Gemini** | `gemini-3.7-flash` | `GEMINI_API_KEY` | **Drafting:** Rich context window for personalized application kits. |
-| **Anthropic** | `claude-3-7-sonnet` | `ANTHROPIC_API_KEY` | High-reasoning drafting and native PDF resume analysis. |
-| **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | OpenAI-compatible endpoint provider. |
-| **Ollama** | Local model (`llama3.1`) | `OLLAMA_HOST` | Run locally on your machine for 100% free, offline inference. |
+| **Stage 1: Fit Screening** | `gemini-3.7-flash` | `GEMINI_API_KEY` | High-throughput batch candidate screening (8 jobs/call, 10 RPM pacing). |
+| **Stage 2: Kit Drafting** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Rich context window (6,000 chars) for personalized cover notes, cold DMs, & matching bullets. |
+| **Native PDF Analysis** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Base64 multimodal document parsing for resume profile extraction (also supported by Anthropic Claude). |
 
 ---
 

@@ -64,8 +64,8 @@ jobhunt/
   ├── auth.py        # Supabase Auth, JWT validation & @require_auth decorator
   ├── fetch.py       # Job dataclass, strip_html, 9 ATS parsers, fetch_all
   ├── prefilter.py   # title include/exclude regex, location, max_age_days
-  ├── llm.py         # provider-agnostic screen() + draft() + build_profile()
-  ├── providers.py   # Swappable LLM clients (Gemini, Anthropic, Groq, OpenAI-compat, Ollama)
+  ├── llm.py         # Google Gemini screen() + draft() + build_profile()
+  ├── providers.py   # Google Gemini client (gemini-3.7-flash)
   ├── digest.py      # HTML email digest builder
   ├── mailer.py      # SMTP email dispatcher
   ├── store.py       # seen.json dedupe + application tracker + CSV export
@@ -83,20 +83,20 @@ jobhunt/
 
 ---
 
-## 🤖 LLM Layer & Zero-Quota Split Architecture
+## 🤖 LLM Layer & Google Gemini Engine
 
-Two stages for token efficiency:
+Two stages for token and rate efficiency:
 
-- **Screen** — batch ~8–15 jobs per call, truncate each JD to ~1800 chars, return JSON array of `{job_id, score, reason}`. Handled by **Groq** (`openai/gpt-oss-20b`, 14,400 RPD free) for high throughput.
-- **Draft** — only for jobs above the score threshold. Send ~8000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Handled by **Google Gemini** (`gemini-3.7-flash`) or **Claude**.
+- **Screen** — batch ~8 jobs per call, truncate each JD to ~1000 chars, return JSON array of `{job_id, score, reason}`. Default: **Google Gemini** (`gemini-3.7-flash`, 1M tokens/day free) for high throughput.
+- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Default: **Google Gemini** (`gemini-3.7-flash`).
 
-### Provider Flexibility
-Make providers swappable and auto-split via environment variables:
-- **Groq** (`GROQ_API_KEY`) $\rightarrow$ High-throughput batch screening (30 RPM, 14,400 RPD)
-- **Google Gemini** (`GEMINI_API_KEY`) $\rightarrow$ Application kit drafting & rich context window
-- **Anthropic** (`ANTHROPIC_API_KEY`) $\rightarrow$ Advanced reasoning & native PDF resume analysis
-- **OpenAI Compatible** (`LLM_BASE_URL`) $\rightarrow$ OpenRouter, Together AI, vLLM
-- **Ollama** (`OLLAMA_HOST`) $\rightarrow$ 100% Offline local models
+### Provider Architecture
+Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVIDER` env var:
+- **Google Gemini** ⭐ (`GEMINI_API_KEY`) — Screening, kit drafting, & native PDF resume analysis. Supports CSV multi-key rotation (`GEMINI_API_KEY=key1,key2`).
+- **Anthropic Claude** (`ANTHROPIC_API_KEY`) — Full pipeline support including native PDF blocks. `pip install 'jobhunt[anthropic]'`.
+- **Groq** (`GROQ_API_KEY`) — Ultra-fast inference, `LLM_PROVIDER=groq`.
+- **Ollama** (`OLLAMA_HOST`) — Fully local, no key needed, `LLM_PROVIDER=ollama`.
+- **OpenAI-compatible** (`LLM_BASE_URL`) — Any `/chat/completions` endpoint.
 
 ---
 

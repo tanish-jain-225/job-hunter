@@ -1849,11 +1849,7 @@ async function openProfileModal(tab = 'resume') {
       if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '';
 
       const geminiKeyInput   = document.getElementById('prof-gemini-key');
-      const groqKeyInput     = document.getElementById('prof-groq-key');
-      const anthropicKeyInput= document.getElementById('prof-anthropic-key');
       if (geminiKeyInput)    geminiKeyInput.value    = p.GEMINI_API_KEY || '';
-      if (groqKeyInput)      groqKeyInput.value      = p.GROQ_API_KEY || '';
-      if (anthropicKeyInput) anthropicKeyInput.value = p.ANTHROPIC_API_KEY || '';
 
       // ── Step 1 Next button: always accessible
       const nextBtn = document.getElementById('profile-next-1');
@@ -1880,11 +1876,7 @@ async function openProfileModal(tab = 'resume') {
       if (targetsInput)  targetsInput.value  = '';
       if (excludesInput) excludesInput.value = '';
       const geminiKeyInput   = document.getElementById('prof-gemini-key');
-      const groqKeyInput     = document.getElementById('prof-groq-key');
-      const anthropicKeyInput= document.getElementById('prof-anthropic-key');
       if (geminiKeyInput)    geminiKeyInput.value    = '';
-      if (groqKeyInput)      groqKeyInput.value      = '';
-      if (anthropicKeyInput) anthropicKeyInput.value = '';
       selectMailMode('none');
     }
   } catch (err) {
@@ -2651,10 +2643,6 @@ async function saveProfilePreferences() {
 
   const geminiKeyInput   = document.getElementById('prof-gemini-key');
   const geminiKey        = geminiKeyInput ? geminiKeyInput.value.trim() : (activeProfileData?.GEMINI_API_KEY || '');
-  const groqKeyInput     = document.getElementById('prof-groq-key');
-  const groqKey          = groqKeyInput ? groqKeyInput.value.trim() : (activeProfileData?.GROQ_API_KEY || '');
-  const anthropicKeyInput= document.getElementById('prof-anthropic-key');
-  const anthropicKey     = anthropicKeyInput ? anthropicKeyInput.value.trim() : (activeProfileData?.ANTHROPIC_API_KEY || '');
 
   const payload = {
     name,
@@ -2672,8 +2660,6 @@ async function saveProfilePreferences() {
     min_score_notification: notifScore,
     onboarding_completed: Boolean(name || title || (skills.length > 0) || (targets.length > 0) || resumeText),
     GEMINI_API_KEY: geminiKey,
-    GROQ_API_KEY: groqKey,
-    ANTHROPIC_API_KEY: anthropicKey,
     job_types: jobTypes,
     experience_level: expLevel,
     location_preference: locationPref,

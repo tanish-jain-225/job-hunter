@@ -94,7 +94,7 @@ def is_auth_required() -> bool:
 
 
 def extract_bearer_token() -> Optional[str]:
-    """Extract Bearer access token from Authorization header, query string, or HttpOnly cookie."""
+    """Extract Bearer access token from Authorization header or HttpOnly cookie."""
     # 1. Authorization header: "Bearer <token>" (case-insensitive, preferred)
     auth_header = request.headers.get("Authorization", "").strip()
     if auth_header.lower().startswith("bearer "):
@@ -102,12 +102,7 @@ def extract_bearer_token() -> Optional[str]:
         if token:
             return token
 
-    # 2. Query string fallback (?token=... or ?access_token=...)
-    query_token = request.args.get("token") or request.args.get("access_token")
-    if query_token and query_token.strip():
-        return query_token.strip()
-
-    # 3. HttpOnly cookie fallback (supports standard and Supabase SSR formats)
+    # 2. HttpOnly cookie fallback (supports standard and Supabase SSR formats)
     for c_name in ("sb_access_token", "supabase_token"):
         cookie_token = request.cookies.get(c_name)
         if cookie_token and cookie_token.strip():

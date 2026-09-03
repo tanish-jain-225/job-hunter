@@ -73,11 +73,12 @@ def test_extract_bearer_token():
     with test_app.test_request_context(headers={"Authorization": "Bearer sample-token-abc"}):
         assert extract_bearer_token() == "sample-token-abc"
 
+    # Query string tokens are rejected for security (CWE-598)
     with test_app.test_request_context(query_string={"token": "query-token-xyz"}):
-        assert extract_bearer_token() == "query-token-xyz"
+        assert extract_bearer_token() is None
 
     with test_app.test_request_context(query_string={"access_token": "access-token-123"}):
-        assert extract_bearer_token() == "access-token-123"
+        assert extract_bearer_token() is None
 
     with test_app.test_request_context(headers={"Cookie": "sb_access_token=cookie-token-456"}):
         assert extract_bearer_token() == "cookie-token-456"

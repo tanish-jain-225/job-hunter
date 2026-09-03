@@ -52,7 +52,7 @@ flowchart LR
   * **2 Gemini API Keys**: 500 Daily Active Users (**100% Free Forever**)
   * **3 Gemini API Keys**: 750 Daily Active Users (**100% Free Forever**)
 
-### C. Database & Multi-Tenant Storage (Supabase PostgreSQL)
+### B. Database & Multi-Tenant Storage (Supabase PostgreSQL)
 * **Free Tier Quota**: **500 MB Database Storage** & **50,000 Monthly Active Users**.
 * **Storage Invariant**: Every user profile is capped at a rolling retention window of **300 unapplied jobs** (`jobhunt/store.py:prune_old_jobs`).
 * **Protected Records**: Jobs marked `Applied`, `Interviewing`, or `Offer` are **never pruned**.
@@ -61,16 +61,16 @@ flowchart LR
   * 300 jobs $\times$ 1.5 KB = **~450 KB per user**
   * 300 Users = **~135 MB total** (Uses **27%** of 500 MB free tier).
 
-### D. Daily Briefing Dispatch (Gmail SMTP)
+### C. Daily Briefing Dispatch (Gmail SMTP)
 * **Free Outbound Limit**: **500 emails / 24 hours** per Google Account.
 * **Capacity**:
   * 100 Users: 100 emails (**20%** of limit)
   * 300 Users: 300 emails (**60%** of limit)
   * *Threshold*: Hard ceiling reached at **500 users**.
 
-### E. Compute & Automation (GitHub Actions Cloud)
+### D. Compute & Automation (GitHub Actions Cloud)
 * **Free Monthly Minutes**: **2,000 minutes / month** (or unlimited if repository is public).
-* **Schedule**: Daily at **06:00 AM IST** (`30 0 * * *`).
+* **Schedule**: Daily at **05:00 AM IST** (`30 23 * * *`).
 * **Capacity**:
   * 100 Users: 7 min/day $\times$ 30 = **210 mins/mo** (**10.5%** of quota)
   * 300 Users: 17 min/day $\times$ 30 = **510 mins/mo** (**25.5%** of quota)
@@ -113,7 +113,7 @@ timeline
 
 | Risk Factor | Impact | Mitigation Strategy |
 |---|---|---|
-| **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Sequential 3.5s batch delay + 62s reset window on 429 + instant auto-switch between Groq, Gemini, Anthropic, and local Ollama via environment variables. |
+| **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Multi-key CSV key rotation (`GEMINI_API_KEY=key1,key2`) + 6.0s leaky bucket throttle + automatic fallback to deterministic keyword scorer. |
 | **ATS Anti-Scraping Policies** | ATS adds bot challenge on public endpoints | All 9 supported ATS engines use standard public JSON career APIs that have remained open for over a decade. Proxy rotation can be enabled if needed. |
 | **Email Deliverability (Spam Filter)** | High-volume emails from `@gmail.com` land in spam | For >300 users, connect a custom domain with verified SPF, DKIM, and DMARC DNS records via Amazon SES or Resend. |
 | **GitHub Access Token Expiration** | Workflow dispatch fails to trigger | Set GitHub Personal Access Tokens (`GH_TOKEN`) with "No Expiration" or rotate annually. |
@@ -125,7 +125,7 @@ timeline
 | Capability | Job Hunter (Self-Hosted) | Commercial Job Tracker SaaS |
 |---|:---:|:---:|
 | **300 Daily Candidate Briefings** | **$0.00 / mo** | ~$150 – $300 / mo |
-| **Real Frontier AI Tailoring (Gemini/Groq)** | **$0.00 / mo** | Included in Pro (~$29/user/mo) |
+| **Real Frontier AI Tailoring (Google Gemini)** | **$0.00 / mo** | Included in Pro (~$29/user/mo) |
 | **90+ ATS Boards Indexing** | **$0.00 / mo** | Limited to major platforms |
 | **Multi-Tenant User Isolation** | **Included (Supabase RLS)** | Enterprise Tier Only |
 | **Annual Running Cost (300 Users)** | **🎉 $0.00 / Year** | **~$1,800 – $3,600 / Year** |

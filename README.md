@@ -21,7 +21,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.7-flash`, 1M tokens/day)** with multi-key CSV rotation and automatic offline fallback.
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.7-flash`, 1M tokens/day)** by default, with multi-key CSV rotation, automatic offline fallback, and optional support for Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint.
 4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.7-flash`)**.
 5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings.
 
@@ -33,7 +33,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 │ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
 │ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Kanban Board & Mail │
 └─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (9 Major ATS Engines)        (0 API Cost Filter)           (Groq / Gemini)               (Dashboard / Inbox)
+  (9 Major ATS Engines)        (0 API Cost Filter)           (Google Gemini 3.7)           (Dashboard / Inbox)
 ```
 
 > [!TIP]
@@ -52,7 +52,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
   - [2. Tune Deterministic Filters (`config.yaml`)](#2-tune-deterministic-filters-configyaml)
   - [3. Build Candidate Profile (`jobhunt profile`)](#3-build-candidate-profile-jobhunt-profile)
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
-- [🤖 Supported LLM Providers \& Cost Matrix](#-supported-llm-providers--cost-matrix)
+- [🤖 AI Engine: Google Gemini Flash — Default & Recommended](#-ai-engine-google-gemini-flash-gemini-37-flash--default--recommended)
 - [💻 Complete CLI Command Reference](#-complete-cli-command-reference)
 - [🚀 Daily Workflows \& Dashboard](#-daily-workflows--dashboard)
 - [📊 Tracking \& Deduplication (`seen.json`)](#-tracking--deduplication-seenjson)
@@ -183,16 +183,17 @@ filters:
   job_types: []
   max_age_days: 21
 
-screen_batch_size: 10     # Jobs per screening LLM call (high-throughput Gemini screening)
-screen_jd_chars: 1400     # Rich context truncation for precise evaluation
+screen_batch_size: 8      # Jobs per screening LLM call (optimal for Gemini Flash)
+screen_jd_chars: 1000     # Context truncation for precise evaluation
 draft_jd_chars: 6000      # Full context for kit drafting
 score_threshold: 7.0      # Score threshold (1.0 to 10.0 bar for shortlist)
 max_per_digest: 7         # Maximum job kits per digest briefing
+max_jobs_to_screen: 30    # Max unseen jobs evaluated per run (rate-limit guard)
 
 # High-Performance Concurrency & Zero-Cost Rate Limits
 fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
 llm_max_workers: 1        # Sequential batch workers to strictly prevent rate limit spikes
-llm_delay_seconds: 1.5    # Pacing delay between batch calls
+llm_delay_seconds: 6.0    # 6.0s = exactly 10 RPM (Gemini free tier ceiling)
 ```
 
 ---
@@ -239,18 +240,17 @@ GITHUB_REPOSITORY=your-github-username/job-hunter
 # Optional: Static Flask secret key for serverless session stability
 FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
-# Optional: Stage / Provider overrides (Leave commented for automatic Groq + Gemini split)
+# Optional: Stage / Provider overrides
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=openai/gpt-oss-20b
+# SCREEN_MODEL=gemini-3.7-flash
 # DRAFT_MODEL=gemini-3.7-flash
 ```
 
-
 ---
 
-## 🤖 Primary AI Engine: Google Gemini Flash (`gemini-3.7-flash`)
+## 🤖 AI Engine: Google Gemini Flash (`gemini-3.7-flash`) — Default & Recommended
 
-Job Hunter is powered by **Google Gemini Flash (`gemini-3.7-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation.
+Job Hunter defaults to **Google Gemini Flash (`gemini-3.7-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation. Alternative providers (Anthropic Claude, Groq, Ollama, any OpenAI-compatible endpoint) are fully supported via environment variable overrides.
 
 ```mermaid
 flowchart LR
@@ -259,12 +259,16 @@ flowchart LR
     C --> D["Daily Briefing & Web Kanban"]
 ```
 
-| Provider | Default Model | Environment Key | Native PDF | Best Recommended Role in Job Hunter |
+| Provider | Default Model | Environment Key | Native PDF | Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Google Gemini** | `gemini-3.7-flash` | `GEMINI_API_KEY` | ✅ | **Primary Engine:** Screening & Drafting (1M Tokens/Day per key, CSV rotation) |
-| **Anthropic** | `claude-3-7-sonnet` / `claude-3-5-haiku` | `ANTHROPIC_API_KEY` | ✅ | High-reasoning drafting and native PDF resume analysis |
-| **OpenAI Compatible** | `gpt-4o-mini` / `gpt-4o` | `GROQ_API_KEY` + `LLM_BASE_URL` | ❌ | OpenRouter, Together AI, vLLM |
-| **Ollama** | `llama3.1` | `OLLAMA_HOST` | ❌ | 100% Offline local model execution |
+| **Google Gemini** ⭐ | `gemini-3.7-flash` | `GEMINI_API_KEY` | ✅ | **Default Engine:** Batch Fit Screening & Application Kit Drafting (1M Tokens/Day per key, CSV rotation) |
+| **Anthropic Claude** | `claude-3-7-sonnet-20250219` | `ANTHROPIC_API_KEY` | ✅ | Optional drop-in (`pip install 'jobhunt[anthropic]'`; set `LLM_PROVIDER=anthropic`) |
+| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | ❌ | Optional ultra-fast inference (`LLM_PROVIDER=groq`) |
+| **Ollama** | `llama3.1` | *(none — local)* | ❌ | Fully local / air-gapped (`LLM_PROVIDER=ollama`) |
+| **OpenAI-compatible** | `gpt-4o` | `GROQ_API_KEY` / `LLM_BASE_URL` | ❌ | Any `/chat/completions` endpoint (`LLM_PROVIDER=openai-compatible`) |
+
+> [!TIP]
+> Override the active provider at any time via env vars: `LLM_PROVIDER=groq`, `SCREEN_PROVIDER=gemini`, `DRAFT_PROVIDER=anthropic`, `SCREEN_MODEL=...`, `DRAFT_MODEL=...`.
 
 ---
 
@@ -331,15 +335,14 @@ jobhunt stats
 
 ## 🤖 Automated Execution & GitHub Actions
 
-The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every single day at 06:00 IST (00:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
+The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every single day at 05:00 IST (23:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
 
 ### 🔑 Required Repository Secrets
 Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
 
 | Secret Name | Description |
 |---|---|
-| `GROQ_API_KEY` | Free Groq API key for ultra-fast candidate screening (30 RPM, 14,400 RPD). |
-| `GEMINI_API_KEY` | Free Google Gemini API key for application kit drafting (or `ANTHROPIC_API_KEY`). |
+| `GEMINI_API_KEY` | Free Google Gemini API key for candidate screening and kit drafting (aistudio.google.com). |
 | `SMTP_USER` & `SMTP_PASS` | Gmail address + [App Password](https://myaccount.google.com/apppasswords). |
 | `MAIL_TO` | Recipient email address for the daily digest (single-user mode). |
 | `SUPABASE_URL` & `SUPABASE_ANON_KEY` | Supabase PostgreSQL credentials (for centralized multi-user mode). |
@@ -352,7 +355,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (372+ tests with $\ge 90.8\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (370+ tests with $\ge 91\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -368,7 +371,7 @@ job-hunter/
 │   ├── cli.py                # Argparse subcommands (profile, run, multi-run, applied, stats, verify, clean, web)
 │   ├── fetch.py              # Job dataclass & 9 ATS API parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
 │   ├── prefilter.py          # Safe regex compilation, deterministic location, and freshness filter
-│   ├── providers.py          # Provider interface + Gemini/Anthropic/Groq/OpenAI/Ollama clients
+│   ├── providers.py          # Multi-provider AI clients: Gemini (default), Anthropic, Groq, Ollama, OpenAI-compat
 │   ├── llm.py                # Screening, drafting, profile extraction & tolerant JSON parser
 │   ├── store.py              # seen.json persistence, deduplication, atomic file writes & CSV export
 │   ├── memory.py             # Supabase PostgreSQL client with strict tenant isolation (RLS) & in-memory caching
@@ -392,7 +395,7 @@ job-hunter/
 │   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
 ├── supabase/
 │   └── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
-├── tests/                    # 372 comprehensive automated test cases (90.8%+ line coverage)
+├── tests/                    # 370 comprehensive automated test cases (91%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
@@ -452,7 +455,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (372 unit & integration tests):
+Run the full test suite locally (370 unit & integration tests):
 ```bash
 pytest
 ```

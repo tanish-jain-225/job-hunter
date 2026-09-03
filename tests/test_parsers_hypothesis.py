@@ -36,6 +36,7 @@ from jobhunt.fetch import (
 _text = st.text(min_size=0, max_size=200)
 _opt_text = st.none() | _text
 _opt_int = st.none() | st.integers(min_value=0, max_value=9_999_999)
+_slug = st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",)))  # type: ignore[arg-type]
 
 _greenhouse_job = st.fixed_dictionaries(
     {
@@ -96,7 +97,7 @@ _workable_job = st.fixed_dictionaries(
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.fixed_dictionaries({"jobs": st.lists(_greenhouse_job, max_size=10)})
     | st.just({})
     | st.just({"jobs": None})
@@ -115,7 +116,7 @@ def test_parse_greenhouse_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.lists(_lever_job, max_size=10) | st.just([]) | st.just(None) | st.just({}),
 )
 @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
@@ -129,7 +130,7 @@ def test_parse_lever_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.fixed_dictionaries({"jobPostings": st.lists(_ashby_job, max_size=10)}) | st.just({}) | st.just(None),
 )
 @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
@@ -143,7 +144,7 @@ def test_parse_ashby_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.fixed_dictionaries({"jobs": st.lists(_workable_job, max_size=10)}) | st.just({}) | st.just(None),
 )
 @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
@@ -157,7 +158,7 @@ def test_parse_workable_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.fixed_dictionaries(
         {
             "content": st.lists(
@@ -197,7 +198,7 @@ def test_parse_smartrecruiters_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.just({}) | st.just(None) | st.just([]),
 )
 @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
@@ -208,7 +209,7 @@ def test_parse_bamboohr_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.just({}) | st.just(None) | st.just([]),
 )
 @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
@@ -219,7 +220,7 @@ def test_parse_breezy_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.just({}) | st.just(None) | st.just([]),
 )
 @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
@@ -230,7 +231,7 @@ def test_parse_recruitee_never_raises(slug: str, body) -> None:
 
 
 @given(
-    slug=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L",))),
+    slug=_slug,
     body=st.just({}) | st.just(None) | st.just([]),
 )
 @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])

@@ -9,7 +9,7 @@ Job Hunter is engineered to support hundreds of concurrent job seekers indefinit
 ```text
                                ┌────────────────────────────────┐
                                │  GitHub Actions / Local Cron   │
-                               │  (Scheduled Daily at 06:00 IST)│
+                               │  (Scheduled Daily at 05:00 IST)│
                                └───────────────┬────────────────┘
                                                │
                                                ▼
@@ -25,7 +25,7 @@ Job Hunter is engineered to support hundreds of concurrent job seekers indefinit
     ├────────────────────┤          ├────────────────────┤          ├────────────────────┤
     │  • User Filters    │          │  • User Filters    │          │  • User Filters    │
     │  • Private Store   │          │  • Private Store   │          │  • Private Store   │
-    │  • Groq Screen (⚡) │          │  • Groq Screen (⚡) │          │  • Groq Screen (⚡) │
+    │  • Gemini Screen   │          │  • Gemini Screen   │          │  • Gemini Screen   │
     │  • Gemini Draft    │          │  • Gemini Draft    │          │  • Gemini Draft    │
     │  • Supabase Sync   │          │  • Supabase Sync   │          │  • Supabase Sync   │
     │  • HTML Digest     │          │  • HTML Digest     │          │  • HTML Digest     │
@@ -49,7 +49,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
      - Deterministic title/location pre-filtering narrows down candidate jobs.
      - Deduplication checks the user's private `user_tracked_jobs` table to prevent re-evaluating previously scored jobs.
      - Surviving new jobs are screened and application kits drafted.
-     - **Dynamic API Key Isolation**: If configured in their settings, the pipeline executes using the candidate's private API keys (Google Gemini, Groq, or Anthropic). This completely isolates rate limits per candidate, protecting the system from shared quota bottlenecks and shifting all API costs to $0 for the platform owner. If custom keys are omitted, the pipeline falls back to the system's global keys.
+     - **Dynamic API Key Isolation**: If configured in their settings, the pipeline executes using the candidate's private `GEMINI_API_KEY`. This completely isolates rate limits per candidate, protecting the system from shared quota bottlenecks and shifting all API costs to $0 for the platform owner. If custom keys are omitted, the pipeline falls back to the system's global keys.
      - Results are synchronized to their private Supabase partition.
      - A personalized HTML briefing is dispatched if email notifications are enabled.
 
@@ -61,8 +61,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 | :--- | :--- | :--- |
 | **Vercel** | 100GB bandwidth, serverless functions | Web Dashboard hosting |
 | **Supabase PostgreSQL** | 500MB database, 50,000 monthly active users | User profiles, private tracking stores, audit history |
-| **Groq API** | $0.00 (Supplied by Candidate / User Keys) | Candidate fit screening (Optional fallback to system keys) |
-| **Google Gemini API** | $0.00 (Supplied by Candidate / User Keys) | Resume tailoring and application kit drafting |
+| **Google Gemini API** | 1,000,000 TPM, 1,500 RPD (Supplied by Candidate / System Keys) | Candidate fit screening, resume tailoring, and application kit drafting |
 | **GitHub Actions** | 2,000 free runner minutes / month | Scheduled daily radar execution |
 | **Gmail SMTP** | 500 emails / day | Daily executive briefing email delivery |
 
@@ -81,7 +80,7 @@ python -m jobhunt multi-run --send
 
 ### Via GitHub Actions:
 - Trigger manually from the **Actions** tab by choosing `multi` mode.
-- Automated daily schedule runs every single day at 00:30 UTC (06:00 IST).
+- Automated daily schedule runs every single day at 23:30 UTC (05:00 IST).
 
 ---
 

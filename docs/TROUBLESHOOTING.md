@@ -53,13 +53,11 @@ This guide covers solutions to common errors, configurations, and questions enco
 ## ⚡ API Quotas & Rate Limiting
 
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
-* **Why it happens:** You are screening dozens of jobs on the Google Gemini free tier API (10 RPM ceiling per project) and high-concurrency requests or multiple fast runs exceeded the rate limit.
+* **Why it happens:** You are screening dozens of jobs on the Google Gemini free tier API (10 RPM ceiling per project) and high-concurrency requests exceeded the rate limit.
 * **The Solution:** 
-  * **Multi-Key Acceleration:** Pass multiple Gemini keys as CSV in `GEMINI_API_KEY` (`key1,key2,key3`). Job Hunter automatically scales call delays to stay 100% compliant.
-  * **Enable Zero-Quota Split Mode (Recommended):** Add a free `GROQ_API_KEY` to `.env`. Job Hunter will automatically route Stage 1 batch screening to Groq (`openai/gpt-oss-20b`) with 30 RPM and 14,400 Requests/Day capacity, completely bypassing Gemini rate limits!
-  * Job Hunter includes automatic parallel worker pacing (`min(delay_seconds, 1.0) * worker_idx`) and exponential backoff retry loops.
-  * In `config.yaml`, set `llm_max_workers` to `1` or `2` for free-tier keys.
-  * Increase `llm_delay_seconds` (e.g., `6.0`) to insert a larger pause between batches.
+  * **Multi-Key Acceleration (Recommended):** Pass multiple free Gemini keys as CSV in `GEMINI_API_KEY` (`AIzaSy1,AIzaSy2,AIzaSy3`). Job Hunter automatically rotates keys and dynamically reduces call spacing to multiply your throughput cleanly!
+  * Job Hunter includes automatic rate-limit throttling (6.0s leaky bucket inter-call spacing) and exponential backoff retry loops with key cooldown tracking.
+  * In `config.yaml`, set `llm_max_workers` to `1` for free-tier keys.
   * Adjust `screen_batch_size` (e.g., to `8`) to evaluate jobs efficiently per API call within token budget limits.
 
 ---

@@ -286,7 +286,7 @@ def run_pipeline(
         pjson = profile.get("profile_json")
         if not isinstance(pjson, dict):
             pjson = {}
-        for k in ("GEMINI_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
+        for k in ("GEMINI_API_KEY",):
             val = profile.get(k) or pjson.get(k)
             if val and str(val).strip():
                 old_env[k] = os.environ.get(k)

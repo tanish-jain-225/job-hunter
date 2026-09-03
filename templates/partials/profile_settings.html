@@ -205,40 +205,30 @@
         <div class="form-group" style="margin-top:20px;">
           <div class="form-label" id="label-email-briefing-mode">Email Briefing Mode (Select One)</div>
           
-          <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+          <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode">
             <!-- Option 1: Daily Mail Mode -->
-            <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
-              <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" aria-label="Daily Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
-              <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">Daily Mail Mode</div>
-              <div style="font-size:12px; color:#64748B; line-height:1.4;">Automated daily executive briefings sent when matching roles are found.</div>
+            <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')">
+              <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" aria-label="Daily Mail Mode">
+              <div class="mail-mode-title">Daily Mail Mode</div>
+              <div class="mail-mode-desc">Automated daily executive briefings sent when matching roles are found.</div>
             </label>
  
             <!-- Option 2: One-Time Mail Mode -->
-            <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" onclick="selectMailMode('onetime')" style="border:1.5px solid #E2E8F0; background:#FFFFFF; border-radius:8px; padding:14px; cursor:pointer; position:relative; transition:all 0.15s ease; display:block;">
-              <input type="radio" name="email_briefing_mode" id="radio-mode-onetime" value="onetime" aria-label="One-Time Mail Mode" style="position:absolute; top:14px; right:14px; accent-color:#0F172A;">
-              <div style="font-weight:600; font-size:13.5px; color:#0F172A; margin-bottom:4px;">One-Time Mail Mode</div>
-              <div style="font-size:12px; color:#64748B; line-height:1.4;">No recurring emails. Only send an on-demand briefing when you request it.</div>
+            <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" onclick="selectMailMode('onetime')">
+              <input type="radio" name="email_briefing_mode" id="radio-mode-onetime" value="onetime" aria-label="One-Time Mail Mode">
+              <div class="mail-mode-title">One-Time Mail Mode</div>
+              <div class="mail-mode-desc">No recurring emails. Only send an on-demand briefing when you request it.</div>
             </label>
           </div>
         </div>
 
         <!-- 3. Custom API Keys (Optional) -->
         <div class="form-group" style="margin-top:20px;">
-          <div class="form-label">Custom API Keys (Optional)</div>
-          <span class="form-hint" style="margin-bottom:8px; display:block;">Provide your own keys to prevent rate limits and ensure LLM screening never falls back. Saved securely via RLS.</span>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div>
-              <label class="form-hint" for="prof-gemini-key" style="font-weight:600; margin-bottom:4px; display:block;">Google Gemini API Key</label>
-              <input type="password" class="form-input" id="prof-gemini-key" placeholder="AIzaSy...">
-            </div>
-            <div>
-              <label class="form-hint" for="prof-groq-key" style="font-weight:600; margin-bottom:4px; display:block;">Groq API Key</label>
-              <input type="password" class="form-input" id="prof-groq-key" placeholder="gsk_...">
-            </div>
-            <div>
-              <label class="form-hint" for="prof-anthropic-key" style="font-weight:600; margin-bottom:4px; display:block;">Anthropic API Key</label>
-              <input type="password" class="form-input" id="prof-anthropic-key" placeholder="sk-ant-...">
-            </div>
+          <div class="form-label">Google Gemini API Key (Optional)</div>
+          <span class="form-hint" style="margin-bottom:8px; display:block;">Provide your personal Google AI Studio key (gemini-3.7-flash) to ensure uninterrupted screening and kit drafting. Saved securely via RLS.</span>
+          <div>
+            <label class="form-hint" for="prof-gemini-key" style="font-weight:600; margin-bottom:4px; display:block;">Google Gemini API Key (AI Studio)</label>
+            <input type="password" class="form-input" id="prof-gemini-key" placeholder="AIzaSy...">
           </div>
         </div>
 

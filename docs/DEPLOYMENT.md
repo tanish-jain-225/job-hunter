@@ -17,9 +17,9 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
                 │                                         │
                 ▼                                         ▼
 ┌────────────────────────────────┐       ┌─────────────────────────────────┐
-│   Zero-Quota AI Intelligence   │       │       Daily Cron Engine         │
-│ Groq + Gemini Split (Free)     │       │     GitHub Actions (Free)       │
-│  - Groq 14,400 RPD Screening   │       │  - Scheduled 6:00 AM Run        │
+│   Zero-Cost AI Intelligence    │       │       Daily Cron Engine         │
+│ Google Gemini Flash (Free)     │       │     GitHub Actions (Free)       │
+│  - 1M Tokens/Day Screening     │       │  - Scheduled 5:00 AM Run        │
 │  - Gemini Rich Kit Drafting    │       │  - Single-Pass 9-ATS Crawl      │
 │  - Automatic Keyword Fallback  │       │  - Daily Morning Email Briefing │
 └────────────────────────────────┘       └─────────────────────────────────┘
@@ -33,8 +33,7 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 | :--- | :--- | :--- | :--- |
 | **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **$0 / mo** |
 | **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs | **$0 / mo** |
-| **Groq API** | 30 RPM, 14,400 Requests/Day Free | Stage 1 candidate batch fit screening | **$0 / mo** |
-| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day | Stage 2 application kit drafting | **$0 / mo** |
+| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.7-flash) | Candidate batch fit screening & tailored application kit drafting | **$0 / mo** |
 | **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar | **$0 / mo** |
 | **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **$0 / mo** |
 
@@ -108,14 +107,13 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 ---
 
-## ⏰ Step 5: Configure Automated Daily 6:00 AM Cron (GitHub Actions)
+## ⏰ Step 5: Configure Automated Daily 5:00 AM Cron (GitHub Actions)
 
 Job Hunter automatically executes a centralized single-pass crawl across all active users every weekday morning via GitHub Actions.
 
 1. Go to your GitHub repository > **Settings > Secrets and variables > Actions**.
 2. Add the following **Repository Secrets**:
-   * `GROQ_API_KEY`: Your Groq API Key
-   * `GEMINI_API_KEY`: Your Google Gemini API Key
+   * `GEMINI_API_KEY`: Your Google Gemini API Key (aistudio.google.com)
    * `SUPABASE_URL`: Your Supabase Project URL
    * `SUPABASE_ANON_KEY`: Your Supabase Anon Key
    * `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key
@@ -135,7 +133,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 2. Signs in with email/password or Magic Link.
 3. The **Onboarding Wizard** pops up:
    * Candidate picks a 1-click role preset (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product Lead*) or uploads a resume to extract skills in-memory.
-   * Chooses their notification preference (*Instant On-Demand* or *Daily 6:00 AM Morning Briefing*).
+   * Chooses their notification preference (*Instant On-Demand* or *Daily 5:00 AM Morning Briefing*).
    * Clicks **"Complete & Launch First Hunt"**.
 4. The system immediately screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private Kanban tracker!
 

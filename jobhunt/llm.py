@@ -1,12 +1,7 @@
-"""Two-stage LLM layer: cheap screen over everything, rich draft for the top few.
+"""Two-stage AI intelligence layer: high-throughput screening and rich drafting.
 
-Cost lives here, so the two stages are deliberately lopsided:
-
-  screen  batch ~8 jobs per call, JD truncated to ~1400 chars, cheapest model
-  draft   one call per job, ~6000 chars of JD, best model, only for the top ~5
-
-Both stages take an optional (provider, model) pair so tests can inject a stub
-and so you can point screening at Groq while drafting stays on Claude.
+  screen  batch ~8 jobs per call, JD truncated to ~1000 chars, default: gemini-3.7-flash
+  draft   one call per job, ~6000 chars of JD, default: gemini-3.7-flash, for top matches
 """
 
 from __future__ import annotations

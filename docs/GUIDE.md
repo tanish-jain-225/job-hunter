@@ -17,7 +17,7 @@
 ## 🚀 Core Philosophy & Features
 
 - **🔒 100% Data Privacy**: Your resume, job applications, scores, and notes remain completely local on your machine or inside your private repository.
-- **💰 100% Free ($0/month)**: Operates using free-tier LLM providers (Google Gemini `gemini-3.7-flash` / Groq) and free email dispatches.
+- **💰 100% Free ($0/month)**: Operates using free Google Gemini Flash (`gemini-3.7-flash`, 1M tokens/day) and free email dispatches.
 - **⚡ Zero-Database Architecture**: No mandatory SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`), with optional Supabase PostgreSQL sync.
 - **📊 Automatic Excel/Sheets Sync**: All tracked and applied jobs auto-export to `out/tracker.csv` on every action.
 - **🤖 Automated Daily Email Digest**: Delivers personalized HTML career digests straight to your email inbox every morning.
@@ -28,7 +28,7 @@
 
 Before setting up, ensure you have:
 1. **Python 3.9+** (3.9, 3.10, 3.11, or 3.12) installed.
-2. **Google Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)) or Anthropic / Groq keys.
+2. **Google Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)).
 3. *(Optional for email digests)* **Gmail App Password** (Generated via [Google Account Security](https://myaccount.google.com/apppasswords)).
 
 ---
@@ -92,7 +92,7 @@ pip install -e .
        - bengaluru
        - mumbai
      allow_remote: true
-     max_age_days: 28
+     max_age_days: 21
 
    score_threshold: 7.0
    ```
@@ -116,7 +116,7 @@ pip install -e .
 ---
 
 ### Mode 2: Native Windows Daily Automated Task
-To receive your email digest every morning at 6:00 AM automatically on your computer:
+To receive your email digest every morning at 5:00 AM automatically on your computer:
 1. Open PowerShell or Command Prompt as **Administrator**.
 2. Run `setup_daily_task.bat` (or double-click `setup_daily_task.bat`).
 3. Windows Task Scheduler (`JobHunterDailyDigest`) will handle execution every morning in the background.
@@ -147,7 +147,7 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (357+ unit and integration tests, 98%+ test coverage). |
+| `pytest` | Run the full test suite (370+ unit and integration tests, 91%+ test coverage). |
 
 ---
 

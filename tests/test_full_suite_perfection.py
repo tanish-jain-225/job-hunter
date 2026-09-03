@@ -64,12 +64,12 @@ def test_auth_verify_token_api_error_and_exception(monkeypatch):
 
 
 def test_auth_extract_bearer_token_variations():
-    # 1. Query param
+    # 1. Query params are rejected
     with app.test_request_context("/api/jobs?token=query_token_123"):
-        assert auth.extract_bearer_token() == "query_token_123"
+        assert auth.extract_bearer_token() is None
 
     with app.test_request_context("/api/jobs?access_token=access_token_456"):
-        assert auth.extract_bearer_token() == "access_token_456"
+        assert auth.extract_bearer_token() is None
 
     # 2. Cookie
     with app.test_request_context("/api/jobs", headers={"Cookie": "sb_access_token=cookie_token_789"}):

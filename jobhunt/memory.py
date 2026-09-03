@@ -340,8 +340,6 @@ class SupabaseMemory:
             "preferred_sectors": profile.get("preferred_sectors") or [],
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
             "GEMINI_API_KEY": str(profile.get("GEMINI_API_KEY") or pjson.get("GEMINI_API_KEY") or "").strip(),
-            "GROQ_API_KEY": str(profile.get("GROQ_API_KEY") or pjson.get("GROQ_API_KEY") or "").strip(),
-            "ANTHROPIC_API_KEY": str(profile.get("ANTHROPIC_API_KEY") or pjson.get("ANTHROPIC_API_KEY") or "").strip(),
         }
 
         payload = {

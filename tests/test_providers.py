@@ -55,36 +55,19 @@ def test_resolve_auto_detect_gemini(monkeypatch: pytest.MonkeyPatch):
     assert provider.name == "gemini"
 
 
-def test_resolve_auto_detect_groq(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
-    monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
-    provider, model = resolve("screen", check=False)
-    assert provider.name == "groq"
-
-
-def test_resolve_auto_split_groq_and_gemini(monkeypatch: pytest.MonkeyPatch):
-    """When both GROQ_API_KEY and GEMINI_API_KEY exist, automatically split screen=groq and draft=gemini."""
+def test_resolve_default_gemini(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
     monkeypatch.delenv("DRAFT_PROVIDER", raising=False)
-    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
     monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
 
     screen_p, screen_m = resolve("screen", check=False)
-    assert screen_p.name == "groq"
-    assert (
-        "llama" in screen_m.lower()
-        or "gpt" in screen_m.lower()
-        or "qwen" in screen_m.lower()
-        or "openai" in screen_m.lower()
-    )
+    assert screen_p.name == "gemini"
+    assert screen_m == "gemini-3.7-flash"
 
     draft_p, draft_m = resolve("draft", check=False)
     assert draft_p.name == "gemini"
-    assert "gemini" in draft_m.lower()
+    assert draft_m == "gemini-3.7-flash"
 
 
 def test_resolve_missing_model(monkeypatch: pytest.MonkeyPatch):
@@ -423,15 +406,14 @@ def test_ollama_connection_error(monkeypatch: pytest.MonkeyPatch):
         p.complete("llama3.1", "sys", "user", 100)
 
 
-def test_resolve_auto_detect_anthropic(monkeypatch: pytest.MonkeyPatch):
+def test_resolve_prefers_gemini(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("SCREEN_PROVIDER", raising=False)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_anthropic_key")
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
 
     provider, model = resolve("screen", check=False)
-    assert provider.name == "anthropic"
+    assert provider.name == "gemini"
+    assert model == "gemini-3.7-flash"
 
 
 def test_gemini_37_flash_default_model(monkeypatch: pytest.MonkeyPatch):

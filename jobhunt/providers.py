@@ -1,12 +1,17 @@
-"""Provider-agnostic LLM clients.
+"""Multi-provider AI client for Job Hunter.
 
-One tiny interface, five backends. Screening and drafting each pick their own
-provider from env vars, so you can point the cheap pass at Groq or Gemini and
-keep Claude for the expensive drafting pass - or run the whole thing on a free
-tier with no card on file.
+Default engine: Google Gemini (gemini-3.7-flash) — used for candidate screening,
+fit scoring, and tailored application kit drafting.
 
-    complete(system, user)            -> str   (every provider)
-    complete_document(prompt, pdf)    -> str   (Anthropic + Gemini only)
+Optional providers selectable via LLM_PROVIDER / SCREEN_PROVIDER / DRAFT_PROVIDER:
+  - gemini (default)    Google AI Studio REST API (1M tokens/day free, CSV key rotation)
+  - anthropic           Claude via the official SDK  (`pip install 'jobhunt[anthropic]'`)
+  - groq                Groq ultra-fast inference    (GROQ_API_KEY)
+  - openai-compatible   Any /chat/completions endpoint (LLM_BASE_URL + GROQ_API_KEY)
+  - ollama              Fully local, no key needed   (OLLAMA_HOST)
+
+    complete(system, user)            -> str   (JSON / prose)
+    complete_document(prompt, pdf)    -> str   (native PDF parsing — Gemini & Anthropic only)
 
 Nothing here parses JSON or knows what a Job is. That lives in llm.py.
 """
@@ -447,86 +452,51 @@ class OllamaProvider(Provider):
 
 
 PROVIDERS = {
-    "anthropic": AnthropicProvider,
     "gemini": GeminiProvider,
     "groq": GroqProvider,
+    "anthropic": AnthropicProvider,
     "openai-compatible": OpenAICompatProvider,
     "ollama": OllamaProvider,
 }
 
 DEFAULT_MODELS = {
-    "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "gemini": {"screen": "gemini-3.7-flash", "draft": "gemini-3.7-flash"},
     "groq": {"screen": "llama-3.1-8b-instant", "draft": "llama-3.3-70b-versatile"},
+    "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
     "ollama": {"screen": "llama3.1", "draft": "llama3.1"},
 }
 
 
-def get_provider(name: str) -> Provider:
-    try:
-        return PROVIDERS[name]()
-    except KeyError:
-        raise LLMError(f"unknown provider {name!r}; pick one of {', '.join(PROVIDERS)}") from None
+def get_provider(name: str = "gemini") -> Provider:
+    clean_name = (name or "gemini").strip().lower()
+    if clean_name in PROVIDERS:
+        return PROVIDERS[clean_name]()
+    if clean_name in ("google", "flash", "gemini-flash", "default"):
+        return GeminiProvider()
+    raise LLMError(f"unknown provider {name!r}; pick one of {', '.join(PROVIDERS)}")
 
 
-def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
-    """Which provider + model handles this stage ("screen" or "draft")?
+def resolve(stage: str = "screen", check: bool = True) -> tuple[Provider, str]:
+    """Which provider + model handles this stage?
 
     Precedence:
     1. Stage-specific env var (SCREEN_PROVIDER / DRAFT_PROVIDER)
     2. Global env var (LLM_PROVIDER)
-    3. Auto-detected API key with intelligent pipeline stage splitting:
-       - If GROQ_API_KEY is present:
-         - stage == "screen" -> "groq" (fast high-throughput batch screening, 14,400 RPD)
-         - stage == "draft"  -> "gemini" if GEMINI_API_KEY else "groq"
-       - If only GEMINI_API_KEY is present -> "gemini"
-       - If only ANTHROPIC_API_KEY is present -> "anthropic"
-       - Fallback -> "gemini"
+    3. Default -> Google Gemini (gemini-3.7-flash)
     """
     from .auth import _load_env_if_needed
 
     _load_env_if_needed()
 
-    has_groq = bool((os.getenv("GROQ_API_KEY") or "").strip())
-    has_gemini = bool((os.getenv("GEMINI_API_KEY") or "").strip())
-    has_anthropic = bool((os.getenv("ANTHROPIC_API_KEY") or "").strip())
-
-    if stage.lower() == "screen":
-        if has_groq:
-            default_provider = "groq"
-        elif has_gemini:
-            default_provider = "gemini"
-        elif has_anthropic:
-            default_provider = "anthropic"
-        else:
-            default_provider = "gemini"
-    else:  # draft
-        if has_gemini:
-            default_provider = "gemini"
-        elif has_groq:
-            default_provider = "groq"
-        elif has_anthropic:
-            default_provider = "anthropic"
-        else:
-            default_provider = "gemini"
-
+    default_provider = "gemini"
     name = (os.getenv(f"{stage.upper()}_PROVIDER") or os.getenv("LLM_PROVIDER") or default_provider).strip().lower()
 
     provider = get_provider(name)
-    explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or "").strip()
-
-    # Avoid provider-model mismatch (e.g. legacy SCREEN_MODEL=gemini-3.5-flash in .env when provider is groq)
-    if explicit_model and name == "groq" and ("gemini" in explicit_model.lower() or "claude" in explicit_model.lower()):
-        model = DEFAULT_MODELS.get(name, {}).get(stage)
-    elif (
-        explicit_model
-        and name == "gemini"
-        and ("llama" in explicit_model.lower() or "gpt" in explicit_model.lower() or "claude" in explicit_model.lower())
-    ):
-        model = DEFAULT_MODELS.get(name, {}).get(stage)
-    else:
-        model = explicit_model or DEFAULT_MODELS.get(name, {}).get(stage)
+    explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or os.getenv("LLM_MODEL") or "").strip()
+    model = explicit_model or DEFAULT_MODELS.get(name, {}).get(stage)
+    if not model and name == "gemini":
+        model = "gemini-3.7-flash"
 
     if not model:
         raise LLMError(f"set {stage.upper()}_MODEL for provider {name!r}")
@@ -536,7 +506,7 @@ def resolve(stage: str, check: bool = True) -> tuple[Provider, str]:
 
 
 def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Provider, str] | None:
-    """Find the next available configured live provider when primary provider quota is exhausted."""
+    """Return an active live provider instance if available when primary provider quota is exhausted."""
     from .auth import _load_env_if_needed
 
     _load_env_if_needed()
@@ -557,4 +527,11 @@ def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Pro
             except Exception:
                 continue
 
+    if bool((os.getenv("GEMINI_API_KEY") or "").strip()):
+        try:
+            prov = get_provider("gemini")
+            prov.preflight()
+            return prov, "gemini-3.7-flash"
+        except Exception:
+            return None
     return None

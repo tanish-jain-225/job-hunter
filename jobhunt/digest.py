@@ -114,13 +114,13 @@ def _card(j: Job) -> str:
     fit_html = _section("Why It Fits", _para(fit_text))
 
     return f"""
-<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px 16px;margin-bottom:18px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:18px 16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
   <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;width:100%;box-sizing:border-box;margin-bottom:10px;">
-    <div style="flex:1 1 200px;min-width:0;display:block;">
-      <div style="font-size:16.5px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
+    <div style="flex:1 1 180px;min-width:0;display:block;">
+      <div style="font-size:16px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
       <div style="color:{MUTED};font-size:12.5px;margin-top:4px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
     </div>
-    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;max-width:100%;">{_badge(j)}</div>
+    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;max-width:100%;box-sizing:border-box;">{_badge(j)}</div>
   </div>
 
   <div style="margin-top:10px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
@@ -175,29 +175,29 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
             else f"No new remote matches today — {today}"
         )
         body = f"""
-<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 2px 5px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-    <div style="background:#eff6ff;color:#2563eb;font-size:22px;line-height:1;padding:10px;border-radius:10px;border:1px solid #bfdbfe;">🏹</div>
-    <div>
-      <div style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;">Daily Radar Scan Completed</div>
-      <div style="color:{MUTED};font-size:12.5px;margin-top:2px;">No new high-match postings found (0 candidates cleared the match bar today)</div>
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:22px 18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="background:#eff6ff;color:#2563eb;font-size:22px;line-height:1;padding:10px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;">🏹</div>
+    <div style="flex:1 1 200px;min-width:0;">
+      <div style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">Daily Radar Scan Completed</div>
+      <div style="color:{MUTED};font-size:12.5px;margin-top:2px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
     </div>
   </div>
 
-  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin-bottom:14px;">
+  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin-bottom:14px;word-break:break-word;overflow-wrap:anywhere;">
     Our autonomous crawler scanned <b>{scanned} postings</b> across <b>100+ verified ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters).
   </p>
 
-  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;margin-bottom:16px;box-sizing:border-box;width:100%;">
     <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Active Criteria Evaluated</div>
-    <div style="font-size:12.5px;color:#334155;line-height:1.5;">
+    <div style="font-size:12.5px;color:#334155;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;">
       • <b>Target Roles:</b> {html.escape(target_str)}<br>
       • <b>Locations:</b> {html.escape(locs_str)}<br>
       • <b>Key Skills:</b> {html.escape(skills_str)}
     </div>
   </div>
 
-  <div style="color:#475569;font-size:13px;line-height:1.5;">
+  <div style="color:#475569;font-size:13px;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;">
     💡 <b>Radar Status: Active &amp; Monitoring.</b> You will be immediately alerted as soon as new matching opportunities are published by target companies.
   </div>
 </div>"""
@@ -210,24 +210,30 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <base target="_blank">
   <style>
-    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }}
+    body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; color: {TEXT}; }}
     img, table {{ max-width: 100%; height: auto; }}
     @media only screen and (max-width: 480px) {{
-      .digest-wrap {{ padding: 12px 6px !important; }}
+      .digest-wrap {{ padding: 10px 4px !important; }}
       .digest-card {{ padding: 14px 10px !important; border-radius: 10px !important; margin-bottom: 12px !important; }}
       .card-header-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
       .card-badge-wrap {{ align-self: flex-start !important; margin-top: 4px !important; }}
       .card-footer-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
       .btn-apply-email {{ width: 100% !important; text-align: center !important; justify-content: center !important; }}
-      .digest-title {{ font-size: 19px !important; }}
+      .digest-title {{ font-size: 18px !important; }}
+    }}
+    @media only screen and (max-width: 320px) {{
+      .digest-wrap {{ padding: 8px 2px !important; }}
+      .digest-card {{ padding: 10px 8px !important; border-radius: 8px !important; }}
+      .digest-title {{ font-size: 16px !important; }}
+      .btn-apply-email {{ font-size: 12px !important; padding: 8px 12px !important; }}
     }}
   </style>
 </head>
 <body style="margin:0;padding:16px 8px;background:{BG};box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;color:{TEXT};">
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
     <div class="digest-title" style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin-bottom:6px;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
-    <div style="color:{MUTED};font-size:12.5px;margin:0 0 20px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+    <div style="color:{MUTED};font-size:12.5px;margin:0 0 18px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
       {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
       Tracker: {stats.get("tracked", 0)} total seen
     </div>

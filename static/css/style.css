@@ -3500,4 +3500,356 @@ input:checked + .slider::before {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* ==============================================================================
+   11. Mail Mode Selector & Preference Cards (Pure Flexbox)
+   ============================================================================== */
+
+.mail-mode-selector {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mail-mode-card {
+  border: 1.5px solid var(--border);
+  background: var(--card-bg, #ffffff);
+  border-radius: var(--radius-sm, 8px);
+  padding: 14px;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast, 0.15s ease);
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 200px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mail-mode-card:hover {
+  border-color: var(--primary);
+  background: var(--bg-subtle, #f8fafc);
+}
+
+.mail-mode-card.active,
+.mail-mode-card:has(input[type="radio"]:checked) {
+  border-color: var(--primary);
+  background: var(--primary-light, #eef2ff);
+}
+
+.mail-mode-card input[type="radio"] {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  accent-color: var(--primary);
+}
+
+.mail-mode-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  padding-right: 24px;
+  line-height: 1.3;
+}
+
+.mail-mode-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ==============================================================================
+   12. Pure Flexbox Ultra-Small Mobile Responsive Engine (Down to 300px)
+   ============================================================================== */
+
+@media (max-width: 480px) {
+  .mail-mode-selector {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mail-mode-card {
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 12px;
+  }
+
+  .kanban-board-container {
+    gap: 12px;
+  }
+
+  .kanban-column {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .form-grid-2 {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-content,
+  .modal-content-studio,
+  .modal-content-wizard,
+  .modal-content-medium,
+  .modal-content-custom-job {
+    width: calc(100vw - 12px) !important;
+    max-width: 100% !important;
+    border-radius: 12px !important;
+    max-height: 94vh !important;
+  }
+
+  .modal-header {
+    padding: 12px 14px !important;
+  }
+
+  .modal-body,
+  .modal-body-studio {
+    padding: 12px 14px !important;
+  }
+}
+
+/* Ultra-Compact Screens & Foldable Displays (<= 340px down to 300px) */
+@media (max-width: 340px) {
+  body {
+    padding: 4px !important;
+    gap: 8px !important;
+  }
+
+  .navbar {
+    padding: 6px 8px !important;
+    border-radius: 8px !important;
+  }
+
+  .navbar-container {
+    gap: 6px !important;
+  }
+
+  .brand-logo-frame {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .brand-title {
+    font-size: 13.5px !important;
+  }
+
+  .brand-badge {
+    font-size: 8px !important;
+    padding: 1px 4px !important;
+  }
+
+  .sync-indicator {
+    padding: 2px 5px !important;
+    font-size: 9px !important;
+  }
+
+  .metrics-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 4px !important;
+    padding: 6px 8px !important;
+  }
+
+  .metric-divider {
+    display: none !important;
+  }
+
+  .metric-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .metric-lbl {
+    font-size: 10px !important;
+  }
+
+  .metric-val {
+    font-size: 11.5px !important;
+  }
+
+  .user-auth-pill {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 6px 8px !important;
+    width: 100% !important;
+  }
+
+  .user-info-text {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .user-email {
+    font-size: 11px !important;
+  }
+
+  .btn-auth-signout {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .tab-bar {
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .tab-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 11.5px !important;
+    padding: 8px !important;
+  }
+
+  .tracker-controls-row {
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  .tracker-controls-row .form-input,
+  .tracker-controls-row .tracker-select,
+  .tracker-controls-row .btn {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .filter-pills-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .filter-pills {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .filter-pills .pill {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .view-toggle-group {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .btn-view-toggle {
+    flex: 1 1 50% !important;
+    justify-content: center !important;
+    font-size: 11.5px !important;
+    padding: 6px !important;
+  }
+
+  .kanban-board-container {
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .kanban-column {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+  }
+
+  .kanban-column-header {
+    padding: 8px 10px !important;
+  }
+
+  .kanban-card {
+    padding: 8px 10px !important;
+    border-radius: 6px !important;
+  }
+
+  .modal-content,
+  .modal-content-studio,
+  .modal-content-wizard,
+  .modal-content-medium,
+  .modal-content-custom-job {
+    width: calc(100vw - 6px) !important;
+    padding: 10px 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .modal-title {
+    font-size: 14.5px !important;
+  }
+
+  .modal-subtitle {
+    font-size: 11px !important;
+  }
+
+  .wizard-progress-bar {
+    padding: 4px 4px 0 !important;
+    gap: 0 !important;
+  }
+
+  .wizard-step-circle {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 10px !important;
+  }
+
+  .wizard-step-label {
+    font-size: 9.5px !important;
+  }
+
+  .wizard-step-connector {
+    margin: 0 2px 14px !important;
+  }
+
+  .btn {
+    font-size: 11.5px !important;
+    padding: 6px 10px !important;
+  }
+
+  .btn-sm {
+    font-size: 10.5px !important;
+    padding: 4px 8px !important;
+  }
+
+  .job-item {
+    padding: 10px 8px !important;
+    border-radius: 8px !important;
+  }
+
+  .job-title {
+    font-size: 13px !important;
+  }
+
+  .job-badges {
+    gap: 4px !important;
+  }
+
+  .badge-score {
+    font-size: 10.5px !important;
+    padding: 2px 5px !important;
+  }
+
+  .badge-ats {
+    font-size: 9.5px !important;
+    padding: 2px 5px !important;
+  }
+}
+
 

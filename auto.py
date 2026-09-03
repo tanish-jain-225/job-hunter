@@ -87,8 +87,7 @@ def main(argv: list[str] | None = None) -> int:
     # 2. Run the main pipeline
     print("\n[2/3] Running job search pipeline...")
     cli._load_env()
-    if not os.environ.get("LLM_PROVIDER") and os.environ.get("GEMINI_API_KEY") and not os.environ.get("GROQ_API_KEY"):
-        os.environ["LLM_PROVIDER"] = "gemini"
+    os.environ["LLM_PROVIDER"] = "gemini"
 
     smtp_pass = os.environ.get("SMTP_PASS", "")
     if parsed_args.send is None:

@@ -5,10 +5,9 @@ flask>=3.0.0
 PyJWT>=2.8.0
 pypdf>=4.0.0
 
-# Only needed if you point a stage at Anthropic (the default provider).
-# Gemini, Groq, OpenAI-compatible and Ollama all go over plain `requests`,
-# so you can delete this line and still use those.
-anthropic>=0.40
+# Optional: Only needed if you point a stage at Anthropic.
+# Gemini, Groq, OpenAI-compatible and Ollama all go over plain `requests`.
+# anthropic>=0.40
 
 # Tests
 pytest>=8.0
