@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+import pytest
+from jobhunt.providers import reset_provider_state
+
+
+@pytest.fixture(autouse=True)
+def reset_global_provider_state():
+    """Ensure provider state (counters, cooldowns, throttles) is cleanly isolated for every test."""
+    reset_provider_state()
+    yield
+    reset_provider_state()
+
 
 class DummyResponse:
     """Stub HTTP response for testing HTTP client code."""

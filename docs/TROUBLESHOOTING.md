@@ -53,18 +53,19 @@ This guide covers solutions to common errors, configurations, and questions enco
 ## ⚡ API Quotas & Rate Limiting
 
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
-* **Why it happens:** You are screening dozens of jobs on the Google Gemini free tier API (10 RPM ceiling per project) and high-concurrency requests exceeded the rate limit.
+* **Why it happens:** You are screening jobs on the Google Gemini free tier API (15 RPM ceiling per key, or the 20 requests/day free limit for `gemini-3.7-flash` preview on an unpaid Google Cloud project).
 * **The Solution:** 
-  * **Multi-Key Acceleration (Recommended):** Pass multiple free Gemini keys as CSV in `GEMINI_API_KEY` (`AIzaSy1,AIzaSy2,AIzaSy3`). Job Hunter automatically rotates keys and dynamically reduces call spacing to multiply your throughput cleanly!
-  * Job Hunter includes automatic rate-limit throttling (6.0s leaky bucket inter-call spacing) and exponential backoff retry loops with key cooldown tracking.
-  * In `config.yaml`, set `llm_max_workers` to `1` for free-tier keys.
-  * Adjust `screen_batch_size` (e.g., to `8`) to evaluate jobs efficiently per API call within token budget limits.
+  * **Multi-Key Acceleration (Recommended):** Pass multiple free Gemini keys as CSV in `GEMINI_API_KEY` (`AIzaSy1,AIzaSy2,AIzaSy3`). For maximum quota scaling, generate each key in a **distinct Google Cloud project** so each key benefits from an independent project quota bucket! Job Hunter automatically alternates requests round-robin and paces each key independently at 15 RPM.
+  * **Automatic Resilience Cascading:** If your `gemini-3.7-flash` daily preview quota is exhausted, Job Hunter's built-in cascade layer automatically routes active requests through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`), ensuring your crawls and kits complete without crashing or dropping jobs.
+  * **Pay-As-You-Go ($0.15/1M tokens):** Attaching a billing method in Google Cloud unlocks 1,000 RPM on `gemini-3.7-flash` with virtually unlimited daily volume.
+  * In `config.yaml`, set `llm_max_workers: 1` for free-tier keys and keep `screen_batch_size: 8` for optimal batch throughput.
 
-### Notice: Gemini HTTP 503 (High Demand) or Resume Upload Latency
-* **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`.
+### Notice: Gemini HTTP 503 (High Demand), Timeouts, or Resume Upload Latency
+* **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`, or take >25s to generate long JSON application kits.
 * **The Solution:**
-  * Job Hunter includes built-in exponential backoff retries and a generous 45-second client timeout window.
-  * Even if Google's servers take longer than 30s or fail completely, Job Hunter's **smart local regex fallback** automatically takes over in $\le 15$ seconds, extracting your candidate name, current title, education, technical skills, and target roles directly from plain text so you are never locked out of your dashboard!
+  * Job Hunter includes built-in exponential backoff retries, a 60-second read timeout window (`TIMEOUT = 60`), and automatic key cooldown tracking.
+  * If an endpoint remains unresponsive or in high demand across all keys, Job Hunter seamlessly cascades through available Flash endpoints (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`).
+  * In Resume Studio, even if Google's servers take longer than 30s or fail completely, Job Hunter's **smart local regex fallback** automatically takes over in $\le 15$ seconds, extracting your candidate name, current title, education, technical skills, and target roles directly from plain text so you are never locked out of your dashboard!
 
 ---
 

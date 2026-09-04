@@ -25,7 +25,7 @@ from typing import Any
 
 import requests
 
-TIMEOUT = 25
+TIMEOUT = 60
 
 
 class LLMError(RuntimeError):
@@ -44,8 +44,40 @@ import threading
 _RATE_LOCK = threading.Lock()
 _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _LAST_CALL_MAP: dict[str, float] = {}
+_KEY_LAST_CALL_MAP: dict[str, float] = {}
+_MODEL_COOLDOWN_MAP: dict[str, float] = {}
+_GEMINI_KEY_COUNTER: int = 0
+_GEMINI_COUNTER_LOCK = threading.Lock()
+
+
+def _record_model_cooldown(model: str, cooldown_seconds: float = 600.0) -> None:
+    """Mark a model endpoint as cooling down / exhausted."""
+    if model:
+        with _RATE_LOCK:
+            _MODEL_COOLDOWN_MAP[model] = time.time() + cooldown_seconds
+
+
+def _is_model_cooling_down(model: str) -> bool:
+    """Check if a model endpoint is currently marked in cooldown."""
+    if not model:
+        return False
+    with _RATE_LOCK:
+        return time.time() < _MODEL_COOLDOWN_MAP.get(model, 0.0)
+
+def reset_provider_state() -> None:
+    """Thread-safely reset all provider global throttles, cooldown caches, and key rotation counters."""
+    global _GEMINI_KEY_COUNTER
+    with _RATE_LOCK:
+        _KEY_COOLDOWN_MAP.clear()
+        _LAST_CALL_MAP.clear()
+        _KEY_LAST_CALL_MAP.clear()
+        _MODEL_COOLDOWN_MAP.clear()
+    with _GEMINI_COUNTER_LOCK:
+        _GEMINI_KEY_COUNTER = 0
+
+
 MIN_CALL_INTERVALS: dict[str, float] = {
-    "gemini": 6.0,  # 10 RPM (exact 10 RPM free tier ceiling per Google AI Studio project)
+    "gemini": 4.0,  # 15 RPM free tier ceiling per Google AI Studio project key
     "groq": 2.0,  # 30 RPM (exact 30 RPM ceiling per Groq project)
     "anthropic": 1.2,
     "openai-compatible": 0.5,
@@ -55,6 +87,8 @@ MIN_CALL_INTERVALS: dict[str, float] = {
 
 def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
     """Enforce leaky-bucket inter-call spacing per provider scaled by active API key count."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
+        return
     base_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
     effective_keys = max(1, num_keys)
     min_interval = max(0.3, base_interval / effective_keys)
@@ -66,6 +100,20 @@ def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
         time.sleep(min_interval - elapsed)
     with _RATE_LOCK:
         _LAST_CALL_MAP[provider_name.lower()] = time.time()
+
+
+def _enforce_key_throttle(key: str, min_interval: float = 4.0) -> None:
+    """Ensure an individual API key is never invoked faster than min_interval (15 RPM)."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
+        return
+    with _RATE_LOCK:
+        last_time = _KEY_LAST_CALL_MAP.get(key, 0.0)
+        now = time.time()
+        elapsed = now - last_time
+    if elapsed < min_interval:
+        time.sleep(min_interval - elapsed)
+    with _RATE_LOCK:
+        _KEY_LAST_CALL_MAP[key] = time.time()
 
 
 def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0) -> None:
@@ -206,11 +254,24 @@ class GeminiProvider(Provider):
     def _post(self, model: str, body: dict) -> str:
         import random
 
+        if _is_model_cooling_down(model):
+            if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                return self._post("gemini-flash-latest", body)
+            elif model == "gemini-flash-latest":
+                return self._post("gemini-3.5-flash", body)
+            elif model == "gemini-3.5-flash":
+                return self._post("gemini-flash-lite-latest", body)
+
         all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
         if not all_configured_keys:
             raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
         max_retries = max(2, min(4, len(all_configured_keys)))
         url = f"{self.BASE}/{model}:generateContent"
+
+        with _GEMINI_COUNTER_LOCK:
+            global _GEMINI_KEY_COUNTER
+            req_idx = _GEMINI_KEY_COUNTER
+            _GEMINI_KEY_COUNTER += 1
 
         for attempt in range(max_retries):
             active_keys = _get_active_api_keys("GEMINI_API_KEY")
@@ -218,8 +279,11 @@ class GeminiProvider(Provider):
                 # All keys in temporary cooldown — wait briefly for key window reset
                 time.sleep(1.0)
                 active_keys = all_configured_keys
-            key = active_keys[attempt % len(active_keys)]
-            _enforce_rate_limit_throttle(self.name, num_keys=len(active_keys))
+            if attempt == 0:
+                key = active_keys[req_idx % len(active_keys)]
+            else:
+                key = active_keys[0]
+            _enforce_key_throttle(key, min_interval=4.0)
             try:
                 r = requests.post(
                     url,
@@ -229,10 +293,10 @@ class GeminiProvider(Provider):
                 )
                 if r.status_code == 429 and attempt < max_retries - 1:
                     retry_after = r.headers.get("Retry-After")
-                    cooldown = 30.0
+                    cooldown = 20.0
                     if retry_after:
                         try:
-                            cooldown = max(float(str(retry_after).strip()), 10.0)
+                            cooldown = max(float(str(retry_after).strip()), 5.0)
                         except (ValueError, TypeError):
                             pass
                     _record_key_cooldown(key, cooldown)
@@ -249,21 +313,45 @@ class GeminiProvider(Provider):
                     )
                     time.sleep(total_delay)
                     continue
+                elif r.status_code == 429 and attempt == max_retries - 1:
+                    _record_model_cooldown(model, 600.0)
+                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                        print(f"  ! {model} quota exceeded across all keys — cascading to gemini-flash-latest...")
+                        return self._post("gemini-flash-latest", body)
+                    elif model == "gemini-flash-latest":
+                        print("  ! gemini-flash-latest quota exceeded — cascading to gemini-3.5-flash...")
+                        return self._post("gemini-3.5-flash", body)
+                    elif model == "gemini-3.5-flash":
+                        print("  ! gemini-3.5-flash quota exceeded — cascading to gemini-flash-lite-latest...")
+                        return self._post("gemini-flash-lite-latest", body)
 
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
                     delay = 1.0 * (attempt + 1) + random.uniform(0.1, 0.4)
                     print(
-                        f"  ! gemini HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
+                        f"  ! gemini HTTP {r.status_code} — rotating key and retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
                     )
                     time.sleep(delay)
                     continue
+                elif r.status_code in (500, 502, 503, 504) and attempt == max_retries - 1:
+                    _record_model_cooldown(model, 60.0)
+                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-latest...")
+                        return self._post("gemini-flash-latest", body)
+                    elif model == "gemini-flash-latest":
+                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-3.5-flash...")
+                        return self._post("gemini-3.5-flash", body)
+                    elif model == "gemini-3.5-flash":
+                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-lite-latest...")
+                        return self._post("gemini-flash-lite-latest", body)
+
                 if r.status_code == 404:
-                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"):
-                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-2.5-flash...")
-                        return self._post("gemini-2.5-flash", body)
-                    elif model != "gemini-flash-latest":
+                    _record_model_cooldown(model, 86400.0)
+                    if model != "gemini-flash-latest":
                         print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-flash-latest...")
                         return self._post("gemini-flash-latest", body)
+                    elif model != "gemini-3.5-flash":
+                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-3.5-flash...")
+                        return self._post("gemini-3.5-flash", body)
                 if r.status_code != 200:
                     raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
                 try:
@@ -293,10 +381,18 @@ class GeminiProvider(Provider):
                 return text
             except requests.RequestException as e:
                 if attempt < max_retries - 1:
-                    delay = 5 * (attempt + 1)
-                    print(f"  ! gemini network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
+                    delay = 2 * (attempt + 1)
+                    print(f"  ! gemini network error/timeout ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
+                if model in ("gemini-3.7-flash", "gemini-3.6-flash"):
+                    _record_model_cooldown(model, 180.0)
+                    print(f"  ! {model} network error/timeout across all keys — cascading to gemini-flash-latest...")
+                    return self._post("gemini-flash-latest", body)
+                elif model == "gemini-flash-latest":
+                    _record_model_cooldown(model, 180.0)
+                    print("  ! gemini-flash-latest network error/timeout — cascading to gemini-3.5-flash...")
+                    return self._post("gemini-3.5-flash", body)
                 raise LLMError(f"gemini network error: {e}") from e
         raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
 

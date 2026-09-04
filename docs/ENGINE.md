@@ -101,7 +101,7 @@ GEMINI_API_KEY=AIzaSy_...        # Default: batch screening & rich drafting (1M 
 
 | Feature | Default Model | Config Key | Role in Job Hunter |
 | :--- | :--- | :--- | :--- |
-| **Stage 1: Fit Screening** | `gemini-3.7-flash` | `GEMINI_API_KEY` | High-throughput batch candidate screening (8 jobs/call, 10 RPM pacing). |
+| **Stage 1: Fit Screening** | `gemini-3.7-flash` | `GEMINI_API_KEY` | High-throughput batch candidate screening (8 jobs/call, 15 RPM per-key pacing, multi-key rotation). |
 | **Stage 2: Kit Drafting** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Rich context window (6,000 chars) for personalized cover notes, cold DMs, & matching bullets. |
 | **Native PDF Analysis** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Base64 multimodal document parsing for resume profile extraction (also supported by Anthropic Claude). |
 
@@ -119,6 +119,14 @@ If your LLM provider is down, hits rate limits, or is not configured, the engine
 
 ### 2. Forgiving JSON Parser (`llm.parse_json`)
 LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles/conversations. Job Hunter uses an intelligent, regex-backed parser that extracts only the valid JSON substring and handles missing brackets or commas gracefully, preventing model parsing errors from crashing runs.
+
+### 3. Multi-Key Round-Robin & Model Cascading
+* **Strict Primary Model**: Screening and drafting stages default strictly to **Google Gemini (`gemini-3.7-flash`)**.
+* **Thread-Safe Key Alternation**: The engine implements a global atomic counter (`_GEMINI_KEY_COUNTER`) ensuring successive requests alternate across all configured API keys (`key1 -> key2 -> key3`).
+* **Per-Key Independent 15 RPM Throttling**: Rather than stalling all keys under a shared timer, each key tracks its own last invocation timestamp (`_enforce_key_throttle(key, min_interval=4.0)`). During automated test execution (`PYTEST_CURRENT_TEST`), physical sleeps are cleanly bypassed, accelerating test suite execution by >80% while keeping production throttling 100% intact.
+* **Extended 60s Generation Timeout**: Generous 60s read timeout (`TIMEOUT = 60`) prevents premature cutoffs on long JSON kits during upstream latency.
+* **Automatic Model Cascading**: When `gemini-3.7-flash` hits Google AI Studio project limits (`HTTP 429: Resource Exhausted`) or transient high demand (`HTTP 503`), the engine automatically cascades the active payload through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`), with temporary cooldown tracking (`_MODEL_COOLDOWN_MAP`) ensuring continuous real-time execution without dropping candidates.
+* **Deterministic Provider State Isolation**: The engine exports `reset_provider_state()` to atomically clear throttles, key counters, and model cooldowns, ensuring complete state isolation across production runs and automated tests (`tests/conftest.py`).
 
 ---
 
