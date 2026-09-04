@@ -190,3 +190,23 @@ def test_digest_responsive_structure():
     # Ensure body does not have display:flex (which Gmail breaks into horizontal row)
     assert '<body style="margin:0;padding:16px 8px;background:' in html_doc
     assert "display:flex" not in html_doc.split("<body")[1].split('<div class="digest-wrap"')[0]
+
+
+def test_digest_logo_and_source_footer_with_jobs():
+    """Verify brand logo and source link footer are rendered in digest HTML."""
+    job = Job("1", "gh", "Acme", "Dev", "Remote", "http://x", "desc", score=8.5)
+    subject, html_doc = digest.build([job], 10, 5, {"tracked": 10})
+    assert "https://job-hunter-web-board.vercel.app/logo.png" in html_doc
+    assert "https://job-hunter-web-board.vercel.app" in html_doc
+    assert 'class="digest-footer"' in html_doc
+    assert "Source:" in html_doc
+
+
+def test_digest_logo_in_empty_state():
+    """Verify brand logo and source link footer are rendered when no jobs matched."""
+    subject, html_doc = digest.build([], 10, 0, {"tracked": 10})
+    assert "https://job-hunter-web-board.vercel.app/logo.png" in html_doc
+    assert "https://job-hunter-web-board.vercel.app" in html_doc
+    assert "Daily Radar Scan Completed" in html_doc
+    assert 'class="digest-footer"' in html_doc
+

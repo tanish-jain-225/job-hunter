@@ -1,4 +1,4 @@
-﻿# Security Policy
+# Security Policy
 
 ## Supported Versions
 
@@ -44,6 +44,10 @@ Include: affected component, steps to reproduce, potential impact, suggested fix
 
 - **JWT tokens** verified via local PyJWT (if `SUPABASE_JWT_SECRET` set) or Supabase Auth API. Cached 60s via SHA-256 hash.
 - **Supabase RLS** ensures users only access their own rows. Service role key only used in admin multi-run batch, gated via `use_service_key=True`.
+- **Complete Endpoint Protection**: All 25 operational REST API routes strictly enforce `@require_auth`, rejecting unauthenticated requests with HTTP 401 (`UNAUTHORIZED`).
+- **Universal View State Isolation**: Unauthenticated visitors are confined to the public landing page. Authenticated dashboards (`#dashboard-view`) and metrics (`#header-metrics`) are protected with `.app-view-hidden` (`display: none !important; visibility: hidden !important; pointer-events: none !important;`) with highest CSS precedence across all media queries down to 300px.
+- **Client-Side Utility Lockout (`checkAuthOrRedirect`)**: All utility triggers (manual sync, on-demand radar runner, tab switching, custom opportunity tracking, custom company additions/deletions, kit inspector, candidate profile settings, resume parser, and `/` search focus) are locked until authenticated.
+- **Zero-Bleed Session Teardown**: Signing out wipes all in-memory jobs, profile context, DOM elements, and removes cached stats/profiles from `localStorage`.
 - **Tokens never accepted via query string** — only `Authorization: Bearer` headers and HttpOnly cookies.
 - **Rate limiting** via `flask-limiter`: 5 calls/hour on `/api/run`, 500/hour global default.
 - **XSS protection**: Digest content escaped via `html.escape()`. Jinja2 auto-escaping enabled.

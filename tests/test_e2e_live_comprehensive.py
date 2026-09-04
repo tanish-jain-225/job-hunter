@@ -68,6 +68,7 @@ class TestE2ELiveSuite:
     """End-to-End Live Testing covering all features."""
 
     mock_db: dict[str, dict] = {}
+    mock_jobs_db: dict[str, dict[str, dict]] = {}
 
     @pytest.fixture(autouse=True)
     def setup_mock_environment(self, monkeypatch, tmp_path):
@@ -87,8 +88,55 @@ class TestE2ELiveSuite:
             self.mock_db[email] = {**(self.mock_db.get(email, {})), **profile}
             return self.mock_db[email]
 
-        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, token=None: mock_get_profile(email, token))
-        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.upsert_user_profile", lambda self, email, profile, token=None: mock_upsert_profile(email, profile, token))
+        def mock_load_jobs(email, limit=10000, token=None):
+            return {k: dict(v) for k, v in self.mock_jobs_db.get(email, {}).items()}
+
+        def mock_save_job(email, job_dict, token=None, use_service_key=False):
+            if email not in self.mock_jobs_db:
+                self.mock_jobs_db[email] = {}
+            jid = str(job_dict.get("job_id", "")).strip()
+            if jid:
+                self.mock_jobs_db[email][jid] = dict(job_dict)
+            return True
+
+        def mock_delete_job(email, job_id, token=None):
+            if email in self.mock_jobs_db:
+                self.mock_jobs_db[email].pop(job_id, None)
+            return True
+
+        def mock_set_applied(email, job_id, applied=True, token=None):
+            if email in self.mock_jobs_db and job_id in self.mock_jobs_db[email]:
+                self.mock_jobs_db[email][job_id]["applied"] = applied
+            return True
+
+        def mock_set_notes(email, job_id, notes, token=None):
+            if email in self.mock_jobs_db and job_id in self.mock_jobs_db[email]:
+                self.mock_jobs_db[email][job_id]["notes"] = notes
+            return True
+
+        def mock_set_stage(email, job_id, stage, token=None):
+            if email in self.mock_jobs_db and job_id in self.mock_jobs_db[email]:
+                self.mock_jobs_db[email][job_id]["application_stage"] = stage
+            return True
+
+        def mock_bulk_upsert(email, jobs, token=None, use_service_key=False):
+            if email not in self.mock_jobs_db:
+                self.mock_jobs_db[email] = {}
+            for j in jobs:
+                jid = str(j.get("job_id", "")).strip()
+                if jid:
+                    self.mock_jobs_db[email][jid] = dict(j)
+            return len(jobs)
+
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.get_user_profile", lambda self, email, *a, **kw: mock_get_profile(email, kw.get("token") or (a[0] if a else None)))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.upsert_user_profile", lambda self, email, profile, *a, **kw: mock_upsert_profile(email, profile, kw.get("token") or (a[0] if a else None)))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.load_user_jobs", lambda self, email, *a, **kw: mock_load_jobs(email, kw.get("limit", 10000), kw.get("token") or (a[1] if len(a) > 1 else None)))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.save_user_job", lambda self, email, job_dict, *a, **kw: mock_save_job(email, job_dict, kw.get("token"), kw.get("use_service_key", False)))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.delete_user_job", lambda self, email, job_id, *a, **kw: mock_delete_job(email, job_id, kw.get("token")))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.set_job_applied", lambda self, email, job_id, applied=True, *a, **kw: mock_set_applied(email, job_id, applied, kw.get("token")))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.set_job_notes", lambda self, email, job_id, notes, *a, **kw: mock_set_notes(email, job_id, notes, kw.get("token")))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.set_job_stage", lambda self, email, job_id, stage, *a, **kw: mock_set_stage(email, job_id, stage, kw.get("token")))
+        monkeypatch.setattr("jobhunt.memory.SupabaseMemory.bulk_upsert_user_jobs", lambda self, email, jobs, *a, **kw: mock_bulk_upsert(email, jobs, kw.get("token"), kw.get("use_service_key", False)))
         monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: True))
 
     # -------------------------------------------------------------------------

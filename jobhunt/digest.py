@@ -14,6 +14,8 @@ LINE = "#e2e8f0"
 TEXT = "#0f172a"
 MUTED = "#64748b"
 ACCENT = "#4f46e5"
+WEBSITE_URL = "https://job-hunter-web-board.vercel.app"
+LOGO_URL = f"{WEBSITE_URL}/logo.png"
 
 
 def _badge(job: Job) -> str:
@@ -123,7 +125,7 @@ def _card(j: Job) -> str:
     <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;max-width:100%;box-sizing:border-box;">{_badge(j)}</div>
   </div>
 
-  <div style="margin-top:10px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+  <div class="card-badges-flex" style="margin-top:10px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
     {_job_type_badge(j)}
     <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">{html.escape(india_badge)}</span>
     {salary_html}
@@ -132,7 +134,7 @@ def _card(j: Job) -> str:
   {fit_html}
 
   <div class="card-footer-flex" style="margin-top:16px;padding-top:12px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;">
-    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-block;background:{ACCENT};
+    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-flex;align-items:center;justify-content:center;background:{ACCENT};
        color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;
        padding:9px 16px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;">Open Job Listing &amp; Apply →</a>
     <span style="color:{MUTED};font-size:11px;word-break:break-all;overflow-wrap:anywhere;text-align:right;">ID: {html.escape(j.job_id)}</span>
@@ -176,11 +178,15 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         )
         body = f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:22px 18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-    <div style="background:#eff6ff;color:#2563eb;font-size:22px;line-height:1;padding:10px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;">🏹</div>
-    <div style="flex:1 1 200px;min-width:0;">
-      <div style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">Daily Radar Scan Completed</div>
-      <div style="color:{MUTED};font-size:12.5px;margin-top:2px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
+  <div class="empty-header-flex" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+    <div style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;">
+      <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;">
+        <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;">
+      </a>
+    </div>
+    <div style="flex:1 1 180px;min-width:0;">
+      <div class="empty-title" style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">Daily Radar Scan Completed</div>
+      <div class="empty-desc" style="color:{MUTED};font-size:12.5px;margin-top:2px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
     </div>
   </div>
 
@@ -212,34 +218,72 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <style>
     * {{ box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }}
     body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; color: {TEXT}; }}
-    img, table {{ max-width: 100%; height: auto; }}
+    img {{ max-width: 100%; height: auto; }}
+    table {{ max-width: 100%; }}
     @media only screen and (max-width: 480px) {{
       .digest-wrap {{ padding: 10px 4px !important; }}
       .digest-card {{ padding: 14px 10px !important; border-radius: 10px !important; margin-bottom: 12px !important; }}
+      .digest-header-flex {{ gap: 8px !important; }}
       .card-header-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
       .card-badge-wrap {{ align-self: flex-start !important; margin-top: 4px !important; }}
       .card-footer-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
       .btn-apply-email {{ width: 100% !important; text-align: center !important; justify-content: center !important; }}
       .digest-title {{ font-size: 18px !important; }}
+      .digest-footer {{ margin-top: 18px !important; padding-top: 12px !important; }}
     }}
-    @media only screen and (max-width: 320px) {{
-      .digest-wrap {{ padding: 8px 2px !important; }}
-      .digest-card {{ padding: 10px 8px !important; border-radius: 8px !important; }}
-      .digest-title {{ font-size: 16px !important; }}
-      .btn-apply-email {{ font-size: 12px !important; padding: 8px 12px !important; }}
+    @media only screen and (max-width: 340px) {{
+      .digest-wrap {{ padding: 6px 2px !important; }}
+      .digest-card {{ padding: 10px 6px !important; border-radius: 8px !important; margin-bottom: 10px !important; }}
+      .digest-header-flex {{ gap: 6px !important; }}
+      .digest-logo-img {{ width: 30px !important; height: 30px !important; border-radius: 7px !important; }}
+      .digest-title {{ font-size: 15px !important; line-height: 1.25 !important; }}
+      .digest-meta-line {{ font-size: 11px !important; line-height: 1.4 !important; }}
+      .card-header-flex {{ gap: 6px !important; }}
+      .card-badges-flex {{ gap: 4px !important; }}
+      .btn-apply-email {{ font-size: 11px !important; padding: 7px 10px !important; border-radius: 6px !important; }}
+      .empty-header-flex {{ gap: 8px !important; }}
+      .empty-logo-img {{ width: 24px !important; height: 24px !important; }}
+      .empty-title {{ font-size: 14px !important; }}
+      .empty-desc {{ font-size: 11px !important; }}
+      .digest-footer {{ font-size: 10px !important; margin-top: 14px !important; padding-top: 10px !important; gap: 6px !important; }}
+      .digest-footer-logo {{ width: 16px !important; height: 16px !important; }}
+      .digest-footer-text {{ font-size: 10px !important; }}
+      .digest-footer-source-row {{ font-size: 9.5px !important; }}
+    }}
+    @media only screen and (max-width: 300px) {{
+      .digest-wrap {{ padding: 4px 1px !important; }}
+      .digest-card {{ padding: 8px 4px !important; border-radius: 6px !important; }}
+      .digest-title {{ font-size: 13.5px !important; }}
+      .btn-apply-email {{ font-size: 10.5px !important; padding: 6px 8px !important; }}
     }}
   </style>
 </head>
 <body style="margin:0;padding:16px 8px;background:{BG};box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;color:{TEXT};">
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
-    <div class="digest-title" style="color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin-bottom:6px;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
-    <div style="color:{MUTED};font-size:12.5px;margin:0 0 18px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+    <div class="digest-header-flex" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
+      <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
+        <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:cover;">
+      </a>
+      <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
+    </div>
+    <div class="digest-meta-line" style="color:{MUTED};font-size:12.5px;margin:0 0 18px 0;line-height:1.5;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
       {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
       Tracker: {stats.get("tracked", 0)} total seen
     </div>
     {body}
-    <div style="color:{MUTED};font-size:11px;line-height:1.6;margin-top:20px;border-top:1px solid {LINE};padding-top:12px;display:block;clear:both;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
-      Autonomous execution engine by Job Hunter. Application kits drafted from candidate profile.
+    <div class="digest-footer" style="color:{MUTED};font-size:11.5px;line-height:1.6;margin-top:24px;border-top:1px solid {LINE};padding-top:14px;display:flex;flex-direction:column;gap:8px;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+      <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+        <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;">
+          <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};">
+        </a>
+        <span class="digest-footer-text" style="color:{MUTED};font-size:11.5px;line-height:1.5;flex:1 1 180px;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
+          Autonomous execution engine by <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="color:{ACCENT};font-weight:700;text-decoration:none;">Job Hunter</a>. Application kits drafted from candidate profile.
+        </span>
+      </div>
+      <div class="digest-footer-source-row" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:11px;color:#94a3b8;width:100%;box-sizing:border-box;word-break:break-all;">
+        <span>Source:</span>
+        <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="color:{ACCENT};text-decoration:underline;font-weight:600;word-break:break-all;">{WEBSITE_URL}</a>
+      </div>
     </div>
   </div>
 </body>

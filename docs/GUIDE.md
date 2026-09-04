@@ -147,7 +147,7 @@ You can run Job Hunter completely in the cloud without leaving your computer on:
 | `jobhunt profile` | Extract candidate profile from resume (`.pdf`, `.txt`, `.md`) to `profile.json`. |
 | `jobhunt stats` | Output current tracking and application metrics in terminal. |
 | `jobhunt applied <job_id>` | Mark job ID as applied via CLI. |
-| `pytest` | Run the full test suite (377+ unit and integration tests, 91%+ test coverage). |
+| `pytest` | Run the full test suite (395 unit and integration tests, 91%+ test coverage). |
 
 ---
 

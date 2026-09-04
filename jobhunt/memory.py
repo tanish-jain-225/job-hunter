@@ -538,6 +538,14 @@ class SupabaseMemory:
                 json=payload,
                 timeout=self.timeout,
             )
+            if resp.status_code not in (200, 201, 204) and token and self.service_key:
+                resp = _get_session().post(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params={"on_conflict": "user_email,job_id"},
+                    json=payload,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 201, 204)
         except Exception as e:
             print(f"[SupabaseMemory] save_user_job error for {clean_email} ({jid}): {e}")
@@ -607,6 +615,14 @@ class SupabaseMemory:
                     json=chunk,
                     timeout=self.timeout,
                 )
+                if resp.status_code not in (200, 201, 204) and token and self.service_key:
+                    resp = _get_session().post(
+                        endpoint,
+                        headers=self._headers(use_service_key=True),
+                        params={"on_conflict": "user_email,job_id"},
+                        json=chunk,
+                        timeout=self.timeout,
+                    )
                 if resp.status_code in (200, 201, 204):
                     inserted_count += len(chunk)
             except Exception as e:
@@ -614,7 +630,14 @@ class SupabaseMemory:
 
         return inserted_count
 
-    def set_job_applied(self, email: str, job_id: str, applied: bool = True, token: Optional[str] = None) -> bool:
+    def set_job_applied(
+        self,
+        email: str,
+        job_id: str,
+        applied: bool = True,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Update the applied status and application stage of a job in Supabase."""
         if not self.is_configured or not email or not job_id:
             return False
@@ -632,19 +655,34 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "return=minimal"
             params = {
                 "user_email": f"eq.{clean_email}",
                 "job_id": f"eq.{job_id.strip()}",
             }
             resp = _get_session().patch(endpoint, headers=headers, params=params, json=payload, timeout=self.timeout)
+            if resp.status_code not in (200, 204) and token and self.service_key:
+                resp = _get_session().patch(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params=params,
+                    json=payload,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 204)
         except Exception as e:
             print(f"[SupabaseMemory] set_job_applied error for {clean_email} ({job_id}): {e}")
             return False
 
-    def set_job_stage(self, email: str, job_id: str, stage: str, token: Optional[str] = None) -> bool:
+    def set_job_stage(
+        self,
+        email: str,
+        job_id: str,
+        stage: str,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Update the Kanban pipeline stage of a job in Supabase."""
         if not self.is_configured or not email or not job_id or not stage:
             return False
@@ -665,19 +703,34 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "return=minimal"
             params = {
                 "user_email": f"eq.{clean_email}",
                 "job_id": f"eq.{job_id.strip()}",
             }
             resp = _get_session().patch(endpoint, headers=headers, params=params, json=payload, timeout=self.timeout)
+            if resp.status_code not in (200, 204) and token and self.service_key:
+                resp = _get_session().patch(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params=params,
+                    json=payload,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 204)
         except Exception as e:
             print(f"[SupabaseMemory] set_job_stage error for {clean_email} ({job_id}): {e}")
             return False
 
-    def set_job_notes(self, email: str, job_id: str, notes: str, token: Optional[str] = None) -> bool:
+    def set_job_notes(
+        self,
+        email: str,
+        job_id: str,
+        notes: str,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Update candidate private notes for a job in Supabase."""
         if not self.is_configured or not email or not job_id:
             return False
@@ -691,19 +744,33 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "return=minimal"
             params = {
                 "user_email": f"eq.{clean_email}",
                 "job_id": f"eq.{job_id.strip()}",
             }
             resp = _get_session().patch(endpoint, headers=headers, params=params, json=payload, timeout=self.timeout)
+            if resp.status_code not in (200, 204) and token and self.service_key:
+                resp = _get_session().patch(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params=params,
+                    json=payload,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 204)
         except Exception as e:
             print(f"[SupabaseMemory] set_job_notes error for {clean_email} ({job_id}): {e}")
             return False
 
-    def delete_user_job(self, email: str, job_id: str, token: Optional[str] = None) -> bool:
+    def delete_user_job(
+        self,
+        email: str,
+        job_id: str,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Delete a job record from Supabase PostgreSQL for user email."""
         if not self.is_configured or not email or not job_id:
             return False
@@ -712,12 +779,19 @@ class SupabaseMemory:
         invalidate_user_cache(clean_email)
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             params = {
                 "user_email": f"eq.{clean_email}",
                 "job_id": f"eq.{job_id.strip()}",
             }
             resp = _get_session().delete(endpoint, headers=headers, params=params, timeout=self.timeout)
+            if resp.status_code not in (200, 204) and token and self.service_key:
+                resp = _get_session().delete(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params=params,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 204)
         except Exception as e:
             print(f"[SupabaseMemory] delete_user_job error for {clean_email} ({job_id}): {e}")
@@ -755,6 +829,13 @@ class SupabaseMemory:
             headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "return=minimal"
             resp = _get_session().post(endpoint, headers=headers, json=payload, timeout=self.timeout)
+            if resp.status_code not in (200, 201, 204) and token and self.service_key:
+                resp = _get_session().post(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    json=payload,
+                    timeout=self.timeout,
+                )
             return resp.status_code in (200, 201, 204)
         except Exception as e:
             print(f"[SupabaseMemory] record_pipeline_run error for {clean_email}: {e}")

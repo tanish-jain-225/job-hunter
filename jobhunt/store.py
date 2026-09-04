@@ -299,7 +299,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_applied(self.user_email, job_id, applied=True, token=self.token)
+            self.memory.set_job_applied(
+                self.user_email, job_id, applied=True, token=self.token, use_service_key=self.use_service_key
+            )
         return True
 
     def unmark_applied(self, job_id: str) -> bool:
@@ -312,7 +314,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_applied(self.user_email, job_id, applied=False, token=self.token)
+            self.memory.set_job_applied(
+                self.user_email, job_id, applied=False, token=self.token, use_service_key=self.use_service_key
+            )
         return True
 
     def update_stage(self, job_id: str, stage: str) -> bool:
@@ -330,7 +334,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_stage(self.user_email, job_id, clean_stage, token=self.token)
+            self.memory.set_job_stage(
+                self.user_email, job_id, clean_stage, token=self.token, use_service_key=self.use_service_key
+            )
         return True
 
     def update_notes(self, job_id: str, notes: str) -> bool:
@@ -341,7 +347,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_notes(self.user_email, job_id, notes, token=self.token)
+            self.memory.set_job_notes(
+                self.user_email, job_id, notes, token=self.token, use_service_key=self.use_service_key
+            )
         return True
 
     def delete_job(self, job_id: str) -> bool:
@@ -352,7 +360,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.delete_user_job(self.user_email, job_id, token=self.token)
+            self.memory.delete_user_job(
+                self.user_email, job_id, token=self.token, use_service_key=self.use_service_key
+            )
         return True
 
     def add_job(
@@ -411,7 +421,9 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.save_user_job(self.user_email, job_dict, token=self.token)
+            self.memory.save_user_job(
+                self.user_email, job_dict, token=self.token, use_service_key=self.use_service_key
+            )
 
         return job_id
 

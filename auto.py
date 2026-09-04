@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
     # 2. Run the main pipeline
     print("\n[2/3] Running job search pipeline...")
     cli._load_env()
-    os.environ["LLM_PROVIDER"] = "gemini"
+    os.environ.setdefault("LLM_PROVIDER", "gemini")
 
     smtp_pass = os.environ.get("SMTP_PASS", "")
     if parsed_args.send is None:

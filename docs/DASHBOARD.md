@@ -93,6 +93,16 @@ The dashboard is designed as a single-page application with a premium Light Mode
 ### 12. ⚡ Real-Time Server-Sent Events (SSE) Live Radar Log Streaming
 * The on-demand pipeline console streams live logs line-by-line via Server-Sent Events (`/api/pipeline/stream`) without polling lag.
 
+### 13. 🔒 Strict View State Isolation & Zero Data Leakage
+* **Isolated Landing vs Dashboard**: Unauthenticated visitors are confined to the public landing page (`#landing-view` and `#landing-nav-links`). Authenticated dashboard layouts (`#dashboard-view`) and header metric summaries (`#header-metrics`) are isolated and hidden with `.app-view-hidden` (`display: none !important; visibility: hidden !important; pointer-events: none !important;`).
+* **Utility Access Guards (`checkAuthOrRedirect`)**: All utility triggers (manual sync, on-demand radar runner, tab switching, custom opportunity tracking, custom company additions, kit inspector, profile settings, and `/` search focus) are locked until authenticated. Unauthenticated clicks trigger the sign-in modal with explanatory toasts.
+* **Complete Session Cleanup**: Signing out purges all in-memory jobs, profile context, DOM elements, and removes cached stats/profiles from `localStorage`.
+
+### 14. 📱 Pure Flexbox Fluid Responsiveness down to 300px
+* Engineered with modern flexbox layouts and micro-viewport media queries (`<= 480px`, `<= 380px`, `<= 340px`, and `<= 300px`).
+* Eliminates horizontal scrolling, wraps action buttons, and scales modals fluidly to `calc(100vw - 2px)`.
+* Features brand logo thumbnails and active attribution footers linking directly to `https://job-hunter-web-board.vercel.app`.
+
 ---
 
 ## 📡 REST API Reference

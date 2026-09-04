@@ -1,7 +1,77 @@
 # Job Hunter — REST API Reference
 
-All endpoints require authentication via `Authorization: Bearer <token>` header
-or `sb_access_token` HttpOnly cookie.
+Job Hunter exposes a modular REST API built with Flask Blueprints.
+
+Operational endpoints require authentication via `Authorization: Bearer <token>` header or `sb_access_token` HttpOnly cookie. Public discovery routes (`/`, `/api/health`, `/api/auth/config`, `/logo.png`) are accessible without authentication.
+
+---
+
+## Public & Discovery Routes
+
+### GET /
+Renders the single-page application. Unauthenticated visitors are confined to `#landing-view`; authenticated dashboards remain isolated and hidden via `.app-view-hidden` until verified.
+
+**Auth:** Public  
+**Response:** `text/html`
+
+### GET /api/auth/config
+Returns client initialization configuration including whether authentication is required and Supabase public keys.
+
+**Auth:** Public  
+**Response:**
+```json
+{
+  "status": "success",
+  "auth_required": true,
+  "supabase_url": "https://your-project.supabase.co",
+  "supabase_anon_key": "eyJhbGciOi..."
+}
+```
+
+### GET /api/health
+Service health check endpoint for monitoring, uptime verification, and Vercel serverless deployment checks.
+
+**Auth:** Public  
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "job-hunter",
+  "version": "1.0.0",
+  "environment": "production",
+  "auth_required": true,
+  "memory_connected": true,
+  "timestamp": 1725450000.0,
+  "utc_time": "2026-09-04 13:00:00Z"
+}
+```
+
+### GET /logo.png & GET /favicon.ico
+Serves the official brand logo asset.
+
+**Auth:** Public  
+**Response:** `image/png`
+
+---
+
+## Authentication & User Profile
+
+### GET /api/auth/user
+Returns candidate identity and metadata extracted from the validated Supabase JWT token.
+
+**Auth:** Required  
+**Response:**
+```json
+{
+  "status": "success",
+  "user": {
+    "id": "usr_94a08e1a",
+    "email": "candidate@example.com",
+    "role": "authenticated",
+    "user_metadata": {"full_name": "Jane Doe"}
+  }
+}
+```
 
 ---
 
@@ -61,6 +131,12 @@ Dispatches a live test career briefing email to verify SMTP delivery credentials
 **Auth:** Required  
 **Response:** `{"status": "success", "message": "Test briefing successfully sent to user@example.com!", "target_email": "user@example.com"}`
 
+### GET /api/history
+Returns recent pipeline execution runs and logs for the authenticated candidate.
+
+**Auth:** Required  
+**Response:** `{"status": "success", "history": [...]}`
+
 ---
 
 ## Jobs
@@ -118,12 +194,31 @@ Manually add a custom job entry with optional AI scoring.
 }
 ```
 
-### POST /api/delete
+### POST /api/delete (and DELETE /api/delete)
 Delete a job from the tracking store.
 
 **Auth:** Required  
 **Body:** `{"job_id": "..."}`  
 **Response:** `{"status": "success", "job_id": "...", "version": "a1b2c3d4e5f60718", "stats": {...}}`
+
+### GET /api/jobs/kit/<job_id>
+Inspect tailored application kit assets (fit summary, cover letter, cold message, interview prep) for a specific job.
+
+**Auth:** Required  
+**Response:** `{"status": "success", "job_id": "...", "draft": {...}}`
+
+### POST /api/jobs/draft/<job_id>
+Update or regenerate tailored application kit draft content for a specific job.
+
+**Auth:** Required  
+**Body:** `{"draft": {"fit_summary": "...", "cover_note": "...", "outreach": "..."}}`  
+**Response:** `{"status": "success", "job_id": "...", "draft": {...}}`
+
+### POST /api/jobs/clear
+Clear all tracked opportunities from the candidate's store.
+
+**Auth:** Required  
+**Response:** `{"status": "success", "message": "All jobs cleared."}`
 
 ### GET /api/export/csv
 Download tracked jobs as a CSV file attachment.

@@ -199,6 +199,7 @@ function renderKanbanBoardHtml(jobs) {
 }
 
 async function updateJobStageDirect(jobId, newStage) {
+  if (!checkAuthOrRedirect('update application pipeline stage')) return;
   const j = appState.jobsMap[jobId];
   if (!j) return;
 
@@ -256,6 +257,17 @@ let authConfig = {
   supabase_anon_key: ''
 };
 
+// Central Authentication & Utility Access Guard
+function checkAuthOrRedirect(actionName = 'access this utility') {
+  if (authConfig.auth_required && !currentAuthSession) {
+    setAppView('landing');
+    openAuthModal('signin');
+    showToast(`Please sign in to ${actionName}.`, 'info', 3500);
+    return false;
+  }
+  return true;
+}
+
 // Authenticated Fetch Wrapper with Automatic Token Refresh
 async function authFetch(url, options = {}) {
   const opts = { ...options };
@@ -287,6 +299,7 @@ async function authFetch(url, options = {}) {
         console.warn('Session expired mid-usage (401). Prompting re-authentication.');
         currentAuthSession = null;
         stopHeartbeat();
+        setAppView('landing');
         openAuthModal('signin');
         setAuthFeedback('Your secure session has expired. Please sign in again.', 'error');
       }
@@ -686,6 +699,7 @@ function updateJobSearchButtonState() {
 
 // Manual Sync Button Trigger
 async function manualSync() {
+  if (!checkAuthOrRedirect('synchronize dashboard data')) return;
   setSyncStatus('syncing', 'Syncing now...');
   await syncDashboard(true);
   showToast('Dashboard is fully synchronized!', 'success', 2000);
@@ -693,6 +707,10 @@ async function manualSync() {
 
 // Tab Switching with URL & LocalStorage Persistence
 function switchTab(tab, fetchData = true) {
+  if (fetchData && !checkAuthOrRedirect('access dashboard tabs')) {
+    return;
+  }
+
   appState.activeTab = tab;
   Storage.set(localStorage, STORAGE_KEYS.ACTIVE_TAB, tab);
 
@@ -1098,6 +1116,7 @@ function toggleModalAppliedDirect() {
 }
 
 function openKitModal(jobId) {
+  if (!checkAuthOrRedirect('inspect application kit')) return;
   const j = appState.jobsMap[jobId];
   if (!j || !j.draft) return;
 
@@ -1321,6 +1340,7 @@ function checkAndPromptOnboarding(profile) {
 }
 
 function openOnboardingModal() {
+  if (!checkAuthOrRedirect('open profile setup onboarding')) return;
   const modalEl = document.getElementById('onboarding-modal');
   if (!modalEl) return;
   isOnboardingOpen = true;
@@ -1446,6 +1466,7 @@ function initOnboardingDropzone() {
 }
 
 async function submitOnboardingResumeParse() {
+  if (!checkAuthOrRedirect('parse resume')) return;
   const btn = document.getElementById('btn-onboarding-parse');
   const spinner = document.getElementById('onboarding-spinner');
   const btnText = document.getElementById('onboarding-parse-btn-text');
@@ -1678,6 +1699,7 @@ function selectNotificationMode(isDaily) {
 }
 
 async function saveOnboardingProfile(launchScan = false) {
+  if (!checkAuthOrRedirect('save candidate profile')) return;
   const btn = document.getElementById('btn-save-onboarding') || document.getElementById('btn-finish-onboarding');
   const spinner = document.getElementById('onboard-save-spinner');
   if (btn) btn.disabled = true;
@@ -1792,6 +1814,7 @@ async function saveOnboardingProfile(launchScan = false) {
 // Settings Modal & Preferences Manager
 // --------------------------------------------------------------------------
 async function openProfileModal(tab = 'resume') {
+  if (!checkAuthOrRedirect('access candidate profile and radar settings')) return;
   const modalEl = document.getElementById('profile-modal');
   if (!modalEl) return;
   modalEl.classList.add('active');
@@ -2130,6 +2153,7 @@ function closeProfileModal() {
 }
 
 function flushUserProfileData() {
+  if (!checkAuthOrRedirect('flush candidate profile')) return;
   const preservedEmail = (
     currentAuthSession?.user?.email ||
     activeProfileData?.notification_email ||
@@ -2518,6 +2542,7 @@ function initDropzoneHandlers() {
 }
 
 async function submitResumeParse() {
+  if (!checkAuthOrRedirect('parse resume')) return;
   const btn = document.getElementById('btn-parse-resume');
   const spinner = document.getElementById('resume-spinner');
   const btnText = document.getElementById('resume-btn-text');
@@ -2588,6 +2613,7 @@ async function submitResumeParse() {
 }
 
 async function saveProfilePreferences() {
+  if (!checkAuthOrRedirect('save candidate profile')) return;
   const nameInput = document.getElementById('prof-name');
   const name = nameInput ? nameInput.value.trim() : (activeProfileData?.name || '');
 
@@ -2724,11 +2750,7 @@ function triggerJobSearch() {
 
 // Pipeline Execution (Non-Blocking Live Polling)
 async function runPipeline() {
-  if (authConfig.auth_required && !currentAuthSession) {
-    openAuthModal('signin');
-    showToast('Please sign in to trigger autonomous pipeline scans.', 'info');
-    return;
-  }
+  if (!checkAuthOrRedirect('trigger autonomous pipeline scans')) return;
 
   if (!isCandidateProfileFilled(activeProfileData)) {
     openOnboardingModal();
@@ -2889,6 +2911,7 @@ async function runPipeline() {
 
 // Toggle Applied Status with Optimistic UI & Zero-Refresh Sync
 async function toggleAppliedDirect(jobId, action) {
+  if (!checkAuthOrRedirect('update application status')) return;
   const btn = document.getElementById('btn-app-' + jobId);
   const isUnmark = action === 'unmark';
   const job = appState.jobsMap[jobId];
@@ -2979,6 +3002,7 @@ async function toggleAppliedDirect(jobId, action) {
 
 // Delete Job with Instant Optimistic Collapse
 async function deleteJobDirect(jobId) {
+  if (!checkAuthOrRedirect('delete job from tracker')) return;
   if (!confirm(`Are you sure you want to delete job '${jobId}' from tracking store?`)) {
     return;
   }
@@ -3146,6 +3170,7 @@ document.addEventListener('keydown', (e) => {
   const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
   if (e.key === '/' && !isTyping) {
     e.preventDefault();
+    if (!checkAuthOrRedirect('search tracked jobs')) return;
     switchTab('tracker');
     const input = document.getElementById('tracker-search-input');
     if (input) {
@@ -3200,17 +3225,53 @@ function setAppView(view) {
   const headerMetrics = document.getElementById('header-metrics');
   const landingNavLinks = document.getElementById('landing-nav-links');
 
+  // Hard Security Boundary: force landing view if unauthenticated & auth is required
+  if (authConfig.auth_required && !currentAuthSession) {
+    view = 'landing';
+  }
+
   if (view === 'dashboard') {
-    if (landingView) landingView.style.display = 'none';
-    if (dashboardView) dashboardView.style.display = 'flex';
-    if (headerMetrics) headerMetrics.style.display = 'flex';
-    if (landingNavLinks) landingNavLinks.style.display = 'none';
+    if (landingView) {
+      landingView.classList.add('app-view-hidden');
+      landingView.style.setProperty('display', 'none', 'important');
+    }
+    if (landingNavLinks) {
+      landingNavLinks.classList.add('app-view-hidden');
+      landingNavLinks.style.setProperty('display', 'none', 'important');
+    }
+    if (dashboardView) {
+      dashboardView.classList.remove('app-view-hidden');
+      dashboardView.style.setProperty('display', 'flex', 'important');
+    }
+    if (headerMetrics) {
+      headerMetrics.classList.remove('app-view-hidden');
+      headerMetrics.style.setProperty('display', 'flex', 'important');
+    }
     setSyncStatus('synced', 'Live Synced');
   } else {
-    if (landingView) landingView.style.display = 'flex';
-    if (dashboardView) dashboardView.style.display = 'none';
-    if (headerMetrics) headerMetrics.style.display = 'none';
-    if (landingNavLinks) landingNavLinks.style.display = 'flex';
+    // Dismiss all active utility modals when transitioning to or remaining in landing view
+    if (typeof closeAddJobModal === 'function') closeAddJobModal();
+    if (typeof closeAddCompanyModal === 'function') closeAddCompanyModal();
+    if (typeof closeProfileModal === 'function') closeProfileModal();
+    if (typeof closeOnboardingModal === 'function') closeOnboardingModal(true);
+    if (typeof closeKitModal === 'function') closeKitModal();
+
+    if (landingView) {
+      landingView.classList.remove('app-view-hidden');
+      landingView.style.setProperty('display', 'flex', 'important');
+    }
+    if (landingNavLinks) {
+      landingNavLinks.classList.remove('app-view-hidden');
+      landingNavLinks.style.setProperty('display', 'flex', 'important');
+    }
+    if (dashboardView) {
+      dashboardView.classList.add('app-view-hidden');
+      dashboardView.style.setProperty('display', 'none', 'important');
+    }
+    if (headerMetrics) {
+      headerMetrics.classList.add('app-view-hidden');
+      headerMetrics.style.setProperty('display', 'none', 'important');
+    }
     setSyncStatus('synced', 'Radar: Online');
   }
 }
@@ -3455,8 +3516,29 @@ async function handleSignOut() {
   currentAuthSession = null;
   updateUserHeader(null);
   stopHeartbeat();
-  showToast('Signed out successfully', 'info');
+
+  // Reset in-memory application state
+  appState.jobs = [];
+  appState.jobsMap = {};
+  activeProfileData = null;
+
+  // Clear rendered dashboard DOM containers
+  const jobContainer = document.getElementById('job-list-container');
+  if (jobContainer) jobContainer.innerHTML = '';
+  const digestFrame = document.getElementById('digest-frame');
+  if (digestFrame) digestFrame.srcdoc = '';
+
+  // Reset header & studio metrics
+  renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
+  renderCandidateSummary(null);
+
+  // Purge sensitive data cached in localStorage
+  Storage.remove(localStorage, STORAGE_KEYS.CACHED_STATS);
+  Storage.remove(localStorage, STORAGE_KEYS.CACHED_PROFILE);
+
+  // Transition to landing view and notify
   setAppView('landing');
+  showToast('Signed out successfully', 'info');
 }
 
 async function initAuth() {
@@ -3510,6 +3592,16 @@ async function initAuth() {
       // Initialize View based on restored session
       appState.authInitialized = true;
       if (currentAuthSession) {
+        // Hydrate cached stats & profile only for confirmed authenticated session
+        const cachedStats = Storage.get(localStorage, STORAGE_KEYS.CACHED_STATS, null);
+        if (cachedStats && cachedStats.stats) {
+          renderMetrics(cachedStats.stats);
+        }
+        const cachedProfile = Storage.get(localStorage, STORAGE_KEYS.CACHED_PROFILE, null);
+        if (cachedProfile) {
+          activeProfileData = cachedProfile;
+          renderCandidateSummary(cachedProfile);
+        }
         setAppView('dashboard');
         updateUserHeader(currentAuthSession);
         if (!initialAuthSynced) {
@@ -3518,17 +3610,37 @@ async function initAuth() {
         }
         startHeartbeat();
       } else {
+        renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
+        renderCandidateSummary(null);
         setAppView('landing');
         stopHeartbeat();
       }
     } else {
       appState.authInitialized = true;
-      setAppView('landing');
-      stopHeartbeat();
+      if (!authConfig.auth_required) {
+        const cachedStats = Storage.get(localStorage, STORAGE_KEYS.CACHED_STATS, null);
+        if (cachedStats && cachedStats.stats) {
+          renderMetrics(cachedStats.stats);
+        }
+        const cachedProfile = Storage.get(localStorage, STORAGE_KEYS.CACHED_PROFILE, null);
+        if (cachedProfile) {
+          activeProfileData = cachedProfile;
+          renderCandidateSummary(cachedProfile);
+        }
+        setAppView('dashboard');
+        syncDashboard(true);
+      } else {
+        renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
+        renderCandidateSummary(null);
+        setAppView('landing');
+        stopHeartbeat();
+      }
     }
   } catch (err) {
     console.warn('Auth configuration init error:', err);
     appState.authInitialized = true;
+    renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
+    renderCandidateSummary(null);
     setAppView('landing');
     stopHeartbeat();
   }
@@ -3574,18 +3686,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
   const activePill = document.getElementById('pill-' + appState.filter);
   if (activePill) activePill.classList.add('active');
-
-  // Hydrate cached stats & profile
-  const cachedStats = Storage.get(localStorage, STORAGE_KEYS.CACHED_STATS, null);
-  if (cachedStats && cachedStats.stats) {
-    renderMetrics(cachedStats.stats);
-  }
-
-  const cachedProfile = Storage.get(localStorage, STORAGE_KEYS.CACHED_PROFILE, null);
-  if (cachedProfile) {
-    activeProfileData = cachedProfile;
-    renderCandidateSummary(cachedProfile);
-  }
 
   // Hydrate Tracker View Mode (Table vs Kanban)
   appState.trackerView = Storage.get(localStorage, 'jobhunt_tracker_view', 'table');
@@ -3684,6 +3784,7 @@ function copyToClipboard(text, btnEl) {
 
 // Add Custom Opportunity Modal Controller
 function openAddJobModal() {
+  if (!checkAuthOrRedirect('track custom job opportunity')) return;
   const modal = document.getElementById('add-job-modal');
   if (modal) {
     modal.classList.add('active');
@@ -3707,6 +3808,7 @@ function closeAddJobModal() {
 
 async function handleAddJobSubmit(e) {
   e.preventDefault();
+  if (!checkAuthOrRedirect('track custom job opportunity')) return;
   const company = document.getElementById('add-job-company')?.value.trim();
   const title = document.getElementById('add-job-title')?.value.trim();
   const location = document.getElementById('add-job-location')?.value.trim() || 'Remote/Unspecified';
@@ -3780,6 +3882,7 @@ async function handleAddJobSubmit(e) {
 // Follow-Up Note Modal Orchestrator
 // --------------------------------------------------------------------------
 async function openFollowupModal(jobId) {
+  if (!checkAuthOrRedirect('generate follow-up notes')) return;
   const j = appState.jobsMap[jobId];
   if (!j) return;
   showToast('Generating smart follow-up note...', 'info', 2000);
@@ -3810,6 +3913,7 @@ async function openFollowupModal(jobId) {
 // Custom ATS Company Board Manager
 // --------------------------------------------------------------------------
 function openAddCompanyModal() {
+  if (!checkAuthOrRedirect('manage custom company boards')) return;
   const modal = document.getElementById('add-company-modal');
   if (modal) {
     modal.classList.add('active');
@@ -3902,6 +4006,7 @@ function handleCompanyUrlInput(rawUrl) {
 
 async function handleAddCompanySubmit(event) {
   event.preventDefault();
+  if (!checkAuthOrRedirect('manage custom company boards')) return;
   const urlInput = document.getElementById('add-company-url');
   const nameInput = document.getElementById('add-company-name');
   const atsSelect = document.getElementById('add-company-ats-override');
@@ -3953,6 +4058,7 @@ async function handleAddCompanySubmit(event) {
 }
 
 async function fetchAndRenderCustomCompanies() {
+  if (authConfig.auth_required && !currentAuthSession) return;
   const container = document.getElementById('custom-companies-list');
   if (!container) return;
 
@@ -3976,6 +4082,7 @@ async function fetchAndRenderCustomCompanies() {
 }
 
 async function deleteCustomCompany(ats, slug) {
+  if (!checkAuthOrRedirect('remove custom company board')) return;
   if (!confirm(`Remove ${slug} (${ats}) from your custom target boards?`)) return;
   try {
     const res = await authFetch('/api/companies/custom', {

@@ -248,25 +248,84 @@ def test_protected_routes_deny_unauthenticated():
     os.environ["SUPABASE_ANON_KEY"] = "test-key"
     os.environ["AUTH_REQUIRED"] = "true"
 
-    # All operational endpoints must reject unauthenticated requests
+    # All operational utility endpoints must reject unauthenticated requests
     endpoints = [
         ("GET", "/api/sync"),
         ("GET", "/api/stats"),
         ("GET", "/api/config"),
         ("GET", "/api/jobs"),
+        ("POST", "/api/jobs/add"),
+        ("POST", "/api/jobs/stage"),
+        ("POST", "/api/jobs/followup"),
+        ("POST", "/api/jobs/notes"),
         ("GET", "/api/digest"),
         ("GET", "/api/export/csv"),
         ("POST", "/api/run"),
         ("POST", "/api/applied"),
         ("POST", "/api/delete"),
-        ("POST", "/api/jobs/add"),
+        ("DELETE", "/api/delete"),
+        ("GET", "/api/profile"),
+        ("POST", "/api/profile"),
+        ("POST", "/api/profile/reset"),
+        ("POST", "/api/resume/upload"),
+        ("GET", "/api/profile/preferences"),
+        ("POST", "/api/profile/preferences"),
+        ("GET", "/api/companies"),
+        ("GET", "/api/companies/custom"),
+        ("DELETE", "/api/companies/custom"),
+        ("POST", "/api/companies/add"),
+        ("GET", "/api/history"),
+        ("POST", "/api/email/test"),
+        ("GET", "/api/auth/user"),
     ]
 
     for method, path in endpoints:
         if method == "GET":
             res = client.get(path)
+        elif method == "DELETE":
+            res = client.delete(path, json={})
         else:
             res = client.post(path, json={})
         assert res.status_code == 401, f"Expected 401 for unauthenticated {method} {path}, got {res.status_code}"
         assert res.json is not None
         assert res.json["code"] in ("UNAUTHORIZED", "INVALID_TOKEN")
+
+
+def test_public_routes_accessible_unauthenticated():
+    client = app.test_client()
+    os.environ["SUPABASE_URL"] = "https://test.supabase.co"
+    os.environ["SUPABASE_ANON_KEY"] = "test-key"
+    os.environ["AUTH_REQUIRED"] = "true"
+
+    # Only public discovery routes are accessible without auth
+    public_routes = ["/", "/api/auth/config", "/api/health", "/logo.png"]
+    for path in public_routes:
+        res = client.get(path)
+        assert res.status_code == 200, f"Expected 200 for public route {path}, got {res.status_code}"
+
+
+def test_unauthenticated_view_isolation_contract():
+    client = app.test_client()
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+
+    # 1. Unauthenticated landing view and navigation links must be present
+    assert 'id="landing-view"' in html
+    assert 'id="landing-nav-links"' in html
+
+    # 2. Authenticated elements must have app-view-hidden and display:none
+    assert 'id="dashboard-view"' in html
+    assert 'dashboard-layout app-view-hidden' in html
+    assert 'id="header-metrics"' in html
+    assert 'nav-actions-cluster app-view-hidden' in html
+
+    # 3. CSS stylesheet must contain the universal view state isolation rules
+    css_res = client.get("/static/css/style.css")
+    assert css_res.status_code == 200
+    css_text = css_res.get_data(as_text=True)
+    assert ".app-view-hidden" in css_text
+    assert "display: none !important" in css_text
+    assert "visibility: hidden !important" in css_text
+    assert "pointer-events: none !important" in css_text
+

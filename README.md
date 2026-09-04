@@ -6,7 +6,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success)](https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-391%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/tests-395%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +23,8 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
 3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.7-flash`, 1M tokens/day)** by default, with multi-key CSV rotation, automatic offline fallback, and optional support for Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint.
 4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.7-flash`)**.
-5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings.
+5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings with brand logo thumbnails and live web board links.
+6. 🔒 **Strict View State Isolation & Pure Flexbox Responsiveness**: Complete state separation between unauthenticated visitors (clean landing page) and authenticated candidates, with every utility guarded behind auth, and zero horizontal scrolling down to 300px mobile viewports.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never auto-submits applications. It handles scouting, filtering, ranking, and drafting—leaving final application submission strictly under your control.
@@ -353,7 +354,7 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code formatting verification with Ruff.
 - 📐 **Static Typing**: Comprehensive type check with Mypy.
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (377+ tests with $\ge 91\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (395 automated tests with $\ge 91\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -394,7 +395,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
 │   └── teardown.sql          # Idempotent schema reset & companion teardown script
-├── tests/                    # 391 comprehensive automated test cases (91%+ line coverage)
+├── tests/                    # 395 comprehensive automated test cases (91%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & test environment setup
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
@@ -455,7 +456,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (377 unit & integration tests):
+Run the full test suite locally (395 unit & integration tests):
 ```bash
 pytest
 ```
