@@ -263,7 +263,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
     <div class="digest-header-flex" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
       <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
-        <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:cover;flex-shrink:0;min-width:40px;" onerror="this.src='/logo.png'">
+        <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:contain;flex-shrink:0;min-width:40px;" onerror="this.src='/logo.png'">
       </a>
       <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
     </div>
