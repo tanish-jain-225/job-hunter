@@ -104,12 +104,25 @@ def api_sync():
     unapplied_count = 0
     ats_counts: dict[str, int] = {}
 
+    # Resolve user's actual notification threshold from their profile
+    # (already fetched above into user_profile) — fall back to config threshold.
+    user_score_threshold = score_threshold
+    if user_profile:
+        raw_threshold = user_profile.get("min_score_notification") or (
+            user_profile.get("profile_json") or {}
+        ).get("min_score_notification")
+        if raw_threshold is not None:
+            try:
+                user_score_threshold = float(raw_threshold)
+            except (ValueError, TypeError):
+                pass
+
     for jid, item in st.data.items():
         score = item.get("score") or 0.0
         applied = bool(item.get("applied"))
         job_ats = (item.get("ats") or (jid.split(":")[0] if ":" in jid else "custom")).lower()
 
-        if score >= score_threshold:
+        if score >= user_score_threshold:
             shortlisted_count += 1
 
         if applied:
@@ -125,6 +138,7 @@ def api_sync():
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
+        "user_threshold": user_score_threshold,
     }
 
     # Fetch active in-memory pipeline state or sync latest remote run from Supabase
@@ -342,8 +356,10 @@ def api_digest():
     from ... import digest
     from ...fetch import Job
 
-    scanned_count = len(st.data)
-    candidates_count = len(st.data)
+    # Default to 0 for scanned/candidates — these get overwritten from latest_run if available.
+    # Using len(st.data) as fallback was misleading: it shows store size, not crawl count.
+    scanned_count = 0
+    candidates_count = 0
     latest_run = None
 
     if email and memory.is_configured:
@@ -367,6 +383,20 @@ def api_digest():
             shortlisted_in_run = int(latest_run["shortlisted"])
         except (ValueError, TypeError):
             shortlisted_in_run = None
+
+    # Resolve user's actual notification threshold for the dynamic fallback path.
+    # Previously this used cfg.get("min_score", 8.0) — but "min_score" doesn't exist
+    # in config.yaml (only "score_threshold" does), so it always resolved to 8.0,
+    # causing jobs scored 7.0–7.9 to be silently dropped from the digest fallback.
+    base_score_threshold = float(cfg.get("score_threshold", 7.0))
+    min_score_target = base_score_threshold
+    if profile_data:
+        raw = profile_data.get("min_score_notification")
+        if raw is not None:
+            try:
+                min_score_target = float(raw)
+            except (ValueError, TypeError):
+                pass
 
     jobs_list: list[Job] = []
     # If the latest pipeline run completed with 0 shortlisted jobs, STRICTLY preserve 0 matches.
@@ -393,9 +423,6 @@ def api_digest():
                     )
                 )
     else:
-        min_score_target = 8.0
-        if profile_data:
-            min_score_target = float(profile_data.get("min_score_notification") or cfg.get("min_score", 8.0))
         for jid, d in st.data.items():
             if (d.get("score") or 0) >= min_score_target and not d.get("applied"):
                 jobs_list.append(

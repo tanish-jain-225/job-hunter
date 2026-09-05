@@ -272,10 +272,27 @@ def api_stats():
     seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
-    score_threshold = float(cfg.get("score_threshold", 7.0))
+    # Resolve the user's actual notification threshold — from their Supabase profile
+    # if available, otherwise fall back to the global config score_threshold.
+    base_threshold = float(cfg.get("score_threshold", 7.0))
+    user_threshold = base_threshold
+    if email:
+        from ...memory import SupabaseMemory
+        mem = SupabaseMemory(token=token)
+        if mem.is_configured:
+            prof = mem.get_user_profile(email, token=token)
+            if prof:
+                raw = prof.get("min_score_notification") or (
+                    prof.get("profile_json") or {}
+                ).get("min_score_notification")
+                if raw is not None:
+                    try:
+                        user_threshold = float(raw)
+                    except (ValueError, TypeError):
+                        pass
+
     total_count = len(st.data)
-    matching_jobs = [v for v in st.data.values() if (v.get("score") or 0.0) >= score_threshold]
-    shortlisted_count = len(matching_jobs)
+    shortlisted_count = sum(1 for v in st.data.values() if (v.get("score") or 0.0) >= user_threshold)
     applied_count = sum(1 for v in st.data.values() if v.get("applied"))
     unapplied_count = total_count - applied_count
 
@@ -285,6 +302,7 @@ def api_stats():
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
+        "user_threshold": user_threshold,
         "version": get_store_version(st),
     }
     return jsonify(stats)
@@ -318,13 +336,32 @@ def api_jobs():
     min_score = request.args.get("min_score", type=float)
     sort_by = request.args.get("sort", "date").lower().strip()
 
+    # Resolve the user's actual notification threshold for the "shortlisted" status filter.
+    # This ensures the interactive board's "shortlisted" view is consistent with what
+    # was included in the email briefing — both use the user's min_score_notification.
+    shortlist_threshold = float(cfg.get("score_threshold", 7.0))
+    if email and status == "shortlisted":
+        from ...memory import SupabaseMemory
+        mem = SupabaseMemory(token=token)
+        if mem.is_configured:
+            prof = mem.get_user_profile(email, token=token)
+            if prof:
+                raw = prof.get("min_score_notification") or (
+                    prof.get("profile_json") or {}
+                ).get("min_score_notification")
+                if raw is not None:
+                    try:
+                        shortlist_threshold = float(raw)
+                    except (ValueError, TypeError):
+                        pass
+
     jobs_list = []
     for job_id, data in st.data.items():
         item = {"job_id": job_id, **data}
         job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
 
         # Filter status
-        if status == "shortlisted" and (item.get("score") or 0.0) < 7.0:
+        if status == "shortlisted" and (item.get("score") or 0.0) < shortlist_threshold:
             continue
         elif status == "applied" and not item.get("applied"):
             continue
@@ -370,6 +407,7 @@ def api_jobs():
         jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
 
     return jsonify({"status": "success", "count": len(jobs_list), "jobs": jobs_list})
+
 
 
 @jobs_bp.route("/api/applied", methods=["POST"])

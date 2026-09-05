@@ -352,6 +352,33 @@ class Store:
             )
         return True
 
+    def mark_emailed(self, job_ids: list[str]) -> int:
+        """Mark a list of job IDs as emailed=True after confirmed SMTP dispatch.
+
+        Only the jobs that actually appeared in the email briefing should be
+        marked here. Jobs scored below the notification threshold are stored
+        in the tracker but must remain emailed=False.
+
+        Returns:
+            Number of jobs actually updated (skips unknown job_ids).
+        """
+        updated = []
+        for jid in job_ids:
+            if jid in self.data and not self.data[jid].get("emailed"):
+                self.data[jid]["emailed"] = True
+                updated.append(self.data[jid])
+        if updated:
+            self.save(auto_export=False)
+            # Cloud sync to Supabase for all updated jobs in one batch call
+            if self.user_email and self.memory.is_configured:
+                self.memory.bulk_upsert_user_jobs(
+                    self.user_email,
+                    updated,
+                    token=self.token,
+                    use_service_key=self.use_service_key,
+                )
+        return len(updated)
+
     def delete_job(self, job_id: str) -> bool:
         if job_id not in self.data:
             return False

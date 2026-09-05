@@ -251,7 +251,7 @@ def run_multi_user_pipeline(
             user_candidates = prefilter(raw_jobs, user_filters)
             print(f"  Pre-filtered: {len(raw_jobs)} -> {len(user_candidates)} candidate postings")
 
-            seen_file = cfg.get("seen_file", "seen.json")
+            seen_file = cfg.get("seen_file", "state/seen.json")
             st = Store(seen_file, user_email=user_email, use_service_key=True)
             unseen_jobs = st.unseen(user_candidates) if user_candidates else []
             print(
@@ -370,23 +370,11 @@ def run_multi_user_pipeline(
                     dispatched_emails += 1
                     print("  ✓ Email briefing dispatched successfully!")
 
-                    # Mark shortlisted jobs as emailed now that SMTP transmission succeeded
-                    for j in shortlist:
-                        if j.job_id in st.data:
-                            st.data[j.job_id]["emailed"] = True
-                    st.save(auto_export=False)
-                    if memory.is_configured and shortlist:
-                        try:
-                            memory.bulk_upsert_user_jobs(
-                                user_email,
-                                [st.data[j.job_id] for j in shortlist if j.job_id in st.data],
-                                use_service_key=True,
-                            )
-                        except TypeError:
-                            memory.bulk_upsert_user_jobs(
-                                user_email,
-                                [st.data[j.job_id] for j in shortlist if j.job_id in st.data],
-                            )
+                    # Mark shortlisted jobs as emailed using the Store helper
+                    # (handles Supabase sync atomically in one bulk_upsert call)
+                    if shortlist:
+                        emailed_count = st.mark_emailed([j.job_id for j in shortlist])
+                        print(f"  Marked {emailed_count} jobs as emailed in tracker.")
                 except Exception as e:
                     print(f"  ! Email dispatch failed: {e}")
 

@@ -231,7 +231,10 @@ def _build_and_send_digest(
     digest.write(html_content, out_html)
     print(f"  wrote {out_html}")
 
-    st.record(scored_jobs, emailed=send)
+    # Record ALL scored jobs as tracked — but NOT as emailed yet.
+    # Only the shortlisted jobs that are actually dispatched via SMTP
+    # will be marked emailed=True below, after confirmed delivery.
+    st.record(scored_jobs, emailed=False)
     st.export_csv(tracker_csv)
 
     if send:
@@ -243,6 +246,9 @@ def _build_and_send_digest(
                 mailer.send(subject, html_content)
         else:
             mailer.send(subject, html_content)
+        # Mark ONLY the shortlisted jobs as emailed after confirmed dispatch
+        if shortlist:
+            st.mark_emailed([j.job_id for j in shortlist])
 
     return subject, html_content
 
