@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # 🏛️ Job Hunter — System Architecture & Developer Handbook
 
 Welcome to the **Job Hunter** developer architecture and onboarding guide. This document provides a structural, end-to-end breakdown of the system architecture, design patterns, module responsibilities, data pipelines, and developer workflows.
@@ -71,6 +75,11 @@ flowchart TD
 
 ```text
 job-hunter/
+├── assets/                      # Brand assets, vector diagrams & banners
+│   ├── logo.png                 # Official brand logo
+│   ├── favicon.ico              # Multi-resolution binary favicon
+│   ├── banner.svg               # Vector header banner
+│   └── pipeline-flow.svg        # 5-phase automated architecture infographic
 ├── api/
 │   ├── index.py                 # Vercel Serverless WSGI entrypoint
 │   └── requirements.txt         # Pinned serverless dependencies

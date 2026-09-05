@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="90" height="90">
+</p>
+
 # 📖 Job Hunter — Personal Utility Setup & Usage Guide
 
 **Job Hunter** is a 100% database-free, zero-cost, private personal utility designed to help individual job seekers discover, score, track, and apply for high-match engineering and tech roles across 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).

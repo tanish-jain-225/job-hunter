@@ -1,50 +1,64 @@
-<div align="center">
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app">
+    <img src="assets/logo.png" alt="Job Hunter Logo" width="130" height="130" style="border-radius: 20px;">
+  </a>
+</p>
 
-# 🏹 Job Hunter (`job-hunter`)
+<h1 align="center">Job Hunter</h1>
 
-### *Autonomous AI-Powered Career Intelligence & Job Hunting Agent*
+<p align="center">
+  <strong>Autonomous AI-Powered Career Intelligence &amp; Job Hunting Platform</strong><br>
+  <em>Scouts 9 public ATS platforms, filters noise deterministically at $0 cost, scores candidates with Google Gemini 3.5 Flash, drafts application kits, and organizes opportunities onto an executive web board.</em>
+</p>
 
-[![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![CI Status](https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success)](https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-395%20passed-success?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff)](https://github.com/astral-sh/ruff)
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-395%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
+</p>
 
-</div>
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board »</strong></a> •
+  <a href="docs/GUIDE.md">User Guide</a> •
+  <a href="docs/SETUP.md">Setup Guide</a> •
+  <a href="docs/ARCHITECTURE.md">System Architecture</a> •
+  <a href="docs/API.md">REST API</a> •
+  <a href="METRICS.md">Scaling &amp; Metrics</a>
+</p>
+
+---
+
+<p align="center">
+  <img src="assets/pipeline-flow.svg" alt="Job Hunter Execution Funnel" width="100%">
+</p>
 
 ---
 
 ## 📖 The Narrative: Why Job Hunter?
 
-Modern job searching is broken. Engineers spend hours every week manually sifting through thousands of irrelevant job board postings, dealing with spam, guessing fit percentages, and writing repetitive cover letters. 
+Modern job searching is broken. Engineers and technology professionals spend hours every week manually sifting through thousands of irrelevant listings across disjointed job boards, fighting keyword spam, guessing subjective fit percentages, and writing repetitive cover letters.
 
-**Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
-1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
-2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.5-flash`, 1M tokens/day)** by default, with multi-key circular rotation (`_GEMINI_KEY_COUNTER`), independent per-key 15 RPM leaky-bucket throttling, multi-model dynamic cascading (`gemini-3.5-flash` → `gemini-flash-latest` → `gemini-flash-lite-latest`), automatic offline fallback, and optional support for Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint.
-4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.5-flash`)**.
-5. 📊 **Interactive Job Board, Live SSE Streaming & Daily Bounty**: Organizes opportunities across an interactive 5-stage pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*) with responsive client-side pagination, streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings with brand logo thumbnails and live web board links.
-6. 🔒 **Strict View State Isolation & Pure Flexbox Responsiveness**: Complete state separation between unauthenticated visitors (clean landing page) and authenticated candidates, with every utility guarded behind auth, and zero horizontal scrolling down to 300px mobile viewports.
+**Job Hunter (`job-hunter`)** solves this completely. It is your private, autonomous career intelligence agent that works for you 24/7. Every morning while you sleep, **Job Hunter**:
+
+1. 🌐 **Scouts Public ATS Endpoints**: Discovers open roles directly across 9 major platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**) with zero web scraping and zero authentication friction.
+2. 🎯 **Eliminates Noise at $0 Cost**: Drops ~98% of out-of-scope, senior executive, or stale postings deterministically using regex title and location rules **before spending a single AI token**.
+3. ⚡ **Evaluates Fit via Google Gemini 3.5 Flash**: Batches surviving jobs (8 jobs/request) to screen candidate fit (0.0 to 10.0) against your parsed resume using **Google Gemini (`gemini-3.5-flash`)** with 1M free daily tokens per project, multi-key CSV rotation, and dynamic fallback cascades (`gemini-flash-latest` → `gemini-flash-lite-latest`).
+4. ✍️ **Drafts Tailored Application Kits**: Produces compelling, personalized cover notes, 80-word LinkedIn networking DMs, matching resume bullet points, and smart follow-up nudges for top-scoring matches (7.0+).
+5. 📊 **Presents Everything on an Executive Web Board**: Organizes opportunities on a high-density Table/Card list with responsive client-side pagination (10/25/50 per page) and in-card 5-stage pipeline selectors (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*).
+6. 📬 **Delivers a Morning HTML Briefing**: Dispatches a clean, responsive HTML daily digest to your inbox every morning with brand logos and direct 1-click application links.
 
 > [!IMPORTANT]
-> **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never auto-submits applications. It handles scouting, filtering, ranking, and drafting—leaving final application submission strictly under your control.
-
-```text
-┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐
-│ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
-│ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Job Board & Mail    │
-└─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (9 Major ATS Engines)        (0 API Cost Filter)           (Google Gemini 3.5)           (Dashboard / Inbox)
-```
-
-> [!TIP]
-> **First time setting up?** Check out **[SETUP.md](docs/SETUP.md)** for a beginner-friendly setup guide, **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** for 100% free multi-user cloud deployment, **[METRICS.md](METRICS.md)** for business metrics & scaling economics, or **[MULTI_USER.md](docs/MULTI_USER.md)** for architecture scaling details.
+> **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never auto-submits applications. It handles scouting, filtering, ranking, and drafting—leaving final application submission strictly under your human control.
 
 ---
 
 ## 📋 Table of Contents
 
 - [📖 The Narrative: Why Job Hunter?](#-the-narrative-why-job-hunter)
+- [✨ Key Capabilities](#-key-capabilities)
 - [⚡ Quick Start (30-Second Dry Run)](#-quick-start-30-second-dry-run)
 - [📦 Installation & Packaging](#-installation--packaging)
 - [⚙️ Step-by-Step Setup Guide](#%EF%B8%8F-step-by-step-setup-guide)
@@ -53,11 +67,13 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
   - [3. Build Candidate Profile (`jobhunt profile`)](#3-build-candidate-profile-jobhunt-profile)
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
 - [🤖 AI Engine: Google Gemini Flash — Default & Recommended](#-ai-engine-google-gemini-flash-gemini-35-flash--default--recommended)
+- [🖥️ Executive Web Dashboard & UI](#%EF%B8%8F-executive-web-dashboard--ui)
 - [💻 Complete CLI Command Reference](#-complete-cli-command-reference)
 - [🚀 Daily Workflows](#-daily-workflows)
 - [📊 Tracking & Deduplication (`seen.json` / Supabase)](#-tracking--deduplication-seenjson--supabase)
+- [☁️ Cloud Production Deployment](#%EF%B8%8F-cloud-production-deployment)
 - [🤖 Automated Execution & GitHub Actions](#-automated-execution--github-actions)
-- [🛡️ Continuous Integration (CI Pipeline)](#%EF%B8%8F-continuous-integration-ci-pipeline)
+- [🛡️ Continuous Integration & Quality](#%EF%B8%8F-continuous-integration--quality)
 - [🏗️ Architecture & Codebase Layout](#%EF%B8%8F-architecture--codebase-layout)
 - [⚡ ATS Quirks & Edge Case Handling](#-ats-quirks--edge-case-handling)
 - [🧪 Automated Test Suite](#-automated-test-suite)
@@ -66,16 +82,33 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 
 ---
 
+## ✨ Key Capabilities
+
+| Pillar | Feature | Description |
+|---|---|---|
+| 📡 **Sourcing** | **9 ATS Engines** | Native JSON parsing for Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint. |
+| ➕ **Ingestion** | **+ Add Board** | Built-in auto-detection parses any company careers URL, verifies live HTTP reachability, and tracks it under candidate profile. |
+| 🎯 **Prefilter** | **$0 Regex Gate** | Safe regex matching for titles, locations, remote status, and 21-day freshness before LLM invocation. |
+| ⚡ **AI Intelligence** | **Gemini 3.5 Flash** | 1,000,000+ daily tokens per key, multi-key CSV rotation (`key1,key2`), independent 15 RPM leaky-bucket throttling, and dynamic fallback cascading. |
+| 📄 **Resume Studio** | **Multimodal Parsing** | Drop in a PDF or text resume to extract skills, seniority, and target roles with a 30s execution ceiling and local regex fallback. |
+| 📋 **Interactive Board**| **Table / Card List** | High-density view with responsive client-side pagination (10/25/50 items per page) and in-card 5-stage dropdowns. |
+| 🔄 **Lifecycle** | **5 Pipeline Stages** | Organize opportunities across `to_apply`, `applied`, `interviewing`, `offer`, and `rejected` with automatic 4-day follow-up badges. |
+| ⏳ **Follow-Ups** | **Outreach Generator** | Generates context-aware follow-up emails and LinkedIn networking DMs with 1-click clipboard copy. |
+| 🔒 **Security** | **RLS & View Isolation**| PostgreSQL Row-Level Security (RLS) protects tenant data; unauthenticated visitors are strictly confined to `#landing-view`. |
+| 📱 **Responsiveness** | **Pure Flexbox** | 100% Flexbox layout (zero CSS Grid dependencies) scaling seamlessly from 4K displays down to 300px mobile viewports. |
+
+---
+
 ## ⚡ Quick Start (30-Second Dry Run)
 
 Test the complete **Job Hunter** pipeline locally without any API keys using bundled ATS fixtures and the dev keyword scorer:
 
 ### 💻 Windows:
-```cmd
+```powershell
 git clone https://github.com/tanish-jain-225/job-hunter.git
 cd job-hunter
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 pip install -e .
 
 run.bat --mock --scorer keyword
@@ -272,6 +305,25 @@ flowchart LR
 
 ---
 
+## 🖥️ Executive Web Dashboard & UI
+
+The web dashboard is an interactive single-page application built on Flask Blueprints and modern CSS tokens:
+
+* **Interactive Job Board**: High-density Table/Card list with client-side responsive pagination (10, 25, or 50 items per page), dynamic page indicator ellipses, and `localStorage` persistence.
+* **5-Stage Pipeline Selector**: Organize opportunities directly within each job card across 5 interactive stages:
+  * 📥 **To Apply** (`to_apply`): Newly discovered high-fit role.
+  * 📨 **Applied** (`applied`): Application submitted; activates the 4-day follow-up nudge timer.
+  * 🎙️ **Interviewing** (`interviewing`): Screening or technical round in progress.
+  * 🎉 **Offer** (`offer`): Job offer received.
+  * 📁 **Rejected / Archived** (`rejected`): Position closed or archived.
+* **Resume Studio**: Drag-and-drop resume upload with Gemini 3.5 Flash PDF parsing, structured skill extraction, and an automatic local regex fallback parser.
+* **Smart Follow-Up Nudges**: Injects `⏳ Xd ago · Follow Up` badges on applied roles and generates context-aware follow-up outreach with 1-click clipboard copy.
+* **Real-Time State Sync**: Zero-refresh cross-tab and cross-device synchronization via version hashing (`/api/sync`).
+* **Live SSE Radar Stream**: Streams real-time pipeline execution logs line-by-line via Server-Sent Events (`/api/pipeline/stream`).
+* **View State Isolation**: Unauthenticated visitors are restricted to `#landing-view`; authenticated dashboards (`#dashboard-view`) and metrics are hidden with `.app-view-hidden`.
+
+---
+
 ## 💻 Complete CLI Command Reference
 
 The `jobhunt` CLI provides modular subcommands and master automation scripts:
@@ -297,7 +349,7 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `jobhunt web` | `--host <host>, --port <port>` | `5000` | Launch the executive Flask Web Dashboard. |
 | `python auto.py` | *(none)* | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
-| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, 5-stage pipeline management (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), responsive pagination, Resume Studio, CSV export, and kit modal viewer. |
+| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, 5-stage pipeline management, responsive pagination, Resume Studio, CSV export, and kit modal viewer. |
 
 ---
 
@@ -319,7 +371,7 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 
 `seen.json` (and `user_tracked_jobs` in Supabase) acts as both a deduplication index and application pipeline tracker:
 - **Deduplication**: Prevents sending duplicate job notifications across runs.
-- **Application State Machine**: Tracks status transitions (`to_apply` $\rightarrow$ `applied` $\rightarrow$ `interviewing` $\rightarrow$ `offer` $\rightarrow$ `rejected`).
+- **Application State Machine**: Tracks status transitions (`to_apply` $ightarrow$ `applied` $ightarrow$ `interviewing` $ightarrow$ `offer` $ightarrow$ `rejected`).
 - **Resilience**: Unscored or rate-limited jobs are not written to seen storage and are automatically retried on the next run.
 - **Connection Resilience**: Supabase database queries and board scrapes employ pooled sessions configured with automatic exponential backoff retries (`Retry` adapter) to survive transient serverless cold starts or connection drops.
 - **Gitignored & Security Guarded**: Keeps your private job search data secure and local. A Git staging check in the local runner warns you if your credential-loaded `.env` file is accidentally tracked in Git.
@@ -332,12 +384,28 @@ jobhunt stats
 
 ---
 
+## ☁️ Cloud Production Deployment
+
+Job Hunter can be deployed as a multi-user cloud service on a **100% free-tier stack**:
+
+| Layer | Service | Role | Cost |
+|---|---|---|:---:|
+| **Frontend & REST API** | **Vercel Serverless** | Flask WSGI application hosting (`api/index.py`) | **$0 / mo** |
+| **Database & Auth** | **Supabase PostgreSQL** | Row-Level Security (RLS) candidate storage & auth | **$0 / mo** |
+| **AI Intelligence** | **Google Gemini Flash** | 1,000,000+ daily tokens per key for screening & drafting | **$0 / mo** |
+| **Scheduled Radar** | **GitHub Actions** | Automated weekday 05:00 IST single-pass crawler | **$0 / mo** |
+| **Email Delivery** | **Gmail SMTP / Resend** | Daily morning executive briefings | **$0 / mo** |
+
+> For complete step-by-step deployment instructions, see **[DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+---
+
 ## 🤖 Automated Execution & GitHub Actions
 
 The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every single day at 05:00 IST (23:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
 
 ### 🔑 Required Repository Secrets
-Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
+Configure these under **Settings $ightarrow$ Secrets and variables $ightarrow$ Actions**:
 
 | Secret Name | Description |
 |---|---|
@@ -349,11 +417,11 @@ Configure these under **Settings $\rightarrow$ Secrets and variables $\rightarro
 
 ---
 
-## 🛡️ Continuous Integration (CI Pipeline)
+## 🛡️ Continuous Integration & Quality
 
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
-- 🧹 **Linting**: Code formatting verification with Ruff.
-- 📐 **Static Typing**: Comprehensive type check with Mypy.
+- 🧹 **Linting**: Code style and formatting verification with Ruff (`ruff check .`).
+- 📐 **Static Typing**: Comprehensive strict type checking with Mypy (`mypy jobhunt`).
 - 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (395 automated tests with $\ge 91\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
@@ -363,7 +431,12 @@ The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers 
 
 ```text
 job-hunter/
-├── jobhunt/
+├── assets/                   # Official brand assets, vector infographics & banners
+│   ├── logo.png              # Official brand logo asset
+│   ├── favicon.ico           # Multi-resolution binary favicon
+│   ├── banner.svg            # Vector header banner
+│   └── pipeline-flow.svg     # 5-phase automated architecture vector infographic
+├── jobhunt/                  # Core Python Package
 │   ├── __init__.py           # Package version (1.0.0) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
@@ -388,15 +461,17 @@ job-hunter/
 │           ├── profile.py    # Candidate profile, notification settings & Resume Studio (30s AI ceiling + fallback parser)
 │           └── pipeline.py   # Trigger run, SSE log streaming, sync heartbeat, execution history, HTML digest
 ├── templates/
-│   └── index.html            # Web dashboard single-page HTML layout & auth modals
+│   ├── index.html            # Web dashboard single-page HTML layout & favicon tags
+│   └── partials/             # Modular HTML components (dashboard, landing, navbar, modals)
 ├── static/
 │   ├── css/style.css         # Responsive design system down to 300px width, typography & glassmorphic tokens
-│   └── js/app.js             # State persistence, job board pagination, stage transitions, Supabase client & live sync
+│   ├── js/app.js             # State persistence, job board pagination, stage transitions, Supabase client & live sync
+│   └── favicon.ico           # Multi-resolution binary favicon asset
 ├── supabase/
 │   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
 │   └── teardown.sql          # Idempotent schema reset & companion teardown script
 ├── tests/                    # 395 comprehensive automated test cases (91%+ line coverage)
-│   ├── conftest.py           # Pytest shared fixtures & test environment setup
+│   ├── conftest.py           # Pytest shared fixtures & thread-safe provider state reset
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
@@ -419,7 +494,8 @@ job-hunter/
 │   ├── test_providers.py     # Provider resolution, env preflight, fallback tests
 │   └── test_store.py         # Store persistence, corrupt state recovery, CSV export tests
 ├── api/
-│   └── index.py              # Vercel Serverless Function entrypoint (WSGI adapter)
+│   ├── index.py              # Vercel Serverless Function entrypoint (WSGI adapter)
+│   └── requirements.txt      # Pinned serverless dependencies
 ├── .github/workflows/
 │   ├── ci.yml                # CI lint/type-check/test workflow
 │   └── daily.yml             # Daily automated execution & digest workflow
@@ -428,10 +504,13 @@ job-hunter/
 ├── companies.yaml            # Board targets across 9 ATS engines
 ├── app.py                    # Classic WSGI Entrypoint (create_app())
 ├── auto.py                   # Master cross-platform pipeline launcher script
+├── favicon.ico               # Root binary favicon
+├── logo.png                  # Official brand logo asset
 ├── run.bat / run.sh          # 1-Click execution scripts
 ├── apply.bat / apply.sh      # 1-Click apply status marker scripts
 ├── README.md                 # Master project documentation & narrative
 └── docs/                     # End-to-End Documentation Suite
+    ├── ARCHITECTURE.md       # Complete system architecture handbook
     ├── DEPLOYMENT.md         # 100% Free Production Cloud Deployment Guide
     ├── GUIDE.md              # Personal Utility & Setup Guide
     ├── SETUP.md              # Complete installation & setup guide
@@ -456,15 +535,20 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (395 unit & integration tests):
+Run the full test suite locally (**395 unit & integration tests**):
 ```bash
 pytest
 ```
 
-
 Run test suite with detailed 90%+ coverage reporting:
 ```bash
 pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
+```
+
+Run static type checking and linter:
+```bash
+mypy jobhunt
+ruff check .
 ```
 
 ---
@@ -475,7 +559,7 @@ pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 > **Gmail Authentication Failed?** You must generate a 16-character **App Password** at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). Standard account passwords will fail when 2-Step Verification is active.
 
 > [!TIP]
-> **Zero jobs returned for a company?** The slug in `companies.yaml` may be invalid or migrated to a different ATS. Verify the company's public job board URL in your browser.
+> **Zero jobs returned for a company?** The slug in `companies.yaml` may be invalid or migrated to a different ATS. Verify the company's public job board URL in your browser or run `jobhunt verify`.
 
 > [!NOTE]
 > **Zero API Costs?** Google Gemini Flash (`gemini-3.5-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).

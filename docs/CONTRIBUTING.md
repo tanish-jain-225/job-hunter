@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="90" height="90">
+</p>
+
 # 🤝 Contributing to Job Hunter
 
 Thank you for your interest in contributing to `jobhunt`! This guide covers local development setup, test execution, code quality standards, and architectural conventions.

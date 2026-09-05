@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="90" height="90">
+</p>
+
 # 🖥️ Web Dashboard & REST API Reference Guide
 
 **Job Hunter** includes a built-in, local, interactive Flask-based web dashboard engineered with an **Application Factory Pattern** (`jobhunt.web.create_app`) and **Modular Blueprints**. It provides a visual interface to browse discovered job postings, manage an interactive 5-stage application pipeline, extract candidate profiles with Resume Studio, launch tailored cover letters/resumes, and trigger job searches on demand.

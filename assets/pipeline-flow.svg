@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="320" rx="16" fill="url(#bgGrad)"/>
+  <rect width="1098" height="318" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+  <text x="40" y="44" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" letter-spacing="0.5">⚡ Autonomous Career Intelligence Radar — Execution Funnel</text>
+  <text x="40" y="66" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Single-pass multi-tenant architecture • Zero token waste • $0.00 / month operational cost</text>
+
+  <g stroke="#475569" stroke-width="2" stroke-dasharray="4 4">
+    <line x1="225" y1="180" x2="250" y2="180"/>
+    <line x1="435" y1="180" x2="460" y2="180"/>
+    <line x1="645" y1="180" x2="670" y2="180"/>
+    <line x1="855" y1="180" x2="880" y2="180"/>
+  </g>
+  <g fill="#94a3b8">
+    <polygon points="248,176 254,180 248,184"/>
+    <polygon points="458,176 464,180 458,184"/>
+    <polygon points="668,176 674,180 668,184"/>
+    <polygon points="878,176 884,180 878,184"/>
+  </g>
+
+  <!-- Card 1: Scout -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="95" width="185" height="190" rx="12" fill="url(#cardGrad1)" stroke="#334155" stroke-width="1.2"/>
+    <rect x="52" y="107" width="32" height="32" rx="8" fill="url(#blueGrad)"/>
+    <text x="68" y="128" fill="#ffffff" font-family="sans-serif" font-size="15" text-anchor="middle">📡</text>
+    <text x="94" y="122" fill="#60a5fa" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">PHASE 1</text>
+    <text x="94" y="137" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="14" font-weight="700">ATS Scouting</text>
+    <text x="52" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• 9 Public ATS APIs</text>
+    <text x="52" y="185" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Greenhouse, Lever, Ashby</text>
+    <text x="52" y="205" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• SmartRecruiters, etc.</text>
+    <text x="52" y="225" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• + Add Board Detection</text>
+    <rect x="52" y="248" width="161" height="24" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+    <text x="132" y="264" fill="#93c5fd" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">~2,000 Postings / Pass</text>
+  </g>
+
+  <!-- Card 2: Prefilter -->
+  <g filter="url(#shadow)">
+    <rect x="250" y="95" width="185" height="190" rx="12" fill="url(#cardGrad1)" stroke="#334155" stroke-width="1.2"/>
+    <rect x="262" y="107" width="32" height="32" rx="8" fill="url(#emeraldGrad)"/>
+    <text x="278" y="128" fill="#ffffff" font-family="sans-serif" font-size="15" text-anchor="middle">🎯</text>
+    <text x="304" y="122" fill="#34d399" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">PHASE 2</text>
+    <text x="304" y="137" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="14" font-weight="700">Stealth Filter</text>
+    <text x="262" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Safe Regex Matchers</text>
+    <text x="262" y="185" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Location &amp; Remote Gate</text>
+    <text x="262" y="205" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Freshness Window (21d)</text>
+    <text x="262" y="225" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• $0 Token Spend Gate</text>
+    <rect x="262" y="248" width="161" height="24" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+    <text x="342" y="264" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">98% Noise Dropped</text>
+  </g>
+
+  <!-- Card 3: Screen -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="95" width="185" height="190" rx="12" fill="url(#cardGrad1)" stroke="#6366f1" stroke-width="1.6"/>
+    <rect x="472" y="107" width="32" height="32" rx="8" fill="url(#brandGrad)"/>
+    <text x="488" y="128" fill="#ffffff" font-family="sans-serif" font-size="15" text-anchor="middle">⚡</text>
+    <text x="514" y="122" fill="#a5b4fc" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">PHASE 3</text>
+    <text x="514" y="137" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="14" font-weight="700">AI Screening</text>
+    <text x="472" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Google Gemini 3.5 Flash</text>
+    <text x="472" y="185" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• 8 Jobs Batch Payload</text>
+    <text x="472" y="205" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Multi-Key CSV Rotation</text>
+    <text x="472" y="225" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• 15 RPM Leaky Bucket</text>
+    <rect x="472" y="248" width="161" height="24" rx="6" fill="#1e293b" stroke="#6366f1" stroke-width="1"/>
+    <text x="552" y="264" fill="#c7d2fe" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Scores 0.0 - 10.0</text>
+  </g>
+
+  <!-- Card 4: Draft -->
+  <g filter="url(#shadow)">
+    <rect x="670" y="95" width="185" height="190" rx="12" fill="url(#cardGrad1)" stroke="#334155" stroke-width="1.2"/>
+    <rect x="682" y="107" width="32" height="32" rx="8" fill="url(#amberGrad)"/>
+    <text x="698" y="128" fill="#ffffff" font-family="sans-serif" font-size="15" text-anchor="middle">🧠</text>
+    <text x="724" y="122" fill="#fcd34d" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">PHASE 4</text>
+    <text x="724" y="137" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="14" font-weight="700">Kit Drafting</text>
+    <text x="682" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Tailored Cover Letters</text>
+    <text x="682" y="185" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• 80-word Cold Outreaches</text>
+    <text x="682" y="205" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Matching Resume Bullets</text>
+    <text x="682" y="225" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Smart Follow-up Nudges</text>
+    <rect x="682" y="248" width="161" height="24" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+    <text x="762" y="264" fill="#fde68a" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Top Matches (Score ≥ 7.0)</text>
+  </g>
+
+  <!-- Card 5: Deliver -->
+  <g filter="url(#shadow)">
+    <rect x="880" y="95" width="180" height="190" rx="12" fill="url(#cardGrad1)" stroke="#334155" stroke-width="1.2"/>
+    <rect x="892" y="107" width="32" height="32" rx="8" fill="url(#purpleGrad)"/>
+    <text x="908" y="128" fill="#ffffff" font-family="sans-serif" font-size="15" text-anchor="middle">📬</text>
+    <text x="934" y="122" fill="#d8b4fe" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">PHASE 5</text>
+    <text x="934" y="137" fill="#f8fafc" font-family="-apple-system, sans-serif" font-size="14" font-weight="700">Dual Delivery</text>
+    <text x="892" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Web Board (Pagination)</text>
+    <text x="892" y="185" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• 5-Stage Dropdowns</text>
+    <text x="892" y="205" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Morning HTML Email</text>
+    <text x="892" y="225" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">• Pure Flexbox (300px+)</text>
+    <rect x="892" y="248" width="156" height="24" rx="6" fill="#1e293b" stroke="#a855f7" stroke-width="1"/>
+    <text x="970" y="264" fill="#e9d5ff" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Human Presses Submit</text>
+  </g>
+</svg>
