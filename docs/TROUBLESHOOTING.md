@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # 🔍 Troubleshooting & FAQ Guide
 
 This guide covers solutions to common errors, configurations, and questions encountered when setting up or running **Job Hunter**.

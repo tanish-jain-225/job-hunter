@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # 🚀 Production Deployment Guide (100% Free Stack)
 
 Deploy **Job Hunter** as a multi-user, production-ready cloud application capable of supporting hundreds of concurrent candidates indefinitely at **$0 / ₹0 operational cost**.

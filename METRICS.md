@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # 📊 Job Hunter — Operational Architecture & Business Metrics
 
 This document outlines the operational capacity, resource consumption, infrastructure scaling thresholds, and cost economics of the **Job Hunter** autonomous career intelligence platform.

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # ⚙️ Job Matching & Scoring Engine Guide
 
 The core power of **Job Hunter** lies in its deterministic filtering and two-stage LLM evaluation pipeline. The engine is optimized for **zero API costs**, **token efficiency**, and **high resilience** to network/API rate failures.

@@ -1,4 +1,8 @@
-# Job Hunter — REST API Reference
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
+# 📡 Job Hunter — REST API Reference
 
 Job Hunter exposes a modular REST API built with Flask Blueprints.
 

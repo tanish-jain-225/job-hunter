@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+</p>
+
 # 🌐 Multi-User Architecture & Zero-Cost Forever Scaling
 
 Job Hunter is engineered to support hundreds of concurrent job seekers indefinitely on a **100% free-tier cloud stack**:
