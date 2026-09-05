@@ -214,6 +214,17 @@ class SupabaseMemory:
                         "target_keywords": targets_val,
                         "exclude_keywords": excludes_val,
                     }
+                    for dk in (
+                        "latest_digest_html",
+                        "latest_digest_subject",
+                        "latest_digest_at",
+                        "latest_digest_shortlisted",
+                        "latest_digest_job_ids",
+                        "custom_companies",
+                    ):
+                        if dk in pjson:
+                            res_profile[dk] = pjson[dk]
+
                     for legacy_k in (
                         "current_title",
                         "core_skills",
@@ -231,7 +242,13 @@ class SupabaseMemory:
             print(f"[SupabaseMemory] get_user_profile error for {clean_email}: {e}")
             return None
 
-    def upsert_user_profile(self, email: str, profile: Dict[str, Any], token: Optional[str] = None) -> bool:
+    def upsert_user_profile(
+        self,
+        email: str,
+        profile: Dict[str, Any],
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
         """Upsert candidate profile, uploaded resume text, and notification preferences in Supabase."""
         if not self.is_configured or not email:
             return False
@@ -321,6 +338,7 @@ class SupabaseMemory:
             pjson = {}
 
         pjson_merged = {
+            **pjson,
             "resume_text": profile.get("resume_text") if profile.get("resume_text") is not None else "",
             "resume_filename": profile.get("resume_filename") if profile.get("resume_filename") is not None else "",
             "email_notifications_enabled": bool(profile.get("email_notifications_enabled", False)),
@@ -341,6 +359,10 @@ class SupabaseMemory:
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
             "GEMINI_API_KEY": str(profile.get("GEMINI_API_KEY") or pjson.get("GEMINI_API_KEY") or "").strip(),
         }
+
+        for dk in ("latest_digest_html", "latest_digest_subject", "latest_digest_at", "latest_digest_shortlisted", "latest_digest_job_ids", "custom_companies"):
+            if dk in profile:
+                pjson_merged[dk] = profile[dk]
 
         payload = {
             "email": clean_email,
@@ -368,7 +390,7 @@ class SupabaseMemory:
 
         try:
             endpoint = f"{self.url}/rest/v1/user_profiles"
-            headers = self._headers(token)
+            headers = self._headers(token, use_service_key=use_service_key)
             headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
             params = {"on_conflict": "email"}
             resp = _get_session().post(endpoint, headers=headers, params=params, json=payload, timeout=self.timeout)
@@ -378,6 +400,21 @@ class SupabaseMemory:
         except Exception as e:
             print(f"[SupabaseMemory] upsert_user_profile error for {clean_email}: {e}")
             return False
+
+    def update_user_profile_json(
+        self,
+        email: str,
+        updates: Dict[str, Any],
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
+        """Update specific keys in user profile_json (e.g. latest_digest_html) without overwriting other profile fields."""
+        if not self.is_configured or not email:
+            return False
+        clean_email = email.lower().strip()
+        existing = self.get_user_profile(clean_email, token=token) or {}
+        merged = {**existing, **updates}
+        return self.upsert_user_profile(clean_email, merged, token=token, use_service_key=use_service_key)
 
     def get_or_initialize_user(
         self,

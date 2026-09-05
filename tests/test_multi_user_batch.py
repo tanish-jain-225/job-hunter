@@ -297,3 +297,83 @@ def test_merge_user_profile_all_fields_and_filters():
     assert merged["notification_email"] == "alerts@example.com"
     assert merged["email_notifications_enabled"] is True
     assert merged["onboarding_completed"] is True
+
+
+def test_digest_sync_and_zero_match_integrity(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Verify that /api/digest strictly synchronizes with email briefing and never pulls stale jobs on 0-match runs."""
+    import json
+    import hashlib
+    from app import app
+
+    app.config["TESTING"] = True
+    client = app.test_client()
+    test_email = "candidate.sync@example.com"
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (test_email, "mock-jwt-token"))
+
+    # Populate store with historical unapplied high-score jobs (like Canonical / Coinbase from earlier runs)
+    user_hash = hashlib.md5(test_email.encode("utf-8")).hexdigest()[:12]
+    st_file = tmp_path / f"seen_{user_hash}.json"
+    historical_jobs = {
+        "greenhouse:canonical:ubuntu": {
+            "title": "Graduate Software Engineer, Open Source and Linux",
+            "company": "Canonical",
+            "score": 9.0,
+            "applied": False,
+            "emailed": False,
+        },
+        "lever:coinbase:infra": {
+            "title": "Software Engineer, Infrastructure",
+            "company": "Coinbase",
+            "score": 7.5,
+            "applied": False,
+            "emailed": False,
+        },
+    }
+    st_file.write_text(json.dumps(historical_jobs), encoding="utf-8")
+    monkeypatch.setattr("jobhunt.web.routes.pipeline.cli._cfg", lambda *a, **kw: {"seen_file": str(st_file), "min_score": 7.0})
+
+    # 1. Authoritative check: If profile already has latest_digest_html (exact email content), serve it directly
+    mock_memory = MagicMock()
+    mock_memory.is_configured = True
+    exact_email_briefing = "<!-- EMAIL BRIEFING --><h1>0 shortlisted today</h1><p>Daily Radar Scan Completed</p>"
+    mock_memory.get_user_profile.return_value = {
+        "email": test_email,
+        "name": "Tanish Sanghvi",
+        "latest_digest_html": exact_email_briefing,
+    }
+    mock_memory.get_pipeline_history.return_value = [{"jobs_scanned": 10458, "candidates_matched": 1072, "shortlisted": 0}]
+
+    with monkeypatch.context() as m:
+        m.setattr("jobhunt.web.routes.pipeline.SupabaseMemory", lambda *a, **kw: mock_memory)
+        resp = client.get("/api/digest?t=123456789")
+        assert resp.status_code == 200
+        # Must return the authentic email briefing directly, without fabricating jobs
+        assert resp.data.decode("utf-8") == exact_email_briefing
+        assert "Canonical" not in resp.data.decode("utf-8")
+
+    # 2. Dynamic rebuild check when latest_run has shortlisted=0 (e.g. force=1 or before cache populated)
+    mock_memory_uncached = MagicMock()
+    mock_memory_uncached.is_configured = True
+    mock_memory_uncached.get_user_profile.return_value = {
+        "email": test_email,
+        "name": "Tanish Sanghvi",
+        "min_score_notification": 8.0,
+    }
+    mock_memory_uncached.get_pipeline_history.return_value = [{"jobs_scanned": 10458, "candidates_matched": 1072, "shortlisted": 0}]
+
+    with monkeypatch.context() as m:
+        m.setattr("jobhunt.web.routes.pipeline.SupabaseMemory", lambda *a, **kw: mock_memory_uncached)
+        resp2 = client.get("/api/digest?force=1")
+        assert resp2.status_code == 200
+        html = resp2.data.decode("utf-8")
+        # Must render zero-match briefing matching the email briefing exactly:
+        assert "<b>0</b> shortlisted" in html
+        assert "Daily Radar Scan Completed" in html
+        assert "No new high-match postings found (0 candidates cleared the match bar today)" in html
+        # Must NEVER pull the historical Canonical or Coinbase jobs into today's briefing
+        assert "Canonical" not in html
+        assert "Coinbase" not in html
+        # Must have called update_user_profile_json to cache the result
+        mock_memory_uncached.update_user_profile_json.assert_called_once()
+

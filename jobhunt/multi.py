@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 import requests
@@ -343,6 +344,20 @@ def run_multi_user_pipeline(
                 stats=st.stats(),
                 profile=profile_dict,
             )
+
+            # Stage E.1: Persist exact digest HTML and shortlist metadata to candidate profile in Supabase
+            if memory.is_configured:
+                try:
+                    digest_meta = {
+                        "latest_digest_html": html_content,
+                        "latest_digest_subject": subject,
+                        "latest_digest_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                        "latest_digest_shortlisted": len(shortlist),
+                        "latest_digest_job_ids": [j.job_id for j in shortlist],
+                    }
+                    memory.update_user_profile_json(user_email, digest_meta, use_service_key=True)
+                except Exception as e:
+                    print(f"  ! Failed to save latest digest HTML in Supabase: {e}")
 
             # Stage F: Dispatch email briefing if notifications enabled
             dispatched = False

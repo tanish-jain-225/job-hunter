@@ -301,12 +301,31 @@ def api_digest():
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
     digest_file = cfg.get("digest_file", "out/digest.html")
-    force_rebuild = (
-        request.args.get("t") is not None
-        or request.args.get("force") is not None
+    # Explicit rebuild flags
+    explicit_force = (
+        request.args.get("force") is not None
         or request.args.get("live") is not None
-        or os.environ.get("VERCEL") == "1"
+        or request.args.get("rebuild") is not None
     )
+
+    memory = SupabaseMemory(token=token)
+    remote_profile = None
+    profile_data = None
+    if email and memory.is_configured:
+        remote_profile = memory.get_user_profile(email, token=token)
+        if not remote_profile and token:
+            remote_profile = memory.get_user_profile(email, token=None)
+        if remote_profile:
+            profile_data = remote_profile.get("profile_json") or remote_profile
+
+    # 1. Authoritative check: If user profile contains the authentic latest digest HTML from email/pipeline
+    # and explicit rebuild is not requested, serve it immediately with zero latency and zero drift!
+    if remote_profile and not explicit_force:
+        latest_html = remote_profile.get("latest_digest_html")
+        if not latest_html and isinstance(remote_profile.get("profile_json"), dict):
+            latest_html = remote_profile["profile_json"].get("latest_digest_html")
+        if latest_html and isinstance(latest_html, str) and len(latest_html.strip()) > 50:
+            return latest_html, 200, {"Content-Type": "text/html"}
 
     seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
@@ -315,68 +334,117 @@ def api_digest():
     root_path = ROOT / digest_file
     target = writable_path if writable_path.is_file() else root_path
 
-    # If force_rebuild or file does not exist, build live personalized digest
-    if not target.is_file() or force_rebuild:
-        from ... import digest
-        from ...fetch import Job
+    # 2. If static file exists locally, explicit_force is not requested, and no cache-buster ?t= was passed
+    if target.is_file() and not explicit_force and request.args.get("t") is None:
+        return send_file(str(Path(target).resolve()), mimetype="text/html")
 
-        jobs_list = []
-        for jid, d in st.data.items():
-            if (d.get("score") or 0) >= 7.0 and not d.get("applied"):
-                j = Job(
-                    job_id=jid,
-                    ats=jid.split(":")[0] if ":" in jid else "jobhunt",
-                    company=d.get("company", ""),
-                    title=d.get("title", ""),
-                    location=d.get("location", ""),
-                    url=d.get("url", "#"),
-                    description="",
-                    score=d.get("score"),
-                    reason=d.get("reason"),
-                    draft=d.get("draft") or {},
-                )
-                jobs_list.append(j)
+    # 3. Dynamic generation (first run, explicit force_rebuild, or unpopulated cache)
+    from ... import digest
+    from ...fetch import Job
 
-        # Sort shortlist by score descending
-        jobs_list.sort(key=lambda x: x.score if x.score is not None else -1.0, reverse=True)
+    scanned_count = len(st.data)
+    candidates_count = len(st.data)
+    latest_run = None
 
-        memory = SupabaseMemory(token=token)
-        profile_data = None
-        scanned_count = len(st.data)
-        candidates_count = len(st.data)
+    if email and memory.is_configured:
+        recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
+        # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
+        if not recent_runs and token:
+            recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
+        if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
+            latest_run = recent_runs[0]
+            if latest_run.get("jobs_scanned"):
+                scanned_count = int(latest_run["jobs_scanned"])
+            if latest_run.get("candidates_matched"):
+                candidates_count = int(latest_run["candidates_matched"])
 
-        if email and memory.is_configured:
-            remote_profile = memory.get_user_profile(email, token=token)
-            if remote_profile:
-                profile_data = remote_profile.get("profile_json") or remote_profile
-            recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
-            # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
-            if not recent_runs and token:
-                recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
-            if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
-                latest_run = recent_runs[0]
-                if latest_run.get("jobs_scanned"):
-                    scanned_count = int(latest_run["jobs_scanned"])
-                if latest_run.get("candidates_matched"):
-                    candidates_count = int(latest_run["candidates_matched"])
+    if not profile_data:
+        profile_data = cli._load_profile(cfg, raise_on_error=False)
 
-        if not profile_data:
-            profile_data = cli._load_profile(cfg, raise_on_error=False)
-
-        subject, html_content = digest.build(
-            jobs_list[:7],
-            scanned=scanned_count,
-            candidates=candidates_count,
-            stats=st.stats(),
-            profile=profile_data,
-        )
+    shortlisted_in_run = None
+    if latest_run and "shortlisted" in latest_run:
         try:
-            digest.write(html_content, digest_file)
+            shortlisted_in_run = int(latest_run["shortlisted"])
+        except (ValueError, TypeError):
+            shortlisted_in_run = None
+
+    jobs_list = []
+    # If the latest pipeline run completed with 0 shortlisted jobs, STRICTLY preserve 0 matches.
+    # Never pull stale historical jobs from store into today's briefing!
+    if shortlisted_in_run == 0:
+        jobs_list = []
+    elif remote_profile and remote_profile.get("latest_digest_job_ids"):
+        # Select exact jobs recorded for the latest briefing
+        for jid in (remote_profile.get("latest_digest_job_ids") or []):
+            if jid in st.data:
+                d = st.data[jid]
+                jobs_list.append(
+                    Job(
+                        job_id=jid,
+                        ats=jid.split(":")[0] if ":" in jid else "jobhunt",
+                        company=d.get("company", ""),
+                        title=d.get("title", ""),
+                        location=d.get("location", ""),
+                        url=d.get("url", "#"),
+                        description="",
+                        score=d.get("score"),
+                        reason=d.get("reason"),
+                        draft=d.get("draft") or {},
+                    )
+                )
+    else:
+        min_score_target = 8.0
+        if profile_data:
+            min_score_target = float(profile_data.get("min_score_notification") or cfg.get("min_score", 8.0))
+        for jid, d in st.data.items():
+            if (d.get("score") or 0) >= min_score_target and not d.get("applied"):
+                jobs_list.append(
+                    Job(
+                        job_id=jid,
+                        ats=jid.split(":")[0] if ":" in jid else "jobhunt",
+                        company=d.get("company", ""),
+                        title=d.get("title", ""),
+                        location=d.get("location", ""),
+                        url=d.get("url", "#"),
+                        description="",
+                        score=d.get("score"),
+                        reason=d.get("reason"),
+                        draft=d.get("draft") or {},
+                    )
+                )
+        jobs_list.sort(key=lambda x: x.score if x.score is not None else -1.0, reverse=True)
+        if shortlisted_in_run is not None and shortlisted_in_run > 0:
+            jobs_list = jobs_list[:shortlisted_in_run]
+        else:
+            jobs_list = jobs_list[:7]
+
+    subject, html_content = digest.build(
+        jobs_list,
+        scanned=scanned_count,
+        candidates=candidates_count,
+        stats=st.stats(),
+        profile=profile_data,
+    )
+    try:
+        digest.write(html_content, digest_file)
+    except Exception:
+        pass
+
+    # Cache this dynamically generated briefing into user profile in Supabase
+    if email and memory.is_configured:
+        try:
+            digest_meta = {
+                "latest_digest_html": html_content,
+                "latest_digest_subject": subject,
+                "latest_digest_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                "latest_digest_shortlisted": len(jobs_list),
+                "latest_digest_job_ids": [j.job_id for j in jobs_list],
+            }
+            memory.update_user_profile_json(email, digest_meta, token=token, use_service_key=not bool(token))
         except Exception:
             pass
-        return html_content, 200, {"Content-Type": "text/html"}
 
-    return send_file(str(Path(target).resolve()), mimetype="text/html")
+    return html_content, 200, {"Content-Type": "text/html"}
 
 
 @pipeline_bp.route("/api/run", methods=["POST"])

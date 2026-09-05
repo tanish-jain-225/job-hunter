@@ -13,6 +13,7 @@ import argparse
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -374,11 +375,21 @@ def run_pipeline(
 
         if not jobs:
             print("\nNo new matching jobs today.")
-            if use_send:
-                _build_and_send_digest(
-                    [], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email
-                )
+            subject, html_content = _build_and_send_digest(
+                [], raw_jobs, candidates, [], st, use_send, cfg, profile=profile, to_email=target_to_email
+            )
             if user_email and memory.is_configured:
+                try:
+                    digest_meta = {
+                        "latest_digest_html": html_content,
+                        "latest_digest_subject": subject,
+                        "latest_digest_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                        "latest_digest_shortlisted": 0,
+                        "latest_digest_job_ids": [],
+                    }
+                    memory.update_user_profile_json(user_email, digest_meta, token=token, use_service_key=not bool(token))
+                except Exception:
+                    pass
                 try:
                     memory.record_pipeline_run(
                         user_email,
@@ -422,11 +433,22 @@ def run_pipeline(
         _draft_kits(shortlist, profile, use_scorer, cfg)
 
         # 5. Digest + mail
-        _build_and_send_digest(
+        subject, html_content = _build_and_send_digest(
             shortlist, raw_jobs, candidates, scored_jobs, st, use_send, cfg, profile=profile, to_email=target_to_email
         )
 
         if user_email and memory.is_configured:
+            try:
+                digest_meta = {
+                    "latest_digest_html": html_content,
+                    "latest_digest_subject": subject,
+                    "latest_digest_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                    "latest_digest_shortlisted": len(shortlist),
+                    "latest_digest_job_ids": [j.job_id for j in shortlist],
+                }
+                memory.update_user_profile_json(user_email, digest_meta, token=token, use_service_key=not bool(token))
+            except Exception:
+                pass
             try:
                 memory.record_pipeline_run(
                     user_email,
