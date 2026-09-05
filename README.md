@@ -21,9 +21,9 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 **Job Hunter (`job-hunter`)** is built to solve this. It is your personal, autonomous career intelligence agent that operates 24/7. Every morning while you sleep, **Job Hunter**:
 1. 🌐 **Scouts Target Boards**: Polls public, unauthenticated ATS endpoints across 9 platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**).
 2. 🎯 **Filters the Noise**: Eliminates ~99% of irrelevant, out-of-scope, or outdated postings deterministically using regex rules at **$0 API cost**.
-3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.7-flash`, 1M tokens/day)** by default, with multi-key circular rotation (`_GEMINI_KEY_COUNTER`), independent per-key 15 RPM leaky-bucket throttling, multi-model dynamic cascading (`gemini-3.7-flash` → `gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`), automatic offline fallback, and optional support for Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint.
-4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.7-flash`)**.
-5. 📊 **Visual Kanban, Live SSE Streaming & Daily Bounty**: Organizes opportunities across a visual Kanban Pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings with brand logo thumbnails and live web board links.
+3. ⚡ **Screening & Intelligence**: High-throughput candidate screening (1.0 - 10.0) powered by **Google Gemini (`gemini-3.5-flash`, 1M tokens/day)** by default, with multi-key circular rotation (`_GEMINI_KEY_COUNTER`), independent per-key 15 RPM leaky-bucket throttling, multi-model dynamic cascading (`gemini-3.5-flash` → `gemini-flash-latest` → `gemini-flash-lite-latest`), automatic offline fallback, and optional support for Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint.
+4. ✍️ **Drafts Application Kits & Follow-Up Notes**: Auto-generates tailored cover notes, 80-word cold outreach messages, matching resume bullets, and smart follow-up templates using **Google Gemini (`gemini-3.5-flash`)**.
+5. 📊 **Interactive Job Board, Live SSE Streaming & Daily Bounty**: Organizes opportunities across an interactive 5-stage pipeline (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*) with responsive client-side pagination, streams real-time logs via Server-Sent Events (SSE), supports 1-click custom ATS career portal ingestion ("+ Add Board"), and delivers HTML briefings with brand logo thumbnails and live web board links.
 6. 🔒 **Strict View State Isolation & Pure Flexbox Responsiveness**: Complete state separation between unauthenticated visitors (clean landing page) and authenticated candidates, with every utility guarded behind auth, and zero horizontal scrolling down to 300px mobile viewports.
 
 > [!IMPORTANT]
@@ -32,9 +32,9 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
 ```text
 ┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐
 │ 1. Scout Postings   │ ───►  │ 2. Stealth Filter   │ ───►  │ 3. Precision Screen │ ───►  │ 4. Daily Bounty     │
-│ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Kanban Board & Mail │
+│ ~5,000 ATS Roles    │       │ ~50 Matching Roles  │       │ ~5 Top Matches      │       │ Job Board & Mail    │
 └─────────────────────┘       └─────────────────────┘       └─────────────────────┘       └─────────────────────┘
-  (9 Major ATS Engines)        (0 API Cost Filter)           (Google Gemini 3.7)           (Dashboard / Inbox)
+  (9 Major ATS Engines)        (0 API Cost Filter)           (Google Gemini 3.5)           (Dashboard / Inbox)
 ```
 
 > [!TIP]
@@ -52,7 +52,7 @@ Modern job searching is broken. Engineers spend hours every week manually siftin
   - [2. Tune Deterministic Filters (`config.yaml`)](#2-tune-deterministic-filters-configyaml)
   - [3. Build Candidate Profile (`jobhunt profile`)](#3-build-candidate-profile-jobhunt-profile)
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
-- [🤖 AI Engine: Google Gemini Flash — Default & Recommended](#-ai-engine-google-gemini-flash-gemini-37-flash--default--recommended)
+- [🤖 AI Engine: Google Gemini Flash — Default & Recommended](#-ai-engine-google-gemini-flash-gemini-35-flash--default--recommended)
 - [💻 Complete CLI Command Reference](#-complete-cli-command-reference)
 - [🚀 Daily Workflows](#-daily-workflows)
 - [📊 Tracking & Deduplication (`seen.json` / Supabase)](#-tracking--deduplication-seenjson--supabase)
@@ -242,26 +242,26 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 # Optional: Stage / Provider overrides
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=gemini-3.7-flash
-# DRAFT_MODEL=gemini-3.7-flash
+# SCREEN_MODEL=gemini-3.5-flash
+# DRAFT_MODEL=gemini-3.5-flash
 ```
 
 ---
 
-## 🤖 AI Engine: Google Gemini Flash (`gemini-3.7-flash`) — Default & Recommended
+## 🤖 AI Engine: Google Gemini Flash (`gemini-3.5-flash`) — Default & Recommended
 
-Job Hunter defaults to **Google Gemini Flash (`gemini-3.7-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation. Alternative providers (Anthropic Claude, Groq, Ollama, any OpenAI-compatible endpoint) are fully supported via environment variable overrides.
+Job Hunter defaults to **Google Gemini Flash (`gemini-3.5-flash`)**, providing 1,000,000+ tokens per day free tier allowance per project, 1M token context windows, native Base64 PDF resume parsing, and multi-key CSV rotation. Alternative providers (Anthropic Claude, Groq, Ollama, any OpenAI-compatible endpoint) are fully supported via environment variable overrides.
 
 ```mermaid
 flowchart LR
-    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Google Gemini (3.7 Flash)<br/>1M Tokens/Day per Key"]
-    B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.7 Flash)<br/>Cover Note, Cold Message, Bullets"]
-    C --> D["Daily Briefing & Web Kanban"]
+    A["Raw Crawled Postings"] --> B["Stage 1: Batch Screening<br/>⚡ Google Gemini (3.5 Flash)<br/>1M Tokens/Day per Key"]
+    B --> C["Stage 2: Kit Drafting<br/>🧠 Google Gemini (3.5 Flash)<br/>Cover Note, Cold Message, Bullets"]
+    C --> D["Daily Briefing & Web Job Board"]
 ```
 
 | Provider | Default Model | Environment Key | Native PDF | Role in Job Hunter |
 |---|---|---|:---:|---|
-| **Google Gemini** ⭐ | `gemini-3.7-flash` | `GEMINI_API_KEY` | ✅ | **Default Engine:** Batch Fit Screening & Application Kit Drafting (1M Tokens/Day per key, CSV rotation) |
+| **Google Gemini** ⭐ | `gemini-3.5-flash` | `GEMINI_API_KEY` | ✅ | **Default Engine:** Batch Fit Screening & Application Kit Drafting (1M Tokens/Day per key, CSV rotation) |
 | **Anthropic Claude** | `claude-3-7-sonnet-20250219` | `ANTHROPIC_API_KEY` | ✅ | Optional drop-in (`pip install 'jobhunt[anthropic]'`; set `LLM_PROVIDER=anthropic`) |
 | **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | ❌ | Optional ultra-fast inference (`LLM_PROVIDER=groq`) |
 | **Ollama** | `llama3.1` | *(none — local)* | ❌ | Fully local / air-gapped (`LLM_PROVIDER=ollama`) |
@@ -297,7 +297,7 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 | `jobhunt stats` | `-c, --config <path>` | `config.yaml` | Print total tracked, emailed, and applied job metrics. |
 | `jobhunt web` | `--host <host>, --port <port>` | `5000` | Launch the executive Flask Web Dashboard. |
 | `python auto.py` | *(none)* | *(master)* | **1-Click Master Automation Pipeline**: verifies profile, searches ATS, screens, drafts, updates tracking CSV, and launches browser preview. |
-| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, Kanban stage transitions (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), Resume Studio, CSV export, and kit modal viewer. |
+| `python app.py` | *(none)* | `http://localhost:5000` | **Executive Web Dashboard & REST API**: Single-page Light Mode UI with zero-refresh sync, 5-stage pipeline management (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), responsive pagination, Resume Studio, CSV export, and kit modal viewer. |
 
 ---
 
@@ -319,7 +319,7 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 
 `seen.json` (and `user_tracked_jobs` in Supabase) acts as both a deduplication index and application pipeline tracker:
 - **Deduplication**: Prevents sending duplicate job notifications across runs.
-- **Kanban State Machine**: Tracks status transitions (`to_apply` $\rightarrow$ `applied` $\rightarrow$ `interviewing` $\rightarrow$ `offer` $\rightarrow$ `rejected`).
+- **Application State Machine**: Tracks status transitions (`to_apply` $\rightarrow$ `applied` $\rightarrow$ `interviewing` $\rightarrow$ `offer` $\rightarrow$ `rejected`).
 - **Resilience**: Unscored or rate-limited jobs are not written to seen storage and are automatically retried on the next run.
 - **Connection Resilience**: Supabase database queries and board scrapes employ pooled sessions configured with automatic exponential backoff retries (`Retry` adapter) to survive transient serverless cold starts or connection drops.
 - **Gitignored & Security Guarded**: Keeps your private job search data secure and local. A Git staging check in the local runner warns you if your credential-loaded `.env` file is accidentally tracked in Git.
@@ -384,14 +384,14 @@ job-hunter/
 │       ├── state.py          # Thread-safe pipeline execution state, SSE circular buffers & context resolution
 │       └── routes/           # Domain-specific Flask Blueprints
 │           ├── views.py      # Landing UI, dashboard, health check, logo, auth config
-│           ├── jobs.py       # Jobs API, Kanban stage transitions, custom company additions, CSV export
+│           ├── jobs.py       # Jobs API, application pipeline stage transitions, custom company additions, CSV export
 │           ├── profile.py    # Candidate profile, notification settings & Resume Studio (30s AI ceiling + fallback parser)
 │           └── pipeline.py   # Trigger run, SSE log streaming, sync heartbeat, execution history, HTML digest
 ├── templates/
 │   └── index.html            # Web dashboard single-page HTML layout & auth modals
 ├── static/
 │   ├── css/style.css         # Responsive design system down to 300px width, typography & glassmorphic tokens
-│   └── js/app.js             # State persistence, Kanban stage drag/drop, Supabase client & live sync
+│   └── js/app.js             # State persistence, job board pagination, stage transitions, Supabase client & live sync
 ├── supabase/
 │   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
 │   └── teardown.sql          # Idempotent schema reset & companion teardown script
@@ -400,7 +400,7 @@ job-hunter/
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
 │   ├── test_web_factory.py   # Application Factory & Blueprint mounting tests
-│   ├── test_api_kanban_stage.py # Kanban pipeline stage transitions & email test endpoint
+│   ├── test_api_jobs_stage.py # Application pipeline stage transitions & email test endpoint
 │   ├── test_auth.py          # Supabase auth token verification & endpoint protection tests
 │   ├── test_flow_perfection.py # URL auto-detection, custom company CRUD, SSE stream, follow-up tests
 │   ├── test_resume_studio.py # Resume Studio PDF/TXT parsing & AI profile extraction tests
@@ -478,7 +478,7 @@ pytest --cov=jobhunt --cov=app --cov=auto --cov-report=term-missing
 > **Zero jobs returned for a company?** The slug in `companies.yaml` may be invalid or migrated to a different ATS. Verify the company's public job board URL in your browser.
 
 > [!NOTE]
-> **Zero API Costs?** Google Gemini Flash (`gemini-3.7-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).
+> **Zero API Costs?** Google Gemini Flash (`gemini-3.5-flash`) provides 1,000,000+ daily tokens per project at $0 cost (with multi-key CSV rotation: `GEMINI_API_KEY=key1,key2`), or run locally using Ollama (`OLLAMA_HOST`).
 
 ---
 

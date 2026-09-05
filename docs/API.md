@@ -157,7 +157,7 @@ Returns all tracked jobs with filtering and sorting.
 **Response:** `{"status": "success", "count": 18, "jobs": [...]}`
 
 ### POST /api/jobs/stage
-Update the Kanban application stage for a job.
+Update the application pipeline stage for a job.
 
 **Auth:** Required  
 **Body:** `{"job_id": "greenhouse:stripe:4089201", "stage": "interviewing"}`  

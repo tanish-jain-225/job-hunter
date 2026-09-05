@@ -1,6 +1,6 @@
 """Multi-provider AI client for Job Hunter.
 
-Default engine: Google Gemini (gemini-3.7-flash) — used for candidate screening,
+Default engine: Google Gemini (gemini-3.5-flash) — used for candidate screening,
 fit scoring, and tailored application kit drafting.
 
 Optional providers selectable via LLM_PROVIDER / SCREEN_PROVIDER / DRAFT_PROVIDER:
@@ -255,11 +255,9 @@ class GeminiProvider(Provider):
         import random
 
         if _is_model_cooling_down(model):
-            if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+            if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
                 return self._post("gemini-flash-latest", body)
             elif model == "gemini-flash-latest":
-                return self._post("gemini-3.5-flash", body)
-            elif model == "gemini-3.5-flash":
                 return self._post("gemini-flash-lite-latest", body)
 
         all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
@@ -315,14 +313,11 @@ class GeminiProvider(Provider):
                     continue
                 elif r.status_code == 429 and attempt == max_retries - 1:
                     _record_model_cooldown(model, 600.0)
-                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                    if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
                         print(f"  ! {model} quota exceeded across all keys — cascading to gemini-flash-latest...")
                         return self._post("gemini-flash-latest", body)
                     elif model == "gemini-flash-latest":
-                        print("  ! gemini-flash-latest quota exceeded — cascading to gemini-3.5-flash...")
-                        return self._post("gemini-3.5-flash", body)
-                    elif model == "gemini-3.5-flash":
-                        print("  ! gemini-3.5-flash quota exceeded — cascading to gemini-flash-lite-latest...")
+                        print("  ! gemini-flash-latest quota exceeded — cascading to gemini-flash-lite-latest...")
                         return self._post("gemini-flash-lite-latest", body)
 
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
@@ -334,13 +329,10 @@ class GeminiProvider(Provider):
                     continue
                 elif r.status_code in (500, 502, 503, 504) and attempt == max_retries - 1:
                     _record_model_cooldown(model, 60.0)
-                    if model in ("gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                    if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
                         print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-latest...")
                         return self._post("gemini-flash-latest", body)
                     elif model == "gemini-flash-latest":
-                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-3.5-flash...")
-                        return self._post("gemini-3.5-flash", body)
-                    elif model == "gemini-3.5-flash":
                         print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-lite-latest...")
                         return self._post("gemini-flash-lite-latest", body)
 
@@ -385,14 +377,14 @@ class GeminiProvider(Provider):
                     print(f"  ! gemini network error/timeout ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
-                if model in ("gemini-3.7-flash", "gemini-3.6-flash"):
+                if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
                     _record_model_cooldown(model, 180.0)
                     print(f"  ! {model} network error/timeout across all keys — cascading to gemini-flash-latest...")
                     return self._post("gemini-flash-latest", body)
                 elif model == "gemini-flash-latest":
                     _record_model_cooldown(model, 180.0)
-                    print("  ! gemini-flash-latest network error/timeout — cascading to gemini-3.5-flash...")
-                    return self._post("gemini-3.5-flash", body)
+                    print("  ! gemini-flash-latest network error/timeout — cascading to gemini-flash-lite-latest...")
+                    return self._post("gemini-flash-lite-latest", body)
                 raise LLMError(f"gemini network error: {e}") from e
         raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
 
@@ -556,7 +548,7 @@ PROVIDERS = {
 }
 
 DEFAULT_MODELS = {
-    "gemini": {"screen": "gemini-3.7-flash", "draft": "gemini-3.7-flash"},
+    "gemini": {"screen": "gemini-3.5-flash", "draft": "gemini-3.5-flash"},
     "groq": {"screen": "llama-3.1-8b-instant", "draft": "llama-3.3-70b-versatile"},
     "anthropic": {"screen": "claude-3-5-haiku-20241022", "draft": "claude-3-7-sonnet-20250219"},
     "openai-compatible": {"screen": "gpt-4o-mini", "draft": "gpt-4o"},
@@ -579,7 +571,7 @@ def resolve(stage: str = "screen", check: bool = True) -> tuple[Provider, str]:
     Precedence:
     1. Stage-specific env var (SCREEN_PROVIDER / DRAFT_PROVIDER)
     2. Global env var (LLM_PROVIDER)
-    3. Default -> Google Gemini (gemini-3.7-flash)
+    3. Default -> Google Gemini (gemini-3.5-flash)
     """
     from .auth import _load_env_if_needed
 
@@ -592,7 +584,7 @@ def resolve(stage: str = "screen", check: bool = True) -> tuple[Provider, str]:
     explicit_model = (os.getenv(f"{stage.upper()}_MODEL") or os.getenv("LLM_MODEL") or "").strip()
     model = explicit_model or DEFAULT_MODELS.get(name, {}).get(stage)
     if not model and name == "gemini":
-        model = "gemini-3.7-flash"
+        model = "gemini-3.5-flash"
 
     if not model:
         raise LLMError(f"set {stage.upper()}_MODEL for provider {name!r}")
@@ -618,7 +610,7 @@ def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Pro
             try:
                 prov = get_provider(candidate)
                 prov.preflight()
-                model = DEFAULT_MODELS.get(candidate, {}).get(stage, "gemini-3.7-flash")
+                model = DEFAULT_MODELS.get(candidate, {}).get(stage, "gemini-3.5-flash")
                 return prov, model
             except Exception:
                 continue
@@ -627,7 +619,7 @@ def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Pro
         try:
             prov = get_provider("gemini")
             prov.preflight()
-            return prov, "gemini-3.7-flash"
+            return prov, "gemini-3.5-flash"
         except Exception:
             return None
     return None

@@ -683,7 +683,7 @@ class SupabaseMemory:
         token: Optional[str] = None,
         use_service_key: bool = False,
     ) -> bool:
-        """Update the Kanban pipeline stage of a job in Supabase."""
+        """Update the application pipeline stage of a job in Supabase."""
         if not self.is_configured or not email or not job_id or not stage:
             return False
 

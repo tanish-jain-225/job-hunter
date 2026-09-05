@@ -63,11 +63,11 @@ def test_resolve_default_gemini(monkeypatch: pytest.MonkeyPatch):
 
     screen_p, screen_m = resolve("screen", check=False)
     assert screen_p.name == "gemini"
-    assert screen_m == "gemini-3.7-flash"
+    assert screen_m == "gemini-3.5-flash"
 
     draft_p, draft_m = resolve("draft", check=False)
     assert draft_p.name == "gemini"
-    assert draft_m == "gemini-3.7-flash"
+    assert draft_m == "gemini-3.5-flash"
 
 
 def test_resolve_missing_model(monkeypatch: pytest.MonkeyPatch):
@@ -413,10 +413,10 @@ def test_resolve_prefers_gemini(monkeypatch: pytest.MonkeyPatch):
 
     provider, model = resolve("screen", check=False)
     assert provider.name == "gemini"
-    assert model == "gemini-3.7-flash"
+    assert model == "gemini-3.5-flash"
 
 
-def test_gemini_37_flash_default_model(monkeypatch: pytest.MonkeyPatch):
+def test_gemini_35_flash_default_model(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("GEMINI_API_KEY", "dummy_key")
     monkeypatch.delenv("SCREEN_MODEL", raising=False)
@@ -424,8 +424,8 @@ def test_gemini_37_flash_default_model(monkeypatch: pytest.MonkeyPatch):
 
     p_screen, m_screen = resolve("screen", check=True)
     assert p_screen.name == "gemini"
-    assert m_screen == "gemini-3.7-flash"
+    assert m_screen == "gemini-3.5-flash"
 
     p_draft, m_draft = resolve("draft", check=True)
     assert p_draft.name == "gemini"
-    assert m_draft == "gemini-3.7-flash"
+    assert m_draft == "gemini-3.5-flash"

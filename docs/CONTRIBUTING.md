@@ -92,7 +92,7 @@ jobhunt/
       ├── state.py      # Thread-safe pipeline execution state & context resolution
       └── routes/       # Modular Flask Blueprints
           ├── views.py  # Landing UI, dashboard, health check, logo, auth config
-          ├── jobs.py   # Jobs API, Kanban stage transitions, custom job additions, CSV export
+          ├── jobs.py   # Jobs API, application pipeline stage transitions, custom job additions, CSV export
           ├── profile.py # Candidate profile, notification settings & Resume Studio PDF/TXT parser
           └── pipeline.py # Trigger run, sync heartbeat, execution history, HTML digest
 ```

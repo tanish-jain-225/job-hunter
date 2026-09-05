@@ -17,7 +17,7 @@
 ## 🚀 Core Philosophy & Features
 
 - **🔒 100% Data Privacy**: Your resume, job applications, scores, and notes remain completely local on your machine or inside your private repository.
-- **💰 100% Free ($0/month)**: Operates using free Google Gemini Flash (`gemini-3.7-flash`, 1M tokens/day) and free email dispatches.
+- **💰 100% Free ($0/month)**: Operates using free Google Gemini Flash (`gemini-3.5-flash`, 1M tokens/day) and free email dispatches.
 - **⚡ Zero-Database Architecture**: No mandatory SQL servers, Docker containers, or complex database migrations. Everything is persisted in clean JSON (`seen.json`) and CSV (`out/tracker.csv`), with optional Supabase PostgreSQL sync.
 - **📊 Automatic Excel/Sheets Sync**: All tracked and applied jobs auto-export to `out/tracker.csv` on every action.
 - **🤖 Automated Daily Email Digest**: Delivers personalized HTML career digests straight to your email inbox every morning.

@@ -36,7 +36,7 @@ For the surviving postings, Job Hunter performs a cheap, batched evaluation pass
 ### High-Throughput Batching & Cost Reduction
 Rather than sending job descriptions one-by-one, Job Hunter batches **8 jobs per LLM call** (configured via `screen_batch_size`). It truncates each job description to **1,000 characters** (configured via `screen_jd_chars`), keeping rich context for evaluation.
 
-When `GEMINI_API_KEY` is configured (with single key or multi-key CSV rotation `key1,key2,key3`), Job Hunter routes all batch screening to **Google Gemini (`gemini-3.7-flash`)**, leveraging Gemini's massive 1M token context window and 1,000,000+ daily tokens per project allowance at zero cost.
+When `GEMINI_API_KEY` is configured (with single key or multi-key CSV rotation `key1,key2,key3`), Job Hunter routes all batch screening to **Google Gemini (`gemini-3.5-flash`)**, leveraging Gemini's massive 1M token context window and 1,000,000+ daily tokens per project allowance at zero cost.
 
 ### Evaluation Criteria
 The LLM is prompted to assign a score from **`0.0` to `10.0`** based on:
@@ -63,7 +63,7 @@ The LLM returns a JSON list:
 Only jobs that score at or above the **`score_threshold`** (default `7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
 
 ### High-Context Evaluation
-The engine sends the full job description (up to **6,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to the configured AI provider (default: **Google Gemini `gemini-3.7-flash`**) to generate a complete application kit:
+The engine sends the full job description (up to **6,000 characters**, configured via `draft_jd_chars`) along with your full candidate profile. It routes to the configured AI provider (default: **Google Gemini `gemini-3.5-flash`**) to generate a complete application kit:
 
 * **Fit Summary:** A brief 2-sentence summary of why this role is a strong match.
 * **Tailored Resume Bullets:** 3 high-impact bullet points demonstrating skills matching the job requirements that you can insert into your resume.
@@ -78,7 +78,7 @@ The engine sends the full job description (up to **6,000 characters**, configure
 
 For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapsed time since application date. If more than 4 days have elapsed without response:
 
-* **Automated Nudges**: Injects `⏳ Xd ago · Follow Up` badges across both Table and visual Kanban cards.
+* **Automated Nudges**: Injects `⏳ Xd ago · Follow Up` badges directly onto interactive job cards.
 * **On-Demand Generation (`jobhunt.llm.generate_followup_note`)**: Produces context-aware follow-up templates:
   * **Email Subject & Body**: References the exact job title, company name, submission date, and reiterates enthusiasm without being pushy.
   * **LinkedIn Networking DM**: Compact (<80 words) direct message to connect with recruiters or hiring team members.
@@ -88,7 +88,7 @@ For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapse
 
 ## 🔌 AI Providers (`providers.py`)
 
-Job Hunter routes all intelligence phases through the configured AI provider — **Google Gemini (`gemini-3.7-flash`)** by default, with Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint supported via env var overrides.
+Job Hunter routes all intelligence phases through the configured AI provider — **Google Gemini (`gemini-3.5-flash`)** by default, with Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint supported via env var overrides.
 
 ```env
 GEMINI_API_KEY=AIzaSy_...        # Default: batch screening & rich drafting (1M tokens/day)
@@ -101,9 +101,9 @@ GEMINI_API_KEY=AIzaSy_...        # Default: batch screening & rich drafting (1M 
 
 | Feature | Default Model | Config Key | Role in Job Hunter |
 | :--- | :--- | :--- | :--- |
-| **Stage 1: Fit Screening** | `gemini-3.7-flash` | `GEMINI_API_KEY` | High-throughput batch candidate screening (8 jobs/call, 15 RPM per-key pacing, multi-key rotation). |
-| **Stage 2: Kit Drafting** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Rich context window (6,000 chars) for personalized cover notes, cold DMs, & matching bullets. |
-| **Native PDF Analysis** | `gemini-3.7-flash` | `GEMINI_API_KEY` | Base64 multimodal document parsing for resume profile extraction (also supported by Anthropic Claude). |
+| **Stage 1: Fit Screening** | `gemini-3.5-flash` | `GEMINI_API_KEY` | High-throughput batch candidate screening (8 jobs/call, 15 RPM per-key pacing, multi-key rotation). |
+| **Stage 2: Kit Drafting** | `gemini-3.5-flash` | `GEMINI_API_KEY` | Rich context window (6,000 chars) for personalized cover notes, cold DMs, & matching bullets. |
+| **Native PDF Analysis** | `gemini-3.5-flash` | `GEMINI_API_KEY` | Base64 multimodal document parsing for resume profile extraction (also supported by Anthropic Claude). |
 
 ---
 
@@ -121,11 +121,11 @@ If your LLM provider is down, hits rate limits, or is not configured, the engine
 LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles/conversations. Job Hunter uses an intelligent, regex-backed parser that extracts only the valid JSON substring and handles missing brackets or commas gracefully, preventing model parsing errors from crashing runs.
 
 ### 3. Multi-Key Round-Robin & Model Cascading
-* **Strict Primary Model**: Screening and drafting stages default strictly to **Google Gemini (`gemini-3.7-flash`)**.
+* **Strict Primary Model**: Screening and drafting stages default strictly to **Google Gemini (`gemini-3.5-flash`)**.
 * **Thread-Safe Key Alternation**: The engine implements a global atomic counter (`_GEMINI_KEY_COUNTER`) ensuring successive requests alternate across all configured API keys (`key1 -> key2 -> key3`).
 * **Per-Key Independent 15 RPM Throttling**: Rather than stalling all keys under a shared timer, each key tracks its own last invocation timestamp (`_enforce_key_throttle(key, min_interval=4.0)`). During automated test execution (`PYTEST_CURRENT_TEST`), physical sleeps are cleanly bypassed, accelerating test suite execution by >80% while keeping production throttling 100% intact.
 * **Extended 60s Generation Timeout**: Generous 60s read timeout (`TIMEOUT = 60`) prevents premature cutoffs on long JSON kits during upstream latency.
-* **Automatic Model Cascading**: When `gemini-3.7-flash` hits Google AI Studio project limits (`HTTP 429: Resource Exhausted`) or transient high demand (`HTTP 503`), the engine automatically cascades the active payload through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`), with temporary cooldown tracking (`_MODEL_COOLDOWN_MAP`) ensuring continuous real-time execution without dropping candidates.
+* **Automatic Model Cascading**: When `gemini-3.5-flash` hits Google AI Studio project limits (`HTTP 429: Resource Exhausted`) or transient high demand (`HTTP 503`), the engine automatically cascades the active payload through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`), with temporary cooldown tracking (`_MODEL_COOLDOWN_MAP`) ensuring continuous real-time execution without dropping candidates.
 * **Deterministic Provider State Isolation**: The engine exports `reset_provider_state()` to atomically clear throttles, key counters, and model cooldowns, ensuring complete state isolation across production runs and automated tests (`tests/conftest.py`).
 
 ---

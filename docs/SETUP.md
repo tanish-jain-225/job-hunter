@@ -118,8 +118,8 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 # Optional: Stage / Provider overrides
 # LLM_PROVIDER=gemini
-# SCREEN_MODEL=gemini-3.7-flash
-# DRAFT_MODEL=gemini-3.7-flash
+# SCREEN_MODEL=gemini-3.5-flash
+# DRAFT_MODEL=gemini-3.5-flash
 
 # Optional: Alternative AI Providers (set LLM_PROVIDER to activate)
 # ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here  # pip install 'jobhunt[anthropic]'
@@ -149,7 +149,7 @@ Once configured, run the pipeline or launch the interactive dashboard:
   ```bash
   python app.py
   ```
-  *Launches the Executive Web Dashboard on `http://localhost:5000` (Vercel Serverless ready) with visual Kanban boards, multi-ATS filtering, sorting, kit modal viewer with 1-click copy buttons, and search.*
+  *Launches the Executive Web Dashboard on `http://localhost:5000` (Vercel Serverless ready) with interactive job board pagination, 5-stage pipeline management, multi-ATS filtering, sorting, kit modal viewer with 1-click copy buttons, and search.*
 
 ---
 

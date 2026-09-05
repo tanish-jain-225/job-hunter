@@ -1,4 +1,4 @@
-"""Tests for Kanban application stages, notes, test email briefing, and custom job addition."""
+"""Tests for application pipeline stages (to_apply, applied, interviewing, offer, rejected), notes, test email briefing, and custom job addition."""
 
 from __future__ import annotations
 

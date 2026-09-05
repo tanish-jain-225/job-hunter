@@ -1,6 +1,6 @@
 # 🖥️ Web Dashboard & REST API Reference Guide
 
-**Job Hunter** includes a built-in, local, interactive Flask-based web dashboard engineered with an **Application Factory Pattern** (`jobhunt.web.create_app`) and **Modular Blueprints**. It provides a visual interface to browse discovered job postings, manage a visual Kanban pipeline, extract candidate profiles with Resume Studio, launch tailored cover letters/resumes, and trigger job searches on demand.
+**Job Hunter** includes a built-in, local, interactive Flask-based web dashboard engineered with an **Application Factory Pattern** (`jobhunt.web.create_app`) and **Modular Blueprints**. It provides a visual interface to browse discovered job postings, manage an interactive 5-stage application pipeline, extract candidate profiles with Resume Studio, launch tailored cover letters/resumes, and trigger job searches on demand.
 
 ---
 
@@ -18,17 +18,11 @@ jobhunt web
 
 By default, the server starts on **`http://localhost:5000`**.
 
-### Configuration Parameters
-You can configure the host and port using command-line arguments or environment variables:
-* **Command Line:**
-  ```bash
-  python app.py --port 8080 --host 0.0.0.0
-  ```
-* **Environment Variables:**
-  ```env
-  PORT=8080
-  HOST=0.0.0.0
-  ```
+To configure a custom host or port, set `PORT` or `HOST` in your environment or `.env` file:
+```bash
+PORT=8080
+HOST=0.0.0.0
+```
 
 ---
 
@@ -36,19 +30,20 @@ You can configure the host and port using command-line arguments or environment 
 
 The dashboard is designed as a single-page application with a premium Light Mode theme and an ultra-responsive layout engineered to scale gracefully from multi-monitor 4K displays down to 300px mobile viewports without horizontal overflow, supporting the following features:
 
-### 1. 📋 Dual-Mode View Switcher (Table & Visual Kanban Pipeline)
-* **Table / List View**: High-density interactive table showing job match scores, ATS tags, company, location, applied toggle, and application kit inspector.
-* **Visual Kanban Pipeline**: Organize opportunities across 5 interactive pipeline stages:
+### 1. 📋 Interactive Job Board & Responsive Pagination
+* **Table / Card List View**: High-density interactive board displaying match scores, ATS tags, company names, locations, smart follow-up nudges, and application kit inspectors.
+* **Client-Side Responsive Pagination**: Fast, ergonomic pagination bar supporting 10, 25, or 50 opportunities per page, dynamic ellipsis navigation, and persistent page-size preference stored in `localStorage`.
+* **5-Stage Pipeline Dropdown Selector**: Organize opportunities directly within each job card across 5 interactive pipeline stages:
   * **To Apply** (`to_apply`)
   * **Applied** (`applied`)
   * **Interviewing** (`interviewing`)
   * **Offer** (`offer`)
   * **Rejected / Archived** (`rejected`)
-* Instant 1-click stage dropdown selectors and seamless view switching with persistent preference stored in `localStorage`.
+* Instant 1-click stage dropdown transitions with optimistic UI updates and automated elapsed-time badges (`⏳ 5d ago · Follow Up`).
 
 ### 2. 📄 Resume Studio & AI Profile Extraction
 * In-dashboard PDF and text resume uploader with drag-and-drop support.
-* Automatically parses uploaded resumes via the configured AI provider (default: **Google Gemini `gemini-3.7-flash`**; also supports **Anthropic Claude** native document blocks) into structured candidate skills, target titles, seniority, and notable projects.
+* Automatically parses uploaded resumes via the configured AI provider (default: **Google Gemini `gemini-3.5-flash`**; also supports **Anthropic Claude** native document blocks) into structured candidate skills, target titles, seniority, and notable projects.
 * **Resilient Latency Protection**: Enforces a 30s backend execution ceiling and 45s frontend timeout, with an automatic smart local regex fallback that guarantees candidate name, title, education, and technical skills are extracted even during upstream AI provider service spikes (e.g. HTTP 503).
 * **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
 
@@ -87,7 +82,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
 * Custom boards are saved to your profile and automatically crawled in morning runs.
 
 ### 11. ⏳ Smart Follow-Up Nudges & Outreach Generator
-* Applied roles automatically display elapsed-time badges (`⏳ 5d ago · Follow Up`) on both Table and Kanban cards.
+* Applied roles automatically display elapsed-time badges (`⏳ 5d ago · Follow Up`) directly on job cards.
 * Click to generate personalized follow-up emails and LinkedIn networking DMs with 1-click clipboard copy.
 
 ### 12. ⚡ Real-Time Server-Sent Events (SSE) Live Radar Log Streaming
@@ -142,7 +137,7 @@ Returns a JSON list of all processed jobs matching search, status, ATS board, an
   * `min_score` (float): Minimum score threshold (e.g. `7.0`).
   * `sort` (string): Sort jobs by `date`, `score`, or `company`.
 
-### 3. Update Kanban Pipeline Stage
+### 3. Update Application Pipeline Stage
 Updates the application stage of a tracked role.
 * **Endpoint:** `POST /api/jobs/stage`
 * **Request Payload:**

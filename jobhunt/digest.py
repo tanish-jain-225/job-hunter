@@ -181,7 +181,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <div class="empty-header-flex" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
     <div style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;">
       <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;">
-        <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;">
+        <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;flex-shrink:0;min-width:32px;" onerror="this.src='/logo.png'">
       </a>
     </div>
     <div style="flex:1 1 180px;min-width:0;">
@@ -217,6 +217,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <base target="_blank">
   <style>
     * {{ box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }}
+    .digest-logo-img, .empty-logo-img, .digest-footer-logo {{ flex-shrink: 0 !important; min-width: fit-content; }}
     body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; color: {TEXT}; }}
     img {{ max-width: 100%; height: auto; }}
     table {{ max-width: 100%; }}
@@ -262,7 +263,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
     <div class="digest-header-flex" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
       <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
-        <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:cover;">
+        <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:cover;flex-shrink:0;min-width:40px;" onerror="this.src='/logo.png'">
       </a>
       <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
     </div>
@@ -274,7 +275,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     <div class="digest-footer" style="color:{MUTED};font-size:11.5px;line-height:1.6;margin-top:24px;border-top:1px solid {LINE};padding-top:14px;display:flex;flex-direction:column;gap:8px;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
       <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
         <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;">
-          <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};">
+          <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};flex-shrink:0;min-width:20px;" onerror="this.src='/logo.png'">
         </a>
         <span class="digest-footer-text" style="color:{MUTED};font-size:11.5px;line-height:1.5;flex:1 1 180px;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
           Autonomous execution engine by <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="color:{ACCENT};font-weight:700;text-decoration:none;">Job Hunter</a>. Application kits drafted from candidate profile.

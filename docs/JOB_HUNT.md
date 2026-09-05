@@ -65,7 +65,7 @@ jobhunt/
   ├── fetch.py       # Job dataclass, strip_html, 9 ATS parsers, fetch_all
   ├── prefilter.py   # title include/exclude regex, location, max_age_days
   ├── llm.py         # Google Gemini screen() + draft() + build_profile()
-  ├── providers.py   # Google Gemini client (gemini-3.7-flash)
+  ├── providers.py   # Google Gemini client (gemini-3.5-flash)
   ├── digest.py      # HTML email digest builder
   ├── mailer.py      # SMTP email dispatcher
   ├── store.py       # seen.json dedupe + application tracker + CSV export
@@ -87,8 +87,8 @@ jobhunt/
 
 Two stages for token and rate efficiency:
 
-- **Screen** — batch ~8 jobs per call, truncate each JD to ~1000 chars, return JSON array of `{job_id, score, reason}`. Default: **Google Gemini** (`gemini-3.7-flash`, 1M tokens/day free) for high throughput.
-- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Default: **Google Gemini** (`gemini-3.7-flash`).
+- **Screen** — batch ~8 jobs per call, truncate each JD to ~1000 chars, return JSON array of `{job_id, score, reason}`. Default: **Google Gemini** (`gemini-3.5-flash`, 1M tokens/day free) for high throughput.
+- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Default: **Google Gemini** (`gemini-3.5-flash`).
 
 ### Provider Architecture
 Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVIDER` env var:

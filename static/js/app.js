@@ -69,7 +69,8 @@ const appState = {
   ats: 'all',
   sort: 'date',
   search: '',
-  trackerView: 'table',
+  page: 1,
+  pageSize: Storage.get(localStorage, 'jobhunt_page_size', 10) || 10,
   activeTab: 'digest',
   activeKitId: null,
   jobsMap: {},
@@ -81,19 +82,11 @@ const appState = {
   lastSyncTimestamp: Date.now()
 };
 
-function switchTrackerView(viewMode) {
-  appState.trackerView = viewMode === 'kanban' ? 'kanban' : 'table';
-  Storage.set(localStorage, 'jobhunt_tracker_view', appState.trackerView);
-  const btnTable = document.getElementById('btn-view-table');
-  const btnKanban = document.getElementById('btn-view-kanban');
-  if (btnTable) btnTable.classList.toggle('active', appState.trackerView === 'table');
-  if (btnKanban) btnKanban.classList.toggle('active', appState.trackerView === 'kanban');
-  const container = document.getElementById('job-list-container');
-  if (container && appState.jobsList) {
-    container.innerHTML = renderJobsListHtml(appState.jobsList);
-  }
-}
-
+/**
+ * Calculates follow-up elapsed time and badges for active opportunities.
+ * @param {Object} j - Job object
+ * @returns {Object|null} Elapsed badge info or null
+ */
 function getElapsedAppliedInfo(j) {
   const stage = j.application_stage || (j.applied ? 'applied' : 'to_apply');
   if (stage !== 'applied' && stage !== 'interviewing') return null;
@@ -114,90 +107,11 @@ function getElapsedAppliedInfo(j) {
   return null;
 }
 
-function renderKanbanCardHtml(j) {
-  const score = j.score != null ? Number(j.score).toFixed(1) : 'N/A';
-  const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
-  const stage = j.application_stage || (j.applied ? 'applied' : 'to_apply');
-  const searchQuery = appState.search;
-  const applyUrl = resolveJobUrl(j);
-  const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach);
-  const followupInfo = getElapsedAppliedInfo(j);
-
-  return `
-    <div class="kanban-card" id="kanban-card-${escapeHtml(j.job_id)}" onclick="if(event.target.tagName!=='SELECT'&&event.target.tagName!=='A'&&event.target.tagName!=='BUTTON') openKitModal('${escapeHtml(j.job_id)}')">
-      <div class="kanban-card-top">
-        <span class="kanban-card-company">${highlightText(j.company, searchQuery)}</span>
-        <span class="score-badge ${scoreClass}">${score}</span>
-      </div>
-      <div class="kanban-card-title">${highlightText(j.title, searchQuery)}</div>
-      <div class="kanban-card-meta">
-        <span>${escapeHtml(j.location || 'Remote/Unspecified')}</span>
-        <span>·</span>
-        <span class="ats-tag" style="font-size:10px;">${escapeHtml(j.ats || 'ats')}</span>
-      </div>
-      ${followupInfo ? `
-        <div style="margin: 6px 0;">
-          <button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.job_id)}')" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>
-        </div>
-      ` : ''}
-      <div class="kanban-card-actions">
-        <select class="kanban-stage-select" aria-label="Application stage for ${escapeHtml(j.title || 'Job')} at ${escapeHtml(j.company || 'Company')}" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
-          <option value="to_apply" ${stage==='to_apply'?'selected':''}>To Apply</option>
-          <option value="applied" ${stage==='applied'?'selected':''}>Applied</option>
-          <option value="interviewing" ${stage==='interviewing'?'selected':''}>Interviewing</option>
-          <option value="offer" ${stage==='offer'?'selected':''}>Offer</option>
-          <option value="rejected" ${stage==='rejected'?'selected':''}>Rejected</option>
-        </select>
-        <div style="display:flex; gap:4px;">
-          ${hasDraft ? `<button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:11px;" onclick="event.stopPropagation(); openKitModal('${escapeHtml(j.job_id)}')">Kit</button>` : ''}
-          <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation()">Link</a>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderKanbanBoardHtml(jobs) {
-  const stages = [
-    { key: 'to_apply', label: 'To Apply', icon: '📝' },
-    { key: 'applied', label: 'Applied', icon: '🚀' },
-    { key: 'interviewing', label: 'Interviewing', icon: '💬' },
-    { key: 'offer', label: 'Offer', icon: '🎉' },
-    { key: 'rejected', label: 'Archived', icon: '📁' },
-  ];
-
-  const columns = {};
-  stages.forEach(s => { columns[s.key] = []; });
-
-  jobs.forEach(j => {
-    const st = j.application_stage || (j.applied ? 'applied' : 'to_apply');
-    if (columns[st]) {
-      columns[st].push(j);
-    } else {
-      columns['to_apply'].push(j);
-    }
-  });
-
-  return `
-    <div class="kanban-board-container">
-      ${stages.map(s => `
-        <div class="kanban-column" id="kanban-col-${s.key}">
-          <div class="kanban-column-header">
-            <span class="kanban-col-title"><span>${s.icon}</span> <span>${s.label}</span></span>
-            <span class="kanban-col-count">${columns[s.key].length}</span>
-          </div>
-          <div class="kanban-cards-list">
-            ${columns[s.key].length > 0
-              ? columns[s.key].map(j => renderKanbanCardHtml(j)).join('')
-              : '<div style="text-align:center; padding:30px 10px; font-size:12px; color:var(--text-muted);">No jobs in this stage</div>'
-            }
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
+/**
+ * Updates application pipeline stage with optimistic UI rollback on failure.
+ * @param {string} jobId - Unique identifier for the job
+ * @param {string} newStage - Target stage (to_apply, applied, interviewing, offer, rejected)
+ */
 async function updateJobStageDirect(jobId, newStage) {
   if (!checkAuthOrRedirect('update application pipeline stage')) return;
   const j = appState.jobsMap[jobId];
@@ -240,12 +154,130 @@ async function updateJobStageDirect(jobId, newStage) {
   }
 }
 
-// Render HTML for an array of jobs (supports Table and Kanban views)
-function renderJobsListHtml(jobs) {
-  if (appState.trackerView === 'kanban') {
-    return renderKanbanBoardHtml(jobs);
+/**
+ * Renders the responsive pagination bar controls.
+ * @param {number} totalJobs - Total filtered jobs count
+ * @param {number} startIdx - Zero-indexed start position
+ * @param {number} endIdx - End position
+ * @param {number} totalPages - Total computed page count
+ * @returns {string} HTML markup for pagination controls
+ */
+function renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages) {
+  const currentPage = appState.page || 1;
+  const currentSize = appState.pageSize || 10;
+
+  if (totalJobs === 0) return '';
+
+  // Generate page numbers array (with ellipsis if large)
+  const pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('...');
+    const startP = Math.max(2, currentPage - 1);
+    const endP = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = startP; i <= endP; i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
   }
-  return jobs.map(j => renderJobCardHtml(j, false)).join('');
+
+  const pageButtons = pages.map(p => {
+    if (p === '...') return `<span class="pagination-ellipsis" aria-hidden="true">…</span>`;
+    const isActive = p === currentPage;
+    return `<button type="button" class="pagination-btn ${isActive ? 'active' : ''}" onclick="setPage(${p})" ${isActive ? 'aria-current="page"' : ''} title="Go to page ${p}">${p}</button>`;
+  }).join('');
+
+  return `
+    <div class="pagination-bar" role="navigation" aria-label="Job Board Pagination">
+      <div class="pagination-info">
+        Showing <strong>${totalJobs > 0 ? startIdx + 1 : 0}–${endIdx}</strong> of <strong>${totalJobs}</strong> ${totalJobs === 1 ? 'opportunity' : 'opportunities'}
+      </div>
+      <div class="pagination-controls">
+        <button type="button" class="pagination-btn pagination-nav-btn" onclick="setPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''} aria-label="Previous Page" title="Previous Page">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Prev</span>
+        </button>
+        <div class="pagination-pages-group">
+          ${pageButtons}
+        </div>
+        <button type="button" class="pagination-btn pagination-nav-btn" onclick="setPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="Next Page" title="Next Page">
+          <span>Next</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="pagination-size-wrapper">
+        <label for="pagination-page-size" class="pagination-size-label">Per Page:</label>
+        <select id="pagination-page-size" class="pagination-size-select" onchange="setPageSize(this.value)" aria-label="Opportunities per page">
+          <option value="10" ${currentSize === 10 ? 'selected' : ''}>10</option>
+          <option value="25" ${currentSize === 25 ? 'selected' : ''}>25</option>
+          <option value="50" ${currentSize === 50 ? 'selected' : ''}>50</option>
+        </select>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Navigates to a specific pagination page and scrolls view into focus.
+ * @param {number} pageNum - Target page number
+ */
+function setPage(pageNum) {
+  const totalJobs = appState.jobsList ? appState.jobsList.length : 0;
+  const totalPages = Math.ceil(totalJobs / (appState.pageSize || 10)) || 1;
+  const target = Math.max(1, Math.min(pageNum, totalPages));
+  appState.page = target;
+  const container = document.getElementById('job-list-container');
+  if (container && appState.jobsList) {
+    container.innerHTML = renderJobsListHtml(appState.jobsList);
+    const trackerBar = document.querySelector('.tracker-bar');
+    if (trackerBar) {
+      trackerBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+/**
+ * Updates page size preference and persists to localStorage.
+ * @param {number|string} newSize - Target page size (10, 25, 50)
+ */
+function setPageSize(newSize) {
+  appState.pageSize = parseInt(newSize, 10) || 10;
+  appState.page = 1;
+  Storage.set(localStorage, 'jobhunt_page_size', appState.pageSize);
+  const container = document.getElementById('job-list-container');
+  if (container && appState.jobsList) {
+    container.innerHTML = renderJobsListHtml(appState.jobsList);
+  }
+}
+
+/**
+ * Renders HTML for an array of jobs with pure Table/Card layout & pagination.
+ * @param {Array<Object>} jobs - List of filtered and sorted job objects
+ * @returns {string} HTML markup
+ */
+function renderJobsListHtml(jobs) {
+  if (!jobs || jobs.length === 0) return '';
+  const totalJobs = jobs.length;
+  const pageSize = appState.pageSize || 10;
+  const totalPages = Math.ceil(totalJobs / pageSize) || 1;
+
+  if (!appState.page || appState.page < 1) appState.page = 1;
+  if (appState.page > totalPages) appState.page = totalPages;
+
+  const startIdx = (appState.page - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, totalJobs);
+  const pagedSlice = jobs.slice(startIdx, endIdx);
+
+  const cardsHtml = pagedSlice.map(j => renderJobCardHtml(j, false)).join('');
+  const paginationHtml = renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages);
+
+  return `
+    <div class="jobs-table-container">
+      ${cardsHtml}
+    </div>
+    ${paginationHtml}
+  `;
 }
 
 // Supabase Authentication Global State
@@ -739,6 +771,7 @@ function switchTab(tab, fetchData = true) {
 // Filter Pills with State Persistence
 function setFilter(filter) {
   appState.filter = filter;
+  appState.page = 1;
   Storage.set(localStorage, STORAGE_KEYS.STATUS_FILTER, filter);
 
   document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
@@ -803,7 +836,8 @@ function highlightText(text, query) {
 function renderJobCardHtml(j, isNew = false) {
   const score = j.score != null ? Number(j.score).toFixed(1) : 'N/A';
   const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
-  const isApplied = Boolean(j.applied);
+  const stage = j.application_stage || (j.applied ? 'applied' : 'to_apply');
+  const isApplied = Boolean(j.applied || stage === 'applied' || stage === 'interviewing' || stage === 'offer' || stage === 'rejected');
   const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach);
   const applyUrl = resolveJobUrl(j);
   const searchQuery = appState.search;
@@ -827,7 +861,14 @@ function renderJobCardHtml(j, isNew = false) {
       </div>
       <div class="job-actions">
         <div class="job-score-row">
-          <span class="score-badge ${scoreClass}">${score}</span>
+          <span class="score-badge ${scoreClass}" title="AI Candidate Match Score">${score}</span>
+          <select class="job-stage-select" aria-label="Application Stage" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
+            <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>📝 To Apply</option>
+            <option value="applied" ${stage === 'applied' ? 'selected' : ''}>🚀 Applied</option>
+            <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>💬 Interviewing</option>
+            <option value="offer" ${stage === 'offer' ? 'selected' : ''}>🎉 Offer</option>
+            <option value="rejected" ${stage === 'rejected' ? 'selected' : ''}>📁 Archived</option>
+          </select>
         </div>
         <div class="job-action-btn-row">
           ${isApplied
@@ -1024,6 +1065,7 @@ function resetFiltersAndSearch() {
 
   appState.search = '';
   appState.ats = 'all';
+  appState.page = 1;
   setFilter('all');
 }
 
@@ -1038,6 +1080,7 @@ function handleSearchInput() {
 }
 
 const debouncedSearch = debounce(() => {
+  appState.page = 1;
   fetchAndRenderJobs(false);
 }, 180);
 
@@ -1049,6 +1092,7 @@ function clearSearch() {
     input.focus();
   }
   if (clearBtn) clearBtn.style.display = 'none';
+  appState.page = 1;
   fetchAndRenderJobs(false);
 }
 
@@ -2940,7 +2984,7 @@ async function toggleAppliedDirect(jobId, action) {
 
   // 2.5. Optimistic Card Removal for Active Status Filter
   if ((appState.filter === 'applied' && isUnmark) || (appState.filter === 'unapplied' && !isUnmark)) {
-    const card = document.getElementById('job-card-' + jobId) || document.getElementById('kanban-card-' + jobId);
+    const card = document.getElementById('job-card-' + jobId);
     if (card) {
       card.style.transition = 'all 0.25s ease';
       card.style.opacity = '0';
@@ -2948,7 +2992,7 @@ async function toggleAppliedDirect(jobId, action) {
       setTimeout(() => {
         card.remove();
         const container = document.getElementById('job-list-container');
-        if (container && !container.querySelector('.job-item') && !container.querySelector('.kanban-card')) {
+        if (container && !container.querySelector('.job-item')) {
           container.innerHTML = `
             <div class="empty-state">
               <div class="empty-state-icon">
@@ -3007,7 +3051,7 @@ async function deleteJobDirect(jobId) {
     return;
   }
 
-  const card = document.getElementById('job-card-' + jobId) || document.getElementById('kanban-card-' + jobId);
+  const card = document.getElementById('job-card-' + jobId);
   if (card) {
     card.classList.add('removing');
   }
@@ -3686,13 +3730,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
   const activePill = document.getElementById('pill-' + appState.filter);
   if (activePill) activePill.classList.add('active');
-
-  // Hydrate Tracker View Mode (Table vs Kanban)
-  appState.trackerView = Storage.get(localStorage, 'jobhunt_tracker_view', 'table');
-  const btnTable = document.getElementById('btn-view-table');
-  const btnKanban = document.getElementById('btn-view-kanban');
-  if (btnTable) btnTable.classList.toggle('active', appState.trackerView === 'table');
-  if (btnKanban) btnKanban.classList.toggle('active', appState.trackerView === 'kanban');
 
   // Set active tab without firing unauthenticated network requests
   switchTab(appState.activeTab, false);

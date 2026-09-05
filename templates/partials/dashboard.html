@@ -57,7 +57,7 @@
     <div id="tab-content-digest">
       <div class="digest-header-row">
         <div class="digest-header-title-group" style="display:flex;align-items:center;gap:10px;">
-          <img src="/logo.png" alt="Job Hunter Logo" width="24" height="24" style="border-radius:6px;display:block;border:1px solid var(--border-color, #e2e8f0);">
+          <img src="/logo.png" alt="Job Hunter Logo" width="24" height="24" style="border-radius:6px;display:block;border:1px solid var(--border-color, #e2e8f0);flex-shrink:0;min-width:24px;">
           <span class="digest-preview-label">Latest generated HTML digest briefing preview</span>
           <span class="badge-live-sync" id="digest-sync-tag">Auto-Synced</span>
         </div>
@@ -71,7 +71,7 @@
       <div class="viewport-frame" id="digest-frame" role="region" aria-label="Executive Career Digest Briefing"></div>
       <div class="digest-tab-footer" style="margin-top:14px;padding:10px 14px;border-top:1px solid var(--border-color, #e2e8f0);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text-muted, #64748b);">
         <div style="display:flex;align-items:center;gap:8px;">
-          <img src="/logo.png" alt="Job Hunter" width="18" height="18" style="border-radius:4px;display:block;">
+          <img src="/logo.png" alt="Job Hunter" width="18" height="18" style="border-radius:4px;display:block;flex-shrink:0;min-width:18px;">
           <span>Career Intelligence Digest Briefing</span>
         </div>
         <div>
@@ -142,15 +142,9 @@
             </button>
           </div>
 
-          <div class="view-toggle-group" role="group" aria-label="Job Board View Mode">
-            <button class="btn-view-toggle active" id="btn-view-table" onclick="switchTrackerView('table')" title="List / Table View" type="button" aria-label="Table View">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              <span>Table</span>
-            </button>
-            <button class="btn-view-toggle" id="btn-view-kanban" onclick="switchTrackerView('kanban')" title="Kanban Pipeline Board" type="button" aria-label="Kanban View">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="11" rx="1"></rect></svg>
-              <span>Kanban</span>
-            </button>
+          <div class="tracker-summary-badge" id="tracker-summary-badge">
+            <span class="summary-dot"></span>
+            <span id="tracker-summary-text">Live Opportunity Feed</span>
           </div>
         </div>
       </div>

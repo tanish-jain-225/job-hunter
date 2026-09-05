@@ -58,8 +58,8 @@ jobs:
           PYTHONUNBUFFERED: "1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LLM_PROVIDER: "gemini"
-          SCREEN_MODEL: "gemini-3.7-flash"
-          DRAFT_MODEL: "gemini-3.7-flash"
+          SCREEN_MODEL: "gemini-3.5-flash"
+          DRAFT_MODEL: "gemini-3.5-flash"
           SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
           SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

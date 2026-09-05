@@ -445,13 +445,13 @@ def api_delete():
         return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
 
 
-VALID_KANBAN_STAGES = {"to_apply", "applied", "interviewing", "offer", "rejected"}
+VALID_APPLICATION_STAGES = {"to_apply", "applied", "interviewing", "offer", "rejected"}
 
 
 @jobs_bp.route("/api/jobs/stage", methods=["POST"])
 @require_auth
 def api_jobs_stage():
-    """Update Kanban pipeline application stage (to_apply, applied, interviewing, offer, rejected)."""
+    """Update job application pipeline stage (to_apply, applied, interviewing, offer, rejected)."""
     email, token = get_current_user_context()
     data = request.get_json(silent=True) or {}
     job_id = data.get("job_id", "").strip()
@@ -460,8 +460,8 @@ def api_jobs_stage():
     if not job_id:
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
 
-    if stage not in VALID_KANBAN_STAGES:
-        allowed = ", ".join(sorted(VALID_KANBAN_STAGES))
+    if stage not in VALID_APPLICATION_STAGES:
+        allowed = ", ".join(sorted(VALID_APPLICATION_STAGES))
         return jsonify({"status": "error", "message": f"Invalid stage '{stage}'. Must be one of: {allowed}"}), 400
 
     cfg = cli._cfg(raise_on_error=False)

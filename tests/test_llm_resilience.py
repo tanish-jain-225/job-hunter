@@ -32,7 +32,7 @@ def test_gemini_provider_multi_key_rotation(monkeypatch):
     # First call returns 429 (key1), second returns 200 (key2)
     with patch("requests.post") as mock_post, patch("time.sleep"):
         mock_post.side_effect = [mock_response_429, mock_response_200]
-        res = provider.complete("gemini-3.7-flash", "sys", "user", 100, json_mode=True)
+        res = provider.complete("gemini-3.5-flash", "sys", "user", 100, json_mode=True)
         assert res == '[{"job_id": "test:1", "score": 9.0}]'
         assert mock_post.call_count == 2
         # Check that second request used key2
@@ -48,7 +48,7 @@ def test_get_fallback_provider(monkeypatch):
         assert fallback is not None
         prov, model = fallback
         assert prov.name == "gemini"
-        assert model == "gemini-3.7-flash"
+        assert model == "gemini-3.5-flash"
 
 
 def test_screen_live_failover_cascade(monkeypatch):
@@ -75,9 +75,9 @@ def test_screen_live_failover_cascade(monkeypatch):
     mock_gemini_fallback.name = "gemini"
     mock_gemini_fallback.complete.return_value = '[{"job_id": "test:1", "score": 8.5, "reason": "Good match"}]'
 
-    with patch("jobhunt.llm.resolve", return_value=(mock_failing_provider, "gemini-3.7-flash")):
+    with patch("jobhunt.llm.resolve", return_value=(mock_failing_provider, "gemini-3.5-flash")):
         with patch("jobhunt.llm.get_fallback_provider") as mock_fallback:
-            mock_fallback.return_value = (mock_gemini_fallback, "gemini-3.7-flash")
+            mock_fallback.return_value = (mock_gemini_fallback, "gemini-3.5-flash")
             scored = llm.screen(jobs, profile)
             assert scored[0].score == 8.5
             assert scored[0].reason == "Good match"

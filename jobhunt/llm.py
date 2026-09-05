@@ -1,7 +1,7 @@
 """Two-stage AI intelligence layer: high-throughput screening and rich drafting.
 
-  screen  batch ~8 jobs per call, JD truncated to ~1000 chars, default: gemini-3.7-flash
-  draft   one call per job, ~6000 chars of JD, default: gemini-3.7-flash, for top matches
+  screen  batch ~8 jobs per call, JD truncated to ~1000 chars, default: gemini-3.5-flash
+  draft   one call per job, ~6000 chars of JD, default: gemini-3.5-flash, for top matches
 """
 
 from __future__ import annotations

@@ -343,7 +343,7 @@ def test_gemini_429_all_keys_cooldown(monkeypatch: pytest.MonkeyPatch):
 
     with patch("requests.post", return_value=mock_resp), patch("time.sleep") as mock_sleep:
         with pytest.raises(LLMError, match="gemini HTTP 429"):
-            p._post("gemini-3.7-flash", {"contents": []})
+            p._post("gemini-3.5-flash", {"contents": []})
         assert mock_sleep.called
 
 
@@ -363,7 +363,7 @@ def test_gemini_404_model_fallbacks(monkeypatch: pytest.MonkeyPatch):
     }
 
     with patch("requests.post", side_effect=[resp_404, resp_200]):
-        res = p._post("gemini-3.7-flash", {"contents": []})
+        res = p._post("gemini-3.5-flash", {"contents": []})
         assert "Success from fallback" in res
 
     with patch("requests.post", side_effect=[resp_404, resp_200]):

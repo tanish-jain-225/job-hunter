@@ -236,6 +236,13 @@ code, pre, .console, .cover-box, .monospace {
   justify-content: center;
 }
 
+/* Universal Logo Visibility Guard (Prevents Any Container from Squishing or Hiding Logos) */
+.brand-logo-frame, .brand-logo, .brand-fallback-icon,
+.digest-logo-img, .empty-logo-img, .digest-footer-logo {
+  flex-shrink: 0 !important;
+  min-width: fit-content;
+}
+
 .brand-text-block {
   display: flex;
   flex-direction: column;
@@ -601,6 +608,20 @@ code, pre, .console, .cover-box, .monospace {
   flex-direction: column;
   gap: 4px;
   width: 100%;
+}
+
+/* Responsive 2-Column Flex Form Row */
+.form-grid-2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+}
+
+.form-grid-2 > .form-group {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .form-label-row {
@@ -1618,48 +1639,6 @@ input:checked + .slider::before {
   flex: 1 1 auto;
 }
 
-.view-toggle-group {
-  display: inline-flex;
-  align-items: center;
-  background: var(--bg-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill, 9999px);
-  padding: 2px;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.btn-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill, 9999px);
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all var(--transition-fast, 0.15s ease);
-}
-
-.btn-view-toggle:hover {
-  color: var(--text-main);
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.btn-view-toggle.active {
-  background: var(--primary);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
-}
-
-.btn-view-toggle svg {
-  flex-shrink: 0;
-}
-
 .pill {
   padding: 5px 12px;
   border-radius: var(--radius-pill);
@@ -2359,27 +2338,24 @@ input:checked + .slider::before {
   color: #ffffff;
 }
 
-/* Notification Mode Selector Cards */
+/* Notification Mode Selector Cards (Pure Responsive Flexbox) */
 .notification-modes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
-}
-
-@media (max-width: 580px) {
-  .notification-modes-grid {
-    grid-template-columns: 1fr;
-  }
+  width: 100%;
 }
 
 .mode-card {
+  flex: 1 1 200px;
+  min-width: 0;
   background: #ffffff;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   cursor: pointer;
-  transition: all var(--trans-fast);
+  transition: all var(--transition-fast);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2948,7 +2924,8 @@ input:checked + .slider::before {
   }
 
   .filter-pills .pill {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .job-action-btn-row .btn,
@@ -3197,173 +3174,184 @@ input:checked + .slider::before {
 }
 
 /* ==============================================================================
-   10. Light Professional Executive Kanban Pipeline Board & View Controls
+   10. Interactive Job Board Table & Pagination Design System
    ============================================================================== */
 
-.view-mode-toggle {
-  display: inline-flex;
-  background: var(--bg-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-
-.view-mode-toggle .btn {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  box-shadow: none;
-}
-
-.view-mode-toggle .btn.active {
-  background: #ffffff;
-  color: var(--text-main);
-  font-weight: 700;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.btn-add-custom-job {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  font-weight: 600;
-}
-
-.btn-add-custom-job:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* Kanban Board Layout (Pure Responsive Flexbox) */
-.kanban-board-container {
+/* Table / Card List Container */
+.jobs-table-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
+  flex-direction: column;
+  gap: 12px;
   width: 100%;
-  align-items: stretch;
 }
 
-.kanban-column {
-  background: #F8FAFC;
+/* Application Stage Dropdown Selector */
+.job-stage-select {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill, 9999px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 240px;
-  min-width: 220px;
-  min-height: 280px;
-}
-
-.kanban-column-header {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #ffffff;
-  border-top-left-radius: var(--radius-md);
-  border-top-right-radius: var(--radius-md);
-}
-
-.kanban-col-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kanban-col-count {
-  background: var(--bg-muted);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 10px;
-}
-
-.kanban-cards-list {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-}
-
-.kanban-card {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  background: var(--bg-surface);
+  color: var(--text-body);
   cursor: pointer;
   transition: all var(--transition-fast);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  outline: none;
 }
 
-.kanban-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.kanban-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.kanban-card-company {
-  font-size: 11.5px;
-  font-weight: 700;
+.job-stage-select:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
   color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
-.kanban-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-  line-height: 1.35;
+.job-stage-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
-.kanban-card-meta {
-  display: flex;
+/* Tracker Summary Badge */
+.tracker-summary-badge {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--text-muted);
-  margin-top: 4px;
+  background: var(--bg-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 9999px);
+  border: 1px solid var(--border);
 }
 
-.kanban-card-actions {
+.summary-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--success-border);
+}
+
+/* Pagination Bar (Pure Responsive Flexbox) */
+.pagination-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-muted);
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  width: 100%;
 }
 
-.kanban-stage-select {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-muted);
+.pagination-info {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.pagination-info strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pagination-pages-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-body);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.pagination-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--bg-muted);
+  border-color: var(--border-muted);
+}
+
+.pagination-nav-btn {
+  gap: 4px;
+  padding: 0 10px;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 32px;
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+.pagination-size-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination-size-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.pagination-size-select {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-main);
+  cursor: pointer;
+  outline: none;
+}
+
+.pagination-size-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
 /* Modal Custom Job */
@@ -3612,17 +3600,6 @@ input:checked + .slider::before {
     padding: 12px;
   }
 
-  .kanban-board-container {
-    gap: 10px;
-  }
-
-  .kanban-column {
-    flex: 1 1 100%;
-    min-width: 0;
-    width: 100%;
-    min-height: auto;
-  }
-
   .form-grid-2 {
     display: flex;
     flex-direction: column;
@@ -3699,15 +3676,10 @@ input:checked + .slider::before {
     min-width: 0 !important;
   }
 
-  .kanban-board-container {
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  .kanban-column {
-    min-width: 0 !important;
-    width: 100% !important;
-    flex: 1 1 100% !important;
+  .brand-logo-frame, .brand-logo, .brand-fallback-icon,
+  .digest-logo-img, .empty-logo-img, .digest-footer-logo {
+    min-width: fit-content !important;
+    flex-shrink: 0 !important;
   }
 
   .search-input-wrapper {
@@ -3764,6 +3736,12 @@ input:checked + .slider::before {
     min-width: 0 !important;
   }
 
+  .brand-logo-frame, .brand-logo, .brand-fallback-icon,
+  .digest-logo-img, .empty-logo-img, .digest-footer-logo {
+    min-width: fit-content !important;
+    flex-shrink: 0 !important;
+  }
+
   /* 1. Header / Navbar */
   .navbar {
     padding: 6px 6px !important;
@@ -3797,11 +3775,13 @@ input:checked + .slider::before {
   }
 
   .brand-logo-frame {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
     padding: 1px !important;
     border-radius: 5px !important;
+    flex-shrink: 0 !important;
   }
 
   .brand-title {
@@ -4366,91 +4346,63 @@ input:checked + .slider::before {
     border-radius: 5px !important;
   }
 
-  .view-toggle-group {
+  .tracker-summary-badge {
     width: 100% !important;
-    display: flex !important;
-  }
-
-  .btn-view-toggle {
-    flex: 1 1 50% !important;
-    min-width: 0 !important;
     justify-content: center !important;
     font-size: 10px !important;
-    padding: 4px 2px !important;
+    padding: 4px 6px !important;
   }
 
-  /* 7. Kanban View Pipeline */
-  .kanban-board-container {
-    display: flex !important;
+  /* 7. Pagination Bar (Ultra-Compact) */
+  .pagination-bar {
     flex-direction: column !important;
-    gap: 6px !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+  }
+
+  .pagination-info {
+    font-size: 10.5px !important;
+    text-align: center !important;
     width: 100% !important;
-    min-width: 0 !important;
   }
 
-  .kanban-column {
-    flex: 1 1 100% !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    border-radius: 6px !important;
-    min-height: auto !important;
-  }
-
-  .kanban-column-header {
-    padding: 6px 8px !important;
-    font-size: 11px !important;
-  }
-
-  .kanban-col-count {
-    font-size: 9px !important;
-    padding: 1px 4px !important;
-  }
-
-  .kanban-cards-list {
-    padding: 4px !important;
+  .pagination-controls {
+    justify-content: center !important;
     gap: 4px !important;
-  }
-
-  .kanban-card {
-    padding: 6px !important;
-    border-radius: 5px !important;
     width: 100% !important;
-    box-sizing: border-box !important;
-    min-width: 0 !important;
   }
 
-  .kanban-card-title {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
-    word-break: break-word !important;
-  }
-
-  .kanban-card-company {
-    font-size: 10px !important;
-    word-break: break-word !important;
-  }
-
-  .kanban-card-badges {
-    display: flex !important;
-    flex-wrap: wrap !important;
+  .pagination-pages-group {
     gap: 2px !important;
-    margin-top: 3px !important;
   }
 
-  .kanban-card-actions {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 3px !important;
-    margin-top: 4px !important;
+  .pagination-btn {
+    min-width: 26px !important;
+    height: 26px !important;
+    font-size: 10.5px !important;
+    padding: 0 4px !important;
   }
 
-  .kanban-card-actions .btn,
-  .kanban-card-actions a.btn {
-    width: 100% !important;
+  .pagination-nav-btn {
+    padding: 0 6px !important;
+  }
+
+  .pagination-size-wrapper {
     justify-content: center !important;
-    font-size: 9.5px !important;
-    padding: 3px 5px !important;
+    width: 100% !important;
+  }
+
+  .pagination-size-select {
+    font-size: 10.5px !important;
+    padding: 2px 4px !important;
+  }
+
+  .job-stage-select {
+    font-size: 10.5px !important;
+    padding: 2px 6px !important;
+    width: 100% !important;
+    text-align: center !important;
   }
 
   /* 8. Table List View */

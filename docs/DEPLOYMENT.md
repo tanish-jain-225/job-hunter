@@ -33,7 +33,7 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 | :--- | :--- | :--- | :--- |
 | **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **$0 / mo** |
 | **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs | **$0 / mo** |
-| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.7-flash) | Candidate batch fit screening & tailored application kit drafting | **$0 / mo** |
+| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.5-flash) | Candidate batch fit screening & tailored application kit drafting | **$0 / mo** |
 | **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar | **$0 / mo** |
 | **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **$0 / mo** |
 
@@ -135,7 +135,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
    * Candidate picks a 1-click role preset (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product Lead*) or uploads a resume to extract skills in-memory.
    * Chooses their notification preference (*Instant On-Demand* or *Daily 5:00 AM Morning Briefing*).
    * Clicks **"Complete & Launch First Hunt"**.
-4. The system immediately screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private Kanban tracker!
+4. The system immediately screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private interactive job tracker!
 
 ---
 
