@@ -8,14 +8,20 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Execution Mode: single (Primary Account) or multi (All Supabase Users)'
+        description: 'Execution Mode: user (one account), single (local primary), or multi (all users)'
         required: true
         default: 'multi'
         type: choice
         options:
+          - user
           - multi
           - single
           - mock
+      user_email:
+        description: 'Authenticated user email for user mode'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -70,10 +76,18 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AUTH_REQUIRED: "false"
           CI: "true"
+          TARGET_USER_EMAIL: ${{ github.event.inputs.user_email }}
         run: |
           if [ "${{ github.event.inputs.mode }}" = "mock" ]; then
             echo "Running mock dry run..."
             python -u -m jobhunt run --mock --scorer keyword
+          elif [ "${{ github.event.inputs.mode }}" = "user" ]; then
+            if [ -z "$TARGET_USER_EMAIL" ]; then
+              echo "user_email is required for user mode."
+              exit 1
+            fi
+            echo "Running authenticated single-user pipeline..."
+            python -u -m jobhunt multi-run --user-email "$TARGET_USER_EMAIL" --send
           elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ "${{ github.event.inputs.mode }}" != "single" ]; then
             echo "Running Centralized Multi-User Batch Pipeline..."
             python -u -m jobhunt multi-run --send
@@ -81,7 +95,6 @@ jobs:
             echo "Running Single-User Pipeline..."
             python -u -m jobhunt run --send
           fi
-
       - name: Save Digest Briefing Artifact (Single-User Mode)
         uses: actions/upload-artifact@v4
         if: always()

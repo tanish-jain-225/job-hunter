@@ -548,6 +548,7 @@ def cmd_multi_run(args: argparse.Namespace) -> int:
         mock=bool(getattr(args, "mock", False)),
         scorer=getattr(args, "scorer", "llm"),
         force_send=bool(getattr(args, "send", False)),
+        user_email=getattr(args, "user_email", None),
     )
     return 0 if res.get("status") == "success" else 1
 
@@ -633,6 +634,7 @@ def main() -> None:
     p_multi.add_argument(
         "--strict-llm", action="store_true", help="Enforce 100%% live LLM execution (no keyword fallback)."
     )
+    p_multi.add_argument("--user-email", help="Process only this authenticated Supabase user.")
     p_multi.add_argument("--scorer", choices=["llm", "keyword"], default="llm", help="Scorer to use (default: llm).")
 
     # applied

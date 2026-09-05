@@ -112,8 +112,9 @@ def run_multi_user_pipeline(
     mock: bool = False,
     scorer: str = "llm",
     force_send: bool = False,
+    user_email: str | None = None,
 ) -> dict[str, Any]:
-    """Execute single-pass multi-user pipeline across all active accounts."""
+    """Execute a batch for all active accounts or one explicitly selected account."""
     cfg = cli._cfg(config_path, raise_on_error=False)
     cli._load_env()
     memory = SupabaseMemory()
@@ -147,20 +148,28 @@ def run_multi_user_pipeline(
             endpoint = f"{memory.url}/rest/v1/user_profiles"
             headers = memory._headers(use_service_key=True)
             params = {"select": "*", "order": "created_at.asc"}
+            if user_email:
+                params["email"] = f"eq.{user_email.lower().strip()}"
             resp = requests.get(endpoint, headers=headers, params=params, timeout=memory.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 if isinstance(data, list):
                     for u in data:
                         merged_u = merge_user_profile(u)
+                        if user_email and (merged_u.get("email") or "").lower().strip() != user_email.lower().strip():
+                            continue
                         # Include users who completed onboarding or have non-empty profile
                         if merged_u.get("onboarding_completed") or merged_u.get("name") or merged_u.get("skills"):
                             users_to_process.append(merged_u)
         except Exception as e:
             print(f"  ! Supabase user query error: {e}")
 
-    # Fallback to local profile if no remote users found
-    if not users_to_process:
+    # Never cross tenant boundaries or use a local fallback for a targeted run.
+    if user_email and not users_to_process:
+        return {"status": "user_not_found", "users_processed": 0, "dispatched": 0}
+
+    # Fallback to local profile only for the scheduled/local all-user mode.
+    if not users_to_process and not user_email:
         local_prof = cli._load_profile(cfg, raise_on_error=False)
         if local_prof:
             local_prof.setdefault("email", os.environ.get("MAIL_TO", "user@local"))

@@ -7,7 +7,7 @@ import json
 import os
 import time
 from pathlib import Path
-from flask import Blueprint, g, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 
 from ... import cli
 from ...auth import require_auth
@@ -592,32 +592,22 @@ def api_run():
     v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
     repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
 
-    # Option 1: If on Vercel or cloud requested and GH_TOKEN is provided, trigger GitHub Actions workflow directly
+    # Dispatch a user-scoped worker run. The email comes from the verified session,
+    # never from request JSON, so one user cannot select another user's profile.
     prefer_cloud = is_vercel or bool(data.get("cloud", False))
     if prefer_cloud and gh_token and not use_mock:
-        is_production = not current_app.testing and (
-            is_vercel or os.environ.get("FLASK_ENV") == "production"
-        )
-        configured_admins = {
-            item.strip().lower()
-            for item in os.environ.get("PIPELINE_ADMIN_EMAILS", "").split(",")
-            if item.strip()
-        }
-        current_user = getattr(g, "user", {}) or {}
-        metadata = current_user.get("app_metadata") or current_user.get("user_metadata") or {}
-        is_admin = bool(metadata.get("is_admin") is True or metadata.get("role") == "admin")
-        if is_production and (not email or (email.lower() not in configured_admins and not is_admin)):
+        if not email:
             set_user_pipeline_state(
                 email,
                 running=False,
                 step="idle",
-                message="Cloud pipeline dispatch is restricted to authorized operators.",
+                message="A verified account is required for cloud pipeline dispatch.",
             )
             return jsonify(
                 {
                     "status": "error",
-                    "code": "PIPELINE_DISPATCH_FORBIDDEN",
-                    "message": "Cloud pipeline dispatch is restricted to authorized operators.",
+                    "code": "USER_EMAIL_REQUIRED",
+                    "message": "A verified account is required for cloud pipeline dispatch.",
                 }
             ), 403
         try:
@@ -630,7 +620,7 @@ def api_run():
                 "User-Agent": "Job-Hunter-Web-App",
                 "X-GitHub-Api-Version": "2022-11-28",
             }
-            gh_payload = {"ref": "main", "inputs": {"mode": "multi"}}
+            gh_payload = {"ref": "main", "inputs": {"mode": "user", "user_email": email}}
             gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
             if gh_resp.status_code in (200, 204):
                 msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 100+ company boards in the cloud..."
