@@ -45,7 +45,7 @@ def api_health():
 @views_bp.route("/logo.png")
 def serve_logo():
     """Serve brand logo PNG."""
-    logo_path = (ROOT / "logo.png").resolve()
+    logo_path = (ROOT / "static" / "assets" / "logo.png").resolve()
     if logo_path.is_file():
         return send_file(str(logo_path), mimetype="image/png")
     return "", 204
@@ -54,10 +54,10 @@ def serve_logo():
 @views_bp.route("/favicon.ico")
 def serve_favicon():
     """Serve brand favicon (.ico preferred, falling back to logo.png)."""
-    fav_path = (ROOT / "favicon.ico").resolve()
+    fav_path = (ROOT / "static" / "assets" / "favicon.ico").resolve()
     if fav_path.is_file():
         return send_file(str(fav_path), mimetype="image/x-icon")
-    logo_path = (ROOT / "logo.png").resolve()
+    logo_path = (ROOT / "static" / "assets" / "logo.png").resolve()
     if logo_path.is_file():
         return send_file(str(logo_path), mimetype="image/png")
     return "", 204

@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-395%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-397%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
@@ -26,7 +26,7 @@
   <a href="docs/SETUP.md">Setup Guide</a> •
   <a href="docs/ARCHITECTURE.md">System Architecture</a> •
   <a href="docs/API.md">REST API</a> •
-  <a href="METRICS.md">Scaling &amp; Metrics</a>
+  <a href="docs/METRICS.md">Scaling &amp; Metrics</a>
 </p>
 
 ---
@@ -111,7 +111,7 @@ python -m venv .venv
 .\.venv\Scripts\activate
 pip install -e .
 
-run.bat --mock --scorer keyword
+scripts\\run.bat --mock --scorer keyword
 ```
 
 ### 🍏 macOS / 🐧 Linux:
@@ -122,7 +122,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 
-./run.sh --mock --scorer keyword
+./scripts/run.sh --mock --scorer keyword
 ```
 
 #### Expected Execution Output:
@@ -242,6 +242,8 @@ jobhunt profile --resume resume.pdf
 > [!TIP]
 > PDF resumes are submitted natively as base64 document blocks to Google Gemini or Anthropic Claude (no OCR required), or extracted via built-in `pypdf`. Inspect the generated `profile.json` locally and fine-tune your extracted skills, target titles, or experience summary if needed.
 
+> In the authenticated web application, `profile.json` is a local/CLI profile only. Web requests use the signed-in user's Supabase profile and an isolated per-user cache, so profiles and preferences are not shared between candidates.
+
 ---
 
 ### 4. Environment Variables (`.env`)
@@ -356,13 +358,13 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 ## 🚀 Daily Workflows
 
 ### ☀️ Command 1 — Morning Run (Search + Screen + Draft + Email + Browser Preview)
-- **Windows**: `run.bat`
-- **macOS / Linux**: `./run.sh`
+- **Windows**: `scripts\\run.bat`
+- **macOS / Linux**: `./scripts/run.sh`
 - **CLI Direct**: `python auto.py`
 
 ### 📌 Command 2 — Mark Applied Jobs
-- **Windows**: `apply.bat "greenhouse:stripe:5501001"`
-- **macOS / Linux**: `./apply.sh "greenhouse:stripe:5501001"`
+- **Windows**: `scripts\\apply.bat "greenhouse:stripe:5501001"`
+- **macOS / Linux**: `./scripts/apply.sh "greenhouse:stripe:5501001"`
 - **CLI Direct**: `jobhunt applied "greenhouse:stripe:5501001"`
 
 ---
@@ -371,7 +373,11 @@ The `jobhunt` CLI provides modular subcommands and master automation scripts:
 
 `seen.json` (and `user_tracked_jobs` in Supabase) acts as both a deduplication index and application pipeline tracker:
 - **Deduplication**: Prevents sending duplicate job notifications across runs.
-- **Application State Machine**: Tracks status transitions (`to_apply` $ightarrow$ `applied` $ightarrow$ `interviewing` $ightarrow$ `offer` $ightarrow$ `rejected`).
+- **Application State Machine**: Tracks status transitions (`to_apply` $
+ightarrow$ `applied` $
+ightarrow$ `interviewing` $
+ightarrow$ `offer` $
+ightarrow$ `rejected`).
 - **Resilience**: Unscored or rate-limited jobs are not written to seen storage and are automatically retried on the next run.
 - **Connection Resilience**: Supabase database queries and board scrapes employ pooled sessions configured with automatic exponential backoff retries (`Retry` adapter) to survive transient serverless cold starts or connection drops.
 - **Gitignored & Security Guarded**: Keeps your private job search data secure and local. A Git staging check in the local runner warns you if your credential-loaded `.env` file is accidentally tracked in Git.
@@ -405,7 +411,9 @@ Job Hunter can be deployed as a multi-user cloud service on a **100% free-tier s
 The automated workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs **automatically on every `push` to `main`** as well as on a schedule **every single day at 05:00 IST (23:30 UTC)**. State (`seen.json`) is maintained across runs using `actions/cache`.
 
 ### 🔑 Required Repository Secrets
-Configure these under **Settings $ightarrow$ Secrets and variables $ightarrow$ Actions**:
+Configure these under **Settings $
+ightarrow$ Secrets and variables $
+ightarrow$ Actions**:
 
 | Secret Name | Description |
 |---|---|
@@ -413,7 +421,7 @@ Configure these under **Settings $ightarrow$ Secrets and variables $ightarrow$
 | `SMTP_USER` & `SMTP_PASS` | Gmail address + [App Password](https://myaccount.google.com/apppasswords). |
 | `MAIL_TO` | Recipient email address for the daily digest (single-user mode). |
 | `SUPABASE_URL` & `SUPABASE_ANON_KEY` | Supabase PostgreSQL credentials (for centralized multi-user mode). |
-| `PROFILE_JSON` | Full text contents of your local `profile.json` (for single-user mode). |
+| `PROFILE_JSON` | Full text contents of your local `profile.json` for CLI/single-user workflows; authenticated web users use their own Supabase profile. |
 
 ---
 
@@ -422,7 +430,7 @@ Configure these under **Settings $ightarrow$ Secrets and variables $ightarrow$
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code style and formatting verification with Ruff (`ruff check .`).
 - 📐 **Static Typing**: Comprehensive strict type checking with Mypy (`mypy jobhunt`).
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (395 automated tests with $\ge 91\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (397 automated tests with $\ge 91\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -431,9 +439,7 @@ The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers 
 
 ```text
 job-hunter/
-├── assets/                   # Official brand assets, vector infographics & banners
-│   ├── logo.png              # Official brand logo asset
-│   ├── favicon.ico           # Multi-resolution binary favicon
+├── assets/                   # Documentation-only vector infographics & banners
 │   ├── banner.svg            # Vector header banner
 │   └── pipeline-flow.svg     # 5-phase automated architecture vector infographic
 ├── jobhunt/                  # Core Python Package
@@ -466,11 +472,11 @@ job-hunter/
 ├── static/
 │   ├── css/style.css         # Responsive design system down to 300px width, typography & glassmorphic tokens
 │   ├── js/app.js             # State persistence, job board pagination, stage transitions, Supabase client & live sync
-│   └── favicon.ico           # Multi-resolution binary favicon asset
+│   └── assets/               # Runtime logo and favicon assets
 ├── supabase/
 │   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
 │   └── teardown.sql          # Idempotent schema reset & companion teardown script
-├── tests/                    # 395 comprehensive automated test cases (91%+ line coverage)
+├── tests/                    # 397 comprehensive automated test cases (91%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & thread-safe provider state reset
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
@@ -500,14 +506,14 @@ job-hunter/
 │   ├── ci.yml                # CI lint/type-check/test workflow
 │   └── daily.yml             # Daily automated execution & digest workflow
 ├── pyproject.toml            # PEP 621 packaging metadata & tool configurations
+├── scripts/                  # Cross-platform launchers and scheduled-task helpers
+│   ├── run.bat / run.sh
+│   ├── apply.bat / apply.sh
+│   └── setup_daily_task.bat
 ├── config.yaml               # Pipeline thresholds & filter rules
 ├── companies.yaml            # 88+ curated board targets across 9 ATS engines
 ├── app.py                    # Classic WSGI Entrypoint (create_app())
 ├── auto.py                   # Master cross-platform pipeline launcher script
-├── favicon.ico               # Root binary favicon
-├── logo.png                  # Official brand logo asset
-├── run.bat / run.sh          # 1-Click execution scripts
-├── apply.bat / apply.sh      # 1-Click apply status marker scripts
 ├── README.md                 # Master project documentation & narrative
 └── docs/                     # End-to-End Documentation Suite
     ├── ARCHITECTURE.md       # Complete system architecture handbook
@@ -535,7 +541,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (**395 unit & integration tests**):
+Run the full test suite locally (**397 unit & integration tests**):
 ```bash
 pytest
 ```

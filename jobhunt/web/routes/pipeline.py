@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import logging
+import json
 import os
 import time
 from pathlib import Path
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, g, jsonify, request, send_file
 
 from ... import cli
 from ...auth import require_auth
 from ...memory import SupabaseMemory
-from ...store import Store, get_writable_path
+from ...store import Store, get_user_profile_path, get_writable_path
 from ..state import (
     ROOT,
     get_current_user_context,
@@ -21,6 +22,8 @@ from ..state import (
     publish_user_pipeline_log,
     get_user_pipeline_logs,
     clear_user_pipeline_logs,
+    get_user_profile,
+    sanitize_profile_for_response,
 )
 
 pipeline_bp = Blueprint("pipeline", __name__)
@@ -92,7 +95,7 @@ def api_sync():
         memory._ensure_user_profile_exists(email, token=token)
         user_profile = memory.get_user_profile(email, token=token)
     if not user_profile and not (email and memory.is_configured):
-        raw_local = cli._load_profile(cfg, raise_on_error=False) or {}
+        raw_local = get_user_profile(cfg, email, token)
         if raw_local:
             raw_local.setdefault("onboarding_completed", True)
             user_profile = raw_local
@@ -301,7 +304,7 @@ def api_sync():
             "ats_counts": ats_counts,
             "pipeline": pipe_state,
             "user_email": email,
-            "user_profile": user_profile,
+            "user_profile": sanitize_profile_for_response(user_profile),
             "memory_connected": memory.is_configured,
             "timestamp": time.time(),
         }
@@ -346,10 +349,13 @@ def api_digest():
 
     writable_path = get_writable_path(digest_file)
     root_path = ROOT / digest_file
-    target = writable_path if writable_path.is_file() else root_path
+    # A repository-level digest is shared state and must never be served to an authenticated user.
+    target = None
+    if not email:
+        target = writable_path if writable_path.is_file() else root_path
 
     # 2. If static file exists locally, explicit_force is not requested, and no cache-buster ?t= was passed
-    if target.is_file() and not explicit_force and request.args.get("t") is None:
+    if target and target.is_file() and not explicit_force and request.args.get("t") is None:
         return send_file(str(Path(target).resolve()), mimetype="text/html")
 
     # 3. Dynamic generation (first run, explicit force_rebuild, or unpopulated cache)
@@ -375,7 +381,14 @@ def api_digest():
                 candidates_count = int(latest_run["candidates_matched"])
 
     if not profile_data:
-        profile_data = cli._load_profile(cfg, raise_on_error=False)
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
+        if profile_path.is_file():
+            try:
+                profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                profile_data = {}
+        else:
+            profile_data = get_user_profile(cfg, email, token)
 
     shortlisted_in_run = None
     if latest_run and "shortlisted" in latest_run:
@@ -521,7 +534,7 @@ def api_run():
     if not user_profile:
         if not (email and memory.is_configured):
             cfg_temp = cli._cfg(raise_on_error=False)
-            user_profile = cli._load_profile(cfg_temp, raise_on_error=False)
+            user_profile = get_user_profile(cfg_temp, email, token)
 
     # Guard: block pipeline if candidate profile is still empty/incomplete
     profile_is_stub = not user_profile or (
@@ -582,6 +595,31 @@ def api_run():
     # Option 1: If on Vercel or cloud requested and GH_TOKEN is provided, trigger GitHub Actions workflow directly
     prefer_cloud = is_vercel or bool(data.get("cloud", False))
     if prefer_cloud and gh_token and not use_mock:
+        is_production = not current_app.testing and (
+            is_vercel or os.environ.get("FLASK_ENV") == "production"
+        )
+        configured_admins = {
+            item.strip().lower()
+            for item in os.environ.get("PIPELINE_ADMIN_EMAILS", "").split(",")
+            if item.strip()
+        }
+        current_user = getattr(g, "user", {}) or {}
+        metadata = current_user.get("app_metadata") or current_user.get("user_metadata") or {}
+        is_admin = bool(metadata.get("is_admin") is True or metadata.get("role") == "admin")
+        if is_production and (not email or (email.lower() not in configured_admins and not is_admin)):
+            set_user_pipeline_state(
+                email,
+                running=False,
+                step="idle",
+                message="Cloud pipeline dispatch is restricted to authorized operators.",
+            )
+            return jsonify(
+                {
+                    "status": "error",
+                    "code": "PIPELINE_DISPATCH_FORBIDDEN",
+                    "message": "Cloud pipeline dispatch is restricted to authorized operators.",
+                }
+            ), 403
         try:
             import requests
 
@@ -792,7 +830,7 @@ def api_email_test():
     if email and memory.is_configured:
         user_profile = memory.get_user_profile(email, token=token)
     if not user_profile:
-        user_profile = cli._load_profile(cfg, raise_on_error=False)
+        user_profile = get_user_profile(cfg, email, token)
 
     target_email = ""
     if user_profile:

@@ -349,6 +349,6 @@ jobhunt clean
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API endpoints.
 - **[ENGINE.md](ENGINE.md)** — Technical details on regex prefiltering and Gemini scoring.
 - **[MULTI_USER.md](MULTI_USER.md)** — Multi-tenant batch execution and RLS data governance.
-- **[METRICS.md](../METRICS.md)** — Operational capacity, storage equilibrium, and cost economics.
+- **[METRICS.md](METRICS.md)** — Operational capacity, storage equilibrium, and cost economics.
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — Solutions for common issues and diagnostics.
 - **[README.md](../README.md)** — Project homepage.

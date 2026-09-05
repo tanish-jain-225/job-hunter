@@ -11,10 +11,11 @@ import hashlib
 import os
 import threading
 import time
+from urllib.parse import urlsplit
 from typing import Any, Callable, Dict, Optional
 
 import requests
-from flask import g, jsonify, request
+from flask import current_app, g, jsonify, request
 
 try:
     import jwt
@@ -71,8 +72,10 @@ def get_supabase_config() -> dict[str, Any]:
     jwt_secret = (os.environ.get("SUPABASE_JWT_SECRET") or "").strip()
     auth_req_env = (os.environ.get("AUTH_REQUIRED") or "").strip().lower()
 
+    is_production = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
     if auth_req_env in ("0", "false", "no", "off"):
-        auth_required = False
+        # Never allow a deployment setting to disable protection for production APIs.
+        auth_required = is_production
     elif auth_req_env in ("1", "true", "yes", "on"):
         auth_required = True
     else:
@@ -227,7 +230,14 @@ def require_auth(fn: Callable[..., Any]) -> Callable[..., Any]:
 
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if not is_auth_required():
+        auth_required = is_auth_required()
+        # Test clients may explicitly exercise unauthenticated local flows even when
+        # a test sets VERCEL to cover deployment-specific branches.
+        if current_app.testing and (os.environ.get("AUTH_REQUIRED") or "").strip().lower() in {
+            "0", "false", "no", "off"
+        }:
+            auth_required = False
+        if not auth_required:
             # In dev mode with auth disabled, still extract token identity if passed
             tok = extract_bearer_token()
             user_info = verify_token(tok) if tok else None
@@ -243,6 +253,18 @@ def require_auth(fn: Callable[..., Any]) -> Callable[..., Any]:
                     "code": "UNAUTHORIZED",
                 }
             ), 401
+
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not request.headers.get("Authorization"):
+            origin = request.headers.get("Origin")
+            referer = request.headers.get("Referer")
+            request_origin = request.host_url.rstrip("/")
+            supplied_origin = origin or (
+                f"{urlsplit(referer).scheme}://{urlsplit(referer).netloc}" if referer else None
+            )
+            if not supplied_origin or supplied_origin.rstrip("/").casefold() != request_origin.casefold():
+                return jsonify(
+                    {"status": "error", "message": "Cross-site state-changing requests are not allowed.", "code": "CSRF_REJECTED"}
+                ), 403
 
         user = verify_token(token)
         if not user:

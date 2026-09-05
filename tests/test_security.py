@@ -14,6 +14,7 @@ import pytest
 from unittest.mock import patch
 
 from jobhunt.web import create_app
+from jobhunt.web.state import sanitize_profile_for_response
 
 
 @pytest.fixture()
@@ -68,6 +69,15 @@ class TestSecurityHeaders:
         resp = client.get("/api/stats")
         cache_control = resp.headers.get("Cache-Control", "")
         assert "no-store" in cache_control, "API responses must not be cached by browsers or proxies"
+
+    def test_profile_response_sanitizer_removes_nested_credentials(self):
+        profile = {
+            "name": "Candidate",
+            "GEMINI_API_KEY": "do-not-return",
+            "profile_json": {"nested_token": "do-not-return", "latest_digest_html": "<p>ok</p>"},
+        }
+        safe = sanitize_profile_for_response(profile)
+        assert safe == {"name": "Candidate", "profile_json": {"latest_digest_html": "<p>ok</p>"}}
 
 
 # ---------------------------------------------------------------------------

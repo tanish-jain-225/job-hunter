@@ -120,6 +120,16 @@ def get_writable_path(path: str | Path) -> Path:
         return tmp_dir / target.name
 
 
+def get_user_profile_path(path: str | Path, user_email: str | None) -> Path:
+    """Return a profile cache path isolated to one authenticated user."""
+    target = Path(path)
+    if not user_email:
+        return get_writable_path(target)
+    user_hash = hashlib.md5(user_email.strip().lower().encode("utf-8")).hexdigest()[:12]
+    scoped_name = f"{target.stem}_{user_hash}{target.suffix}"
+    return get_writable_path(target.with_name(scoped_name))
+
+
 def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
     """Safely replace dst with src, retrying transient Windows file locks."""
     for attempt in range(retries):

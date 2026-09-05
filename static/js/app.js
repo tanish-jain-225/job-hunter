@@ -79,6 +79,7 @@ const appState = {
   isSavingProfile: false,
   isOffline: !navigator.onLine,
   authInitialized: false,
+  digestRefreshing: false,
   lastSyncTimestamp: Date.now()
 };
 
@@ -116,6 +117,11 @@ async function updateJobStageDirect(jobId, newStage) {
   if (!checkAuthOrRedirect('update application pipeline stage')) return;
   const j = appState.jobsMap[jobId];
   if (!j) return;
+  if (inFlightJobActions.has(jobId)) {
+    showToast('That opportunity is already being updated.', 'info', 2200);
+    return;
+  }
+  inFlightJobActions.add(jobId);
 
   const oldStage = j.application_stage;
   const oldApplied = j.applied;
@@ -151,6 +157,8 @@ async function updateJobStageDirect(jobId, newStage) {
       container.innerHTML = renderJobsListHtml(appState.jobsList);
     }
     showToast('Failed to update stage: ' + err.message, 'error');
+  } finally {
+    inFlightJobActions.delete(jobId);
   }
 }
 
@@ -388,6 +396,22 @@ function checkAuthOrRedirect(actionName = 'access this utility') {
 async function authFetch(url, options = {}) {
   const opts = { ...options };
   const headers = new Headers(opts.headers || {});
+  const method = (opts.method || 'GET').toUpperCase();
+  const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+  const requestKey = isMutation
+    ? `${method}:${url}:${typeof opts.body === 'string' ? opts.body : 'form-data'}`
+    : null;
+
+  if (requestKey && inFlightMutationKeys.has(requestKey)) {
+    return new Response(JSON.stringify({
+      status: 'busy',
+      message: 'This action is already being submitted. Please wait for it to finish.'
+    }), {
+      status: 409,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  if (requestKey) inFlightMutationKeys.add(requestKey);
 
   // Retrieve freshest token from active Supabase session if available
   if (supabaseClient) {
@@ -423,6 +447,8 @@ async function authFetch(url, options = {}) {
     return res;
   } catch (err) {
     throw err;
+  } finally {
+    if (requestKey) inFlightMutationKeys.delete(requestKey);
   }
 }
 
@@ -431,6 +457,8 @@ let heartbeatIntervalId = null;
 let searchDebounceTimer = null;
 const copyTimeoutMap = new Map();
 const activeToasts = [];
+const inFlightMutationKeys = new Set();
+const inFlightJobActions = new Set();
 
 // Cross-Tab BroadcastChannel Engine
 let syncChannel = null;
@@ -681,6 +709,7 @@ async function syncDashboard(force = false) {
       if (data.user_profile) {
         activeProfileData = data.user_profile;
         renderCandidateSummary(data.user_profile);
+        checkAndPromptOnboarding(data.user_profile);
       }
 
       // If version changed or force reload requested, update jobs & digest
@@ -937,7 +966,7 @@ function renderJobCardHtml(j, isNew = false) {
           <span class="job-title">${highlightText(j.title, searchQuery)}</span>
           <span class="ats-tag" title="Hosted on ${escapeHtml(j.ats || 'ATS')} public career API">${escapeHtml(j.ats || 'ats')}</span>
           ${isNew ? '<span class="badge-live-sync">New Discovery</span>' : ''}
-          ${followupInfo ? `<button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.job_id)}')" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
+              ${followupInfo ? `<button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal(${escapeJsLiteral(j.job_id)})" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
         </div>
         <div class="job-sub">
           <span class="job-sub-company"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>${highlightText(j.company, searchQuery)}</span>
@@ -949,7 +978,7 @@ function renderJobCardHtml(j, isNew = false) {
       <div class="job-actions">
         <div class="job-score-row">
           <span class="score-badge ${scoreClass}" title="AI Candidate Match Score (${score}/10) — 8.5+ High Fit, 7.0–8.4 Moderate, <7.0 Low">${score}</span>
-          <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
+          <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" onchange="updateJobStageDirect(${escapeJsLiteral(j.job_id)}, this.value)" onclick="event.stopPropagation()">
             <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>📝 To Apply</option>
             <option value="applied" ${stage === 'applied' ? 'selected' : ''}>🚀 Applied</option>
             <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>💬 Interviewing</option>
@@ -959,13 +988,13 @@ function renderJobCardHtml(j, isNew = false) {
         </div>
         <div class="job-action-btn-row">
           ${isApplied
-            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Application submitted — click to unmark" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
-            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" title="Mark as applied to activate follow-up tracking" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
+            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Application submitted — click to unmark" onclick="toggleAppliedDirect(${escapeJsLiteral(j.job_id)}, 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
+            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" title="Mark as applied to activate follow-up tracking" onclick="toggleAppliedDirect(${escapeJsLiteral(j.job_id)}, 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
           }
-          <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
+          <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect(${escapeJsLiteral(j.job_id)})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
         </div>
         <div class="job-action-btn-row">
-          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" onclick="openKitModal('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
+          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" onclick="openKitModal(${escapeJsLiteral(j.job_id)})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
           <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open original job posting directly on company career portal" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Link</span></a>
         </div>
       </div>
@@ -1434,31 +1463,12 @@ let parsedResumeData = null;
 
 function isCandidateProfileFilled(profile) {
   if (!profile) return false;
-  
-  // Section 1: Resume Text Context
-  const hasResume = (profile.resume_text || '').trim().length > 0;
-  
-  // Section 2: Roles, Name, Skills, Job Types, Exp Level, Location Pref
+
   const hasName = (profile.name || '').trim().length > 0;
   const hasSkills = Array.isArray(profile.skills) && profile.skills.length > 0;
   const hasTargets = Array.isArray(profile.target_keywords) && profile.target_keywords.length > 0;
-  const hasJobTypes = Array.isArray(profile.job_types) && profile.job_types.length > 0;
-  const hasExpLevel = (profile.experience_level || '').trim().length > 0;
-  
-  let hasLocation = false;
-  if (profile.location_preference) {
-    const locPrefType = typeof profile.location_preference === 'object' ? profile.location_preference.type : profile.location_preference;
-    if (locPrefType && locPrefType !== '') hasLocation = true;
-  }
-  if (Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0) {
-    hasLocation = true;
-  }
 
-  // Section 3: AI score and Briefing mode
-  const hasScore = profile.min_score_notification != null && String(profile.min_score_notification).trim() !== '';
-  const hasMailMode = (profile.mail_mode || '').trim().length > 0;
-
-  return Boolean(hasResume && hasName && hasSkills && hasTargets && hasJobTypes && hasExpLevel && hasLocation && hasScore && hasMailMode);
+  return Boolean(hasName && hasSkills && hasTargets);
 }
 
 function isProfileIncomplete(profile) {
@@ -1466,8 +1476,9 @@ function isProfileIncomplete(profile) {
 }
 
 function checkAndPromptOnboarding(profile) {
-  // Never auto-force the popup on login - user decides when to fill up profile
-  return;
+  if (isOnboardingOpen || isCandidateProfileFilled(profile)) return;
+  if (Storage.get(sessionStorage, 'onboarding_dismissed', false)) return;
+  setTimeout(() => openOnboardingModal(), 250);
 }
 
 function openOnboardingModal() {
@@ -1878,6 +1889,7 @@ async function saveOnboardingProfile(launchScan = false) {
   const jobTypes = getSelectedJobTypes('onboard-job-types');
   const expLevel = getSelectedExpLevel('onboard-exp');
   const preferredLocations = getLocationPreference('onboard-location-pref', 'onboard-specific-cities');
+  const mailMode = notifEnabled ? 'daily' : 'onetime';
 
   const notifEmailInput = document.getElementById('onboard-prof-email');
   const notificationEmail = (notifEmailInput ? notifEmailInput.value.trim() : '') || currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
@@ -1893,9 +1905,10 @@ async function saveOnboardingProfile(launchScan = false) {
     resume_text: resumeText,
     resume_filename: activeProfileData?.resume_filename || '',
     email_notifications_enabled: notifEnabled,
+    mail_mode: mailMode,
     notification_email: notificationEmail,
-    min_score_notification: activeProfileData?.min_score_notification || null,
-    onboarding_completed: Boolean(title || (skills.length > 0) || (targets.length > 0)),
+    min_score_notification: activeProfileData?.min_score_notification || 7.0,
+    onboarding_completed: Boolean(name && skills.length > 0 && targets.length > 0),
     job_types: jobTypes,
     experience_level: expLevel,
     preferred_locations: preferredLocations
@@ -2883,6 +2896,11 @@ function triggerJobSearch() {
 async function runPipeline() {
   if (!checkAuthOrRedirect('trigger autonomous pipeline scans')) return;
 
+  if (appState.pipelineRunning) {
+    showToast('A pipeline scan is already running. Results will sync automatically.', 'info', 3000);
+    return;
+  }
+
   if (!isCandidateProfileFilled(activeProfileData)) {
     openOnboardingModal();
     showToast('Please fill candidate profile radar details (Name, Target Title, Skills) first.', 'info', 4000);
@@ -3043,6 +3061,11 @@ async function runPipeline() {
 // Toggle Applied Status with Optimistic UI & Zero-Refresh Sync
 async function toggleAppliedDirect(jobId, action) {
   if (!checkAuthOrRedirect('update application status')) return;
+  if (inFlightJobActions.has(jobId)) {
+    showToast('That opportunity is already being updated.', 'info', 2200);
+    return;
+  }
+  inFlightJobActions.add(jobId);
   const btn = document.getElementById('btn-app-' + jobId);
   const isUnmark = action === 'unmark';
   const job = appState.jobsMap[jobId];
@@ -3066,7 +3089,7 @@ async function toggleAppliedDirect(jobId, action) {
       ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`
       : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`;
     btn.className = isUnmark ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-sm btn-applied';
-    btn.setAttribute('onclick', `toggleAppliedDirect('${escapeHtml(jobId)}', '${isUnmark ? 'mark' : 'unmark'}')`);
+    btn.setAttribute('onclick', `toggleAppliedDirect(${jsLiteral(jobId)}, '${isUnmark ? 'mark' : 'unmark'}')`);
   }
 
   // 2.5. Optimistic Card Removal for Active Status Filter
@@ -3128,15 +3151,22 @@ async function toggleAppliedDirect(jobId, action) {
     if (job) job.applied = isUnmark;
     fetchAndRenderJobs(false);
     showToast('Notice: ' + err.message, 'error');
+  } finally {
+    inFlightJobActions.delete(jobId);
   }
 }
 
 // Delete Job with Instant Optimistic Collapse
 async function deleteJobDirect(jobId) {
   if (!checkAuthOrRedirect('delete job from tracker')) return;
+  if (inFlightJobActions.has(jobId)) {
+    showToast('That opportunity is already being updated.', 'info', 2200);
+    return;
+  }
   if (!confirm(`Are you sure you want to delete job '${jobId}' from tracking store?`)) {
     return;
   }
+  inFlightJobActions.add(jobId);
 
   const card = document.getElementById('job-card-' + jobId);
   if (card) {
@@ -3173,6 +3203,8 @@ async function deleteJobDirect(jobId) {
     if (card) card.classList.remove('removing');
     showToast('Notice: ' + err.message, 'error');
     fetchAndRenderJobs(false);
+  } finally {
+    inFlightJobActions.delete(jobId);
   }
 }
 
@@ -3193,6 +3225,8 @@ async function refreshDigest(force = false) {
   }
 
   if (appState.activeTab !== 'digest' && !force) return;
+  if (appState.digestRefreshing) return;
+  appState.digestRefreshing = true;
 
   try {
     const res = await authFetch('/api/digest?t=' + Date.now(), { cache: 'no-store' });
@@ -3222,10 +3256,20 @@ async function refreshDigest(force = false) {
     }
   } catch (e) {
     console.warn('Digest preview notice:', e);
+  } finally {
+    appState.digestRefreshing = false;
   }
 }
 
 // HTML Escaper
+function jsLiteral(value) {
+  return JSON.stringify(String(value ?? ''));
+}
+
+function escapeJsLiteral(value) {
+  return escapeHtml(jsLiteral(value));
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -4194,7 +4238,7 @@ async function fetchAndRenderCustomCompanies() {
         <div class="custom-company-chip" style="display:inline-flex; align-items:center; gap:6px; background:var(--card-bg, #fff); border:1px solid var(--border, #e2e8f0); padding:4px 10px; border-radius:20px; font-size:12px;">
           <span style="font-weight:600; color:var(--text);">${escapeHtml(c.name || c.slug)}</span>
           <span style="font-size:10px; text-transform:uppercase; color:var(--muted); background:var(--bg, #f8fafc); padding:1px 5px; border-radius:4px;">${escapeHtml(c.ats)}</span>
-          <button type="button" onclick="deleteCustomCompany('${escapeHtml(c.ats)}', '${escapeHtml(c.slug)}')" style="background:none; border:none; cursor:pointer; color:var(--danger, #ef4444); font-size:13px; margin-left:2px;" title="Remove company board">×</button>
+          <button type="button" onclick="deleteCustomCompany(${escapeJsLiteral(c.ats)}, ${escapeJsLiteral(c.slug)})" style="background:none; border:none; cursor:pointer; color:var(--danger, #ef4444); font-size:13px; margin-left:2px;" title="Remove company board">×</button>
         </div>
       `).join('');
     } else {

@@ -205,24 +205,12 @@ Delete a job from the tracking store.
 **Body:** `{"job_id": "..."}`  
 **Response:** `{"status": "success", "job_id": "...", "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
-### GET /api/jobs/kit/<job_id>
-Inspect tailored application kit assets (fit summary, cover letter, cold message, interview prep) for a specific job.
+### POST /api/jobs/followup
+Generate tailored follow-up outreach templates for an applied opportunity.
 
 **Auth:** Required  
-**Response:** `{"status": "success", "job_id": "...", "draft": {...}}`
-
-### POST /api/jobs/draft/<job_id>
-Update or regenerate tailored application kit draft content for a specific job.
-
-**Auth:** Required  
-**Body:** `{"draft": {"fit_summary": "...", "cover_note": "...", "outreach": "..."}}`  
-**Response:** `{"status": "success", "job_id": "...", "draft": {...}}`
-
-### POST /api/jobs/clear
-Clear all tracked opportunities from the candidate's store.
-
-**Auth:** Required  
-**Response:** `{"status": "success", "message": "All jobs cleared."}`
+**Body:** `{"title": "Software Engineer", "company": "Acme Corp", "applied_on": "2026-09-01", "stage": "applied"}`
+**Response:** `{"status": "success", "followup": {...}}`
 
 ### GET /api/export/csv
 Download tracked jobs as a CSV file attachment.
@@ -282,12 +270,14 @@ Generates a tailored follow-up outreach note (email and LinkedIn DM) for an appl
 Returns the authenticated user's candidate profile.
 
 **Auth:** Required
+**Data isolation:** The response is resolved for the authenticated user from Supabase, with only that user's isolated local cache as a fallback.
 
 ### POST /api/profile
 Update candidate profile and search preferences.
 
 **Auth:** Required  
 **Body:** Partial or full profile JSON (merged with existing profile in Supabase)
+**Data isolation:** The submitted profile is stored against the authenticated user's identity.
 
 ### POST /api/profile/reset
 Flush out the candidate profile, resume text, and notification preferences.
@@ -295,7 +285,7 @@ Flush out the candidate profile, resume text, and notification preferences.
 **Auth:** Required
 
 ### POST /api/resume/upload
-Upload and extract structured candidate profile data from a resume document (PDF or plain text).
+Upload and extract structured candidate profile data from a resume document (PDF or plain text). In production, uploaded files named `.pdf` must contain a valid `%PDF-` file signature; request bodies are limited to 16 MB.
 
 **Auth:** Required  
 **Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "...", "filename": "resume.pdf"}`)  

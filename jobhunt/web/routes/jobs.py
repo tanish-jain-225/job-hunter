@@ -6,12 +6,13 @@ import json
 import logging
 from typing import Any
 from pathlib import Path
-from flask import Blueprint, jsonify, request, send_file
+from uuid import uuid4
+from flask import Blueprint, after_this_request, jsonify, request, send_file
 
 from ... import cli, llm
 from ...auth import require_auth
-from ...store import Store, get_writable_path
-from ..state import ROOT, get_current_user_context, get_store_version
+from ...store import Store, get_user_profile_path, get_writable_path  # noqa: F401
+from ..state import ROOT, get_current_user_context, get_store_version, get_user_profile
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ def api_get_custom_companies():
         custom_comps = prof.get("custom_companies") or pjson.get("custom_companies") or []
     else:
         cfg = cli._cfg(raise_on_error=False)
-        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
         prof = {}
         if profile_path.is_file():
             try:
@@ -119,7 +120,7 @@ def api_get_custom_companies():
                     prof = json.load(f)
             except Exception:
                 prof = {}
-        if not prof:
+        if not prof and not email:
             prof = cli._load_profile(cfg, raise_on_error=False) or {}
         custom_comps = prof.get("custom_companies") or []
 
@@ -184,7 +185,7 @@ def api_add_custom_company():
         memory.upsert_user_profile(email, prof, token=token)
     else:
         cfg = cli._cfg(raise_on_error=False)
-        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
         prof = {}
         if profile_path.is_file():
             try:
@@ -192,7 +193,7 @@ def api_add_custom_company():
                     prof = json.load(f)
             except Exception:
                 prof = {}
-        if not prof:
+        if not prof and not email:
             prof = cli._load_profile(cfg, raise_on_error=False) or {}
         existing = list(prof.get("custom_companies") or [])
         existing = [c for c in existing if not (c.get("ats") == ats and c.get("slug") == slug)]
@@ -240,7 +241,7 @@ def api_delete_custom_company():
         memory.upsert_user_profile(email, prof, token=token)
     else:
         cfg = cli._cfg(raise_on_error=False)
-        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
         prof = {}
         if profile_path.is_file():
             try:
@@ -248,7 +249,7 @@ def api_delete_custom_company():
                     prof = json.load(f)
             except Exception:
                 prof = {}
-        if not prof:
+        if not prof and not email:
             prof = cli._load_profile(cfg, raise_on_error=False) or {}
         existing = list(prof.get("custom_companies") or [])
         filtered = [c for c in existing if not (str(c.get("ats")).lower() == ats and str(c.get("slug")).lower() == slug)]
@@ -317,7 +318,19 @@ def api_export_csv():
     seen_file = cfg.get("seen_file", "state/seen.json")
     tracker_csv = cfg.get("tracker_csv", "out/tracker.csv")
     st = Store(seen_file, user_email=email, token=token)
-    csv_path = Path(st.export_csv(tracker_csv)).resolve()
+    # Use a request-unique artifact so concurrent serverless requests cannot overwrite one another.
+    configured_path = Path(tracker_csv)
+    export_path = configured_path.with_name(f".tracker-{uuid4().hex}.csv")
+    csv_path = Path(st.export_csv(export_path)).resolve()
+
+    @after_this_request
+    def remove_export(response):
+        try:
+            csv_path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("Unable to remove temporary CSV export %s", csv_path)
+        return response
+
     return send_file(str(csv_path), mimetype="text/csv", as_attachment=True, download_name="tracker.csv")
 
 
@@ -531,8 +544,11 @@ def api_jobs_notes():
     """Update private candidate notes for a tracked job."""
     email, token = get_current_user_context()
     data = request.get_json(silent=True) or {}
-    job_id = data.get("job_id", "").strip()
+    job_id = data.get("job_id", "")
     notes = data.get("notes", "")
+    if not isinstance(job_id, str) or not isinstance(notes, str):
+        return jsonify({"status": "error", "message": "Job ID and notes must be strings."}), 400
+    job_id = job_id.strip()
 
     if not job_id:
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
@@ -564,19 +580,37 @@ def api_add():
     """Manually add a custom job entry to store with optional on-demand AI scoring."""
     email, token = get_current_user_context()
     data = request.get_json(silent=True) or {}
-    title = data.get("title", "").strip()
-    company = data.get("company", "").strip()
+    title = data.get("title", "")
+    company = data.get("company", "")
+    if not isinstance(title, str) or not isinstance(company, str):
+        return jsonify({"status": "error", "message": "Title and Company must be strings."}), 400
+    title = title.strip()
+    company = company.strip()
 
     if not title or not company:
         return jsonify({"status": "error", "message": "Title and Company are required."}), 400
 
-    location = data.get("location", "Remote/Unspecified").strip()
-    url = data.get("url", "#").strip()
-    ats = data.get("ats", "custom").strip()
-    description = data.get("description", "").strip()
-    reason = data.get("reason", "Custom opportunity added via Dashboard").strip()
-    applied = bool(data.get("applied", False))
+    text_fields = {"location": "Remote/Unspecified", "url": "#", "ats": "custom", "description": "", "reason": "Custom opportunity added via Dashboard"}
+    values = {key: data.get(key, default) for key, default in text_fields.items()}
+    if any(not isinstance(value, str) for value in values.values()):
+        return jsonify({"status": "error", "message": "Location, URL, ATS, description, and reason must be strings."}), 400
+    location, url, ats, description, reason = (values[key].strip() for key in text_fields)
+    raw_applied = data.get("applied", False)
+    if isinstance(raw_applied, bool):
+        applied = raw_applied
+    elif isinstance(raw_applied, str) and raw_applied.strip().lower() in {"true", "false"}:
+        applied = raw_applied.strip().lower() == "true"
+    else:
+        return jsonify({"status": "error", "message": "Applied must be a boolean."}), 400
     stage = data.get("stage", "applied" if applied else "to_apply")
+    if not isinstance(stage, str) or stage.strip().lower() not in VALID_APPLICATION_STAGES:
+        allowed = ", ".join(sorted(VALID_APPLICATION_STAGES))
+        return jsonify({"status": "error", "message": f"Invalid stage. Allowed: {allowed}"}), 400
+    stage = stage.strip().lower()
+    expected_applied = stage in {"applied", "interviewing", "offer", "rejected"}
+    if "applied" in data and applied != expected_applied:
+        return jsonify({"status": "error", "message": "Applied must match the selected stage."}), 400
+    applied = expected_applied
 
     has_explicit_score = "score" in data and data["score"] is not None and str(data["score"]).strip() != ""
     try:
@@ -590,7 +624,7 @@ def api_add():
     # On-demand AI scoring if description provided and score not explicitly set
     if description and (data.get("run_ai") or not has_explicit_score):
         cfg_temp = cli._cfg(raise_on_error=False)
-        user_prof = cli._load_profile(cfg_temp, raise_on_error=False) or {}
+        user_prof = get_user_profile(cfg_temp, email, token)
         from ...fetch import Job
 
         temp_job = Job(
@@ -679,7 +713,7 @@ def api_job_followup():
         candidate_name = prof.get("name") or ""
     if not candidate_name:
         cfg = cli._cfg(raise_on_error=False)
-        prof = cli._load_profile(cfg, raise_on_error=False) or {}
+        prof = get_user_profile(cfg, email, token)
         candidate_name = prof.get("name") or ""
 
     followup_data = llm.generate_followup_note(

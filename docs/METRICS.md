@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
+  <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
 # 📊 Job Hunter — Operational Architecture & Business Metrics
@@ -81,9 +81,9 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **Automated Test Count**: **395 passed tests** across 28 test suites in `tests/`.
+* **Automated Test Count**: **397 passed tests** across 28 test suites in `tests/`.
 * **Code Coverage**: **$\ge 91\%$** line coverage across all core modules (`jobhunt/`).
-* **Runtime Verification**: Full test suite completes in under **0.75 seconds** locally via mock fixtures.
+* **Runtime Verification**: Full test suite completes in roughly **2 minutes 20 seconds** locally via mock fixtures.
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
 
 ---

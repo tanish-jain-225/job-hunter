@@ -3,7 +3,7 @@
 :: Runs python auto.py every day at 5:00 AM
 
 set TASK_NAME=JobHunterDailyDigest
-set SCRIPT_DIR=%~dp0
+set SCRIPT_DIR=%~dp0..
 set SCRIPT_PATH=%SCRIPT_DIR%auto.py
 
 echo =========================================================

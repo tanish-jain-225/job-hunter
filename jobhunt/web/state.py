@@ -3,19 +3,36 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from flask import g
 
 from ..auth import extract_bearer_token
 from ..store import Store
+from ..memory import SupabaseMemory
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_profile_for_response(profile: Any) -> Any:
+    """Remove credentials and other secrets before profile data leaves the server."""
+    if isinstance(profile, dict):
+        safe = {}
+        for key, value in profile.items():
+            normalized = str(key).lower().replace("-", "_")
+            if any(marker in normalized for marker in ("api_key", "token", "secret", "password")):
+                continue
+            safe[key] = sanitize_profile_for_response(value)
+        return safe
+    if isinstance(profile, list):
+        return [sanitize_profile_for_response(value) for value in profile]
+    return profile
 
 
 def get_project_root() -> Path:
@@ -55,6 +72,34 @@ def get_current_user_context() -> Tuple[Optional[str], Optional[str]]:
     email = user.get("email")
     token = extract_bearer_token()
     return email, token
+
+
+def get_user_profile(cfg: dict, email: Optional[str], token: Optional[str]) -> dict:
+    """Load one user's profile from Supabase, then their isolated local cache."""
+    memory = SupabaseMemory(token=token)
+    if email and email != "developer@local":
+        profile = memory.get_user_profile(email, token=token) or {}
+        if profile:
+            return profile
+
+    if email and email != "developer@local":
+        from ..store import get_user_profile_path
+
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
+        if profile_path.is_file():
+            try:
+                profile = json.loads(profile_path.read_text(encoding="utf-8"))
+                if isinstance(profile, dict):
+                    return profile
+            except (OSError, ValueError):
+                pass
+
+        # An authenticated user must never receive the generic local profile.
+        return {}
+
+    from .. import cli
+
+    return cli._load_profile(cfg, raise_on_error=False) or {}
 
 
 _USER_PIPELINE_STATES: dict[str, dict] = {}

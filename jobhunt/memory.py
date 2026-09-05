@@ -337,8 +337,11 @@ class SupabaseMemory:
         if not isinstance(pjson, dict):
             pjson = {}
 
+        sensitive_profile_keys = {
+            key for key in pjson if any(marker in key.lower() for marker in ("api_key", "token", "secret", "password"))
+        }
         pjson_merged = {
-            **pjson,
+            **{key: value for key, value in pjson.items() if key not in sensitive_profile_keys},
             "resume_text": profile.get("resume_text") if profile.get("resume_text") is not None else "",
             "resume_filename": profile.get("resume_filename") if profile.get("resume_filename") is not None else "",
             "email_notifications_enabled": bool(profile.get("email_notifications_enabled", False)),
@@ -357,7 +360,6 @@ class SupabaseMemory:
             "min_salary_lpa": float(profile.get("min_salary_lpa") or 0),
             "preferred_sectors": profile.get("preferred_sectors") or [],
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
-            "GEMINI_API_KEY": str(profile.get("GEMINI_API_KEY") or pjson.get("GEMINI_API_KEY") or "").strip(),
         }
 
         for dk in ("latest_digest_html", "latest_digest_subject", "latest_digest_at", "latest_digest_shortlisted", "latest_digest_job_ids", "custom_companies"):

@@ -38,7 +38,7 @@ This guide covers solutions to common errors, configurations, and questions enco
   * `actions/upload-artifact@v4`
 
 ### Warning: `PROFILE_JSON secret not set — using profile.example.json fallback`
-* **Why it happens:** The workflow cannot read your local `profile.json` because it is git-ignored. It fallback to `profile.example.json`.
+* **Why it happens:** The GitHub Actions CLI workflow cannot read your local `profile.json` because it is git-ignored, so it falls back to `profile.example.json`. This applies to the CLI workflow only; authenticated web users use their own Supabase profile and isolated cache.
 * **The Solution:** Add your profile as a GitHub Action Secret:
   1. Copy the JSON contents of your local `profile.json`.
   2. Go to your GitHub repository $\rightarrow$ **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**.

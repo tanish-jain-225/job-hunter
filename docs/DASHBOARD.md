@@ -74,7 +74,8 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 8. 🔒 Supabase Authentication & Session Protection
 * Enterprise-grade authentication via **Supabase Auth** protects confidential career intelligence, target match scores, application drafts, and pipeline trigger controls.
-* When `AUTH_REQUIRED=true`, all private REST API endpoints enforce `Authorization: Bearer <token>` token validation with high-throughput in-memory TTL caching.
+* All production deployments require authentication for private REST API endpoints, regardless of an accidental `AUTH_REQUIRED=false` setting. Local single-user development may explicitly disable authentication.
+* Authenticated profile data is loaded per user from Supabase, with an isolated user cache used only as a local resilience fallback.
 
 ### 9. ➕ Manual Opportunity Tracking ("+ Add Opportunity")
 * Click **"+ Add Opportunity"** directly on the Tracker toolbar to track external roles found via LinkedIn, company career portals, or personal referrals.

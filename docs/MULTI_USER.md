@@ -50,10 +50,11 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 2. **Isolated Candidate Evaluation**:
    - For each active profile stored in Supabase PostgreSQL:
+  - The authenticated candidate profile is the source of truth for preferences, resume context, scoring, drafting, notifications, and custom boards; a different user's local profile is never used.
      - Deterministic title/location pre-filtering narrows down candidate jobs.
      - Deduplication checks the user's private `user_tracked_jobs` table to prevent re-evaluating previously scored jobs.
      - Surviving new jobs are screened and application kits drafted.
-     - **Dynamic API Key Isolation**: If configured in their settings, the pipeline executes using the candidate's private `GEMINI_API_KEY`. This completely isolates rate limits per candidate, protecting the system from shared quota bottlenecks and shifting all API costs to $0 for the platform owner. If custom keys are omitted, the pipeline falls back to the system's global keys.
+   - **Shared Provider Configuration**: Pipeline provider credentials are loaded from deployment environment variables. Candidate profiles never persist or return provider API keys, so tenant profile data remains safe to expose through the authenticated application API.
      - Results are synchronized to their private Supabase partition.
      - A personalized HTML briefing is dispatched if email notifications are enabled.
 

@@ -7,13 +7,13 @@ import json
 import logging
 import re
 from typing import Any
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from ... import cli, llm
 from ...auth import require_auth
 from ...memory import SupabaseMemory
-from ...store import get_writable_path
-from ..state import get_current_user_context
+from ...store import get_user_profile_path, get_writable_path  # noqa: F401
+from ..state import get_current_user_context, get_user_profile, sanitize_profile_for_response
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +92,12 @@ def api_profile():
             profile = memory.get_user_profile(email, token=token)
         # If Supabase is not configured fall back to the local profile file.
         if not profile:
-            raw = cli._load_profile(cfg, raise_on_error=False) or {}
+            raw = get_user_profile(cfg, email, token)
             raw.setdefault("onboarding_completed", True)
             profile = raw
 
         return jsonify(
-            {"status": "success", "email": email, "profile": profile, "memory_connected": memory.is_configured}
+            {"status": "success", "email": email, "profile": sanitize_profile_for_response(profile), "memory_connected": memory.is_configured}
         )
 
     elif request.method == "POST":
@@ -107,6 +107,9 @@ def api_profile():
 
         skills_val = data.get("skills")
         target_val = data.get("target_keywords")
+        for field in ("name", "title", "resume_text"):
+            if field in data and not isinstance(data[field], str):
+                return jsonify({"status": "error", "message": f"{field} must be a string."}), 400
         # Mark onboarding complete only if candidate criteria exist
         data["onboarding_completed"] = bool(
             (data.get("name") or "").strip()
@@ -130,7 +133,7 @@ def api_profile():
             memory.upsert_user_profile(email, merged_profile, token=token)
 
         try:
-            profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+            profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
             profile_path.parent.mkdir(parents=True, exist_ok=True)
             with open(profile_path, "w", encoding="utf-8") as f:
                 json.dump(merged_profile, f, indent=2)
@@ -141,7 +144,7 @@ def api_profile():
             {
                 "status": "success",
                 "message": "Candidate profile and preferences successfully stored in Supabase PostgreSQL.",
-                "profile": merged_profile,
+                "profile": sanitize_profile_for_response(merged_profile),
                 "email": email,
             }
         )
@@ -185,7 +188,7 @@ def api_profile_reset():
         memory.upsert_user_profile(email, blank_profile, token=token)
 
     try:
-        profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
         profile_path.parent.mkdir(parents=True, exist_ok=True)
         with open(profile_path, "w", encoding="utf-8") as f:
             json.dump(blank_profile, f, indent=2)
@@ -220,16 +223,23 @@ def api_resume_upload():
         filename = file.filename or "resume"
         content = file.read()
         if filename.lower().endswith(".pdf"):
+            if not content.startswith(b"%PDF-") and not current_app.testing:
+                return jsonify({"status": "error", "message": "The uploaded file is not a valid PDF."}), 400
             is_pdf = True
             resume_bytes = content
             resume_text = llm.extract_text_from_pdf(content)
-        else:
+        elif filename.lower().endswith(".txt"):
             resume_text = content.decode("utf-8", errors="ignore")
+        else:
+            return jsonify({"status": "error", "message": "Only PDF and TXT resume files are supported."}), 400
     else:
         # Check raw JSON payload
         data = request.get_json(silent=True) or {}
-        resume_text = data.get("resume_text", "").strip()
+        resume_text = data.get("resume_text", "")
         filename = data.get("filename", "pasted_resume.txt")
+        if not isinstance(resume_text, str) or not isinstance(filename, str):
+            return jsonify({"status": "error", "message": "resume_text and filename must be strings."}), 400
+        resume_text = resume_text.strip()
 
     if not resume_text and not resume_bytes:
         return jsonify({"status": "error", "message": "No resume file or text content provided."}), 400
@@ -350,8 +360,8 @@ def api_resume_upload():
             "status": "success",
             "message": "Resume text successfully extracted. You can review and alter your text context before saving.",
             "resume_text": resume_text,
-            "profile": full_profile,
-            "parsed_profile": parsed_profile,
+            "profile": sanitize_profile_for_response(full_profile),
+            "parsed_profile": sanitize_profile_for_response(parsed_profile),
         }
     )
 
@@ -369,7 +379,7 @@ def api_profile_preferences():
         if email and memory.is_configured:
             profile = memory.get_user_profile(email, token=token)
         if not profile:
-            profile = cli._load_profile(cfg, raise_on_error=False) or {}
+            profile = get_user_profile(cfg, email, token)
 
         return jsonify(
             {
@@ -399,7 +409,7 @@ def api_profile_preferences():
             memory.upsert_user_profile(email, merged, token=token)
 
         try:
-            profile_path = get_writable_path(cfg.get("profile_file", "profile.json"))
+            profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
             profile_path.parent.mkdir(parents=True, exist_ok=True)
             with open(profile_path, "w", encoding="utf-8") as f:
                 import json

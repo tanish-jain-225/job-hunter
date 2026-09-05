@@ -24,9 +24,7 @@ from .state import (
 
 logger = logging.getLogger(__name__)
 
-# Detect production environment once at module load
 _IS_PROD = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
-
 
 def handle_exception(e: Exception):
     """Global exception handler converting unhandled exceptions into structured JSON responses.
@@ -41,7 +39,8 @@ def handle_exception(e: Exception):
 
     logger.error("Unhandled Exception in Flask app:\n%s", traceback.format_exc())
     # In production: generic message. In development: include the error for easier debugging.
-    client_msg = "An internal error occurred. Please try again later." if _IS_PROD else f"Internal Error: {str(e)}"
+    is_prod = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
+    client_msg = "An internal error occurred. Please try again later." if is_prod else f"Internal Error: {str(e)}"
     return jsonify({"status": "error", "message": client_msg}), 500
 
 

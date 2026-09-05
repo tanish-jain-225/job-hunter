@@ -75,9 +75,7 @@ flowchart TD
 
 ```text
 job-hunter/
-├── assets/                      # Brand assets, vector diagrams & banners
-│   ├── logo.png                 # Official brand logo
-│   ├── favicon.ico              # Multi-resolution binary favicon
+├── assets/                      # Documentation-only vector diagrams & banners
 │   ├── banner.svg               # Vector header banner
 │   └── pipeline-flow.svg        # 5-phase automated architecture infographic
 ├── api/
@@ -86,6 +84,8 @@ job-hunter/
 ├── docs/                        # Complete technical documentation suite
 │   ├── API.md                   # REST API contracts, routes, and JSON schemas
 │   ├── ARCHITECTURE.md          # System architecture and developer handbook (this file)
+│   ├── CHANGELOG.md             # Release history and notable changes
+│   ├── CODE_OF_CONDUCT.md       # Community participation standards
 │   ├── CONTRIBUTING.md          # Contribution rules, coding standards, and PR workflows
 │   ├── DASHBOARD.md             # Web UI guide, state sync, and view isolation
 │   ├── DEPLOYMENT.md            # Cloud deployment guide (Vercel, Supabase, GitHub Actions)
@@ -93,6 +93,8 @@ job-hunter/
 │   ├── GUIDE.md                 # User workflows, daily automation, and CLI usage
 │   ├── JOB_HUNT.md              # Search strategies and ATS ecosystem breakdown
 │   ├── MULTI_USER.md            # Multi-tenant batch execution architecture
+│   ├── METRICS.md               # Capacity, cost, and operational metrics
+│   ├── SECURITY.md              # Vulnerability reporting and security controls
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package
@@ -126,7 +128,7 @@ job-hunter/
 │   │   └── style.css            # 12-section pure Flexbox executive light mode design system
 │   ├── js/
 │   │   └── app.js               # SPA client controller, Supabase sync, job board pagination
-│   └── favicon.ico              # Multi-resolution binary favicon
+│   └── assets/                  # Runtime logo and favicon assets
 ├── supabase/                    # Database Architecture
 │   ├── schema.sql               # PostgreSQL schema: tables, indexes, and Row-Level Security policies
 │   └── teardown.sql             # Idempotent database purge and reset script
@@ -141,7 +143,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Onboarding wizard modal with role presets and Resume Studio
 │       └── profile_settings.html # Profile editor, search filters, Resume Studio, and alert settings
-├── tests/                       # Automated Test Suite (395 passing tests)
+├── tests/                       # Automated Test Suite (397 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
@@ -152,14 +154,16 @@ job-hunter/
 │   ├── test_providers.py        # LLM provider rotation, throttling, and fallback cascades
 │   └── ...                      # Comprehensive coverage across fetch, memory, store, etc.
 ├── app.py                       # Local Flask development server bootstrap
-├── auto.py                      # Master automated pipeline script (search -> screen -> draft -> digest)
+├── auto.py                      # Stable root automation entry point
 ├── companies.yaml               # Curated database of target companies and ATS platform slugs
 ├── config.example.yaml          # Template configuration file with full parameter documentation
-├── favicon.ico                  # Root multi-resolution browser favicon
-├── logo.png                     # Official brand logo asset
+├── scripts/                     # Cross-platform launchers and scheduled-task helpers
+│   ├── run.bat / run.sh         # 1-click pipeline launchers
+│   ├── apply.bat / apply.sh     # Application status helpers
+│   └── setup_daily_task.bat     # Windows scheduled-task setup
 ├── pyproject.toml               # PEP 517/621 package specification, ruff, mypy, and pytest configs
 ├── requirements.txt             # Core pinned dependencies
-└── setup_daily_task.bat         # Windows Task Scheduler automated morning run setup
+└── vercel.json                  # Vercel serverless routing configuration
 ```
 
 ---
@@ -248,7 +252,7 @@ python app.py
 
 ### 4. Run Test Suite & Quality Checks
 ```bash
-# Run all 395 automated tests
+# Run all 397 automated tests
 pytest -q
 
 # Run static type checker

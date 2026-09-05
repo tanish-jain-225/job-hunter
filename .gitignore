@@ -37,6 +37,7 @@ tracker.csv
 
 # User profiles and resume files
 profile.json
+profile_*.json
 !profile.example.json
 resume.pdf
 
