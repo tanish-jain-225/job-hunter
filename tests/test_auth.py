@@ -8,6 +8,7 @@ import pytest
 import jwt
 from flask import Flask, g, jsonify
 
+from jobhunt import auth
 from jobhunt.auth import (
     clear_token_cache,
     extract_bearer_token,
@@ -42,6 +43,15 @@ def test_get_supabase_config_defaults():
         assert cfg["supabase_anon_key"] == ""
         assert cfg["auth_required"] is False
         assert is_auth_required() is False
+
+
+def test_load_env_failure_is_safe(monkeypatch):
+    monkeypatch.setattr(auth, "_ENV_LOADED", False)
+    monkeypatch.setattr("jobhunt.cli._load_env", mock.Mock(side_effect=RuntimeError("environment unavailable")))
+
+    auth._load_env_if_needed()
+
+    assert auth._ENV_LOADED is False
 
 
 def test_get_supabase_config_configured():

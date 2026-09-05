@@ -46,7 +46,7 @@ jobs:
 
       - name: Security Coverage Gate — auth + web minimum 75%
         run: |
-          coverage run --source=jobhunt/auth.py,jobhunt/web/__init__.py -m pytest \
+          coverage run --source=jobhunt.auth,jobhunt.web -m pytest \
             tests/test_auth.py tests/test_security.py tests/test_web_factory.py -q --no-header
           coverage report --include="jobhunt/auth.py,jobhunt/web/__init__.py" --fail-under=75
 

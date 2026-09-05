@@ -19,7 +19,7 @@ identity guarantees, not extra steps required for the current deployment.
   `Referer` metadata.
 - Resume upload behavior is now consistent: PDF and TXT are supported; DOCX is
   not advertised or silently decoded as text.
-- Regression status: 400 tests pass on the current suite; affected release
+- Regression status: 401 tests pass on the current suite; affected release
   tests, Ruff, coverage, and workflow YAML validation pass.
 
 ## Current release status

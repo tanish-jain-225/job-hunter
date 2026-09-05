@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Maintenance
-- Updated the release baseline to 400 automated tests with a passing 90% aggregate coverage gate.
+- Updated the release baseline to 401 automated tests with a passing 90% aggregate coverage gate.
 - Updated GitHub Actions checkout and Python setup actions to their Node 24-compatible major versions.
 
 ### Security

@@ -129,7 +129,11 @@ def test_auth_dev_mode_unsigned_jwt_fallback(monkeypatch):
     monkeypatch.delenv("SUPABASE_JWT_SECRET", raising=False)
     monkeypatch.setenv("AUTH_REQUIRED", "false")
 
-    token = auth.jwt.encode({"sub": "dev-id", "email": "dev@example.com"}, "unused", algorithm="HS256")
+    token = auth.jwt.encode(
+        {"sub": "dev-id", "email": "dev@example.com"},
+        "unused-development-signing-key-32-bytes",
+        algorithm="HS256",
+    )
     user = auth.verify_token(token)
     assert user == {"id": "dev-id", "email": "dev@example.com", "role": "authenticated"}
 

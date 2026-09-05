@@ -445,7 +445,7 @@ Run these diagnostic commands to verify each subsystem of the product:
 | **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | ✅ Verified |
 | **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | ✅ Verified |
 | **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | ✅ Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **400 passed tests** with 100% success rate | ✅ Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **401 passed tests** with 100% success rate | ✅ Verified |
 | **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across 23 source files | ✅ Verified |
 | **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | ✅ Verified |
 

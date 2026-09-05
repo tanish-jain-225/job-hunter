@@ -143,7 +143,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Onboarding wizard modal with role presets and Resume Studio
 │       └── profile_settings.html # Profile editor, search filters, Resume Studio, and alert settings
-├── tests/                       # Automated Test Suite (400 passing tests)
+├── tests/                       # Automated Test Suite (401 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
@@ -252,7 +252,7 @@ python app.py
 
 ### 4. Run Test Suite & Quality Checks
 ```bash
-# Run all 400 automated tests
+# Run all 401 automated tests
 pytest -q
 
 # Run static type checker
