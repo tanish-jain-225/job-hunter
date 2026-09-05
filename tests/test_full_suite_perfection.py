@@ -78,6 +78,19 @@ def test_auth_extract_bearer_token_variations():
     with app.test_request_context("/api/jobs", headers={"Cookie": "supabase_token=cookie_token_abc"}):
         assert auth.extract_bearer_token() == "cookie_token_abc"
 
+    with app.test_request_context(
+        "/api/jobs", headers={"Cookie": 'sb-project-auth-token={"access_token":"json_cookie_token"}'}
+    ):
+        assert auth.extract_bearer_token() == "json_cookie_token"
+
+    with app.test_request_context(
+        "/api/jobs", headers={"Cookie": "sb-project-auth-token=%5B%22array_cookie_token%22%5D"}
+    ):
+        assert auth.extract_bearer_token() == "array_cookie_token"
+
+    with app.test_request_context("/api/jobs", headers={"Cookie": "sb-project-auth-token=not-json"}):
+        assert auth.extract_bearer_token() is None
+
 
 def test_auth_is_auth_required_env_switches(monkeypatch):
     monkeypatch.setenv("AUTH_REQUIRED", "0")
@@ -108,6 +121,17 @@ def test_auth_require_auth_decorator_blocked(client, monkeypatch):
         res = client.get("/api/config")
         assert res.status_code == 401
         assert "Authentication required" in res.get_json()["message"]
+
+
+def test_auth_dev_mode_unsigned_jwt_fallback(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_JWT_SECRET", raising=False)
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+
+    token = auth.jwt.encode({"sub": "dev-id", "email": "dev@example.com"}, "unused", algorithm="HS256")
+    user = auth.verify_token(token)
+    assert user == {"id": "dev-id", "email": "dev@example.com", "role": "authenticated"}
 
 
 # ==============================================================================

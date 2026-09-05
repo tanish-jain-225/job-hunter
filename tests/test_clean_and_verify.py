@@ -73,6 +73,22 @@ def test_verify_check_single_board():
     assert status2 == "Unknown ATS"
 
 
+def test_verify_check_single_board_failure_paths():
+    c_invalid = {"ats": "greenhouse", "slug": "stripe", "name": "Stripe"}
+
+    non_200_session = MagicMock()
+    non_200_session.get.return_value.status_code = 503
+    _, ok, status = check_single_board(c_invalid, session=non_200_session)
+    assert ok is False
+    assert status == 503
+
+    error_session = MagicMock()
+    error_session.get.side_effect = RuntimeError("connection failure while checking board")
+    _, ok, status = check_single_board(c_invalid, session=error_session)
+    assert ok is False
+    assert status == "connection failure while checking board"
+
+
 def test_audit_company_boards(tmp_path: Path):
     comp_file = tmp_path / "companies.yaml"
     comp_file.write_text(
@@ -93,6 +109,23 @@ companies:
         assert res["total"] == 2
         assert res["valid_count"] == 1
         assert res["invalid_count"] == 1
+
+
+def test_audit_company_boards_empty_and_invalid_files(tmp_path: Path):
+    missing = tmp_path / "missing.yaml"
+    assert audit_company_boards(missing)["total"] == 0
+
+    malformed = tmp_path / "malformed.yaml"
+    malformed.write_text("companies: [", encoding="utf-8")
+    assert audit_company_boards(malformed)["total"] == 0
+
+    non_mapping = tmp_path / "list.yaml"
+    non_mapping.write_text("- one\n- two\n", encoding="utf-8")
+    list_result = audit_company_boards(non_mapping)
+    assert list_result["total"] == 2
+    assert list_result["invalid_count"] == 0
+
+    assert audit_company_boards([{"ats": "greenhouse"}, "not a company"])["total"] == 1
 
 
 def test_cli_clean_and_verify_commands(capsys):

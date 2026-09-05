@@ -32,9 +32,9 @@ This guide covers solutions to common errors, configurations, and questions enco
 ### Warning: `Node.js 20 is deprecated... being forced to run on Node.js 24`
 * **Why it happens:** Legacy versions of standard workflows target Node.js 20, which is deprecated.
 * **The Solution:** Ensure you are using the latest standard action versions in your workflow files (`.github/workflows/daily.yml` and `ci.yml`):
-  * `actions/checkout@v4`
+  * `actions/checkout@v5`
   * `actions/cache@v4`
-  * `actions/setup-python@v5`
+  * `actions/setup-python@v6`
   * `actions/upload-artifact@v4`
 
 ### Warning: `PROFILE_JSON secret not set — using profile.example.json fallback`

@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-397%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-400%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
@@ -196,19 +196,23 @@ companies:
 
 ### 2. Tune Deterministic Filters (`config.yaml`)
 
-[`config.yaml`](config.yaml) manages the free regex-based filtering step executed **before** sending candidate jobs to LLMs. The default configuration is completely **open** (allowing all job titles, all Indian locations, remote, and global), with zero opinionated restrictions. Users customize their preferences dynamically via the Web Dashboard Setup Wizard or profile settings.
+[`config.yaml`](config.yaml) manages the free regex-based filtering step executed **before** sending candidate jobs to LLMs. The checked-in default uses broad software and engineering title patterns, excludes obvious non-target and senior roles, and accepts all locations plus remote work. Users can customize these preferences through the Web Dashboard Setup Wizard or profile settings.
 
 ```yaml
 filters:
-  # Leave empty to accept ALL titles (users filter via UI or profile)
-  include_titles: []
+  # Broad engineering title patterns; customize for your target roles.
+  include_titles:
+    - 'software engineer'
+    - 'software development engineer'
+    - 'site reliability engineer'
+    - '\b(backend|platform|api)\b.*\bengineer\b'
 
-  # Exclude only universal noise (C-suite, HR noise)
+  # Exclude seniority and non-engineering noise.
   exclude_titles:
-    - '\b(ceo|coo|cfo|cto|ciso|vp|svp|evp|c-suite)\b'
-    - '\b(intern.*recruiter|talent.*acquisition|hr.*intern)\b'
+    - '\b(director|vice president|head of|chief)\b'
+    - '\b(manager|management|lead)\b'
 
-  # Leave empty to accept All India (any city) + Remote + Worldwide
+  # Empty accepts all locations; allow_remote keeps remote roles eligible.
   locations: []
   allow_remote: true
 
@@ -430,7 +434,7 @@ ightarrow$ Actions**:
 The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggers on every push and pull request:
 - 🧹 **Linting**: Code style and formatting verification with Ruff (`ruff check .`).
 - 📐 **Static Typing**: Comprehensive strict type checking with Mypy (`mypy jobhunt`).
-- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (397 automated tests with $\ge 91\%$ coverage).
+- 🧪 **Unit Test Matrix**: Pytest runner across Python 3.9, 3.10, 3.11, and 3.12 (400 automated tests with $\ge 90\%$ coverage).
 - ⚡ **Offline Smoke Test**: CLI dry run verification (`jobhunt run --mock --scorer keyword`).
 
 ---
@@ -476,7 +480,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Multi-Tenant PostgreSQL schema with Row-Level Security (RLS)
 │   └── teardown.sql          # Idempotent schema reset & companion teardown script
-├── tests/                    # 397 comprehensive automated test cases (91%+ line coverage)
+├── tests/                    # 400 comprehensive automated test cases (90%+ line coverage)
 │   ├── conftest.py           # Pytest shared fixtures & thread-safe provider state reset
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_app.py           # Flask web dashboard, API routes & error handling tests
@@ -541,7 +545,7 @@ job-hunter/
 
 ## 🧪 Automated Test Suite
 
-Run the full test suite locally (**397 unit & integration tests**):
+Run the full test suite locally (**400 unit & integration tests**):
 ```bash
 pytest
 ```

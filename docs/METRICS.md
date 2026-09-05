@@ -81,8 +81,8 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **Automated Test Count**: **397 passed tests** across 28 test suites in `tests/`.
-* **Code Coverage**: **$\ge 91\%$** line coverage across all core modules (`jobhunt/`).
+* **Automated Test Count**: **400 passed tests** across 28 test suites in `tests/`.
+* **Code Coverage**: **$\ge 90\%$** line coverage across all core modules (`jobhunt/`).
 * **Runtime Verification**: Full test suite completes in roughly **2 minutes 20 seconds** locally via mock fixtures.
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
 

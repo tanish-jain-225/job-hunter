@@ -7,6 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Maintenance
+- Updated the release baseline to 400 automated tests with a passing 90% aggregate coverage gate.
+- Updated GitHub Actions checkout and Python setup actions to their Node 24-compatible major versions.
+
 ### Security
 - **Universal View State Isolation & Strict Utility Access Guards**: Enforced complete separation between unauthenticated visitors and authenticated dashboard views. Implemented universal `.app-view-hidden` CSS rules (`display: none !important; visibility: hidden !important; pointer-events: none !important;`) with highest cascade precedence, ensuring authenticated components never leak on small screens or media queries (`<= 340px`, `<= 300px`). Gated authenticated operational backend API routes with `@require_auth` while preserving intentionally public health, landing, asset, and auth-configuration routes.
 - **Client-Side Auth Lockout (`checkAuthOrRedirect`)**: Added central client-side authentication guard across all utility triggers (manual sync, on-demand pipeline runner, tab switching, custom opportunity tracking, custom company additions/deletions, kit inspector, candidate profile settings, resume parser, and `/` search shortcut). Promptly redirects unauthenticated attempts to landing view with the sign-in modal and toast notifications.
