@@ -368,7 +368,7 @@ def api_digest():
         except (ValueError, TypeError):
             shortlisted_in_run = None
 
-    jobs_list = []
+    jobs_list: list[Job] = []
     # If the latest pipeline run completed with 0 shortlisted jobs, STRICTLY preserve 0 matches.
     # Never pull stale historical jobs from store into today's briefing!
     if shortlisted_in_run == 0:
