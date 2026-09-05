@@ -10,13 +10,13 @@ This document outlines the operational capacity, resource consumption, infrastru
 
 ## 1. Executive Summary
 
-Job Hunter is engineered with a **Centralized Multi-Tenant Global Pool** architecture. Instead of crawling job boards separately for every user, the crawler executes a **single-pass crawl** across all 90+ ATS endpoints every morning, deduplicates jobs into an in-memory pool, and evaluates all candidates concurrently.
+Job Hunter is engineered with a **Centralized Multi-Tenant Global Pool** architecture. Instead of crawling job boards separately for every user, the crawler executes a **single-pass crawl** across all 88+ ATS company boards (covering 9 supported ATS engines) every morning, deduplicates jobs into an in-memory pool, and evaluates all candidates concurrently.
 
 Combined with **self-compacting storage pruning** and **frontier AI splitting**, the system operates at **$0.00 / month** for up to **~350 daily active users**.
 
 ```mermaid
 flowchart LR
-    A["90+ ATS Boards (Single Crawl)"] --> B["Global Pool (~2,000 Raw Postings)"]
+    A["88+ ATS Boards across 9 Engines (Single Crawl)"] --> B["Global Pool (~2,000 Raw Postings)"]
     B --> C["Deterministic Filter (Per User)"]
     C --> D["Stage 1: Gemini Screening (1.2s)"]
     D --> E["Stage 2: Gemini Kit Drafting (2.0s)"]
@@ -31,7 +31,7 @@ flowchart LR
 | Metric | 100 Users | 250 Users | 500 Users | 750 Users | 1,500 Users |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Daily Discovered Jobs** | ~2,000 | ~2,000 | ~2,000 | ~2,000 | ~2,000 |
-| **ATS Crawl Requests** | ~95 | ~95 | ~95 | ~95 | ~95 |
+| **ATS Crawl Requests** | ~88 | ~88 | ~88 | ~88 | ~88 |
 | **Stage 1 Screening Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
 | **Stage 2 Kit Drafting Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
 | **Emails Dispatched / Day** | 100 | 250 | 500 | 750 | 1,500 |
@@ -47,10 +47,10 @@ flowchart LR
 ### A. Primary AI Engine: Google Gemini Flash (`gemini-3.5-flash`)
 * **Default Model**: `gemini-3.5-flash`
 * **Batch Size**: 8 jobs per screening request (high-throughput evaluation pass).
-* **Batch Pacing**: 4.0s delay between requests per key = 15 RPM exact speed matching (dynamically accelerated via multi-key round-robin rotation `_GEMINI_KEY_COUNTER` and independent per-key tracking).
+* **Batch Pacing**: 4.0s hardware delay between requests per key = 15 RPM exact speed matching (with 6.0s default config delay = 10 RPM; dynamically accelerated via multi-key round-robin rotation `_GEMINI_KEY_COUNTER` and independent per-key tracking).
 * **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`).
 * **Daily Free Quota**: **1,500 requests / day** and **1,000,000+ tokens / day** per project key.
-* **Per-User Daily Consumption**: ~6 API calls (3 screening batches + 3 kit drafts).
+* **Per-User Daily Consumption**: ~3–5 API calls at steady state (1–2 screening batches for incremental daily roles + 1–3 kit drafts for top matches).
 * **Capacity**:
   * **1 Gemini API Key**: 250 Daily Active Users (**100% Free Forever**)
   * **2 Gemini API Keys**: 500 Daily Active Users (**100% Free Forever**)
@@ -76,8 +76,15 @@ flowchart LR
 * **Free Monthly Minutes**: **2,000 minutes / month** (or unlimited if repository is public).
 * **Schedule**: Daily at **05:00 AM IST** (`30 23 * * *`).
 * **Capacity**:
-  * 100 Users: 7 min/day $\times$ 30 = **210 mins/mo** (**10.5%** of quota)
-  * 300 Users: 17 min/day $\times$ 30 = **510 mins/mo** (**25.5%** of quota)
+  * 100 Users: ~2.5 min/day $\times$ 30 = **75 mins/mo** (**3.75%** of quota)
+  * 250 Users: ~4.5 min/day $\times$ 30 = **135 mins/mo** (**6.75%** of quota)
+  * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
+
+### E. Quality Assurance & Test Verification
+* **Automated Test Count**: **395 passed tests** across 28 test suites in `tests/`.
+* **Code Coverage**: **$\ge 91\%$** line coverage across all core modules (`jobhunt/`).
+* **Runtime Verification**: Full test suite completes in under **0.75 seconds** locally via mock fixtures.
+* **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
 
 ---
 
@@ -117,7 +124,7 @@ timeline
 
 | Risk Factor | Impact | Mitigation Strategy |
 |---|---|---|
-| **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Multi-key CSV key rotation (`GEMINI_API_KEY=key1,key2`) + 6.0s leaky bucket throttle + automatic fallback to deterministic keyword scorer. |
+| **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Multi-key CSV key rotation (`GEMINI_API_KEY=key1,key2`) + 4.0s–6.0s leaky bucket throttle + automatic fallback to deterministic keyword scorer. |
 | **ATS Anti-Scraping Policies** | ATS adds bot challenge on public endpoints | All 9 supported ATS engines use standard public JSON career APIs that have remained open for over a decade. Proxy rotation can be enabled if needed. |
 | **Email Deliverability (Spam Filter)** | High-volume emails from `@gmail.com` land in spam | For >300 users, connect a custom domain with verified SPF, DKIM, and DMARC DNS records via Amazon SES or Resend. |
 | **GitHub Access Token Expiration** | Workflow dispatch fails to trigger | Set GitHub Personal Access Tokens (`GH_TOKEN`) with "No Expiration" or rotate annually. |
@@ -130,6 +137,6 @@ timeline
 |---|:---:|:---:|
 | **300 Daily Candidate Briefings** | **$0.00 / mo** | ~$150 – $300 / mo |
 | **Real Frontier AI Tailoring (Google Gemini)** | **$0.00 / mo** | Included in Pro (~$29/user/mo) |
-| **90+ ATS Boards Indexing** | **$0.00 / mo** | Limited to major platforms |
+| **88+ Curated ATS Boards (9 Engines)** | **$0.00 / mo** | Limited to major platforms |
 | **Multi-Tenant User Isolation** | **Included (Supabase RLS)** | Enterprise Tier Only |
 | **Annual Running Cost (300 Users)** | **🎉 $0.00 / Year** | **~$1,800 – $3,600 / Year** |

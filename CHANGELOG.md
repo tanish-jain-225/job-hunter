@@ -51,7 +51,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `threading.Lock` protection around `_GLOBAL_ATS_CACHE` for thread-safe concurrent ATS fetching
 - 10 MB hard response size cap in `fetch_board()` — prevents OOM from oversized or malformed ATS endpoints
 - `hypothesis>=6.0.0` added as a dev dependency for property-based fuzzing
-- Synchronized technical narrative across all 15 markdown documentation files (`README.md`, `METRICS.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, and all `docs/*.md`)
+- Synchronized technical narrative across all 16 markdown documentation files (`README.md`, `METRICS.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, and all 11 `docs/*.md`)
 - `CHANGELOG.md`, `SECURITY.md`, `docs/API.md` added
 
 ### Fixed

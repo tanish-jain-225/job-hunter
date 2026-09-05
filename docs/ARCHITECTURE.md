@@ -133,15 +133,14 @@ job-hunter/
 ├── templates/                   # Jinja2 HTML Templates
 │   ├── index.html               # Main shell template with modern favicon tags and font preloads
 │   └── partials/                # Modular UI partials
-│       ├── add_company_board.html # Custom ATS board ingestion modal
-│       ├── add_custom_job.html    # Manual job opportunity entry modal
-│       ├── dashboard.html         # Executive dashboard layout, sidebar, digest preview, job board
-│       ├── kit_inspector.html     # Application kit modal with 1-click copy buttons
-│       ├── landing.html           # Public landing hero and sign-in card
-│       ├── navbar.html            # Navigation header, brand mark, and user context pill
-│       ├── onboarding.html        # Onboarding wizard modal with role presets
-│       ├── profile_settings.html  # Profile editor and notification preference modal
-│       └── resume_studio.html     # PDF dropzone and AI parsing inspector modal
+│       ├── add_company.html     # Custom ATS board ingestion modal (+ Add Board)
+│       ├── add_job.html         # Manual job opportunity entry modal
+│       ├── dashboard.html       # Executive dashboard layout, sidebar, workflow guide banner, job board
+│       ├── kit_inspect.html     # Application kit modal with 1-click copy buttons
+│       ├── landing.html         # Public landing hero and sign-in card
+│       ├── navbar.html          # Navigation header, brand mark, and user context pill
+│       ├── onboarding.html      # Onboarding wizard modal with role presets and Resume Studio
+│       └── profile_settings.html # Profile editor, search filters, Resume Studio, and alert settings
 ├── tests/                       # Automated Test Suite (395 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint

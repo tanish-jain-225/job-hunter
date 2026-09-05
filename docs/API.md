@@ -51,10 +51,10 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 ```
 
 ### GET /logo.png & GET /favicon.ico
-Serves the official brand logo asset.
+Serves the official brand logo (`image/png`) and multi-resolution binary favicon (`image/x-icon`).
 
 **Auth:** Public  
-**Response:** `image/png`
+**Response:** `image/png` / `image/x-icon`
 
 ---
 

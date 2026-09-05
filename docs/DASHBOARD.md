@@ -102,6 +102,10 @@ The dashboard is designed as a single-page application with a premium Light Mode
 * Eliminates horizontal scrolling, wraps action buttons, and scales modals fluidly to `calc(100vw - 2px)`.
 * Features brand logo thumbnails and active attribution footers linking directly to `https://job-hunter-web-board.vercel.app`.
 
+### 15. ✨ Interactive Subtle Workflow Guide Banner
+* A dismissible 4-step workflow guide banner at the top of the Interactive Job Board introduces the Match Score, Application Kit, Direct Apply, and 4-Day Follow-Up lifecycle stages.
+* Includes a discreet dismiss button `[×]` persisted in `localStorage`, and an **`ℹ️ Guide`** toggle button on the tracker bar to reopen the guide anytime.
+
 ---
 
 ## 📡 REST API Reference

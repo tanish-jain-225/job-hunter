@@ -43,7 +43,7 @@ Modern job searching is broken. Engineers and technology professionals spend hou
 
 **Job Hunter (`job-hunter`)** solves this completely. It is your private, autonomous career intelligence agent that works for you 24/7. Every morning while you sleep, **Job Hunter**:
 
-1. 🌐 **Scouts Public ATS Endpoints**: Discovers open roles directly across 9 major platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**) with zero web scraping and zero authentication friction.
+1. 🌐 **Scouts Public ATS Endpoints**: Discovers open roles directly across 88+ curated company boards and 9 major platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, **Pinpoint**) with zero web scraping and zero authentication friction.
 2. 🎯 **Eliminates Noise at $0 Cost**: Drops ~98% of out-of-scope, senior executive, or stale postings deterministically using regex title and location rules **before spending a single AI token**.
 3. ⚡ **Evaluates Fit via Google Gemini 3.5 Flash**: Batches surviving jobs (8 jobs/request) to screen candidate fit (0.0 to 10.0) against your parsed resume using **Google Gemini (`gemini-3.5-flash`)** with 1M free daily tokens per project, multi-key CSV rotation, and dynamic fallback cascades (`gemini-flash-latest` → `gemini-flash-lite-latest`).
 4. ✍️ **Drafts Tailored Application Kits**: Produces compelling, personalized cover notes, 80-word LinkedIn networking DMs, matching resume bullet points, and smart follow-up nudges for top-scoring matches (7.0+).
@@ -501,7 +501,7 @@ job-hunter/
 │   └── daily.yml             # Daily automated execution & digest workflow
 ├── pyproject.toml            # PEP 621 packaging metadata & tool configurations
 ├── config.yaml               # Pipeline thresholds & filter rules
-├── companies.yaml            # Board targets across 9 ATS engines
+├── companies.yaml            # 88+ curated board targets across 9 ATS engines
 ├── app.py                    # Classic WSGI Entrypoint (create_app())
 ├── auto.py                   # Master cross-platform pipeline launcher script
 ├── favicon.ico               # Root binary favicon

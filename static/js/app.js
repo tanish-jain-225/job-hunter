@@ -252,12 +252,96 @@ function setPageSize(newSize) {
 }
 
 /**
+ * Workflow Guide Banner Controls
+ */
+function dismissWorkflowGuide() {
+  const banner = document.getElementById('workflow-guide-banner');
+  if (banner) {
+    banner.style.display = 'none';
+    try {
+      localStorage.setItem('jobhunter_guide_dismissed', 'true');
+    } catch (e) {}
+  }
+}
+
+function toggleWorkflowGuide() {
+  const banner = document.getElementById('workflow-guide-banner');
+  if (banner) {
+    const isHidden = banner.style.display === 'none';
+    banner.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      try {
+        localStorage.removeItem('jobhunter_guide_dismissed');
+      } catch (e) {}
+    }
+  }
+}
+
+function initWorkflowGuideState() {
+  try {
+    const dismissed = localStorage.getItem('jobhunter_guide_dismissed');
+    const banner = document.getElementById('workflow-guide-banner');
+    if (banner && dismissed === 'true') {
+      banner.style.display = 'none';
+    }
+  } catch (e) {}
+}
+
+/**
  * Renders HTML for an array of jobs with pure Table/Card layout & pagination.
  * @param {Array<Object>} jobs - List of filtered and sorted job objects
  * @returns {string} HTML markup
  */
 function renderJobsListHtml(jobs) {
-  if (!jobs || jobs.length === 0) return '';
+  if (!jobs || jobs.length === 0) {
+    const search = appState.search || '';
+    if (search) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <div class="empty-state-title">No Matching Opportunities Found</div>
+          <div class="empty-state-desc">
+            No opportunities matched your search "<strong>${escapeHtml(search)}</strong>".
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="clearSearch()" style="margin-top:8px;">
+            Clear Search
+          </button>
+        </div>
+      `;
+    }
+    if (appState.filter === 'applied') {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon" style="background:var(--primary-light, #eff6ff); color:var(--primary, #4f46e5);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="empty-state-title">No Applications Tracked Yet</div>
+          <div class="empty-state-desc">
+            When you apply for roles, mark them as <strong>Applied</strong> using the stage selector on each job card. Job Hunter will automatically track your follow-up timeline and trigger smart outreach alerts!
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="setFilter('all')" style="margin-top:8px;">
+            View All Opportunities
+          </button>
+        </div>
+      `;
+    }
+    return `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <div class="empty-state-title">No Opportunities in This View</div>
+        <div class="empty-state-desc">
+          No jobs currently match this view filter.
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="resetFiltersAndSearch()" style="margin-top:8px;">
+          Reset Filters &amp; Search
+        </button>
+      </div>
+    `;
+  }
   const totalJobs = jobs.length;
   const pageSize = appState.pageSize || 10;
   const totalPages = Math.ceil(totalJobs / pageSize) || 1;
@@ -763,8 +847,11 @@ function switchTab(tab, fetchData = true) {
     if (tab === 'digest') {
       refreshDigest();
     } else if (tab === 'tracker') {
+      initWorkflowGuideState();
       fetchAndRenderJobs(false);
     }
+  } else if (tab === 'tracker') {
+    initWorkflowGuideState();
   }
 }
 
@@ -848,7 +935,7 @@ function renderJobCardHtml(j, isNew = false) {
       <div class="job-meta">
         <div class="job-header-row">
           <span class="job-title">${highlightText(j.title, searchQuery)}</span>
-          <span class="ats-tag">${escapeHtml(j.ats || 'ats')}</span>
+          <span class="ats-tag" title="Hosted on ${escapeHtml(j.ats || 'ATS')} public career API">${escapeHtml(j.ats || 'ats')}</span>
           ${isNew ? '<span class="badge-live-sync">New Discovery</span>' : ''}
           ${followupInfo ? `<button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.job_id)}')" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
         </div>
@@ -861,8 +948,8 @@ function renderJobCardHtml(j, isNew = false) {
       </div>
       <div class="job-actions">
         <div class="job-score-row">
-          <span class="score-badge ${scoreClass}" title="AI Candidate Match Score">${score}</span>
-          <select class="job-stage-select" aria-label="Application Stage" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
+          <span class="score-badge ${scoreClass}" title="AI Candidate Match Score (${score}/10) — 8.5+ High Fit, 7.0–8.4 Moderate, <7.0 Low">${score}</span>
+          <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" onchange="updateJobStageDirect('${escapeHtml(j.job_id)}', this.value)" onclick="event.stopPropagation()">
             <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>📝 To Apply</option>
             <option value="applied" ${stage === 'applied' ? 'selected' : ''}>🚀 Applied</option>
             <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>💬 Interviewing</option>
@@ -872,14 +959,14 @@ function renderJobCardHtml(j, isNew = false) {
         </div>
         <div class="job-action-btn-row">
           ${isApplied
-            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Click to unmark applied" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
-            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
+            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Application submitted — click to unmark" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
+            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" title="Mark as applied to activate follow-up tracking" onclick="toggleAppliedDirect('${escapeHtml(j.job_id)}', 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
           }
           <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
         </div>
         <div class="job-action-btn-row">
-          ${hasDraft ? `<button class="btn btn-secondary btn-sm" onclick="openKitModal('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
-          <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Link</span></a>
+          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" onclick="openKitModal('${escapeHtml(j.job_id)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
+          <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open original job posting directly on company career portal" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Link</span></a>
         </div>
       </div>
     </div>
@@ -950,7 +1037,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                 </div>
                 <div class="empty-state-title">Autonomous Job Scan in Progress...</div>
                 <div class="empty-state-desc">
-                  Scanning 100+ ATS boards and matching jobs to your candidate profile in real time. Please wait, this takes about 10-15 seconds!
+                  Scanning 88+ ATS company boards across 9 engines and matching jobs to your candidate profile in real time. Please wait, this takes about 10-15 seconds!
                 </div>
                 <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Scanning target endpoints...</div>
               </div>
@@ -965,7 +1052,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Candidate Profile Required</div>
                   <div class="empty-state-desc">
-                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 100+ ATS boards.
+                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 88+ company boards.
                   </div>
                   <button class="btn btn-primary" onclick="openProfileModal()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -981,7 +1068,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Your Live Job Radar is Ready</div>
                   <div class="empty-state-desc">
-                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 100+ ATS boards!
+                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 88+ company boards!
                   </div>
                   <button class="btn btn-primary" onclick="runPipeline()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
