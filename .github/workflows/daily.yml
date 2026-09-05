@@ -26,6 +26,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: jobhunt-${{ github.event.inputs.mode || 'scheduled' }}-${{ github.event.inputs.user_email || 'all-users' }}
+  cancel-in-progress: false
+
 jobs:
   hunt:
     name: Execute Job Hunter Radar
@@ -90,14 +94,14 @@ jobs:
             python -u -m jobhunt multi-run --user-email "$TARGET_USER_EMAIL" --send
           elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ "${{ github.event.inputs.mode }}" != "single" ]; then
             echo "Running Centralized Multi-User Batch Pipeline..."
-            python -u -m jobhunt multi-run --send
+            python -u -m jobhunt multi-run
           else
             echo "Running Single-User Pipeline..."
             python -u -m jobhunt run --send
           fi
       - name: Save Digest Briefing Artifact (Single-User Mode)
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && (github.event.inputs.mode == 'single' || github.event.inputs.mode == 'mock')
         with:
           name: daily-digest-briefing
           path: |

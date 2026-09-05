@@ -27,7 +27,8 @@ identity guarantees, not extra steps required for the current deployment.
 - **Deployment:** Ready to launch with the existing Vercel, Supabase, GitHub,
   Gemini, and SMTP credentials.
 - **User workflow:** Sign up, complete a profile, run an isolated scan, view
-  synchronized jobs, and receive scheduled email when notifications are enabled.
+  synchronized jobs, and receive scheduled email only when notifications are
+  enabled.
 - **Data safety:** Authenticated digest/export paths, profile writes, cloud
   dispatch failures, stale pipeline status, and Supabase read outages fail
   safely.
@@ -88,7 +89,6 @@ run must never be implemented by dispatching the `multi` workflow.
   pipeline logs.
 - Add provider budgets, per-user quotas, timeout policy, and retry backoff for
   ATS and LLM calls.
-- Make workflow security checks blocking in CI.
 - Add structured audit events for sign-in, profile changes, exports, run
   creation, admin actions, and account deletion.
 - Add health checks for Supabase, GitHub dispatch, LLM provider, SMTP, and
