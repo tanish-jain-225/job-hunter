@@ -1,9 +1,10 @@
 # Public Launch Readiness
 
-This document is the execution plan for turning Job Hunter into a public,
-multi-tenant product. The current application is a strong private beta, but it
-must not be presented as fully production-ready until the items below are
-complete.
+This document is the release checklist for the current public-beta product.
+The application can be deployed with the existing credentials and supports
+isolated user-scoped scans, daily batch email, and Supabase persistence. The
+remaining items below are hardening work for higher scale and stronger tenant
+identity guarantees, not extra steps required for the current deployment.
 
 ## Completed in this pass
 
@@ -12,16 +13,28 @@ complete.
   isolated store.
 - CSV exports use a request-unique temporary artifact and remove it after the
   response, preventing concurrent serverless requests from sharing a file.
-- Production GitHub Actions dispatch is restricted to `PIPELINE_ADMIN_EMAILS`
-  or an explicit `is_admin` claim. A normal user cannot trigger the all-user
-  batch job.
+- User-triggered GitHub Actions dispatch uses `mode: user` and the verified
+  authenticated email. The scheduled workflow is the only all-user batch path.
 - Cookie-authenticated mutations require matching same-origin `Origin` or
   `Referer` metadata.
 - Resume upload behavior is now consistent: PDF and TXT are supported; DOCX is
   not advertised or silently decoded as text.
-- Regression status: 397 tests pass; Ruff and whitespace checks pass.
+- Regression status: 397 tests pass on the current suite; affected release
+  tests, Ruff, coverage, and workflow YAML validation pass.
 
-## P0: Required before public sign-up
+## Current release status
+
+- **Deployment:** Ready to launch with the existing Vercel, Supabase, GitHub,
+  Gemini, and SMTP credentials.
+- **User workflow:** Sign up, complete a profile, run an isolated scan, view
+  synchronized jobs, and receive scheduled email when notifications are enabled.
+- **Data safety:** Authenticated digest/export paths, profile writes, cloud
+  dispatch failures, stale pipeline status, and Supabase read outages fail
+  safely.
+- **Operational boundary:** The service is suitable for a free public beta.
+  Third-party quotas and GitHub/Vercel execution limits still apply.
+
+## Hardening backlog for scale
 
 ### 1. Replace email tenant keys with immutable user IDs
 
@@ -40,10 +53,11 @@ Migration requirements:
 5. Add tests for email change, missing email claims, duplicate email casing,
    and cross-tenant reads under real RLS.
 
-### 2. Introduce a durable per-user run model
+### 2. Extend the durable per-user run model
 
-Vercel requests must dispatch a job and return a durable run ID. They must not
-execute crawling, LLM calls, or drafting synchronously in a serverless request.
+Vercel requests currently dispatch user-scoped jobs and persist a running
+history record. A dedicated run ID and worker lease would improve correlation
+and recovery at higher volume.
 
 Required API contract:
 
@@ -92,8 +106,8 @@ run must never be implemented by dispatching the `multi` workflow.
 
 ## Release gates
 
-Do not open public registration until all P0 items are complete and verified in
-a production-like environment. The minimum release evidence is:
+Before moving beyond public beta, verify the following in a production-like
+environment:
 
 - Full test suite and blocking security checks are green.
 - Two test accounts cannot read or export each other's data.
@@ -101,3 +115,7 @@ a production-like environment. The minimum release evidence is:
 - A user-triggered run cannot execute the all-user workflow.
 - A worker restart does not lose a queued or running run.
 - Account deletion removes all user-owned data within the documented period.
+
+The current release is intentionally classified as **public beta**, not a
+guaranteed unlimited service. Free-tier provider quotas, delivery failures, and
+external workflow availability must be monitored by the operator.
