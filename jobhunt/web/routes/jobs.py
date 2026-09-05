@@ -182,7 +182,8 @@ def api_add_custom_company():
         pjson["custom_companies"] = existing
         prof["custom_companies"] = existing
         prof["profile_json"] = pjson
-        memory.upsert_user_profile(email, prof, token=token)
+        if not memory.upsert_user_profile(email, prof, token=token):
+            return jsonify({"status": "error", "message": "Company board could not be saved securely. Please try again."}), 503
     else:
         cfg = cli._cfg(raise_on_error=False)
         profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
@@ -238,7 +239,8 @@ def api_delete_custom_company():
         pjson["custom_companies"] = filtered
         prof["custom_companies"] = filtered
         prof["profile_json"] = pjson
-        memory.upsert_user_profile(email, prof, token=token)
+        if not memory.upsert_user_profile(email, prof, token=token):
+            return jsonify({"status": "error", "message": "Company board could not be removed securely. Please try again."}), 503
     else:
         cfg = cli._cfg(raise_on_error=False)
         profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)

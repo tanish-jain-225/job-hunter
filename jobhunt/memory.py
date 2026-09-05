@@ -80,6 +80,7 @@ class SupabaseMemory:
         self.service_key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
         self.token = token
         self.timeout = 7.0
+        self.last_error: Optional[str] = None
 
     @property
     def is_configured(self) -> bool:
@@ -464,6 +465,7 @@ class SupabaseMemory:
     # --------------------------------------------------------------------------
     def load_user_jobs(self, email: str, limit: int = 10000, token: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
         """Load all tracked jobs for a given user email from Supabase PostgreSQL."""
+        self.last_error = None
         if not self.is_configured or not email:
             return {}
 
@@ -518,8 +520,11 @@ class SupabaseMemory:
                         }
                 with _CACHE_LOCK:
                     _JOBS_CACHE[clean_email] = ({k: dict(v) for k, v in jobs_map.items()}, now + _CACHE_TTL)
+            if resp.status_code != 200:
+                self.last_error = f"Supabase jobs read failed with HTTP {resp.status_code}"
             return jobs_map
         except Exception as e:
+            self.last_error = str(e)
             print(f"[SupabaseMemory] load_user_jobs error for {clean_email}: {e}")
             return {}
 

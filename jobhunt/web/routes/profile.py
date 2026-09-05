@@ -130,7 +130,10 @@ def api_profile():
                 merged_profile["skills"] = found_skills[:12]
 
         if memory.is_configured:
-            memory.upsert_user_profile(email, merged_profile, token=token)
+            if not memory.upsert_user_profile(email, merged_profile, token=token):
+                return jsonify(
+                    {"status": "error", "message": "Profile could not be saved to secure cloud storage. Please try again."}
+                ), 503
 
         try:
             profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
@@ -185,7 +188,10 @@ def api_profile_reset():
     }
 
     if memory.is_configured:
-        memory.upsert_user_profile(email, blank_profile, token=token)
+        if not memory.upsert_user_profile(email, blank_profile, token=token):
+            return jsonify(
+                {"status": "error", "message": "Profile reset could not be saved to secure cloud storage. Please try again."}
+            ), 503
 
     try:
         profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
@@ -406,7 +412,10 @@ def api_profile_preferences():
         merged = {**(existing or {}), **data, "onboarding_completed": True}
 
         if memory.is_configured:
-            memory.upsert_user_profile(email, merged, token=token)
+            if not memory.upsert_user_profile(email, merged, token=token):
+                return jsonify(
+                    {"status": "error", "message": "Preferences could not be saved securely. Please try again."}
+                ), 503
 
         try:
             profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)

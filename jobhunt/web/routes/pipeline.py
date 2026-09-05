@@ -173,15 +173,25 @@ def api_sync():
                 elif not dispatched_at:
                     is_newer = False
 
+                remote_status = str(last_run.get("status") or "").lower()
+                remote_is_active = remote_status in {"queued", "running", "dispatched", "in_progress"}
+
                 if dispatched_at and (time.time() - dispatched_at) > 180:
-                    # Auto-reset stuck dispatch state after 3 minutes timeout
-                    run_logs = "Cloud Radar completed! 100+ company boards scanned."
+                    # Do not claim success when the worker status cannot be correlated.
+                    run_logs = "Cloud Radar status timed out. Check GitHub Actions for the worker result."
                     pipe_state["running"] = False
-                    pipe_state["step"] = "completed"
+                    pipe_state["step"] = "error"
                     pipe_state["message"] = run_logs
                     pipe_state.pop("dispatched_at", None)
-                    set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
-                elif is_newer:
+                    set_user_pipeline_state(email, running=False, step="error", message=run_logs, exit_code=1)
+                elif is_newer and remote_status in {"failed", "error"}:
+                    run_logs = last_run.get("logs") or "Cloud Radar failed while processing this run."
+                    pipe_state["running"] = False
+                    pipe_state["step"] = "error"
+                    pipe_state["message"] = run_logs
+                    pipe_state.pop("dispatched_at", None)
+                    set_user_pipeline_state(email, running=False, step="error", message=run_logs, exit_code=1)
+                elif is_newer and not remote_is_active:
                     run_logs = (
                         last_run.get("logs")
                         or f"Cloud Radar completed: {last_run.get('shortlisted', 0)} shortlisted out of {last_run.get('jobs_scanned', 0)} scanned."
@@ -192,6 +202,10 @@ def api_sync():
                     pipe_state["message"] = run_logs
                     pipe_state.pop("dispatched_at", None)
                     set_user_pipeline_state(email, running=False, step="completed", message=run_logs)
+                elif is_newer and remote_is_active:
+                    pipe_state["running"] = True
+                    pipe_state["step"] = "running"
+                    pipe_state["message"] = "Cloud Radar is running. Results will appear when screening is complete."
                 elif pipe_state.get("running"):
                     # Check GitHub Actions API for live workflow execution state
                     gh_token = (
@@ -631,9 +645,21 @@ def api_run():
                     step="running",
                     message=msg,
                     last_run=now_utc,
+                    dispatched_at=dispatched_time,
+                )
+                from datetime import datetime, timezone
+
+                memory.record_pipeline_run(
+                    email,
+                    {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "status": "running",
+                        "logs": "Cloud Radar queued in GitHub Actions.",
+                    },
+                    token=token,
+                    use_service_key=not bool(token),
                 )
                 pipe_st = get_user_pipeline_state(email)
-                pipe_st["dispatched_at"] = dispatched_time
                 return jsonify(
                     {
                         "status": "dispatched",
@@ -649,6 +675,11 @@ def api_run():
                 logger.warning("GitHub workflow_dispatch returned %s: %s", gh_resp.status_code, gh_resp.text)
         except Exception as gh_err:
             logger.warning("GitHub workflow dispatch request failed: %s", gh_err)
+
+        if is_vercel:
+            message = "Cloud pipeline could not be queued. Please try again shortly."
+            set_user_pipeline_state(email, running=False, step="error", message=message, exit_code=1)
+            return jsonify({"status": "error", "code": "CLOUD_DISPATCH_FAILED", "message": message}), 502
 
     # If on Vercel without GH_TOKEN and not in mock mode, guide user to GitHub Actions
     if is_vercel and not gh_token and not use_mock:
@@ -812,6 +843,18 @@ def api_history():
 @require_auth
 def api_email_test():
     """Send a live test career briefing email to verify SMTP delivery."""
+    from flask import current_app
+
+    limiter = current_app.extensions.get("limiter")
+    if limiter and not current_app.testing:
+        from werkzeug.exceptions import HTTPException
+
+        try:
+            limiter.limit("3 per hour")(lambda: None)()
+        except HTTPException:
+            raise
+        except Exception:
+            pass
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
     memory = SupabaseMemory(token=token)

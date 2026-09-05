@@ -657,6 +657,7 @@ def test_digest_badge_and_bullets_and_locations():
 def test_web_routes_profile_preferences_get_and_post(client, monkeypatch):
     monkeypatch.setenv("AUTH_REQUIRED", "false")
     monkeypatch.setattr("jobhunt.web.routes.profile.get_current_user_context", lambda: ("pref_user@test.com", "token"))
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.upsert_user_profile", lambda *args, **kwargs: True)
 
     # GET preferences
     res_get = client.get("/api/profile/preferences")

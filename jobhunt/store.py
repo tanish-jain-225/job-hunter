@@ -228,7 +228,7 @@ class Store:
                 # Merge remote jobs with local store
                 for jid, rjob in remote_jobs.items():
                     self.data[jid] = rjob
-            elif self.data:
+            elif self.data and not self.memory.last_error:
                 # Initial cloud sync of existing local jobs for this user
                 self.memory.bulk_upsert_user_jobs(
                     self.user_email,

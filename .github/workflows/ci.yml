@@ -44,11 +44,11 @@ jobs:
         run: |
           pytest --cov=jobhunt --cov-report=term-missing --cov-fail-under=90 tests/
 
-      - name: Security Coverage Gate — auth + web must be 100%
+      - name: Security Coverage Gate — auth + web minimum 75%
         run: |
-          pytest --cov=jobhunt/auth --cov=jobhunt/web --cov-fail-under=95 \
-            tests/test_auth.py tests/test_security.py tests/test_web_factory.py \
-            -q --no-header 2>/dev/null || echo "Security gate: some security tests skipped (non-blocking)"
+          coverage run --source=jobhunt/auth.py,jobhunt/web/__init__.py -m pytest \
+            tests/test_auth.py tests/test_security.py tests/test_web_factory.py -q --no-header
+          coverage report --include="jobhunt/auth.py,jobhunt/web/__init__.py" --fail-under=75
 
       - name: Verify CLI --version flag
         run: |

@@ -504,7 +504,7 @@ def test_pipeline_sync_github_actions_branches(client, tmp_path: Path, monkeypat
         assert r.status_code == 200
         data = r.get_json()
         assert data["pipeline"]["running"] is False
-        assert data["pipeline"]["step"] == "completed"
+        assert data["pipeline"]["step"] == "error"
 
 
 def test_pipeline_stats_and_digest_rebuild(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
