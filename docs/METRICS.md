@@ -2,7 +2,7 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 📊 Job Hunter — Operational Architecture & Business Metrics
+# Job Hunter - Operational Metrics and Limits
 
 This document outlines the operational capacity, resource consumption, infrastructure scaling thresholds, and cost economics of the **Job Hunter** autonomous career intelligence platform.
 
@@ -10,9 +10,13 @@ This document outlines the operational capacity, resource consumption, infrastru
 
 ## 1. Executive Summary
 
-Job Hunter is engineered with a **Centralized Multi-Tenant Global Pool** architecture. Instead of crawling job boards separately for every user, the crawler executes a **single-pass crawl** across all 88+ ATS company boards (covering 9 supported ATS engines) every morning, deduplicates jobs into an in-memory pool, and evaluates all candidates concurrently.
+Job Hunter uses a centralized multi-user batch architecture. Instead of crawling
+job boards separately for every user, the worker can execute a single-pass crawl
+and evaluate candidate profiles against the shared result pool.
 
-Combined with **self-compacting storage pruning** and **frontier AI splitting**, the system operates at **$0.00 / month** for up to **~350 daily active users**.
+Actual capacity and cost depend on provider plans, configured users, job volume,
+AI latency, email volume, and retention. The figures in this document are
+planning estimates, not guarantees.
 
 ```mermaid
 flowchart LR
@@ -38,7 +42,7 @@ flowchart LR
 | **Daily Cron Runtime (GitHub Actions)** | ~2.5 mins | ~4.5 mins | ~8.5 mins | ~14 mins | ~25 mins |
 | **Permanent DB Size Plateau** | ~25 MB | ~62.5 MB | ~125 MB | ~187.5 MB | ~375 MB |
 | **Total Monthly Running Cost** | **$0.00** | **$0.00** | **$0.00** | **$0.00** | **~$10 – $15** |
-| **Free Tier Status** | 🟢 100% Free (1 Key) | 🟢 100% Free (1 Key) | 🟢 100% Free (2 CSV Keys) | 🟢 100% Free (3 CSV Keys) | 🔴 Paid Expansion |
+| **Free Tier Status** |  100% Free (1 Key) |  100% Free (1 Key) |  100% Free (2 CSV Keys) |  100% Free (3 CSV Keys) |  Paid Expansion |
 
 ---
 
@@ -81,9 +85,9 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **Automated Test Count**: **401 passed tests** across 28 test suites in `tests/`.
-* **Code Coverage**: **$\ge 90\%$** line coverage across all core modules (`jobhunt/`).
-* **Runtime Verification**: Full test suite completes in roughly **2 minutes 20 seconds** locally via mock fixtures.
+* Run `pytest -q` for the current automated test count.
+* Run `pytest --cov=jobhunt --cov-report=term-missing` for current coverage.
+* Runtime varies by machine and test environment.
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
 
 ---
@@ -139,4 +143,4 @@ timeline
 | **Real Frontier AI Tailoring (Google Gemini)** | **$0.00 / mo** | Included in Pro (~$29/user/mo) |
 | **88+ Curated ATS Boards (9 Engines)** | **$0.00 / mo** | Limited to major platforms |
 | **Multi-Tenant User Isolation** | **Included (Supabase RLS)** | Enterprise Tier Only |
-| **Annual Running Cost (300 Users)** | **🎉 $0.00 / Year** | **~$1,800 – $3,600 / Year** |
+| **Annual Running Cost (300 Users)** | ** $0.00 / Year** | **~$1,800 – $3,600 / Year** |

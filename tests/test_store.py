@@ -132,6 +132,28 @@ def test_store_unmark_delete_and_add_job(tmp_path: Path):
     assert store.delete_job(st, "nonexistent_id") is False
 
 
+def test_store_rolls_back_when_cloud_mutation_fails(tmp_path: Path):
+    class FailingMemory:
+        is_configured = True
+
+        def set_job_applied(self, *args, **kwargs):
+            return False
+
+    st = Store(tmp_path / "seen.json")
+    st.user_email = "candidate@example.com"
+    st.memory = FailingMemory()
+    st.data["custom:acme:1"] = {
+        "job_id": "custom:acme:1",
+        "applied": False,
+        "application_stage": "to_apply",
+        "applied_on": None,
+    }
+
+    assert st.mark_applied("custom:acme:1") is False
+    assert st.data["custom:acme:1"]["applied"] is False
+    assert st.data["custom:acme:1"]["application_stage"] == "to_apply"
+
+
 def test_store_auto_csv_export_sync(tmp_path: Path, monkeypatch):
     """Verify Store.save() automatically updates out/tracker.csv."""
     seen_path = tmp_path / "seen.json"

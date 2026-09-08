@@ -151,15 +151,34 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
             else:
                 _TOKEN_CACHE.pop(token_hash, None)
 
-    # 1. Try local PyJWT verification if SUPABASE_JWT_SECRET is configured
+    # 1. Try local PyJWT verification if SUPABASE_JWT_SECRET is configured.
+    # Supabase access tokens use the project auth endpoint as issuer and the
+    # authenticated audience. Validate both when the project URL is available.
     if jwt and jwt_secret:
         try:
+            decode_options = {"verify_signature": True, "verify_exp": True, "verify_aud": False}
+            decode_kwargs: dict[str, Any] = {
+                "algorithms": ["HS256"],
+                "options": decode_options,
+            }
             decoded = jwt.decode(
                 token,
                 jwt_secret,
-                algorithms=["HS256"],
-                options={"verify_signature": True, "verify_exp": True, "verify_aud": False},
+                **decode_kwargs,
             )
+            if not decoded.get("sub"):
+                return None
+            if url:
+                expected_issuer = f"{url}/auth/v1"
+                supplied_issuer = decoded.get("iss")
+                supplied_audience = decoded.get("aud")
+                if supplied_issuer is not None and supplied_issuer != expected_issuer:
+                    return None
+                if supplied_audience is not None and (
+                    supplied_audience != "authenticated"
+                    and not (isinstance(supplied_audience, list) and "authenticated" in supplied_audience)
+                ):
+                    return None
             user_data = {
                 "id": decoded.get("sub"),
                 "email": decoded.get("email"),

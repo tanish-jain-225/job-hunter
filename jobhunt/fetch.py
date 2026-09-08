@@ -59,15 +59,15 @@ class Job:
     def queue_category(self) -> str:
         s = self.score_100
         if s >= 90:
-            return "🔥 Exceptional"
+            return "Exceptional"
         elif s >= 80:
-            return "🟢 Strong Apply"
+            return "Strong Apply"
         elif s >= 70:
-            return "🟡 Apply"
+            return "Apply"
         elif s >= 60:
-            return "⚪ Consider"
+            return "Consider"
         else:
-            return "🔴 Skip"
+            return "Skip"
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)

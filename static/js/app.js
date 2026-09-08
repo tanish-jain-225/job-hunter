@@ -100,7 +100,7 @@ function getElapsedAppliedInfo(j) {
     if (diffDays >= 4) {
       return {
         days: diffDays,
-        badgeText: `⏳ ${diffDays}d ago · Follow Up`,
+        badgeText: `${diffDays}d ago · Follow Up`,
         isDue: diffDays >= 5
       };
     }
@@ -801,42 +801,27 @@ function updateJobSearchButtonState() {
     btn.classList.add('btn-inactive');
     btn.setAttribute('aria-disabled', 'true');
     
-    // Detect specifically what is missing across the three sections
     const missing = [];
-    if (!profile.resume_text || !profile.resume_text.trim()) missing.push("Resume Text (Step 1)");
-    if (!profile.name || !profile.name.trim()) missing.push("Candidate Name (Step 2)");
-    if (!profile.skills || !profile.skills.length) missing.push("Skills (Step 2)");
-    if (!profile.target_keywords || !profile.target_keywords.length) missing.push("Target Job Titles (Step 2)");
-    if (!profile.job_types || !profile.job_types.length) missing.push("Job Types (Step 2)");
-    if (!profile.experience_level) missing.push("Experience Level (Step 2)");
-    
-    let hasLocation = false;
-    if (profile.location_preference) {
-      const locPrefType = typeof profile.location_preference === 'object' ? profile.location_preference.type : profile.location_preference;
-      if (locPrefType && locPrefType !== '') hasLocation = true;
-    }
-    if (Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0) {
-      hasLocation = true;
-    }
-    if (!hasLocation) missing.push("Location Preference (Step 2)");
-    
-    if (profile.min_score_notification == null || String(profile.min_score_notification).trim() === '') missing.push("Min AI Match Score (Step 3)");
-    if (!profile.mail_mode) missing.push("Briefing Mode (Step 3)");
+    if (!profile.name || !profile.name.trim()) missing.push("Candidate Name");
+    const hasSkills = Array.isArray(profile.skills) && profile.skills.length > 0;
+    if (!hasSkills) missing.push("Skills");
+    const hasTargets = Array.isArray(profile.target_keywords) && profile.target_keywords.length > 0;
+    if (!hasTargets) missing.push("Target Job Titles");
 
-    btn.title = `Please fill all three sections to scan. Missing: ${missing.join(', ')}`;
+    btn.title = `Profile incomplete. Missing: ${missing.join(', ')}`;
     if (spinner) spinner.style.display = 'none';
     if (text) text.innerText = 'Run Job Hunt Now';
     if (consoleBox) {
-      consoleBox.innerText = `Candidate radar incomplete. Please configure: ${missing.join(', ')}.`;
+      consoleBox.innerText = `Radar setup incomplete: please configure ${missing.join(', ')} in Profile Settings to activate scanning.`;
     }
   } else {
     btn.disabled = false;
     btn.classList.remove('btn-inactive');
     btn.removeAttribute('aria-disabled');
-    btn.title = 'Click to trigger autonomous job search across target ATS endpoints';
+    btn.title = 'Click to trigger job search across target ATS endpoints';
     if (spinner) spinner.style.display = 'none';
     if (text) text.innerText = 'Run Job Hunt Now';
-    if (consoleBox && (consoleBox.innerText.includes('Candidate radar incomplete') || consoleBox.innerText.includes('System ready'))) {
+    if (consoleBox && (consoleBox.innerText.includes('Radar setup incomplete') || consoleBox.innerText.includes('Candidate radar incomplete') || consoleBox.innerText.includes('System ready'))) {
       consoleBox.innerText = "System ready. Click 'Run Job Hunt Now' to start scanning target ATS endpoints.";
     }
   }
@@ -979,11 +964,11 @@ function renderJobCardHtml(j, isNew = false) {
         <div class="job-score-row">
           <span class="score-badge ${scoreClass}" title="AI Candidate Match Score (${score}/10) — 8.5+ High Fit, 7.0–8.4 Moderate, <7.0 Low">${score}</span>
           <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" onchange="updateJobStageDirect(${escapeJsLiteral(j.job_id)}, this.value)" onclick="event.stopPropagation()">
-            <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>📝 To Apply</option>
-            <option value="applied" ${stage === 'applied' ? 'selected' : ''}>🚀 Applied</option>
-            <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>💬 Interviewing</option>
-            <option value="offer" ${stage === 'offer' ? 'selected' : ''}>🎉 Offer</option>
-            <option value="rejected" ${stage === 'rejected' ? 'selected' : ''}>📁 Archived</option>
+            <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>To Apply</option>
+            <option value="applied" ${stage === 'applied' ? 'selected' : ''}>Applied</option>
+            <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>Interviewing</option>
+            <option value="offer" ${stage === 'offer' ? 'selected' : ''}>Offer</option>
+            <option value="rejected" ${stage === 'rejected' ? 'selected' : ''}>Archived</option>
           </select>
         </div>
         <div class="job-action-btn-row">
@@ -1308,7 +1293,7 @@ function openKitModal(jobId) {
     html += `
       <div class="kit-section">
         <div class="kit-label">
-          <span>⏳ Smart Follow-Up Email Outreach</span>
+          <span>Smart Follow-Up Email Outreach</span>
           <button class="copy-btn" id="btn-copy-followup" data-original="followup" onclick="copySectionText('followup-text', 'btn-copy-followup')">${followupLabelSvg}</button>
         </div>
         <div class="cover-box" id="followup-text" style="background:var(--accent-light, #f0f9ff); border-color:var(--accent, #0284c7);">${escapeHtml(d.followup.email_body)}</div>
@@ -1475,9 +1460,14 @@ function isProfileIncomplete(profile) {
   return !isCandidateProfileFilled(profile);
 }
 
+function onboardingDismissedKey() {
+  const userId = currentAuthSession?.user?.id || currentAuthSession?.user?.email || 'anonymous';
+  return `onboarding_dismissed:${userId}`;
+}
+
 function checkAndPromptOnboarding(profile) {
   if (isOnboardingOpen || isCandidateProfileFilled(profile)) return;
-  if (Storage.get(sessionStorage, 'onboarding_dismissed', false)) return;
+  if (Storage.get(sessionStorage, onboardingDismissedKey(), false)) return;
   setTimeout(() => openOnboardingModal(), 250);
 }
 
@@ -1532,7 +1522,7 @@ function closeOnboardingModal(force = false) {
   if (modalEl) modalEl.classList.remove('active');
   isOnboardingOpen = false;
   selectedOnboardingFile = null;
-  Storage.set(sessionStorage, 'onboarding_dismissed', true);
+  Storage.set(sessionStorage, onboardingDismissedKey(), true);
 }
 
 function switchOnboardingStep(step) {
@@ -1559,7 +1549,7 @@ function switchOnboardingStep(step) {
     if (ind1) { ind1.className = 'step-node completed'; }
     if (ind2) { ind2.className = 'step-node active'; }
     if (conn1) { conn1.className = 'step-connector active'; }
-    if (c1) c1.innerText = '✓';
+    if (c1) c1.innerText = '1';
     if (c2) c2.innerText = '2';
   }
 }
@@ -1647,7 +1637,7 @@ async function submitOnboardingResumeParse() {
       showToast('Resume parsed successfully!', 'success');
       if (alertEl) {
         alertEl.className = 'studio-alert success';
-        alertEl.innerText = `✅ ${data.message}`;
+        alertEl.innerText = data.message;
         alertEl.style.display = 'block';
       }
 
@@ -1678,7 +1668,10 @@ async function submitOnboardingResumeParse() {
       }
       if (previewCard) previewCard.style.display = 'block';
 
-      // Advance to Step 2 so user can review or click Auto-Fill
+      // Automatically pre-populate Step 2 criteria from the extracted profile
+      populateSection2FromProfile(p, true);
+
+      // Advance to Step 2 so user can review
       setTimeout(() => {
         switchOnboardingStep(2);
       }, 700);
@@ -1816,6 +1809,16 @@ function applyRolePreset(presetKey) {
     }
   });
 
+  const profSkillsInput = document.getElementById('prof-skills');
+  if (profSkillsInput) profSkillsInput.value = preset.skills.join(', ');
+  const profTitleInput = document.getElementById('prof-title');
+  if (profTitleInput && !profTitleInput.value.trim()) profTitleInput.value = preset.title;
+
+  const onbText = document.getElementById('onboarding-paste-text');
+  if (onbText && !onbText.value.trim()) {
+    onbText.value = `Target Role: ${preset.title}\nSkills: ${preset.skills.join(', ')}\nFocus Areas: ${preset.targets.join(', ')}`;
+  }
+
   if (!activeProfileData) activeProfileData = {};
   activeProfileData.title = preset.title;
   activeProfileData.skills = preset.skills;
@@ -1823,7 +1826,7 @@ function applyRolePreset(presetKey) {
   activeProfileData.exclude_keywords = preset.excludes;
   activeProfileData.job_types = preset.job_types;
 
-  showToast(`Applied "${preset.title}" preset! Targets & skills updated.`, 'success', 2500);
+  showToast(`Applied "${preset.title}" preset. Targets and skills updated.`, 'success', 2500);
 }
 
 function selectNotificationMode(isDaily) {
@@ -1931,7 +1934,7 @@ async function saveOnboardingProfile(launchScan = false) {
       renderCandidateSummary(savedProfile);
       updateJobSearchButtonState();
       closeOnboardingModal(true);
-      Storage.set(sessionStorage, 'onboarding_dismissed', true);
+      Storage.set(sessionStorage, onboardingDismissedKey(), true);
       showToast('Profile setup complete! Welcome to Job Hunter.', 'success', 3500);
       appState.isSavingProfile = false;
       await syncDashboard(true);
@@ -2015,9 +2018,6 @@ async function openProfileModal(tab = 'resume') {
       if (notifEmail)  notifEmail.value    = p.notification_email || authEmail;
       if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '';
 
-      const geminiKeyInput   = document.getElementById('prof-gemini-key');
-      if (geminiKeyInput)    geminiKeyInput.value    = p.GEMINI_API_KEY || '';
-
       // ── Step 1 Next button: always accessible
       const nextBtn = document.getElementById('profile-next-1');
       if (nextBtn) nextBtn.disabled = false;
@@ -2042,8 +2042,6 @@ async function openProfileModal(tab = 'resume') {
       if (notifEmail && authEmail) notifEmail.value = authEmail;
       if (targetsInput)  targetsInput.value  = '';
       if (excludesInput) excludesInput.value = '';
-      const geminiKeyInput   = document.getElementById('prof-gemini-key');
-      if (geminiKeyInput)    geminiKeyInput.value    = '';
       selectMailMode('none');
     }
   } catch (err) {
@@ -2488,7 +2486,7 @@ function profileWizardGoTo(step) {
       nodeEl.classList.toggle('completed', s < step);
     }
     if (circleEl) {
-      circleEl.innerText = s < step ? '✓' : String(s);
+      circleEl.innerText = String(s);
     }
   });
   [1, 2].forEach(s => {
@@ -2577,7 +2575,7 @@ async function handleResumeFileSelectedAndParse(event) {
   const nextBtn = document.getElementById('profile-next-1');
   const resumeTextInput = document.getElementById('prof-resume-text');
 
-  if (dropText) dropText.innerText = `⏳ Extracting text & candidate profile: ${file.name}...`;
+  if (dropText) dropText.innerText = `Extracting text & candidate profile: ${file.name}...`;
   if (alertEl) { alertEl.style.display = 'none'; }
   if (nextBtn) nextBtn.disabled = false;
 
@@ -2602,8 +2600,28 @@ async function handleResumeFileSelectedAndParse(event) {
       activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: file.name };
 
       // Update dropzone label and text context textarea
-      if (dropText) dropText.innerText = `✅ Text extracted from ${file.name}`;
+      if (dropText) dropText.innerText = `Text extracted from ${file.name}`;
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
+
+      // Populate Step 1 inputs directly
+      const nameInput = document.getElementById('prof-name');
+      const titleInput = document.getElementById('prof-title');
+      const yearsInput = document.getElementById('prof-years');
+      const eduInput = document.getElementById('prof-education');
+      const skillsInput = document.getElementById('prof-skills');
+
+      if (nameInput && p.name) nameInput.value = p.name;
+      if (titleInput && (p.title || p.current_title)) titleInput.value = p.title || p.current_title;
+      if (yearsInput && (p.experience_years != null || p.years_experience != null)) {
+        yearsInput.value = String(p.experience_years ?? p.years_experience);
+      }
+      if (eduInput && p.education) eduInput.value = p.education;
+      if (skillsInput && Array.isArray(p.skills) && p.skills.length > 0) {
+        skillsInput.value = p.skills.join(', ');
+      }
+
+      // Pre-populate Section 2 in memory so when they go to Step 2, it's ready
+      populateSection2FromProfile(p, true);
 
       // Show inline extraction preview
       if (previewCard) {
@@ -2615,10 +2633,9 @@ async function handleResumeFileSelectedAndParse(event) {
         previewCard.style.display = 'block';
       }
 
-      showToast('Resume extracted! Click "Auto-Fill from Resume Context" in Step 2 if you wish to auto-populate fields.', 'success', 3500);
+      showToast('Resume extracted and details populated into profile.', 'success', 3500);
     } else {
-
-      if (dropText) dropText.innerText = `⚠️ ${file.name} — parse notice, click to retry or edit text below`;
+      if (dropText) dropText.innerText = `${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {
         alertEl.className = 'studio-alert info';
         alertEl.innerText = `Notice: ${data.message || 'Resume parsing completed with basic text extraction. You can review details below.'}`;
@@ -2629,8 +2646,8 @@ async function handleResumeFileSelectedAndParse(event) {
   } catch (err) {
     clearTimeout(timeoutId);
     const isTimeout = err.name === 'AbortError';
-    const msg = isTimeout ? 'Parsing took too long — you can edit text or fill details manually.' : err.message;
-    if (dropText) dropText.innerText = `⚠️ ${file.name} — click to retry or edit details below`;
+    const msg = isTimeout ? 'Parsing took too long — you can enter details manually.' : err.message;
+    if (dropText) dropText.innerText = `${file.name} — click to retry or enter details below`;
     if (alertEl) {
       alertEl.className = 'studio-alert info';
       alertEl.innerText = `${msg} Text extracted or entered below can be edited freely before saving.`;
@@ -2722,10 +2739,10 @@ async function submitResumeParse() {
 
     const data = await parseJsonResponse(res);
     if (data.status === 'success') {
-      showToast('Resume parsed! Click "Auto-Fill from Resume Context" to populate fields.', 'success');
+      showToast('Resume parsed and details populated into profile.', 'success');
       if (alertEl) {
         alertEl.className = 'studio-alert success';
-        alertEl.innerText = `✅ ${data.message}`;
+        alertEl.innerText = data.message;
         alertEl.style.display = 'block';
       }
       const p = data.profile || {};
@@ -2811,9 +2828,6 @@ async function saveProfilePreferences() {
   const expLevel = getSelectedExpLevel('prof-exp');
   const locationPref = getLocationPreference('prof-location-pref', 'prof-specific-cities');
 
-  const geminiKeyInput   = document.getElementById('prof-gemini-key');
-  const geminiKey        = geminiKeyInput ? geminiKeyInput.value.trim() : (activeProfileData?.GEMINI_API_KEY || '');
-
   const payload = {
     name,
     title,
@@ -2828,8 +2842,7 @@ async function saveProfilePreferences() {
     mail_mode: mailMode,
     notification_email: notifEmail,
     min_score_notification: notifScore,
-    onboarding_completed: Boolean(name || title || (skills.length > 0) || (targets.length > 0) || resumeText),
-    GEMINI_API_KEY: geminiKey,
+    onboarding_completed: Boolean(name && skills.length > 0 && targets.length > 0),
     job_types: jobTypes,
     experience_level: expLevel,
     location_preference: locationPref,
@@ -2863,7 +2876,7 @@ async function saveProfilePreferences() {
       showToast('Profile saved successfully! Candidate radar updated.', 'success', 3500);
       closeProfileModal();
       closeOnboardingModal(true);
-      Storage.set(sessionStorage, 'onboarding_dismissed', true);
+      Storage.set(sessionStorage, onboardingDismissedKey(), true);
       appState.isSavingProfile = false;
       await syncDashboard(true);
     } else {
@@ -3232,7 +3245,7 @@ async function refreshDigest(force = false) {
     const res = await authFetch('/api/digest?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) {
       if (res.status === 401) {
-        const unauthMarkup = '<div style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#64748b;"><h3>🔒 Authentication Required</h3><p>Please sign in to view your career digest.</p></div>';
+        const unauthMarkup = '<div style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#64748b;"><h3>Authentication Required</h3><p>Please sign in to view your career digest.</p></div>';
         if (container.tagName === 'IFRAME') {
           container.srcdoc = unauthMarkup;
         } else {
@@ -3719,7 +3732,10 @@ async function handleSignOut() {
 async function initAuth() {
   try {
     const res = await fetch('/api/auth/config', { cache: 'no-store' });
-    const cfg = await parseJsonResponse(res);
+      const cfg = await parseJsonResponse(res);
+      if (!res.ok) {
+        throw new Error(cfg.message || 'Authentication service is unavailable.');
+      }
 
     authConfig = {
       auth_required: Boolean(cfg.auth_required),
@@ -3813,6 +3829,7 @@ async function initAuth() {
     }
   } catch (err) {
     console.warn('Auth configuration init error:', err);
+    showToast('Authentication is temporarily unavailable. Please try again later.', 'error', 7000);
     appState.authInitialized = true;
     renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
     renderCandidateSummary(null);

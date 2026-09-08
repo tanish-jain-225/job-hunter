@@ -463,7 +463,9 @@ def api_applied():
             }
         )
     else:
-        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
+        if job_id not in st.data:
+            return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
+        return jsonify({"status": "error", "message": "Job update could not be persisted. Please try again."}), 503
 
 
 @jobs_bp.route("/api/delete", methods=["POST", "DELETE"])
@@ -495,7 +497,9 @@ def api_delete():
             }
         )
     else:
-        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
+        if job_id not in st.data:
+            return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found in tracking store."}), 404
+        return jsonify({"status": "error", "message": "Job deletion could not be persisted. Please try again."}), 503
 
 
 VALID_APPLICATION_STAGES = {"to_apply", "applied", "interviewing", "offer", "rejected"}
@@ -537,7 +541,9 @@ def api_jobs_stage():
             }
         )
     else:
-        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+        if job_id not in st.data:
+            return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+        return jsonify({"status": "error", "message": "Stage update could not be persisted. Please try again."}), 503
 
 
 @jobs_bp.route("/api/jobs/notes", methods=["POST"])
@@ -572,7 +578,9 @@ def api_jobs_notes():
             }
         )
     else:
-        return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+        if job_id not in st.data:
+            return jsonify({"status": "error", "message": f"Job ID '{job_id}' not found."}), 404
+        return jsonify({"status": "error", "message": "Notes could not be persisted. Please try again."}), 503
 
 
 @jobs_bp.route("/api/add", methods=["POST"])
@@ -675,8 +683,11 @@ def api_add():
         applied=applied,
         draft=draft,
     )
+    if not job_id:
+        return jsonify({"status": "error", "message": "Job could not be persisted. Please try again."}), 503
     if stage and stage != "to_apply":
-        st.update_stage(job_id, stage)
+        if not st.update_stage(job_id, stage):
+            return jsonify({"status": "error", "message": "Job stage could not be persisted. Please try again."}), 503
 
     st.export_csv(tracker_csv)
     version = get_store_version(st)

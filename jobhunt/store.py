@@ -216,9 +216,6 @@ class Store:
         # 2. If user_email provided and Supabase is configured, pull from Supabase PostgreSQL memory
         if self.user_email and self.memory.is_configured:
             remote_jobs = self.memory.load_user_jobs(self.user_email, token=self.token)
-            # Fallback: if user JWT read returned empty, retry with service key
-            if not remote_jobs and (self.token or self.use_service_key):
-                remote_jobs = self.memory.load_user_jobs(self.user_email, token=None)
             if remote_jobs:
                 # Purge local jobs that are no longer present in Supabase remote store
                 local_keys = set(self.data.keys())
@@ -228,14 +225,10 @@ class Store:
                 # Merge remote jobs with local store
                 for jid, rjob in remote_jobs.items():
                     self.data[jid] = rjob
-            elif self.data and not self.memory.last_error:
-                # Initial cloud sync of existing local jobs for this user
-                self.memory.bulk_upsert_user_jobs(
-                    self.user_email,
-                    list(self.data.values()),
-                    token=self.token,
-                    use_service_key=self.use_service_key,
-                )
+            elif not self.memory.last_error:
+                # A successful empty result is authoritative. Never resurrect
+                # stale local jobs after a remote deletion or cold start.
+                self.data.clear()
 
         # Ensure all stored jobs have valid, sanitized apply URLs
         changed_urls = False
@@ -257,7 +250,7 @@ class Store:
     def unseen(self, jobs: list[Job]) -> list[Job]:
         return [j for j in jobs if j.job_id not in self.data]
 
-    def record(self, jobs: list[Job], emailed: bool = True) -> None:
+    def record(self, jobs: list[Job], emailed: bool = True) -> bool:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         new_jobs = []
         for j in jobs:
@@ -292,16 +285,25 @@ class Store:
 
         # Cloud sync to Supabase PostgreSQL memory
         if self.user_email and self.memory.is_configured and new_jobs:
-            self.memory.bulk_upsert_user_jobs(
+            persisted = self.memory.bulk_upsert_user_jobs(
                 self.user_email,
                 new_jobs,
                 token=self.token,
                 use_service_key=self.use_service_key,
             )
+            if not persisted:
+                for job in new_jobs:
+                    jid = str(job.get("job_id") or "")
+                    if jid:
+                        self.data.pop(jid, None)
+                self.save()
+                return False
+        return True
 
     def mark_applied(self, job_id: str) -> bool:
         if job_id not in self.data:
             return False
+        previous = dict(self.data[job_id])
         self.data[job_id]["applied"] = True
         self.data[job_id]["applied_on"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         self.data[job_id]["application_stage"] = "applied"
@@ -309,14 +311,19 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_applied(
+            persisted = self.memory.set_job_applied(
                 self.user_email, job_id, applied=True, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data[job_id] = previous
+                self.save()
+                return False
         return True
 
     def unmark_applied(self, job_id: str) -> bool:
         if job_id not in self.data:
             return False
+        previous = dict(self.data[job_id])
         self.data[job_id]["applied"] = False
         self.data[job_id]["applied_on"] = None
         self.data[job_id]["application_stage"] = "to_apply"
@@ -324,14 +331,19 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_applied(
+            persisted = self.memory.set_job_applied(
                 self.user_email, job_id, applied=False, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data[job_id] = previous
+                self.save()
+                return False
         return True
 
     def update_stage(self, job_id: str, stage: str) -> bool:
         if job_id not in self.data or not stage:
             return False
+        previous = dict(self.data[job_id])
         clean_stage = stage.lower().strip()
         applied = clean_stage in ("applied", "interviewing", "offer", "rejected")
         self.data[job_id]["application_stage"] = clean_stage
@@ -344,22 +356,31 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_stage(
+            persisted = self.memory.set_job_stage(
                 self.user_email, job_id, clean_stage, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data[job_id] = previous
+                self.save()
+                return False
         return True
 
     def update_notes(self, job_id: str, notes: str) -> bool:
         if job_id not in self.data:
             return False
+        previous = dict(self.data[job_id])
         self.data[job_id]["notes"] = str(notes or "")
         self.save(auto_export=False)
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.set_job_notes(
+            persisted = self.memory.set_job_notes(
                 self.user_email, job_id, notes, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data[job_id] = previous
+                self.save(auto_export=False)
+                return False
         return True
 
     def mark_emailed(self, job_ids: list[str]) -> int:
@@ -392,14 +413,19 @@ class Store:
     def delete_job(self, job_id: str) -> bool:
         if job_id not in self.data:
             return False
+        previous = self.data[job_id]
         del self.data[job_id]
         self.save()
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.delete_user_job(
+            persisted = self.memory.delete_user_job(
                 self.user_email, job_id, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data[job_id] = previous
+                self.save()
+                return False
         return True
 
     def add_job(
@@ -414,7 +440,7 @@ class Store:
         applied: bool = False,
         draft: dict | None = None,
         job_id: str | None = None,
-    ) -> str:
+    ) -> str | None:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         if not job_id:
             safe_company = "".join(c for c in company.lower() if c.isalnum()) or "company"
@@ -458,9 +484,13 @@ class Store:
 
         # Cloud sync to Supabase
         if self.user_email and self.memory.is_configured:
-            self.memory.save_user_job(
+            persisted = self.memory.save_user_job(
                 self.user_email, job_dict, token=self.token, use_service_key=self.use_service_key
             )
+            if not persisted:
+                self.data.pop(job_id, None)
+                self.save()
+                return None
 
         return job_id
 
@@ -507,15 +537,15 @@ class Store:
                     except (ValueError, TypeError):
                         score_100 = 0
                     if score_100 >= 90:
-                        cat = "🔥 Exceptional"
+                        cat = "Exceptional"
                     elif score_100 >= 80:
-                        cat = "🟢 Strong Apply"
+                        cat = "Strong Apply"
                     elif score_100 >= 70:
-                        cat = "🟡 Apply"
+                        cat = "Apply"
                     elif score_100 >= 60:
-                        cat = "⚪ Consider"
+                        cat = "Consider"
                     else:
-                        cat = "🔴 Skip"
+                        cat = "Skip"
 
                     draft = row.get("draft") or {}
                     row_copy = dict(row)
@@ -606,8 +636,8 @@ def unseen(store: Store, jobs: list[Job]) -> list[Job]:
     return store.unseen(jobs)
 
 
-def record(store: Store, jobs: list[Job], emailed: bool = True) -> None:
-    store.record(jobs, emailed=emailed)
+def record(store: Store, jobs: list[Job], emailed: bool = True) -> bool:
+    return store.record(jobs, emailed=emailed)
 
 
 def mark_applied(store: Store, job_id: str) -> bool:
@@ -622,7 +652,7 @@ def delete_job(store: Store, job_id: str) -> bool:
     return store.delete_job(job_id)
 
 
-def add_job(store: Store, **kwargs) -> str:
+def add_job(store: Store, **kwargs) -> str | None:
     return store.add_job(**kwargs)
 
 

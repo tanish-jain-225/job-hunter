@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 🚀 Production Deployment Guide (100% Free Stack)
+# Production Deployment Guide
 
-Deploy **Job Hunter** as a multi-user, production-ready cloud application capable of supporting hundreds of concurrent candidates indefinitely at **$0 / ₹0 operational cost**.
+Deploy **Job Hunter** as a monitored public-beta cloud application. Capacity, pricing, quotas, and availability depend on Vercel, Supabase, GitHub, AI-provider, ATS, and SMTP limits.
 
 ---
 
-## 🏛️ Free-Tier Cloud Architecture
+## Free-Tier Cloud Architecture
 
 ```text
 ┌────────────────────────────────┐       ┌─────────────────────────────────┐
@@ -31,7 +31,10 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 
 ---
 
-## 📋 Free-Tier Resource Quotas
+## External Limits
+
+The following limits are provider-plan examples, not guarantees. Verify current
+limits and pricing with each provider before launch.
 
 | Service | Free Plan Quotas | What Job Hunter Uses | Cost |
 | :--- | :--- | :--- | :--- |
@@ -43,7 +46,7 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 
 ---
 
-## 🛠️ Step 1: Set Up Supabase Database (2 Minutes)
+## Step 1: Set Up Supabase Database (2 Minutes)
 
 1. Create a free account at [supabase.com](https://supabase.com) and create a new project (e.g. `job-hunter-prod`).
 2. Go to **SQL Editor** in your Supabase dashboard.
@@ -55,16 +58,20 @@ Deploy **Job Hunter** as a multi-user, production-ready cloud application capabl
 5. Go to **Authentication > URL Configuration**:
    * Add your production Vercel domain (e.g. `https://job-hunter.vercel.app`) to **Site URL** and **Redirect URLs**.
 
+Keep `SUPABASE_SERVICE_ROLE_KEY` only in GitHub Actions secrets for the
+multi-user worker. Do not add it to Vercel unless a separately reviewed
+server-side operation requires it, and never expose it to browser code.
+
 ---
 
-## 🔑 Step 2: Get Free AI API Keys (2 Minutes)
+## Step 2: Get Free AI API Keys (2 Minutes)
 
 1. **Google Gemini Flash (Primary AI Engine)**: Visit [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) $\rightarrow$ Create API Key $\rightarrow$ `GEMINI_API_KEY`.
    *(Supports comma-separated keys for instant multi-key rotation: `key1,key2,key3`)*
 
 ---
 
-## 📧 Step 3: Configure SMTP Email Delivery (Optional, 2 Minutes)
+## Step 3: Configure SMTP Email Delivery (Optional, 2 Minutes)
 
 To send automated daily briefings and on-demand alerts:
 
@@ -91,7 +98,6 @@ GEMINI_API_KEY=your-gemini-api-key
 
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 AUTH_REQUIRED=true
 
 SMTP_HOST=smtp.gmail.com
@@ -99,7 +105,8 @@ SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-16-char-app-password
 
-# Optional: GitHub Personal Access Token (for 1-click cloud on-demand radar from web UI)
+# Required for 1-click cloud on-demand radar from the web UI. Use a narrowly scoped
+# server-side token with workflow dispatch permission; never expose it to the browser.
 GH_TOKEN=github_pat_...
 GITHUB_REPOSITORY=your-username/job-hunter
 
@@ -111,9 +118,9 @@ FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
 ---
 
-## ⏰ Step 5: Configure Automated Daily 5:00 AM Cron (GitHub Actions)
+## Step 5: Configure Automated Daily 5:00 AM Cron (GitHub Actions)
 
-Job Hunter automatically executes a centralized single-pass crawl across all active users every weekday morning via GitHub Actions.
+Job Hunter executes a centralized single-pass crawl across eligible users every day at `23:30 UTC` (`05:00 IST`) via GitHub Actions.
 
 1. Go to your GitHub repository > **Settings > Secrets and variables > Actions**.
 2. Add the following **Repository Secrets**:
@@ -131,7 +138,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 
 ---
 
-## 👥 Multi-User Candidate Experience
+## Multi-User Candidate Experience
 
 1. Any candidate visits `https://your-project.vercel.app`.
 2. Signs in with email/password or Magic Link.
@@ -143,7 +150,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 
 ---
 
-## 🔒 Security & Tenant Isolation Guarantee
+## Security & Tenant Isolation Guarantee
 
 * **Row-Level Security (RLS)**: PostgreSQL enforces that users can only view and update their own tracked jobs, application kits, and profiles.
 * **No File Persistence**: Uploaded resumes are decoded in-memory for one-time text extraction; no candidate PDFs or binary documents are stored on disk or cloud buckets.
@@ -151,7 +158,7 @@ Job Hunter automatically executes a centralized single-pass crawl across all act
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.

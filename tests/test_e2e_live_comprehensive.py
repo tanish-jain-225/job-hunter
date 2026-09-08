@@ -150,7 +150,7 @@ class TestE2ELiveSuite:
         assert data["service"] == "job-hunter"
         assert "version" in data
         assert "environment" in data
-        print("\n [✓] 1.1 Health endpoint verified healthy")
+        print("\n [OK] 1.1 Health endpoint verified healthy")
 
     def test_02_config_endpoint(self, client):
         resp = client.get("/api/config", headers=AUTH_HEADERS)
@@ -159,7 +159,7 @@ class TestE2ELiveSuite:
         assert data["status"] == "success"
         assert "filters" in data
         assert "companies_count" in data
-        print(" [✓] 1.2 Config endpoint verified")
+        print(" [OK] 1.2 Config endpoint verified")
 
     def test_03_index_html_and_asset_versions(self, client):
         resp = client.get("/")
@@ -174,7 +174,7 @@ class TestE2ELiveSuite:
         assert 'id="add-company-modal"' in html
         assert 'id="add-job-modal"' in html
         assert 'id="toast-container"' in html
-        print(" [✓] 1.3 Main HTML dashboard rendered with all modals & v1.0.3 assets")
+        print(" [OK] 1.3 Main HTML dashboard rendered with all modals & v1.0.3 assets")
 
     def test_04_security_headers(self, client):
         resp = client.get("/")
@@ -184,7 +184,7 @@ class TestE2ELiveSuite:
         assert headers.get("X-Content-Type-Options") == "nosniff"
         assert headers.get("X-Frame-Options") in ("DENY", "SAMEORIGIN")
         assert headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
-        print(" [✓] 1.4 Security headers (CSP, Permissions-Policy, X-Frame-Options, etc.) verified")
+        print(" [OK] 1.4 Security headers (CSP, Permissions-Policy, X-Frame-Options, etc.) verified")
 
     def test_05_unauthorized_rejection(self, client, monkeypatch):
         # Temporarily enable AUTH_REQUIRED and clear user context to test actual 401 gate
@@ -199,7 +199,7 @@ class TestE2ELiveSuite:
         data = resp.get_json()
         assert data["status"] == "error"
         assert "Authentication" in data["message"]
-        print(" [✓] 1.5 Protected routes reject unauthenticated requests with HTTP 401")
+        print(" [OK] 1.5 Protected routes reject unauthenticated requests with HTTP 401")
 
     # -------------------------------------------------------------------------
     # 2. Candidate Profile & Resume Studio
@@ -217,7 +217,7 @@ class TestE2ELiveSuite:
         assert "tanish" in profile.get("name", "").lower()
         assert len(profile.get("skills", [])) > 0
         assert len(profile.get("resume_text", "")) > 100
-        print(f" [✓] 2.1 Resume text upload succeeded: Name={profile.get('name')}, Skills={len(profile.get('skills', []))}")
+        print(f" [OK] 2.1 Resume text upload succeeded: Name={profile.get('name')}, Skills={len(profile.get('skills', []))}")
 
     def test_07_resume_upload_multipart_file(self, client):
         file_data = io.BytesIO(SAMPLE_RESUME_TEXT.encode("utf-8"))
@@ -230,7 +230,7 @@ class TestE2ELiveSuite:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["status"] == "success"
-        print(" [✓] 2.2 Multipart resume upload succeeded with structured parsing")
+        print(" [OK] 2.2 Multipart resume upload succeeded with structured parsing")
 
     def test_08_profile_preferences(self, client):
         update_payload = {
@@ -251,7 +251,7 @@ class TestE2ELiveSuite:
         prefs = get_resp.get_json()["preferences"]
         assert "Mumbai" in prefs["preferred_locations"]
         assert "fulltime" in prefs["job_types"]
-        print(" [✓] 2.3 Profile preferences (locations, salary, roles) saved and retrieved")
+        print(" [OK] 2.3 Profile preferences (locations, salary, roles) saved and retrieved")
 
     def test_09_full_profile_crud_and_reset(self, client):
         profile_data = {
@@ -273,7 +273,7 @@ class TestE2ELiveSuite:
         reset_resp = client.post("/api/profile/reset", headers=AUTH_HEADERS)
         assert reset_resp.status_code == 200
         assert reset_resp.get_json()["status"] == "success"
-        print(" [✓] 2.4 Candidate profile CRUD and Reset verified")
+        print(" [OK] 2.4 Candidate profile CRUD and Reset verified")
 
     # -------------------------------------------------------------------------
     # 3. ATS Career Board Detection & Tracking (/api/companies/add)
@@ -293,7 +293,7 @@ class TestE2ELiveSuite:
             company = data["company"]
             assert company["ats"] == expected_ats
             assert company["slug"].lower() == expected_slug.lower()
-        print(" [✓] 3.1 Live ATS portal auto-detection verified (Greenhouse, Lever, Ashby, Workable)")
+        print(" [OK] 3.1 Live ATS portal auto-detection verified (Greenhouse, Lever, Ashby, Workable)")
 
     # -------------------------------------------------------------------------
     # 4. Job Tracker & Pipeline Lifecycle
@@ -371,7 +371,7 @@ class TestE2ELiveSuite:
         assert del_resp.status_code == 200
         assert del_resp.get_json()["status"] == "success"
 
-        print(" [✓] 4.1 Job Tracker full lifecycle verified (Add -> Filter -> Search -> Sort -> Apply -> Notes -> Stats -> CSV -> Delete)")
+        print(" [OK] 4.1 Job Tracker full lifecycle verified (Add -> Filter -> Search -> Sort -> Apply -> Notes -> Stats -> CSV -> Delete)")
 
     # -------------------------------------------------------------------------
     # 5. AI Intelligence & Application Kit
@@ -389,7 +389,7 @@ class TestE2ELiveSuite:
         parsed_thinking = llm.parse_json(thinking_json)
         assert parsed_thinking["fit_summary"] == "Excellent fit"
 
-        print(" [✓] 5.1 AI Intelligence JSON parser, fence stripper & reasoning handler verified")
+        print(" [OK] 5.1 AI Intelligence JSON parser, fence stripper & reasoning handler verified")
 
     # -------------------------------------------------------------------------
     # 6. Daily Digest Briefing
@@ -399,7 +399,7 @@ class TestE2ELiveSuite:
         assert resp.status_code == 200
         assert "text/html" in resp.content_type
         assert len(resp.get_data(as_text=True)) > 0
-        print(" [✓] 6.1 Daily Executive Digest briefing generation verified (HTML output)")
+        print(" [OK] 6.1 Daily Executive Digest briefing generation verified (HTML output)")
 
     # -------------------------------------------------------------------------
     # 7. Cloud State Synchronization
@@ -412,4 +412,4 @@ class TestE2ELiveSuite:
         assert "stats" in data
         assert "pipeline" in data
         assert "ats_counts" in data
-        print(" [✓] 7.1 Cloud state bidirectional synchronization verified (/api/sync)")
+        print(" [OK] 7.1 Cloud state bidirectional synchronization verified (/api/sync)")

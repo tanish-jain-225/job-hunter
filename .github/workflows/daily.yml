@@ -24,7 +24,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: jobhunt-${{ github.event.inputs.mode || 'scheduled' }}-${{ github.event.inputs.user_email || 'all-users' }}
@@ -93,6 +93,10 @@ jobs:
             echo "Running authenticated single-user pipeline..."
             python -u -m jobhunt multi-run --user-email "$TARGET_USER_EMAIL" --send
           elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ "${{ github.event.inputs.mode }}" != "single" ]; then
+            if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+              echo "SUPABASE_SERVICE_ROLE_KEY is required for multi-user batch mode."
+              exit 1
+            fi
             echo "Running Centralized Multi-User Batch Pipeline..."
             python -u -m jobhunt multi-run
           else

@@ -25,6 +25,7 @@ from ..state import (
     get_user_profile,
     sanitize_profile_for_response,
 )
+from .profile import is_profile_complete
 
 pipeline_bp = Blueprint("pipeline", __name__)
 logger = logging.getLogger(__name__)
@@ -151,9 +152,6 @@ def api_sync():
     if email and memory.is_configured:
         try:
             recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
-            # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
-            if not recent_runs and token:
-                recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
             if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
                 last_run = recent_runs[0]
                 run_ts_raw = str(last_run.get("run_timestamp") or "")
@@ -344,8 +342,6 @@ def api_digest():
     profile_data = None
     if email and memory.is_configured:
         remote_profile = memory.get_user_profile(email, token=token)
-        if not remote_profile and token:
-            remote_profile = memory.get_user_profile(email, token=None)
         if remote_profile:
             profile_data = remote_profile.get("profile_json") or remote_profile
 
@@ -385,8 +381,6 @@ def api_digest():
     if email and memory.is_configured:
         recent_runs = memory.get_pipeline_history(email, limit=1, token=token)
         # Fallback: pipeline writes used service_role; retry with service key if JWT read was empty
-        if not recent_runs and token:
-            recent_runs = memory.get_pipeline_history(email, limit=1, token=None)
         if recent_runs and isinstance(recent_runs, list) and len(recent_runs) > 0:
             latest_run = recent_runs[0]
             if latest_run.get("jobs_scanned"):
@@ -494,7 +488,7 @@ def api_digest():
                 "latest_digest_shortlisted": len(jobs_list),
                 "latest_digest_job_ids": [j.job_id for j in jobs_list],
             }
-            memory.update_user_profile_json(email, digest_meta, token=token, use_service_key=not bool(token))
+            memory.update_user_profile_json(email, digest_meta, token=token, use_service_key=False)
         except Exception:
             pass
 
@@ -530,7 +524,7 @@ def api_run():
     memory = SupabaseMemory(token=token)
 
     clear_user_pipeline_logs(email)
-    publish_user_pipeline_log(email, "🚀 Initializing Job Hunter autonomous radar...")
+    publish_user_pipeline_log(email, "Initializing Job Hunter autonomous radar...")
 
     now_utc = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     set_user_pipeline_state(
@@ -551,12 +545,7 @@ def api_run():
             user_profile = get_user_profile(cfg_temp, email, token)
 
     # Guard: block pipeline if candidate profile is still empty/incomplete
-    profile_is_stub = not user_profile or (
-        not bool(user_profile.get("onboarding_completed"))
-        and not (user_profile.get("name") or "").strip()
-        and not (user_profile.get("skills") or [])
-        and not (user_profile.get("target_keywords") or [])
-    )
+    profile_is_stub = not user_profile or not is_profile_complete(user_profile)
     if profile_is_stub:
         set_user_pipeline_state(
             email,
@@ -657,7 +646,7 @@ def api_run():
                         "logs": "Cloud Radar queued in GitHub Actions.",
                     },
                     token=token,
-                    use_service_key=not bool(token),
+                    use_service_key=False,
                 )
                 pipe_st = get_user_pipeline_state(email)
                 return jsonify(

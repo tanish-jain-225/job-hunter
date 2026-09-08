@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 profile_bp = Blueprint("profile", __name__)
 
 
+def is_profile_complete(profile: dict[str, Any]) -> bool:
+    """Return whether a candidate has the minimum data required to run a hunt."""
+    if profile.get("onboarding_completed") is True:
+        return True
+    name = str(profile.get("name") or "").strip()
+    skills = profile.get("skills") or profile.get("core_skills") or []
+    targets = profile.get("target_keywords") or profile.get("target_titles") or []
+    has_skills = isinstance(skills, (list, tuple, set)) and any(str(item).strip() for item in skills)
+    has_targets = isinstance(targets, (list, tuple, set)) and any(str(item).strip() for item in targets)
+    return bool(name and has_skills and has_targets)
+
+
 def _extract_skills_from_text(resume_text: str) -> list[str]:
     """Safely extract skills from resume text using strict word boundaries to avoid false substring matches."""
     if not resume_text:
@@ -105,19 +117,9 @@ def api_profile():
         if not email:
             return jsonify({"status": "error", "message": "Authenticated user email required."}), 400
 
-        skills_val = data.get("skills")
-        target_val = data.get("target_keywords")
         for field in ("name", "title", "resume_text"):
             if field in data and not isinstance(data[field], str):
                 return jsonify({"status": "error", "message": f"{field} must be a string."}), 400
-        # Mark onboarding complete only if candidate criteria exist
-        data["onboarding_completed"] = bool(
-            (data.get("name") or "").strip()
-            or (data.get("title") or "").strip()
-            or (isinstance(skills_val, list) and len(skills_val) > 0)
-            or (isinstance(target_val, list) and len(target_val) > 0)
-        )
-
         # Merge with existing profile in Supabase so existing background data is preserved
         existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
         merged_profile = {**(existing or {}), **data}
@@ -128,6 +130,12 @@ def api_profile():
             found_skills = _extract_skills_from_text(data_resume_text)
             if found_skills:
                 merged_profile["skills"] = found_skills[:12]
+
+        merged_profile["onboarding_completed"] = is_profile_complete(merged_profile)
+        for key in list(merged_profile):
+            normalized = str(key).lower().replace("-", "_")
+            if any(marker in normalized for marker in ("api_key", "token", "secret", "password")):
+                merged_profile.pop(key, None)
 
         if memory.is_configured:
             if not memory.upsert_user_profile(email, merged_profile, token=token):

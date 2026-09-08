@@ -313,7 +313,8 @@ def test_api_health(client, monkeypatch):
     # Test Vercel environment detection
     monkeypatch.setenv("VERCEL", "1")
     res_vercel = client.get("/api/health")
-    assert res_vercel.status_code == 200
+    assert res_vercel.status_code == 503
+    assert res_vercel.get_json()["status"] == "misconfigured"
     assert res_vercel.get_json()["environment"] == "vercel"
 
 

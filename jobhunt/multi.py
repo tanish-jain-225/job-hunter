@@ -120,7 +120,7 @@ def run_multi_user_pipeline(
     memory = SupabaseMemory()
 
     print("=" * 70)
-    print(" 🏹 JOB HUNTER — Multi-User Automated Batch Pipeline")
+    print(" JOB HUNTER -- Multi-User Automated Batch Pipeline")
     print("=" * 70)
 
     # 1. Fetch all raw jobs ONCE (shared pool)
@@ -377,7 +377,7 @@ def run_multi_user_pipeline(
                     mailer.send(subject, html_content, to_email=target_email)
                     dispatched = True
                     dispatched_emails += 1
-                    print("  ✓ Email briefing dispatched successfully!")
+                    print("  [OK] Email briefing dispatched successfully!")
 
                     # Mark shortlisted jobs as emailed using the Store helper
                     # (handles Supabase sync atomically in one bulk_upsert call)
@@ -437,7 +437,7 @@ def run_multi_user_pipeline(
     }
 
     print("\n" + "=" * 70)
-    print(" 🏁 MULTI-USER BATCH EXECUTION COMPLETE")
+    print(" MULTI-USER BATCH EXECUTION COMPLETE")
     print(
         f" Users: {users_processed} | Scanned: {len(raw_jobs)} | Shortlisted: {total_shortlisted} | Emails: {dispatched_emails}"
     )

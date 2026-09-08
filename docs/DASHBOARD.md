@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="90" height="90">
 </p>
 
-# 🖥️ Web Dashboard & REST API Reference Guide
+# Web Dashboard & REST API Reference Guide
 
 **Job Hunter** includes a built-in, local, interactive Flask-based web dashboard engineered with an **Application Factory Pattern** (`jobhunt.web.create_app`) and **Modular Blueprints**. It provides a visual interface to browse discovered job postings, manage an interactive 5-stage application pipeline, extract candidate profiles with Resume Studio, launch tailored cover letters/resumes, and trigger job searches on demand.
 
 ---
 
-## 🏃 How to Start the Dashboard
+## How to Start the Dashboard
 
 To launch the web server locally, activate your virtual environment and run:
 
@@ -30,11 +30,11 @@ HOST=0.0.0.0
 
 ---
 
-## 🎨 User Interface Features
+## User Interface Features
 
 The dashboard is designed as a single-page application with a premium Light Mode theme and an ultra-responsive layout engineered to scale gracefully from multi-monitor 4K displays down to 300px mobile viewports without horizontal overflow, supporting the following features:
 
-### 1. 📋 Interactive Job Board & Responsive Pagination
+### 1.  Interactive Job Board & Responsive Pagination
 * **Table / Card List View**: High-density interactive board displaying match scores, ATS tags, company names, locations, smart follow-up nudges, and application kit inspectors.
 * **Client-Side Responsive Pagination**: Fast, ergonomic pagination bar supporting 10, 25, or 50 opportunities per page, dynamic ellipsis navigation, and persistent page-size preference stored in `localStorage`.
 * **5-Stage Pipeline Dropdown Selector**: Organize opportunities directly within each job card across 5 interactive pipeline stages:
@@ -43,73 +43,73 @@ The dashboard is designed as a single-page application with a premium Light Mode
   * **Interviewing** (`interviewing`)
   * **Offer** (`offer`)
   * **Rejected / Archived** (`rejected`)
-* Instant 1-click stage dropdown transitions with optimistic UI updates and automated elapsed-time badges (`⏳ 5d ago · Follow Up`).
+* Instant 1-click stage dropdown transitions with optimistic UI updates and automated elapsed-time badges (`5d ago · Follow Up`).
 
-### 2. 📄 Resume Studio & AI Profile Extraction
+### 2.  Resume Studio & AI Profile Extraction
 * In-dashboard PDF and text resume uploader with drag-and-drop support.
 * Automatically parses uploaded resumes via the configured AI provider (default: **Google Gemini `gemini-3.5-flash`**; also supports **Anthropic Claude** native document blocks) into structured candidate skills, target titles, seniority, and notable projects.
 * **Resilient Latency Protection**: Enforces a 30s backend execution ceiling and 45s frontend timeout, with an automatic smart local regex fallback that guarantees candidate name, title, education, and technical skills are extracted even during upstream AI provider service spikes (e.g. HTTP 503).
 * **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
 
-### 3. ⚡ Zero-Refresh Real-Time State Sync
+### 3.  Zero-Refresh Real-Time State Sync
 * Changes made in any tab (stage updates, notes, manual additions, applied toggles) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.
 * Deterministic version tokens dynamically hash job stages, private notes, fit scores, and timestamps.
 * A **Live Synced** status pill in the top header provides visual pulse indicators and one-click manual synchronization.
 
-### 4. 📊 Executive Metrics Panel
+### 4.  Executive Metrics Panel
 * Real-time metric pills summarize your tracking status: **Tracked** (total database size), **Emailed** (matches dispatched), and **Applied** (jobs marked as submitted).
 * Filter pills provide one-click status switching between *All Jobs*, *Shortlisted (7.0+)*, *Applied*, and *Unapplied* with live counts.
 
-### 5. 🔍 Search, Sort, and Status Filters
+### 5.  Search, Sort, and Status Filters
 * **Interactive Search Bar:** Query by company name, job title, locations, or specific technologies. Press `/` anywhere on the page to focus the search bar, with instant clearing via `Esc`.
 * **Crawl Source Filter:** Filter by ATS platform (*Greenhouse*, *Lever*, *Ashby*, *Workable*, *SmartRecruiters*, *BambooHR*, *Recruitee*, *Breezy HR*, *Pinpoint*, or *Custom*).
 * **Sorting Options:** Sort jobs by *Date*, *Match Score*, or *Company*.
 
-### 6. 📄 Briefing Digest Reader & Kit Inspector
+### 6.  Briefing Digest Reader & Kit Inspector
 * View the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or force a live rebuild.
 * Click **"View Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored cold outreach messages and custom cover notes.
 
-### 7. 🤖 Live Pipeline Trigger
+### 7.  Live Pipeline Trigger
 * An **"On-Demand Pipeline Trigger"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.
 
-### 8. 🔒 Supabase Authentication & Session Protection
+### 8.  Supabase Authentication & Session Protection
 * Enterprise-grade authentication via **Supabase Auth** protects confidential career intelligence, target match scores, application drafts, and pipeline trigger controls.
 * All production deployments require authentication for private REST API endpoints, regardless of an accidental `AUTH_REQUIRED=false` setting. Local single-user development may explicitly disable authentication.
 * Authenticated profile data is loaded per user from Supabase, with an isolated user cache used only as a local resilience fallback.
 
-### 9. ➕ Manual Opportunity Tracking ("+ Add Opportunity")
+### 9.  Manual Opportunity Tracking ("+ Add Opportunity")
 * Click **"+ Add Opportunity"** directly on the Tracker toolbar to track external roles found via LinkedIn, company career portals, or personal referrals.
 * Automatically scores fit and drafts an Application Kit on demand using your candidate profile.
 
-### 10. 🏢 Custom Target Board Manager ("+ Add Board")
+### 10.  Custom Target Board Manager ("+ Add Board")
 * Click **"+ Add Board"** on the Tracker toolbar to add any arbitrary company careers URL.
 * Built-in ATS engine auto-detection identifies Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint portals with live HTTP verification.
 * Custom boards are saved to your profile and automatically crawled in morning runs.
 
-### 11. ⏳ Smart Follow-Up Nudges & Outreach Generator
-* Applied roles automatically display elapsed-time badges (`⏳ 5d ago · Follow Up`) directly on job cards.
+### 11.  Smart Follow-Up Nudges & Outreach Generator
+* Applied and interviewing roles display a follow-up badge after four elapsed days; the item is due from day five.
 * Click to generate personalized follow-up emails and LinkedIn networking DMs with 1-click clipboard copy.
 
-### 12. ⚡ Real-Time Server-Sent Events (SSE) Live Radar Log Streaming
+### 12.  Real-Time Server-Sent Events (SSE) Live Radar Log Streaming
 * The on-demand pipeline console streams live logs line-by-line via Server-Sent Events (`/api/pipeline/stream`) without polling lag.
 
-### 13. 🔒 Strict View State Isolation & Zero Data Leakage
+### 13.  Strict View State Isolation & Zero Data Leakage
 * **Isolated Landing vs Dashboard**: Unauthenticated visitors are confined to the public landing page (`#landing-view` and `#landing-nav-links`). Authenticated dashboard layouts (`#dashboard-view`) and header metric summaries (`#header-metrics`) are isolated and hidden with `.app-view-hidden` (`display: none !important; visibility: hidden !important; pointer-events: none !important;`).
 * **Utility Access Guards (`checkAuthOrRedirect`)**: All utility triggers (manual sync, on-demand radar runner, tab switching, custom opportunity tracking, custom company additions, kit inspector, profile settings, and `/` search focus) are locked until authenticated. Unauthenticated clicks trigger the sign-in modal with explanatory toasts.
 * **Complete Session Cleanup**: Signing out purges all in-memory jobs, profile context, DOM elements, and removes cached stats/profiles from `localStorage`.
 
-### 14. 📱 Pure Flexbox Fluid Responsiveness down to 300px
-* Engineered with modern flexbox layouts and micro-viewport media queries (`<= 480px`, `<= 380px`, `<= 340px`, and `<= 300px`).
+### 14.  Responsive Fluid Layout
+* Engineered with responsive Flexbox-based layouts and micro-viewport media queries (`<= 480px`, `<= 380px`, `<= 340px`, and `<= 300px`).
 * Eliminates horizontal scrolling, wraps action buttons, and scales modals fluidly to `calc(100vw - 2px)`.
 * Features brand logo thumbnails and active attribution footers linking directly to `https://job-hunter-web-board.vercel.app`.
 
-### 15. ✨ Interactive Subtle Workflow Guide Banner
+### 15.  Interactive Subtle Workflow Guide Banner
 * A dismissible 4-step workflow guide banner at the top of the Interactive Job Board introduces the Match Score, Application Kit, Direct Apply, and 4-Day Follow-Up lifecycle stages.
-* Includes a discreet dismiss button `[×]` persisted in `localStorage`, and an **`ℹ️ Guide`** toggle button on the tracker bar to reopen the guide anytime.
+* Includes a discreet dismiss button `[×]` persisted in `localStorage`, and an **` Guide`** toggle button on the tracker bar to reopen the guide anytime.
 
 ---
 
-## 📡 REST API Reference
+## REST API Reference
 
 The dashboard web server exposes a clean, authenticated REST API. When authentication is enabled, requests include the Bearer token header (case-insensitive):
 ```http
@@ -239,7 +239,7 @@ Removes a job entry completely from the tracking store.
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.

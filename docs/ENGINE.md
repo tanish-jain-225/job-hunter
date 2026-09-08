@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# ⚙️ Job Matching & Scoring Engine Guide
+# Job Matching & Scoring Engine Guide
 
 The core power of **Job Hunter** lies in its deterministic filtering and two-stage LLM evaluation pipeline. The engine is optimized for **zero API costs**, **token efficiency**, and **high resilience** to network/API rate failures.
 
 ---
 
-## 🏗️ Pipeline Phases
+## Pipeline Phases
 
 Each run executes a sequential funnel to filter down thousands of job postings into a few top matches.
 
@@ -29,11 +29,11 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 * **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
 * **Date Freshness:** Discards jobs published longer than `max_age_days` (default `21` days) ago.
 
-*Typically, this phase drops ~98% of jobs, reducing a crawl of 2,000 listings down to ~40 candidates for LLM screening.*
+The reduction depends on the configured companies, filters, and current postings; the percentages below are illustrative rather than guarantees.
 
 ---
 
-## 🤖 Phase 2: LLM Screening & Scoring (Token Efficient)
+## Phase 2: LLM Screening & Scoring (Token Efficient)
 
 For the surviving postings, Job Hunter performs a cheap, batched evaluation pass to score how well the job description aligns with your resume profile.
 
@@ -62,7 +62,7 @@ The LLM returns a JSON list:
 
 ---
 
-## ✍️ Phase 3: LLM Drafting (Application Kit Generation)
+## Phase 3: LLM Drafting (Application Kit Generation)
 
 Only jobs that score at or above the **`score_threshold`** (default `7.0/10`) progress to this stage. Here, the system performs a detailed, single-job analysis.
 
@@ -78,11 +78,11 @@ The engine sends the full job description (up to **6,000 characters**, configure
 
 ---
 
-## ⏳ Phase 4: Smart Follow-Up Outreach Engine
+## Phase 4: Smart Follow-Up Outreach Engine
 
 For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapsed time since application date. If more than 4 days have elapsed without response:
 
-* **Automated Nudges**: Injects `⏳ Xd ago · Follow Up` badges directly onto interactive job cards.
+* **Automated Nudges**: Injects `Xd ago · Follow Up` badges directly onto interactive job cards.
 * **On-Demand Generation (`jobhunt.llm.generate_followup_note`)**: Produces context-aware follow-up templates:
   * **Email Subject & Body**: References the exact job title, company name, submission date, and reiterates enthusiasm without being pushy.
   * **LinkedIn Networking DM**: Compact (<80 words) direct message to connect with recruiters or hiring team members.
@@ -90,7 +90,7 @@ For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapse
 
 ---
 
-## 🔌 AI Providers (`providers.py`)
+## AI Providers (`providers.py`)
 
 Job Hunter routes all intelligence phases through the configured AI provider — **Google Gemini (`gemini-3.5-flash`)** by default, with Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint supported via env var overrides.
 
@@ -111,7 +111,7 @@ GEMINI_API_KEY=AIzaSy_...        # Default: batch screening & rich drafting (1M 
 
 ---
 
-## 🛡️ Resilience & Fallback Mechanics
+## Resilience & Fallback Mechanics
 
 Job Hunter is built to ensure a scheduled crawl never fails due to network hiccups, API outages, or rate limits.
 
@@ -122,7 +122,7 @@ If your LLM provider is down, hits rate limits, or is not configured, the engine
 * This allows the digest to still build and send with basic relevance matching, entirely offline!
 
 ### 2. Forgiving JSON Parser (`llm.parse_json`)
-LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles/conversations. Job Hunter uses an intelligent, regex-backed parser that extracts only the valid JSON substring and handles missing brackets or commas gracefully, preventing model parsing errors from crashing runs.
+LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles. Job Hunter strips fences, removes trailing commas, and extracts a bounded JSON substring. Arbitrarily malformed JSON can still fail and is handled by the surrounding provider fallback logic.
 
 ### 3. Multi-Key Round-Robin & Model Cascading
 * **Strict Primary Model**: Screening and drafting stages default strictly to **Google Gemini (`gemini-3.5-flash`)**.
@@ -134,7 +134,7 @@ LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or incl
 
 ---
 
-## 🔗 Documentation Links
+## Documentation Links
 
 - **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.

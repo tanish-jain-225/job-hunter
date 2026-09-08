@@ -19,8 +19,10 @@
           <span class="notif-badge-off" id="notif-badge-indicator">Email Alerts: Off</span>
         </div>
         <div class="sidebar-guide-tip" id="sidebar-guide-tip">
-          <span class="sidebar-tip-icon">💡</span>
-          <span class="sidebar-tip-text">Upload your resume in Settings to calibrate AI fit scoring for your exact career level.</span>
+          <span class="sidebar-tip-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </span>
+          <span class="sidebar-tip-text">Upload your resume in Settings to calibrate AI fit scoring for your career level.</span>
         </div>
       </div>
       <button class="btn btn-secondary btn-sm studio-btn-manage" id="btn-sidebar-settings" onclick="openProfileModal()" title="Customize target roles, skills, locations, and alerts">
@@ -94,38 +96,34 @@
       <div class="workflow-guide-banner" id="workflow-guide-banner">
         <div class="guide-banner-header">
           <div class="guide-banner-title">
-            <span class="guide-banner-badge">✨ Quick Guide</span>
-            <span>How Job Hunter Works for You</span>
+            <span class="guide-banner-badge">Quick Guide</span>
+            <span>How Job Hunter Works</span>
           </div>
-          <button class="guide-banner-dismiss" onclick="dismissWorkflowGuide()" title="Dismiss guide" aria-label="Dismiss guide">×</button>
+          <button class="guide-banner-dismiss" onclick="dismissWorkflowGuide()" title="Dismiss guide" aria-label="Dismiss guide">&times;</button>
         </div>
         <div class="guide-banner-steps">
           <div class="guide-step-item">
-            <span class="guide-step-icon">🎯</span>
             <div>
-              <strong>1. AI Match Score</strong>
-              <p>Evaluates technical fit &amp; seniority (0.0–10.0). Focus on 7.0+ matches.</p>
+              <strong>1. Fit Score</strong>
+              <p>Evaluates technical alignment and seniority (0.0&ndash;10.0). Focus on 7.0+ matches.</p>
             </div>
           </div>
           <div class="guide-step-item">
-            <span class="guide-step-icon">✍️</span>
             <div>
-              <strong>2. AI Application Kit</strong>
-              <p>Click "Inspect Kit" for tailored cover notes, resume bullets &amp; LinkedIn DMs.</p>
+              <strong>2. Application Kit</strong>
+              <p>Click "Inspect Kit" for tailored cover notes, resume bullets &amp; outreach notes.</p>
             </div>
           </div>
           <div class="guide-step-item">
-            <span class="guide-step-icon">🚀</span>
             <div>
-              <strong>3. Direct Apply &amp; Track</strong>
-              <p>Open official ATS link, apply, and update stage: <em>To Apply → Applied</em>.</p>
+              <strong>3. Apply &amp; Track</strong>
+              <p>Open official ATS link, apply, and update stage: <em>To Apply &rarr; Applied</em>.</p>
             </div>
           </div>
           <div class="guide-step-item">
-            <span class="guide-step-icon">⏳</span>
             <div>
-              <strong>4. Smart Follow-Up</strong>
-              <p>Follow-up alert badges appear automatically after 4 days with pre-drafted nudges.</p>
+              <strong>4. Follow-Up Alerts</strong>
+              <p>Follow-up badges appear automatically after 4 days with draft nudges.</p>
             </div>
           </div>
         </div>
@@ -139,7 +137,7 @@
             <input type="text" class="form-input tracker-search" id="tracker-search-input"
                    placeholder="Search company, title, location... (Press '/' to search)" oninput="handleSearchInput()"
                    aria-label="Search company, title, location">
-            <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;" aria-label="Clear search">✕</button>
+            <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" title="Clear search" style="display:none;" aria-label="Clear search">&times;</button>
             <span class="search-kbd-hint" title="Press '/' to focus search">/</span>
           </div>
           

@@ -165,6 +165,7 @@ def test_app_api_run_pipeline_exception_handling(client, monkeypatch: pytest.Mon
 
 def test_app_api_add_with_ai_scoring(client, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app._get_current_user_context", lambda: ("user_add@example.com", "token"))
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: False))
     monkeypatch.setattr("jobhunt.llm.resolve", lambda stage: (MagicMock(name="prov"), "model-test"))
 
     def mock_screen(jobs, prof, **kwargs):

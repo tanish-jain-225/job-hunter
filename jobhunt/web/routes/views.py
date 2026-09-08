@@ -25,9 +25,11 @@ def api_health():
     """Service health check endpoint for monitoring, Vercel status, and uptime verification."""
     is_vercel = os.environ.get("VERCEL") == "1"
     supabase_cfg = get_supabase_config()
+    auth_backend_ready = bool(supabase_cfg.get("supabase_url") and supabase_cfg.get("supabase_anon_key"))
+    production_misconfigured = is_vercel and not auth_backend_ready
     return jsonify(
         {
-            "status": "healthy",
+            "status": "misconfigured" if production_misconfigured else "healthy",
             "service": "job-hunter",
             "version": "1.0.0",
             "environment": "vercel" if is_vercel else "local",
@@ -39,7 +41,7 @@ def api_health():
             "timestamp": time.time(),
             "utc_time": time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime()),
         }
-    )
+    ), 503 if production_misconfigured else 200
 
 
 @views_bp.route("/logo.png")
@@ -67,6 +69,17 @@ def serve_favicon():
 def api_auth_config():
     """Return public Supabase configuration for client authentication initialization."""
     cfg = get_supabase_config()
+    production_misconfigured = os.environ.get("VERCEL") == "1" and not (
+        cfg["supabase_url"] and cfg["supabase_anon_key"]
+    )
+    if production_misconfigured:
+        return jsonify(
+            {
+                "status": "error",
+                "code": "AUTH_BACKEND_MISCONFIGURED",
+                "message": "Authentication is temporarily unavailable. Please try again later.",
+            }
+        ), 503
     return jsonify(
         {
             "status": "success",

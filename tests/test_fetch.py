@@ -126,32 +126,32 @@ def test_register_ats_decorator():
 def test_job_queue_categories():
     # Score >= 90: Exceptional
     j1 = Job("1", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=9.5)
-    assert j1.queue_category == "🔥 Exceptional"
+    assert j1.queue_category == "Exceptional"
     assert j1.score_100 == 95
 
     # Score >= 80: Strong Apply
     j2 = Job("2", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=8.2)
-    assert j2.queue_category == "🟢 Strong Apply"
+    assert j2.queue_category == "Strong Apply"
     assert j2.score_100 == 82
 
     # Score >= 70: Apply
     j3 = Job("3", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=7.4)
-    assert j3.queue_category == "🟡 Apply"
+    assert j3.queue_category == "Apply"
     assert j3.score_100 == 74
 
     # Score >= 60: Consider
     j4 = Job("4", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=6.3)
-    assert j4.queue_category == "⚪ Consider"
+    assert j4.queue_category == "Consider"
     assert j4.score_100 == 63
 
     # Score < 60: Skip
     j5 = Job("5", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=4.0)
-    assert j5.queue_category == "🔴 Skip"
+    assert j5.queue_category == "Skip"
     assert j5.score_100 == 40
 
     # Score is None
     j6 = Job("6", "gh", "Acme", "Role", "Remote", "http://x", "desc", score=None)
-    assert j6.queue_category == "🔴 Skip"
+    assert j6.queue_category == "Skip"
     assert j6.score_100 == 0
 
 

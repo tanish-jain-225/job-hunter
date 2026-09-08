@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 🏛️ Job Hunter — System Architecture & Developer Handbook
+# Job Hunter — System Architecture & Developer Handbook
 
 Welcome to the **Job Hunter** developer architecture and onboarding guide. This document provides a structural, end-to-end breakdown of the system architecture, design patterns, module responsibilities, data pipelines, and developer workflows.
 
 ---
 
-## 🧭 Executive Summary & Core Philosophy
+## Executive Summary & Core Philosophy
 
 **Job Hunter** is an autonomous, multi-tenant career intelligence platform that continuously scouts public, unauthenticated Applicant Tracking System (ATS) career boards, deterministically filters irrelevant noise at $0 API cost, leverages Google Gemini 3.5 Flash for high-throughput candidate fit scoring, generates custom application kits (tailored cover letters, networking cold outreach, and matching resume bullets), and delivers findings through an interactive single-page web dashboard and daily HTML briefings.
 
@@ -16,12 +16,12 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 1. **The Hunter Never Fires Without Authorization**: The agent scouts, scores, and drafts—it never auto-submits applications. Final submission is always user-authorized.
 2. **Zero-Cost Deterministic Filtering Before AI**: Heavy regex and location filters run before LLM invocation, saving ~99% of LLM token costs.
 3. **Resilient Multi-Tier AI Provider Strategy**: Google Gemini 3.5 Flash is the default intelligence engine with circular multi-key CSV rotation, independent 15 RPM leaky-bucket throttling, and dynamic fallback cascades to `gemini-flash-latest` and `gemini-flash-lite-latest`.
-4. **Pure Flexbox Fluid Layout**: The frontend uses 100% Flexbox styling (zero CSS Grid dependencies), providing an unclipped responsive experience down to 300px mobile viewports.
-5. **Multi-Tenant Security by Default**: PostgreSQL Row-Level Security (RLS) guarantees complete tenant isolation; client-side view state isolation ensures authenticated views never leak to public visitors.
+4. **Responsive Fluid Layout**: The frontend uses responsive Flexbox-based styling and mobile breakpoints for compact viewports.
+5. **Multi-Tenant Security by Default**: PostgreSQL Row-Level Security and authenticated route guards protect tenant data. The current database key is normalized email; immutable user-ID tenancy remains a hardening task.
 
 ---
 
-## 🗺️ System Architecture Diagram
+## System Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -71,7 +71,7 @@ flowchart TD
 
 ---
 
-## 📂 Repository Directory Map
+## Repository Directory Map
 
 ```text
 job-hunter/
@@ -101,8 +101,7 @@ job-hunter/
 │   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.0")
 │   ├── auth.py                  # JWT decoding, user context resolution, and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
-│   ├── cli.py                   # Command-line interface dispatcher (run, scan, verify, stats)
-│   ├── config.py                # YAML configuration parser with default fallbacks and validation
+│   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, verify, stats)
 │   ├── digest.py                # Responsive HTML email digest builder with inline CSS and logo guard
 │   ├── fetch.py                 # Job dataclass, @register_ats decorator, and 9 ATS board crawlers
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
@@ -110,7 +109,6 @@ job-hunter/
 │   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security
 │   ├── mock.py                  # Offline mock ATS fixtures for zero-network testing
 │   ├── multi.py                 # Single-pass multi-tenant batch crawler and dispatcher
-│   ├── parsers.py               # PDF resume text extraction and regex sanitizer
 │   ├── prefilter.py             # Deterministic regex title, location, and date prefiltering
 │   ├── providers.py             # Strategy pattern LLM clients (Gemini, Claude, Groq, Ollama)
 │   ├── store.py                 # Local JSON state store with file locks and CSV export
@@ -168,7 +166,7 @@ job-hunter/
 
 ---
 
-## 🧩 Architectural Design Patterns
+## Architectural Design Patterns
 
 ### 1. Application Factory Pattern (`jobhunt.web.create_app`)
 The web backend avoids global application instances by utilizing Flask's Application Factory pattern:
@@ -202,7 +200,7 @@ The registry prevents duplicate registrations with warnings and handles URL auto
 
 ---
 
-## 🔄 Application Stage State Machine
+## Application Stage State Machine
 
 Opportunities follow a strict 5-stage lifecycle managed through `POST /api/jobs/stage`:
 
@@ -221,7 +219,7 @@ Opportunities follow a strict 5-stage lifecycle managed through `POST /api/jobs/
 
 ---
 
-## ⚡ Developer Quick-Start (< 2 Minutes)
+## Developer Quick-Start (< 2 Minutes)
 
 ### 1. Environment Setup
 ```bash
@@ -252,7 +250,7 @@ python app.py
 
 ### 4. Run Test Suite & Quality Checks
 ```bash
-# Run all 401 automated tests
+# Run the complete automated test suite
 pytest -q
 
 # Run static type checker
@@ -264,9 +262,9 @@ ruff check .
 
 ---
 
-## 🛡️ Security & Tenant Isolation Model
+## Security & Tenant Isolation Model
 
-1. **Row-Level Security (RLS)**: Enforced at the PostgreSQL level via `auth.uid() = user_id`. Even with direct database queries, tenants cannot access other users' records.
+1. **Row-Level Security (RLS)**: Enforced at the PostgreSQL level using normalized email claims in the current schema. Immutable `auth.users.id` tenancy is planned hardening, not the current database contract.
 2. **Service Role Isolation**: Administrative batch execution (`jobhunt multi-run`) uses the Supabase service role key strictly during cron runs; web requests strictly pass user JWT tokens.
 3. **No PDF Persistence**: Resumes uploaded to Resume Studio are parsed in-memory and discarded. Raw PDFs are never stored on disk or cloud buckets.
-4. **Token Security**: Tokens are accepted solely via `Authorization: Bearer <token>` headers or secure HttpOnly cookies (complying with OWASP CWE-598). Query parameter token passing is blocked.
+4. **Token Security**: Query-string tokens are blocked. Requests use Bearer headers or supported Supabase cookies; the browser client currently persists its Supabase session in browser storage.

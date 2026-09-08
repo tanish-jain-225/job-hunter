@@ -138,6 +138,25 @@ def test_verify_token_expired_jwt():
     assert user_info is None
 
 
+@pytest.mark.parametrize("claim_name, claim_value", [("iss", "https://wrong.supabase.co/auth/v1"), ("aud", "wrong")])
+def test_verify_token_rejects_invalid_supabase_claims(claim_name, claim_value):
+    secret = "claims-test-secret-key-32-chars-long!"
+    os.environ["SUPABASE_URL"] = "https://project.supabase.co"
+    os.environ["SUPABASE_JWT_SECRET"] = secret
+    os.environ["AUTH_REQUIRED"] = "true"
+
+    payload = {
+        "sub": "user_claims",
+        "email": "candidate@example.com",
+        "role": "authenticated",
+        "exp": time.time() + 3600,
+        claim_name: claim_value,
+    }
+    token = jwt.encode(payload, secret, algorithm="HS256")
+
+    assert verify_token(token) is None
+
+
 def test_verify_token_supabase_api_success():
     os.environ["SUPABASE_URL"] = "https://mock.supabase.co"
     os.environ["SUPABASE_ANON_KEY"] = "mock-anon-key"

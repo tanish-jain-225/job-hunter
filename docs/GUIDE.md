@@ -2,46 +2,46 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 📘 Job Hunter — End-to-End User Guide & Candidate Playbook
+# Job Hunter — End-to-End User Guide & Candidate Playbook
 
 Welcome to **Job Hunter**! Whether you are a recent graduate, seasoned software engineer, tech lead, or career switcher, this guide covers everything you need to know to leverage Job Hunter as your 24/7 private, autonomous career intelligence agent.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-1. [🧭 Core Philosophy & What Job Hunter Does](#1--core-philosophy--what-job-hunter-does)
-2. [🚪 Accessing Job Hunter (Cloud SaaS vs. Local Web)](#2--accessing-job-hunter-cloud-saas-vs-local-web)
-3. [👤 Step 1: Sign Up & Private Account Isolation](#3--step-1-sign-up--private-account-isolation)
-4. [⚡ Step 2: The 2-Minute Onboarding Wizard](#4--step-2-the-2-minute-onboarding-wizard)
-   - [Method A: Resume PDF/Text Upload (Resume Studio)](#method-a-resume-pdftext-upload-resume-studio)
-   - [Method B: 1-Click Role Presets](#method-b-1-click-role-presets)
-   - [Setting Target Titles & Excluded Keywords](#setting-target-titles--excluded-keywords)
-   - [Setting Locations, Remote & Job Types](#setting-locations-remote--job-types)
-   - [Choosing Your Email Briefing Mode](#choosing-your-email-briefing-mode)
-5. [🛰️ Step 3: Launching Your First Autonomous Job Hunt](#5--step-3-launching-your-first-autonomous-job-hunt)
-6. [📊 Step 4: Mastering the Interactive Job Board](#6--step-4-mastering-the-interactive-job-board)
-   - [Understanding the AI Match Score (0.0 to 10.0)](#understanding-the-ai-match-score-00-to-100)
-   - [Search, Filters & Responsive Pagination](#search-filters--responsive-pagination)
-7. [✍️ Step 5: Unlocking AI Application Kits](#7--step-5-unlocking-ai-application-kits)
-   - [Tailored Cover Letter](#tailored-cover-letter)
-   - [80-Word LinkedIn Networking Cold DM](#80-word-linkedin-networking-cold-dm)
-   - [Matching Resume Bullets & Skill Gaps](#matching-resume-bullets--skill-gaps)
-   - [Interview Preparation Questions](#interview-preparation-questions)
-8. [🚀 Step 6: Direct Applying & Pipeline Stage Tracking](#8--step-6-direct-applying--pipeline-stage-tracking)
-   - [The 5-Stage Lifecycle](#the-5-stage-lifecycle)
-   - [Submitting on the Official ATS](#submitting-on-the-official-ats)
-9. [⏳ Step 7: Smart Follow-Up Outreach Engine](#9--step-7-smart-follow-up-outreach-engine)
-10. [🏢 Step 8: Adding Custom Target Company Boards (`+ Add Board`)](#10--step-8-adding-custom-target-company-boards--add-board)
-11. [📬 Step 9: Morning Briefing Digests in Your Inbox](#11--step-9-morning-briefing-digests-in-your-inbox)
-12. [📁 Step 10: Data Export & Sheets Integration](#12--step-10-data-export--sheets-integration)
-13. [💻 Step 11: Power User CLI & Local Workflows](#13--step-11-power-user-cli--local-workflows)
-14. [🎯 The Job Hunter Playbook: Pro Tips to Land Offers](#14--the-job-hunter-playbook-pro-tips-to-land-offers)
-15. [❓ Frequently Asked Questions (FAQ)](#15--frequently-asked-questions-faq)
+1. [ Core Philosophy & What Job Hunter Does](#1--core-philosophy--what-job-hunter-does)
+2. [ Accessing Job Hunter (Cloud SaaS vs. Local Web)](#2--accessing-job-hunter-cloud-saas-vs-local-web)
+3. [ Step 1: Sign Up & Private Account Isolation](#3--step-1-sign-up--private-account-isolation)
+4. [ Step 2: The 2-Minute Onboarding Wizard](#4--step-2-the-2-minute-onboarding-wizard)
+- [Method A: Resume PDF/Text Upload (Resume Studio)](#method-a-resume-pdftext-upload-resume-studio)
+- [Method B: 1-Click Role Presets](#method-b-1-click-role-presets)
+- [Setting Target Titles & Excluded Keywords](#setting-target-titles--excluded-keywords)
+- [Setting Locations, Remote & Job Types](#setting-locations-remote--job-types)
+- [Choosing Your Email Briefing Mode](#choosing-your-email-briefing-mode)
+5. [ Step 3: Launching Your First Autonomous Job Hunt](#5--step-3-launching-your-first-autonomous-job-hunt)
+6. [ Step 4: Mastering the Interactive Job Board](#6--step-4-mastering-the-interactive-job-board)
+- [Understanding the AI Match Score (0.0 to 10.0)](#understanding-the-ai-match-score-00-to-100)
+- [Search, Filters & Responsive Pagination](#search-filters--responsive-pagination)
+7. [ Step 5: Unlocking AI Application Kits](#7--step-5-unlocking-ai-application-kits)
+- [Tailored Cover Letter](#tailored-cover-letter)
+- [80-Word LinkedIn Networking Cold DM](#80-word-linkedin-networking-cold-dm)
+- [Matching Resume Bullets & Skill Gaps](#matching-resume-bullets--skill-gaps)
+- [Interview Preparation Questions](#interview-preparation-questions)
+8. [ Step 6: Direct Applying & Pipeline Stage Tracking](#8--step-6-direct-applying--pipeline-stage-tracking)
+- [The 5-Stage Lifecycle](#the-5-stage-lifecycle)
+- [Submitting on the Official ATS](#submitting-on-the-official-ats)
+9. [ Step 7: Smart Follow-Up Outreach Engine](#9--step-7-smart-follow-up-outreach-engine)
+10. [ Step 8: Adding Custom Target Company Boards (`+ Add Board`)](#10--step-8-adding-custom-target-company-boards--add-board)
+11. [ Step 9: Morning Briefing Digests in Your Inbox](#11--step-9-morning-briefing-digests-in-your-inbox)
+12. [ Step 10: Data Export & Sheets Integration](#12--step-10-data-export--sheets-integration)
+13. [ Step 11: Power User CLI & Local Workflows](#13--step-11-power-user-cli--local-workflows)
+14. [ The Job Hunter Playbook: Pro Tips to Land Offers](#14--the-job-hunter-playbook-pro-tips-to-land-offers)
+15. [ Frequently Asked Questions (FAQ)](#15--frequently-asked-questions-faq)
 
 ---
 
-## 1. 🧭 Core Philosophy & What Job Hunter Does
+## 1.  Core Philosophy & What Job Hunter Does
 
 Finding a great job in technology shouldn't feel like a full-time unpaid job. Most candidates spend 10–15 hours every week scrolling through disjointed career portals, dodging stale listings, and writing generic cover letters.
 
@@ -63,7 +63,7 @@ flowchart LR
 
 ---
 
-## 2. 🚪 Accessing Job Hunter (Cloud SaaS vs. Local Web)
+## 2.  Accessing Job Hunter (Cloud SaaS vs. Local Web)
 
 You can use Job Hunter in whichever environment suits your workflow:
 
@@ -75,7 +75,7 @@ You can use Job Hunter in whichever environment suits your workflow:
 
 ---
 
-## 3. 👤 Step 1: Sign Up & Private Account Isolation
+## 3.  Step 1: Sign Up & Private Account Isolation
 
 When you visit Job Hunter, you are greeted by the landing view:
 
@@ -90,7 +90,7 @@ When you visit Job Hunter, you are greeted by the landing view:
 
 ---
 
-## 4. ⚡ Step 2: The 2-Minute Onboarding Wizard
+## 4.  Step 2: The 2-Minute Onboarding Wizard
 
 Upon your first sign in, the **Personalization Setup Wizard** opens automatically. You can also re-open this wizard at any time by clicking **Settings** in the top navigation bar.
 
@@ -110,9 +110,9 @@ Upon your first sign in, the **Personalization Setup Wizard** opens automaticall
 
 ### Method B: 1-Click Role Presets
 If you don't have a resume handy, click any of the 1-click role preset chips:
-- 💻 **Full Stack** | ⚙️ **Backend** | 🎨 **Frontend** | 🧠 **AI / ML**
-- ☁️ **DevOps / SRE** | 📊 **Data Eng** | 📱 **Mobile Dev** | 🧪 **QA / SDET**
-- 🔒 **Security** | ⛓️ **Web3** | 🚀 **Product**
+-  **Full Stack** |  **Backend** |  **Frontend** |  **AI / ML**
+-  **DevOps / SRE** |  **Data Eng** |  **Mobile Dev** |  **QA / SDET**
+-  **Security** |  **Web3** |  **Product**
 
 Clicking a preset automatically pre-fills industry-standard target titles and recommended skills!
 
@@ -125,23 +125,23 @@ Clicking a preset automatically pre-fills industry-standard target titles and re
 
 ### Setting Locations, Remote & Job Types
 * **Location Preference**:
-  - 🇮🇳 **All India**: Considers openings across Bangalore, Mumbai, Hyderabad, Pune, Delhi-NCR, Chennai, and remote India.
-  - 🌐 **Remote Only**: Restricts matches strictly to 100% work-from-home postings.
-  - 📍 **Specific Cities**: Type your preferred cities (e.g. `Bangalore, Pune, Remote`).
-  - 🌍 **Global**: Accepts opportunities worldwide.
-* **Job Types**: Toggle Full-Time, 🎓 Internship, Remote, Hybrid, On-Site, Contract, or Part-Time.
+  -  **All India**: Considers openings across Bangalore, Mumbai, Hyderabad, Pune, Delhi-NCR, Chennai, and remote India.
+  -  **Remote Only**: Restricts matches strictly to 100% work-from-home postings.
+  -  **Specific Cities**: Type your preferred cities (e.g. `Bangalore, Pune, Remote`).
+  -  **Global**: Accepts opportunities worldwide.
+* **Job Types**: Toggle Full-Time,  Internship, Remote, Hybrid, On-Site, Contract, or Part-Time.
 * **Experience Level**: Choose your tier: *Fresher / Final Year*, *0–1 Year*, *1–3 Years*, *3–5 Years*, or *5+ Years*.
 
 ### Choosing Your Email Briefing Mode
 Job Hunter lets you choose how you receive morning briefings:
-1. 📬 **Daily 5:00 AM Radar (Recommended)**: Automatically receives a crisp HTML briefing in your inbox every morning whenever new high-match roles (score >= 7.0) are discovered.
-2. ⚡ **Instant On-Demand**: Delivers an email briefing immediately whenever you click "Run Job Hunt Now" in the app.
+1.  **Daily 5:00 AM Radar (Recommended)**: Automatically receives a crisp HTML briefing in your inbox every morning whenever new high-match roles (score >= 7.0) are discovered.
+2.  **Instant On-Demand**: Delivers an email briefing immediately whenever you click "Run Job Hunt Now" in the app.
 
-Enter your notification email address, click **Complete & Launch First Hunt 🚀**, and you're ready!
+Enter your notification email address, click **Complete & Launch First Hunt **, and you're ready!
 
 ---
 
-## 5. 🛰️ Step 3: Launching Your First Autonomous Job Hunt
+## 5.  Step 3: Launching Your First Autonomous Job Hunt
 
 Once your profile is saved, you can trigger a live job hunt scan anytime:
 
@@ -156,7 +156,7 @@ Once your profile is saved, you can trigger a live job hunt scan anytime:
 
 ---
 
-## 6. 📊 Step 4: Mastering the Interactive Job Board
+## 6.  Step 4: Mastering the Interactive Job Board
 
 Click the **Interactive Job Board** tab in the dashboard viewport to manage your opportunities.
 
@@ -165,9 +165,9 @@ Every evaluated role displays a color-coded match badge:
 
 | Score Range | Color Badge | Meaning | Action Recommendation |
 |---|---|---|---|
-| **8.5 – 10.0** | 🟢 **High Match** | Strong alignment with your skills, seniority, and preferred location. | **Priority Apply Today** — Submit application immediately using the tailored kit. |
-| **7.0 – 8.4** | 🟡 **Moderate Match** | Solid fit with minor skill or experience gaps. | **Apply** — Review gap analysis in the kit to highlight transferable skills. |
-| **< 7.0** | ⚪ **Low Match** | Peripheral role or missing core technical requirements. | Review reason tag before deciding to apply. |
+| **8.5 – 10.0** |  **High Match** | Strong alignment with your skills, seniority, and preferred location. | **Priority Apply Today** — Submit application immediately using the tailored kit. |
+| **7.0 – 8.4** |  **Moderate Match** | Solid fit with minor skill or experience gaps. | **Apply** — Review gap analysis in the kit to highlight transferable skills. |
+| **< 7.0** |  **Low Match** | Peripheral role or missing core technical requirements. | Review reason tag before deciding to apply. |
 
 ### Search, Filters & Responsive Pagination
 * **Instant Search (`/` key shortcut)**: Press `/` on your keyboard to instantly focus the search bar. Filter by company name (e.g., `Stripe`), title (e.g., `Backend`), or city (e.g., `Bangalore`).
@@ -181,7 +181,7 @@ Every evaluated role displays a color-coded match badge:
 
 ---
 
-## 7. ✍️ Step 5: Unlocking AI Application Kits
+## 7.  Step 5: Unlocking AI Application Kits
 
 For every role that scores >= 7.0, Job Hunter generates a custom **AI Application Kit**. Click **Inspect Kit** on any job card to open the modal:
 
@@ -204,7 +204,7 @@ For every role that scores >= 7.0, Job Hunter generates a custom **AI Applicatio
 
 ---
 
-## 8. 🚀 Step 6: Direct Applying & Pipeline Stage Tracking
+## 8.  Step 6: Direct Applying & Pipeline Stage Tracking
 
 ### Submitting on the Official ATS
 Job Hunter links directly to the **unauthenticated, public applicant tracking system (ATS)** endpoint for each role:
@@ -216,9 +216,9 @@ Job Hunter links directly to the **unauthenticated, public applicant tracking sy
 Track your progress by changing the stage dropdown on the job card:
 
 ```text
-📝 To Apply ──> 🚀 Applied ──> 💬 Interviewing ──> 🎉 Offer
+ To Apply ──>  Applied ──>  Interviewing ──>  Offer
                                     │
-                                    └──> 📁 Archived (Rejected)
+                                    └──>  Archived (Rejected)
 ```
 
 1. **`To Apply`**: Fresh opportunity discovered by the radar.
@@ -229,14 +229,14 @@ Track your progress by changing the stage dropdown on the job card:
 
 ---
 
-## 9. ⏳ Step 7: Smart Follow-Up Outreach Engine
+## 9.  Step 7: Smart Follow-Up Outreach Engine
 
 One of the biggest pain points in job hunting is knowing when and how to follow up after submitting an application.
 
 Job Hunter handles this automatically:
 1. When you mark a job as **Applied**, Job Hunter timestamps the application date.
 2. If **4 or more days** elapse without a status update, a prominent alert badge appears on the job card:
-   `⏳ 4d ago · Follow Up`
+   ` 4d ago · Follow Up`
 3. Click the badge to open the **Follow-Up Generator**:
    - **Email Subject Line & Body**: A courteous, professional nudge referencing the submission date and reiterating interest.
    - **LinkedIn InMail / DM**: A quick 50-word check-in message for the recruiter.
@@ -244,7 +244,7 @@ Job Hunter handles this automatically:
 
 ---
 
-## 10. 🏢 Step 8: Adding Custom Target Company Boards (`+ Add Board`)
+## 10.  Step 8: Adding Custom Target Company Boards (`+ Add Board`)
 
 Do you have dream companies that aren't in the default curated list? You can add them with 1 click:
 
@@ -256,12 +256,12 @@ Do you have dream companies that aren't in the default curated list? You can add
    - `https://apply.workable.com/vector`
    - `https://jobs.smartrecruiters.com/visa`
 3. Job Hunter's **auto-detection engine** instantly identifies the ATS engine and extracts the company slug.
-4. Click **Verify & Add Board 🚀**.
+4. Click **Verify & Add Board **.
 5. Job Hunter verifies live HTTP reachability and registers the board under your private profile. It will now be crawled automatically on every scan!
 
 ---
 
-## 11. 📬 Step 9: Morning Briefing Digests in Your Inbox
+## 11.  Step 9: Morning Briefing Digests in Your Inbox
 
 If you enabled daily email briefings, Job Hunter dispatches a clean, responsive HTML briefing directly to your inbox every morning:
 
@@ -273,7 +273,7 @@ If you enabled daily email briefings, Job Hunter dispatches a clean, responsive 
 
 ---
 
-## 12. 📁 Step 10: Data Export & Sheets Integration
+## 12.  Step 10: Data Export & Sheets Integration
 
 Your job search data is always portable:
 * Every time a job status changes or a new scan completes, Job Hunter updates `out/tracker.csv`.
@@ -281,7 +281,7 @@ Your job search data is always portable:
 
 ---
 
-## 13. 💻 Step 11: Power User CLI & Local Workflows
+## 13.  Step 11: Power User CLI & Local Workflows
 
 If you prefer terminal commands or want to automate scans on your local machine:
 
@@ -313,7 +313,7 @@ jobhunt clean
 
 ---
 
-## 14. 🎯 The Job Hunter Playbook: Pro Tips to Land Offers
+## 14.  The Job Hunter Playbook: Pro Tips to Land Offers
 
 1. **Aim for 7.5+ Score Matches**: Quality beats volume. Applying to 5 roles with 8.5+ fit using tailored kits yields significantly higher interview rates than spraying 100 generic resumes.
 2. **Pair the Cold DM with Every Application**: Immediately after submitting your application on the ATS, find an engineering manager or recruiter on LinkedIn and send the 80-word cold outreach DM drafted in your kit.
@@ -323,7 +323,7 @@ jobhunt clean
 
 ---
 
-## 15. ❓ Frequently Asked Questions (FAQ)
+## 15.  Frequently Asked Questions (FAQ)
 
 #### Q: Does Job Hunter submit applications automatically?
 **A:** No. Job Hunter adheres strictly to the Golden Rule: *Human-in-the-loop authorization*. It scouts, filters, scores, and drafts materials, but you always review and submit the application yourself.
@@ -338,11 +338,11 @@ jobhunt clean
 **A:** Job Hunter has built-in 4.0s hardware leaky-bucket pacing, multi-key CSV rotation (`GEMINI_API_KEY=key1,key2,key3`), and automatic fallback to an offline keyword matcher. It will never crash due to API rate limits.
 
 #### Q: Can I use Job Hunter on my mobile phone?
-**A:** Yes! The web dashboard is built with 100% Flexbox fluid layout and adapts down to 300px mobile viewports. You can review matches, inspect kits, copy cold DMs, and apply directly from your smartphone browser.
+**A:** Yes. The web dashboard uses a responsive Flexbox-based layout with mobile breakpoints. You can review matches, inspect kits, copy cold DMs, and apply directly from a smartphone browser.
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[SETUP.md](SETUP.md)** — Step-by-step installation, credential acquisition, and cloud deployment guide.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.

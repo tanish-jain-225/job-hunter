@@ -3,10 +3,10 @@
     
     <!-- Wizard Header -->
     <div class="wizard-header">
-      <button class="modal-close" onclick="closeOnboardingModal(true)" aria-label="Close modal" title="Close / Decide Later">×</button>
+      <button class="modal-close" onclick="closeOnboardingModal(true)" aria-label="Close modal" title="Close / Decide Later">&times;</button>
       <div class="wizard-tag">Setup Wizard</div>
-      <h2 class="wizard-title">Personalize Your AI Job Hunter</h2>
-      <p class="wizard-subtitle">Upload your resume and set search preferences so our autonomous agent matches opportunities accurately.</p>
+      <h2 class="wizard-title">Configure Your Job Hunter Radar</h2>
+      <p class="wizard-subtitle">Upload your resume and select role preferences to calibrate matching accuracy.</p>
     </div>
 
     <!-- Progress Stepper -->
@@ -14,8 +14,8 @@
       <div class="step-node active" id="onboarding-step-indicator-1">
         <div class="step-circle" id="step-circle-1">1</div>
         <div class="step-text">
-          <span class="step-label">Resume & Profile</span>
-          <span class="step-sub">Upload or Paste</span>
+          <span class="step-label">Resume &amp; Profile</span>
+          <span class="step-sub">Upload or Preset</span>
         </div>
       </div>
       <div class="step-connector" id="step-connector-1"></div>
@@ -23,7 +23,7 @@
         <div class="step-circle" id="step-circle-2">2</div>
         <div class="step-text">
           <span class="step-label">Search Criteria</span>
-          <span class="step-sub">Roles & Alerts</span>
+          <span class="step-sub">Roles &amp; Alerts</span>
         </div>
       </div>
     </div>
@@ -31,24 +31,24 @@
     <!-- Wizard Step 1: Resume Upload, Text Context & 1-Click Role Presets -->
     <div class="wizard-body" id="onboarding-step-1">
       <div class="wizard-section-desc">
-        Upload your resume (PDF/TXT) to extract text once in-memory, or pick a 1-click role preset below. Your text context can be edited freely before saving.
+        Upload your resume (PDF/TXT) to extract text, or pick a standard role preset below.
       </div>
 
-      <!-- 1-Click Role Presets (Zero Friction Setup) -->
+      <!-- One-Click Role Presets -->
       <div class="role-presets-cluster">
-        <div class="role-presets-label">⚡ 1-Click Role Presets (Quick Start):</div>
+        <div class="role-presets-label">Role Presets:</div>
         <div class="role-presets-tags">
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('fullstack')">💻 Full Stack</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('backend')">⚙️ Backend</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('frontend')">🎨 Frontend</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('ai_ml')">🧠 AI / ML</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('devops')">☁️ DevOps / SRE</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('data_engineer')">📊 Data Eng</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('mobile_dev')">📱 Mobile Dev</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('qa_engineer')">🧪 QA / SDET</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('security')">🔒 Security</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('blockchain')">⛓️ Web3</button>
-          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('product_manager')">🚀 Product</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('fullstack')">Full Stack</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('backend')">Backend</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('frontend')">Frontend</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('ai_ml')">AI / ML</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('devops')">DevOps / SRE</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('data_engineer')">Data Engineering</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('mobile_dev')">Mobile</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('qa_engineer')">QA / SDET</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('security')">Security</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('blockchain')">Web3</button>
+          <button type="button" class="btn-preset-chip" onclick="applyRolePreset('product_manager')">Product</button>
         </div>
       </div>
 
@@ -59,21 +59,21 @@
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
         </div>
         <div class="dropzone-text" id="onboarding-dropzone-text">Click or drag &amp; drop your resume file here (.pdf, .txt)</div>
-        <div class="dropzone-sub">One-time text extraction · No binary files stored · Plain text only</div>
+        <div class="dropzone-sub">One-time text extraction &middot; No binary files stored &middot; Plain text only</div>
       </div>
 
       <div class="form-group" style="margin-top:14px;">
         <label class="form-label" for="onboarding-paste-text">
           <span>Resume Text Context</span>
-          <span class="form-hint-inline">(Extracted text appears here — edit or alter freely before saving)</span>
+          <span class="form-hint-inline">(Extracted text appears here &mdash; edit freely before saving)</span>
         </label>
-        <textarea class="form-input form-textarea" id="onboarding-paste-text" rows="4" placeholder="Upload a file to extract text once, or type/paste and edit your resume context directly here..."></textarea>
+        <textarea class="form-input form-textarea" id="onboarding-paste-text" rows="4" placeholder="Upload a file or paste resume context directly here..."></textarea>
       </div>
 
       <button class="btn btn-primary btn-studio-action" id="btn-onboarding-parse" onclick="submitOnboardingResumeParse()">
         <span class="spinner" id="onboarding-spinner" style="display:none;"></span>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-        <span id="onboarding-parse-btn-text">Extract Candidate Profile with AI</span>
+        <span id="onboarding-parse-btn-text">Extract Profile from Resume</span>
       </button>
 
       <div class="studio-alert" id="onboarding-status-alert" style="display:none;"></div>
@@ -85,7 +85,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             <span>Extracted Profile Preview</span>
           </span>
-          <span class="preview-badge-status">AI Parsed</span>
+          <span class="preview-badge-status">Parsed</span>
         </div>
         <div class="preview-meta-row">
           <div class="preview-meta-item">
@@ -127,7 +127,7 @@
     <!-- Wizard Step 2: Job Preferences & Notification Mode -->
     <div class="wizard-body" id="onboarding-step-2" style="display:none;">
       <div class="wizard-section-desc">
-        Tell us what kind of jobs you're looking for, or click Auto-Fill to populate criteria from your resume.
+        Specify your target job preferences, or click Auto-Fill to populate criteria directly from your resume context.
       </div>
 
       <div style="margin-top:14px; margin-bottom:12px;">
@@ -137,15 +137,33 @@
         </button>
       </div>
 
+      <!-- Candidate Name -->
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label" for="onboard-prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span> *</label>
+        <input type="text" class="form-input" id="onboard-prof-name" placeholder="e.g. Alex Morgan" required>
+      </div>
+
+      <!-- Target Roles -->
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label" for="onboard-prof-targets">Target Job Titles * <span class="form-hint-inline">(comma separated)</span></label>
+        <input type="text" class="form-input" id="onboard-prof-targets" placeholder="Backend Engineer, Software Engineer, Full Stack Developer" required>
+      </div>
+
+      <!-- Excluded Keywords -->
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label" for="onboard-prof-excludes">Excluded Keywords <span class="form-hint-inline">(comma separated)</span></label>
+        <input type="text" class="form-input" id="onboard-prof-excludes" placeholder="Manager, Director, Sales, Recruiter">
+      </div>
+
       <!-- Job Type Preferences -->
       <div class="form-group" style="margin-top:16px;">
-        <div class="form-label">Job Type <span class="form-hint-inline">(Select all that apply — leave all checked for maximum results)</span></div>
+        <div class="form-label">Job Type <span class="form-hint-inline">(Select all that apply)</span></div>
         <div class="job-type-chips" id="onboard-job-types">
           <label class="chip-toggle"><input type="checkbox" value="fulltime"> Full-Time</label>
-          <label class="chip-toggle"><input type="checkbox" value="internship"> 🎓 Internship</label>
-          <label class="chip-toggle"><input type="checkbox" value="remote"> 🌐 Remote</label>
-          <label class="chip-toggle"><input type="checkbox" value="hybrid"> 🔀 Hybrid</label>
-          <label class="chip-toggle"><input type="checkbox" value="onsite"> 🏢 On-Site</label>
+          <label class="chip-toggle"><input type="checkbox" value="internship"> Internship</label>
+          <label class="chip-toggle"><input type="checkbox" value="remote"> Remote</label>
+          <label class="chip-toggle"><input type="checkbox" value="hybrid"> Hybrid</label>
+          <label class="chip-toggle"><input type="checkbox" value="onsite"> On-Site</label>
           <label class="chip-toggle"><input type="checkbox" value="contract"> Contract</label>
           <label class="chip-toggle"><input type="checkbox" value="parttime"> Part-Time</label>
         </div>
@@ -157,25 +175,25 @@
         <div class="location-pref-options">
           <label class="radio-option" id="loc-pref-allindia">
             <input type="radio" name="onboard-location-pref" value="all_india">
-            <span>🇮🇳 All India (Any City)</span>
+            <span>All India</span>
           </label>
           <label class="radio-option" id="loc-pref-remote">
             <input type="radio" name="onboard-location-pref" value="remote_only">
-            <span>🌐 Remote Only</span>
+            <span>Remote Only</span>
           </label>
           <label class="radio-option" id="loc-pref-specific">
             <input type="radio" name="onboard-location-pref" value="specific_cities">
-            <span>📍 Specific Cities</span>
+            <span>Specific Cities</span>
           </label>
           <label class="radio-option" id="loc-pref-global">
             <input type="radio" name="onboard-location-pref" value="global">
-            <span>🌍 Global</span>
+            <span>Global</span>
           </label>
         </div>
         <div id="specific-cities-input" style="display:none; margin-top:10px;">
           <input type="text" class="form-input" id="onboard-specific-cities"
                  placeholder="e.g. Bangalore, Mumbai, Pune, Hyderabad, Remote">
-          <span class="form-hint">Comma-separated. Add 'Remote' to also include remote roles.</span>
+          <span class="form-hint">Comma-separated cities.</span>
         </div>
       </div>
 
@@ -183,30 +201,12 @@
       <div class="form-group" style="margin-top:16px;">
         <div class="form-label">Experience Level</div>
         <div class="exp-level-chips" id="onboard-exp-level">
-          <label class="chip-radio"><input type="radio" name="onboard-exp" value="fresher"> Fresher / Final Year</label>
-          <label class="chip-radio"><input type="radio" name="onboard-exp" value="0-1"> 0–1 Year</label>
-          <label class="chip-radio"><input type="radio" name="onboard-exp" value="1-3"> 1–3 Years</label>
-          <label class="chip-radio"><input type="radio" name="onboard-exp" value="3-5"> 3–5 Years</label>
+          <label class="chip-radio"><input type="radio" name="onboard-exp" value="fresher"> Fresher</label>
+          <label class="chip-radio"><input type="radio" name="onboard-exp" value="0-1"> 0&ndash;1 Year</label>
+          <label class="chip-radio"><input type="radio" name="onboard-exp" value="1-3"> 1&ndash;3 Years</label>
+          <label class="chip-radio"><input type="radio" name="onboard-exp" value="3-5"> 3&ndash;5 Years</label>
           <label class="chip-radio"><input type="radio" name="onboard-exp" value="5+"> 5+ Years</label>
         </div>
-      </div>
-
-      <!-- Candidate Name -->
-      <div class="form-group" style="margin-top:14px;">
-        <label class="form-label" for="onboard-prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span></label>
-        <input type="text" class="form-input" id="onboard-prof-name" placeholder="e.g. Rahul Sharma">
-      </div>
-
-      <!-- Target Roles -->
-      <div class="form-group" style="margin-top:14px;">
-        <label class="form-label" for="onboard-prof-targets">Target Job Titles <span class="form-hint-inline">(comma separated — leave blank for all roles)</span></label>
-        <input type="text" class="form-input" id="onboard-prof-targets" placeholder="Backend Engineer, Software Engineer, Full Stack Developer, AI Engineer">
-      </div>
-
-      <!-- Excluded Keywords -->
-      <div class="form-group" style="margin-top:14px;">
-        <label class="form-label" for="onboard-prof-excludes">Excluded Keywords <span class="form-hint-inline">(comma separated — leave blank to see everything)</span></label>
-        <input type="text" class="form-input" id="onboard-prof-excludes" placeholder="Manager, Director, Sales, Recruiter">
       </div>
 
       <!-- Email Notification Mode -->
@@ -215,17 +215,17 @@
         <div class="notification-modes-grid">
           <div class="mode-card" id="mode-card-ondemand" onclick="selectNotificationMode(false)">
             <div class="mode-card-header">
-              <div class="mode-card-badge">⚡ Instant On-Demand</div>
-              <div class="mode-card-radio" id="mode-radio-ondemand">○</div>
+              <div class="mode-card-badge">Instant On-Demand</div>
+              <div class="mode-card-radio" id="mode-radio-ondemand">&cir;</div>
             </div>
-            <div class="mode-card-desc">Receive an on-the-spot email briefing whenever you click "Run Job Hunt Now" in the app.</div>
+            <div class="mode-card-desc">Receive an email briefing whenever you click "Run Job Hunt Now".</div>
           </div>
           <div class="mode-card active" id="mode-card-daily" onclick="selectNotificationMode(true)">
             <div class="mode-card-header">
-              <div class="mode-card-badge">📬 Daily 5:00 AM Radar (Recommended)</div>
-              <div class="mode-card-radio" id="mode-radio-daily">●</div>
+              <div class="mode-card-badge">Daily 5:00 AM Radar (Recommended)</div>
+              <div class="mode-card-radio" id="mode-radio-daily">&bull;</div>
             </div>
-            <div class="mode-card-desc">Automated career intelligence briefing dispatched to your email every morning with fresh matches.</div>
+            <div class="mode-card-desc">Automated career briefing dispatched to your email every morning with fresh matches.</div>
           </div>
         </div>
         <input type="checkbox" id="onboard-toggle-email-alerts" checked style="display:none;" aria-label="Receive Daily Email Alerts">
@@ -233,7 +233,7 @@
 
       <!-- Notification Email Input -->
       <div class="form-group" style="margin-top:14px;" id="onboard-email-container">
-        <label class="form-label" for="onboard-prof-email">Notification Email Address <span class="form-hint-inline">(Where your briefings will be delivered)</span></label>
+        <label class="form-label" for="onboard-prof-email">Notification Email Address</label>
         <input type="email" class="form-input" id="onboard-prof-email" placeholder="your-email@example.com">
       </div>
 
@@ -249,7 +249,7 @@
           </button>
           <button class="btn btn-primary btn-wizard-finish" id="btn-onboard-finish" onclick="saveOnboardingProfile(true)">
             <span class="spinner" id="onboard-finish-spinner" style="display:none;"></span>
-            <span>Complete &amp; Launch First Hunt 🚀</span>
+            <span>Complete Setup &amp; Launch Hunt</span>
           </button>
         </div>
       </div>

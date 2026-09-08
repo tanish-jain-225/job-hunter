@@ -381,7 +381,7 @@ def screen(
                 if fallback_info:
                     alt_provider, alt_model = fallback_info
                     print(
-                        f"  🔄 Live Failover Cascade: switching screening provider from {curr_name} -> {alt_provider.name} ({alt_model})..."
+                        f"  Live Failover Cascade: switching screening provider from {curr_name} -> {alt_provider.name} ({alt_model})..."
                     )
                     provider = alt_provider
                     model = alt_model
@@ -393,7 +393,7 @@ def screen(
                 consecutive_failures += 1
                 if consecutive_failures >= 4 and not strict_llm:
                     print(
-                        "  ⚠️ All live LLM providers rate-limited. Falling back to keyword scorer for remaining batches."
+                        "  All live LLM providers rate-limited. Falling back to keyword scorer for remaining batches."
                     )
                     quota_circuit_broken = True
                     keyword_screen(batch, profile)
@@ -446,7 +446,7 @@ Hard rule: NEVER invent experience. Every claim must trace to {name}'s real back
 Return ONLY a JSON object:
 {{
   "fit_summary": str,          // 2 sentences: why this role is a strong match for candidate
-  "india_eligibility": str,    // MUST be one of: '🇮🇳 India-Based Role' (if job location mentions India/Indian city), '🌐 Remote-Friendly' (if job is remote/WFH), '🔀 Hybrid India' (if hybrid in India), '🌍 Global (Verify Location)' (if location is unclear or outside India). Base this on the job location field, not assumptions.
+  "india_eligibility": str,    // MUST be one of: 'India-Based Role' (if job location mentions India/Indian city), 'Remote-Friendly' (if job is remote/WFH), 'Hybrid India' (if hybrid in India), 'Global (Verify Location)' (if location is unclear or outside India). Base this on the job location field, not assumptions.
   "job_type": str,             // "remote" | "hybrid" | "onsite" | "internship"
   "salary_range_inr": str,     // Extract salary if mentioned in JD. Format as '₹X-Y LPA' for Indian roles or 'USD $X-Y' for US. Empty string if not mentioned.
   "best_project": str,         // Best project to highlight from candidate's profile + 1 sentence rationale

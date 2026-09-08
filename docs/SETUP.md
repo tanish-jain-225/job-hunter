@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 🛠️ Complete End-to-End Stepwise Setup Guide — Job Hunter
+# Complete End-to-End Stepwise Setup Guide -- Job Hunter
 
-Welcome to the definitive setup guide for **Job Hunter**. This document walks you through every single step required to configure, test, run, and deploy the entire product from scratch—whether you want a 100% private, database-free desktop utility on your laptop, or a full-fledged, multi-tenant cloud SaaS deployment on Vercel and Supabase.
+Welcome to the definitive setup guide for **Job Hunter**. This document walks you through every single step required to configure, test, run, and deploy the entire product from scratch--whether you want a 100% private, database-free desktop utility on your laptop, or a full-fledged, multi-tenant cloud SaaS deployment on Vercel and Supabase.
 
 ---
 
-## 🧭 Architecture Pathways: Choose Your Setup Mode
+## Architecture Pathways: Choose Your Setup Mode
 
 Job Hunter supports two operating models that share the exact same core engine:
 
@@ -16,44 +16,42 @@ Job Hunter supports two operating models that share the exact same core engine:
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                                 JOB HUNTER SETUP MODES                                 │
 ├───────────────────────────────────────────┬────────────────────────────────────────────┤
-│ 💻 PATH 1: Local Desktop Utility          │ ☁️ PATH 2: Full Cloud Multi-Tenant SaaS     │
-│ • 100% Free ($0/mo)                       │ • 100% Free ($0/mo on free-tier stack)     │
-│ • Zero database required (uses seen.json) │ • Vercel Serverless (Web Dashboard & API)  │
-│ • Runs locally on your machine            │ • Supabase PostgreSQL (Auth & RLS Storage) │
-│ • Daily Windows task or GitHub Actions    │ • GitHub Actions (Automated 05:00 AM Cron) │
-│ • Private resume & tracking data on disk  │ • Multi-user candidate onboarding & kits   │
+│ PATH 1: Local Desktop Utility             │ PATH 2: Full Cloud Multi-Tenant SaaS       │
+│ - 100% Free ($0/mo)                       │ - 100% Free ($0/mo on free-tier stack)     │
+│ - Runs locally on your machine            │ - Supabase PostgreSQL (Auth & RLS Storage) │
+│ - Daily Windows task or GitHub Actions    │ - GitHub Actions (Automated 05:00 AM Cron) │
+│ - Private resume & tracking data on disk  │ - Multi-user candidate onboarding & kits   │
 └───────────────────────────────────────────┴────────────────────────────────────────────┘
 ```
 
-> 💡 *Both paths take about 15–20 minutes to set up from a completely fresh machine.*
+> Both paths take about 15-20 minutes to set up from a completely fresh machine.
 
 ---
 
-## 📋 Table of Contents
-
-- [Phase 1: Environment & Dependency Setup](#phase-1-environment--dependency-setup)
-  - [Step 1.1: Install Python 3.9+](#step-11-install-python-39)
-  - [Step 1.2: Clone the Repository](#step-12-clone-the-repository)
-  - [Step 1.3: Create Virtual Environment & Install](#step-13-create-virtual-environment--install)
-  - [Step 1.4: 5-Second Zero-Key Smoke Test](#step-14-5-second-zero-key-smoke-test)
+## Table of Contents
+- [Phase 1: Local Environment Preparation](#phase-1-local-environment-preparation)
+- [Step 1.1: Install Python 3.9+](#step-11-install-python-39)
+- [Step 1.2: Clone the Repository](#step-12-clone-the-repository)
+- [Step 1.3: Create Virtual Environment & Install](#step-13-create-virtual-environment--install)
+- [Step 1.4: 5-Second Zero-Key Smoke Test](#step-14-5-second-zero-key-smoke-test)
 - [Phase 2: Obtaining Free API Keys & Cloud Credentials](#phase-2-obtaining-free-api-keys--cloud-credentials)
-  - [Step 2.1: Google Gemini Flash API Key (Primary AI Engine)](#step-21-google-gemini-flash-api-key-primary-ai-engine)
-  - [Step 2.2: Gmail SMTP App Password (Daily Morning Briefings)](#step-22-gmail-smtp-app-password-daily-morning-briefings)
-  - [Step 2.3: Supabase PostgreSQL & Auth Setup (For Cloud / Multi-User)](#step-23-supabase-postgresql--auth-setup-for-cloud--multi-user)
-  - [Step 2.4: GitHub Personal Access Token (Cloud On-Demand Radar)](#step-24-github-personal-access-token-cloud-on-demand-radar)
+- [Step 2.1: Google Gemini Flash API Key (Primary AI Engine)](#step-21-google-gemini-flash-api-key-primary-ai-engine)
+- [Step 2.2: Gmail SMTP App Password (Daily Morning Briefings)](#step-22-gmail-smtp-app-password-daily-morning-briefings)
+- [Step 2.3: Supabase PostgreSQL & Auth Setup (For Cloud / Multi-User)](#step-23-supabase-postgresql--auth-setup-for-cloud--multi-user)
+- [Step 2.4: GitHub Personal Access Token (Cloud On-Demand Radar)](#step-24-github-personal-access-token-cloud-on-demand-radar)
 - [Phase 3: Configuration & Profile Personalization](#phase-3-configuration--profile-personalization)
-  - [Step 3.1: Configure Environment Variables (`.env`)](#step-31-configure-environment-variables-env)
-  - [Step 3.2: Extract Candidate Profile from Resume (`jobhunt profile`)](#step-32-extract-candidate-profile-from-resume-jobhunt-profile)
-  - [Step 3.3: Tune Deterministic Prefilters (`config.yaml`)](#step-33-tune-deterministic-prefilters-configyaml)
-  - [Step 3.4: Configure Target Companies (`companies.yaml`)](#step-34-configure-target-companies-companiesyaml)
+- [Step 3.1: Configure Environment Variables (`.env`)](#step-31-configure-environment-variables-env)
+- [Step 3.2: Extract Candidate Profile from Resume (`jobhunt profile`)](#step-32-extract-candidate-profile-from-resume-jobhunt-profile)
+- [Step 3.3: Tune Deterministic Prefilters (`config.yaml`)](#step-33-tune-deterministic-prefilters-configyaml)
+- [Step 3.4: Configure Target Companies (`companies.yaml`)](#step-34-configure-target-companies-companiesyaml)
 - [Phase 4: Running Locally (Web Dashboard & CLI Radar)](#phase-4-running-locally-web-dashboard--cli-radar)
-  - [Step 4.1: Launch the Executive Web Dashboard](#step-41-launch-the-executive-web-dashboard)
-  - [Step 4.2: Run the 1-Click Master Automation Pipeline](#step-42-run-the-1-click-master-automation-pipeline)
-  - [Step 4.3: Tracking Applications & Follow-Ups](#step-43-tracking-applications--follow-ups)
+- [Step 4.1: Launch the Executive Web Dashboard](#step-41-launch-the-executive-web-dashboard)
+- [Step 4.2: Run the 1-Click Master Automation Pipeline](#step-42-run-the-1-click-master-automation-pipeline)
+- [Step 4.3: Tracking Applications & Follow-Ups](#step-43-tracking-applications--follow-ups)
 - [Phase 5: Cloud Production Deployment (100% Free Stack)](#phase-5-cloud-production-deployment-100-free-stack)
-  - [Step 5.1: Deploy Web Dashboard to Vercel](#step-51-deploy-web-dashboard-to-vercel)
-  - [Step 5.2: Configure Automated Daily 05:00 AM Cron via GitHub Actions](#step-52-configure-automated-daily-0500-am-cron-via-github-actions)
-  - [Step 5.3: (Alternative) Native Windows Daily Scheduled Task](#step-53-alternative-native-windows-daily-scheduled-task)
+- [Step 5.1: Deploy Web Dashboard to Vercel](#step-51-deploy-web-dashboard-to-vercel)
+- [Step 5.2: Configure Automated Daily 05:00 AM Cron via GitHub Actions](#step-52-configure-automated-daily-0500-am-cron-via-github-actions)
+- [Step 5.3: (Alternative) Native Windows Daily Scheduled Task](#step-53-alternative-native-windows-daily-scheduled-task)
 - [Phase 6: End-to-End Verification Matrix](#phase-6-end-to-end-verification-matrix)
 - [Phase 7: Troubleshooting & Common Pitfalls](#phase-7-troubleshooting--common-pitfalls)
 
@@ -93,11 +91,13 @@ cd job-hunter
 
 Always use an isolated virtual environment to keep dependencies clean:
 
-#### 💻 Windows (PowerShell):
+#### Windows (PowerShell):
+
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+python -m pip install --upgrade pip
+pip install -e .
 ```
 > [!TIP]
 > If PowerShell throws a `PSSecurityException` ("running scripts is disabled on this system"), execute this command once and retry activating:
@@ -105,11 +105,11 @@ pip install -e ".[dev]"
 > Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 > ```
 
-#### 🍏 macOS / 🐧 Linux:
+#### macOS / Linux:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e .
 ```
 
 Your terminal prompt will now show `(.venv)`.
@@ -124,7 +124,7 @@ Prove that your environment, ATS parsers, and filter rules work before configuri
 jobhunt run --mock --scorer keyword
 ```
 
-**Expected Output**:
+**Representative Output** (counts vary with fixtures and configuration):
 ```text
 [1/5] fetching boards (mock fixtures)
 [2/5] filtering
@@ -143,7 +143,8 @@ funnel: 12 scanned -> 5 passed filters -> 5 new -> 3 in digest
 
 ## Phase 2: Obtaining Free API Keys & Cloud Credentials
 
-All services used by Job Hunter operate within generous **$0 permanent free tiers**:
+Job Hunter can use provider free tiers, but quotas and pricing change. Treat
+all capacity and cost figures as provider-dependent estimates.
 
 ### Step 2.1: Google Gemini Flash API Key (Primary AI Engine)
 
@@ -151,8 +152,7 @@ Job Hunter uses **Google Gemini Flash (`gemini-3.5-flash`)** as its primary inte
 
 1. Navigate to **[Google AI Studio](https://aistudio.google.com/app/apikey)**.
 2. Sign in with your Google account.
-3. Click **"Create API Key"** $
-ightarrow$ **"Create API key in new project"**.
+3. Click **"Create API Key"** -> **"Create API key in new project"**.
 4. Copy the generated key (`AIzaSy...`).
 5. *(Optional for scale)*: For multi-user deployments or heavy daily crawls, you can create a second key in a separate Google Cloud project and pass both as a comma-separated string: `GEMINI_API_KEY=key1,key2`. Job Hunter will automatically alternate requests between them round-robin.
 
@@ -180,18 +180,11 @@ To receive personalized HTML career digests in your email inbox every weekday mo
 2. Once provisioned, open the **SQL Editor** from the left sidebar.
 3. Click **"New Query"**, paste the entire contents of [`supabase/schema.sql`](../supabase/schema.sql), and click **Run**.
    * *This creates the 3 multi-tenant tables (`user_profiles`, `user_tracked_jobs`, `user_pipeline_runs`), triggers, indexes, and activates Row-Level Security (RLS).*
-4. Navigate to **Project Settings $
-ightarrow$ API**:
-   * Copy **Project URL** $
-ightarrow$ `SUPABASE_URL`
-   * Copy **Project API Keys $
-ightarrow$ `anon` `public`** $
-ightarrow$ `SUPABASE_ANON_KEY`
-   * Copy **Project API Keys $
-ightarrow$ `service_role` `secret`** $
-ightarrow$ `SUPABASE_SERVICE_ROLE_KEY`
-5. Navigate to **Authentication $
-ightarrow$ URL Configuration**:
+4. Navigate to **Project Settings** -> **API**:
+   * Copy **Project URL** -> `SUPABASE_URL`
+   * Copy **Project API Keys** -> `anon` `public` -> `SUPABASE_ANON_KEY`
+   * Copy **Project API Keys** -> `service_role` `secret` -> `SUPABASE_SERVICE_ROLE_KEY`
+5. Navigate to **Authentication** -> **URL Configuration**:
    * Set **Site URL** to your local dev URL `http://localhost:5000` (or production Vercel URL `https://your-app.vercel.app`).
    * Add the same URL under **Redirect URLs**.
 
@@ -205,8 +198,7 @@ To enable the **"Run Radar"** button on the web dashboard to trigger a real clou
 2. Note name: `Job Hunter Cloud Dispatch`.
 3. Expiration: 90 days or No expiration.
 4. Select scope: **`workflow`** (or `repo` for private repositories).
-5. Click **Generate token** and copy it $
-ightarrow$ `GH_TOKEN`.
+5. Click **Generate token** and copy it -> `GH_TOKEN`.
 
 ---
 
@@ -334,14 +326,12 @@ Open **`http://localhost:5000`** in your browser.
 * **Interactive Job Board**: Table/Card list with responsive client-side pagination (10, 25, or 50 opportunities per page) and in-card 5-stage dropdown selectors.
 * **Resume Studio**: Drag-and-drop PDF resume parser with AI skill extraction and 11 one-click role presets.
 * **Application Kit Inspector**: Tailored cover notes, 80-word cold outreach messages, and matching resume bullets with 1-click clipboard copy.
-* **Smart Follow-Up Nudges**: Automated elapsed-time badges (`⏳ 5d ago · Follow Up`) on applied roles.
-* **Live SSE Radar Console**: Live streaming crawl execution logs.
+* **Smart Follow-Up Nudges**: Automated elapsed-time badges (`5d ago · Follow Up`) highlight applications that have been awaiting response for 4+ days, generating tailored follow-up copy.
 
 ---
 
 ### Step 4.2: Run the 1-Click Master Automation Pipeline
 
-To run an end-to-end live radar pass (scouting ATS boards $
 ightarrow$ filtering $
 ightarrow$ screening $
 ightarrow$ drafting $
@@ -392,18 +382,17 @@ ightarrow$ Environment Variables**, configure:
    * `GEMINI_API_KEY`: Your Gemini API key
    * `SUPABASE_URL`: `https://your-project.supabase.co`
    * `SUPABASE_ANON_KEY`: Your Supabase anon public key
-   * `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role secret key
    * `AUTH_REQUIRED`: `true`
    * `FLASK_SECRET_KEY`: Random 32-char string
    * `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (Optional, for test emails)
-   * `GH_TOKEN`, `GITHUB_REPOSITORY` (Optional, for cloud on-demand radar triggers)
+  * `GH_TOKEN`, `GITHUB_REPOSITORY` (Required for cloud on-demand radar triggers)
 4. Click **Deploy**. Vercel will build and serve your app at `https://your-project.vercel.app`!
 
 ---
 
 ### Step 5.2: Configure Automated Daily 05:00 AM Cron via GitHub Actions
 
-Job Hunter includes a scheduled cloud cron job in [`.github/workflows/daily.yml`](../.github/workflows/daily.yml) that crawls ATS boards, screens matches, and dispatches briefings every weekday morning:
+Job Hunter includes a scheduled cloud workflow in [`.github/workflows/daily.yml`](../.github/workflows/daily.yml) that crawls ATS boards, screens matches, and dispatches briefings every day:
 
 1. Open your GitHub repository $
 ightarrow$ **Settings $
@@ -414,11 +403,10 @@ ightarrow$ Actions**.
    * `SMTP_USER` & `SMTP_PASS`
    * `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    * `MAIL_TO` (For single-user mode)
-   * `PROFILE_JSON` (Contents of your `profile.json` for single-user mode)
 3. Navigate to the **Actions** tab in your repository:
    * Select **Daily Career Intelligence Digest** $
 ightarrow$ Click **"Run workflow"** to test it immediately.
-   * By default, it will execute automatically every morning at **05:00 AM IST (23:30 UTC)**.
+  * By default, it executes automatically every day at **05:00 AM IST (23:30 UTC)**.
 
 ---
 
@@ -441,13 +429,13 @@ Run these diagnostic commands to verify each subsystem of the product:
 
 | Verification Gate | Command | Expected Result | Status |
 |---|---|---|:---:|
-| **1. Offline Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans 12 mock jobs, writes `out/digest.html` | ✅ Verified |
-| **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | ✅ Verified |
-| **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | ✅ Verified |
-| **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | ✅ Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **401 passed tests** with 100% success rate | ✅ Verified |
-| **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across 23 source files | ✅ Verified |
-| **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | ✅ Verified |
+| **1. Offline Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans 12 mock jobs, writes `out/digest.html` | Verified |
+| **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | Verified |
+| **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | Verified |
+| **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **404 passed tests** with 100% success rate | Verified |
+| **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across 25 source files | Verified |
+| **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | Verified |
 
 ---
 
@@ -471,7 +459,7 @@ ightarrow$ `gemini-flash-lite-latest` with cooldown tracking.
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Comprehensive architecture diagrams, design patterns, and state machine.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard features and REST API reference.

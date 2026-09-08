@@ -136,8 +136,6 @@ class SupabaseMemory:
             endpoint = f"{self.url}/rest/v1/user_profiles"
             params = {"email": f"eq.{clean_email}", "select": "*"}
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
-            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
-                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 if data and isinstance(data, list) and len(data) > 0:
@@ -488,8 +486,6 @@ class SupabaseMemory:
                 "limit": str(limit),
             }
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
-            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
-                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
                 raw_json = resp.json()
                 records = raw_json if isinstance(raw_json, list) else []
@@ -900,8 +896,6 @@ class SupabaseMemory:
                 "limit": str(limit),
             }
             resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
-            if (resp.status_code != 200 or not resp.json()) and token and self.service_key:
-                resp = _get_session().get(endpoint, headers=self._headers(use_service_key=True), params=params, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 return data if isinstance(data, list) else []

@@ -34,13 +34,13 @@ def _badge(job: Job) -> str:
 def _job_type_badge(j: Job) -> str:
     hay = f"{j.title} {j.location}".lower()
     if any(h in hay for h in ("remote", "wfh", "work from home", "distributed")):
-        return '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bfdbfe;">🌐 Remote</span>'
+        return '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bfdbfe;">Remote</span>'
     elif any(h in hay for h in ("hybrid", "flexible")):
-        return '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #fde68a;">🔀 Hybrid</span>'
+        return '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #fde68a;">Hybrid</span>'
     elif any(h in hay for h in ("intern", "internship", "trainee")):
-        return '<span style="background:#f0fdf4;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bbf7d0;">🎓 Internship</span>'
+        return '<span style="background:#f0fdf4;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bbf7d0;">Internship</span>'
     else:
-        return '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #e2e8f0;">🏢 On-Site</span>'
+        return '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #e2e8f0;">On-Site</span>'
 
 
 def _bullets(items: list[str]) -> str:
@@ -100,16 +100,16 @@ def _card(j: Job) -> str:
             "anywhere",
         ]
         if any(kw in location_lower for kw in india_keywords):
-            india_badge = "🇮🇳 India-Based Role"
+            india_badge = "India-Based Role"
         elif not j.location or j.location.strip() == "":
-            india_badge = "📍 Location TBD"
+            india_badge = "Location TBD"
         else:
-            india_badge = "🌐 Global / Check Location"
+            india_badge = "Global / Check Location"
 
     salary_html = ""
     salary_val = d.get("salary_range_inr") or getattr(j, "salary", "")
     if salary_val:
-        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">💰 {html.escape(str(salary_val))}</span>'
+        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">{html.escape(str(salary_val))}</span>'
 
     # Display a concise Why It Fits summary
     fit_text = d.get("fit_summary") or j.reason or ""
@@ -204,7 +204,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   </div>
 
   <div style="color:#475569;font-size:13px;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;">
-    💡 <b>Radar Status: Active &amp; Monitoring.</b> You will be immediately alerted as soon as new matching opportunities are published by target companies.
+    <b>Radar Status: Active &amp; Monitoring.</b> You will be immediately alerted as soon as new matching opportunities are published by target companies.
   </div>
 </div>"""
 

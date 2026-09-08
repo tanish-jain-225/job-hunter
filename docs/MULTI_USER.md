@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 🌐 Multi-User Architecture & Zero-Cost Forever Scaling
+# Multi-User Architecture and Operating Model
 
-Job Hunter is engineered to support hundreds of concurrent job seekers indefinitely on a **100% free-tier cloud stack**:
+Job Hunter supports multi-user batch processing on a free-tier stack for development and monitored beta use. Capacity and cost depend on current provider limits and measured workload:
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```text
                                ┌────────────────────────────────┐
@@ -38,7 +38,7 @@ Job Hunter is engineered to support hundreds of concurrent job seekers indefinit
 
 ---
 
-## 💡 How Single-Pass Batch Processing Works
+## How Single-Pass Batch Processing Works
 
 When running in multi-user mode (`python -m jobhunt multi-run`):
 
@@ -60,7 +60,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 ---
 
-## 📊 Zero-Cost Infrastructure Breakdown
+## Zero-Cost Infrastructure Breakdown
 
 | Service | Free Tier Allocation | Job Hunter Usage |
 | :--- | :--- | :--- |
@@ -72,7 +72,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 ---
 
-## 🚀 Running Multi-User Batch Pipeline
+## Running Multi-User Batch Pipeline
 
 ### Via Command Line:
 ```bash
@@ -85,11 +85,17 @@ python -m jobhunt multi-run --send
 
 ### Via GitHub Actions:
 - Trigger manually from the **Actions** tab by choosing `multi` mode.
-- Automated daily schedule runs every single day at 23:30 UTC (05:00 IST).
+- Automated daily schedule runs every day at 23:30 UTC (05:00 IST).
+
+The current Supabase schema isolates user rows by normalized email claims. The
+scheduled worker uses the service-role key to enumerate eligible profiles and
+therefore has administrative access; this is not a claim that administrators
+are technically unable to read tenant data. Migration to immutable Supabase
+user IDs is documented in `LAUNCH_READINESS.md`.
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.

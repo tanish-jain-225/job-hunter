@@ -24,15 +24,16 @@ identity guarantees, not extra steps required for the current deployment.
 
 ## Current release status
 
-- **Deployment:** Ready to launch with the existing Vercel, Supabase, GitHub,
-  Gemini, and SMTP credentials.
+- **Deployment:** Ready for a public beta only when Vercel has valid Supabase
+  credentials and a server-side GitHub workflow-dispatch token configured.
 - **User workflow:** Sign up, complete a profile, run an isolated scan, view
   synchronized jobs, and receive scheduled email only when notifications are
   enabled.
 - **Data safety:** Authenticated digest/export paths, profile writes, cloud
   dispatch failures, stale pipeline status, and Supabase read outages fail
   safely.
-- **Operational boundary:** The service is suitable for a free public beta.
+- **Operational boundary:** The service is suitable for a free public beta
+  after the operator verifies the required production environment variables.
   Third-party quotas and GitHub/Vercel execution limits still apply.
 
 ## Hardening backlog for scale

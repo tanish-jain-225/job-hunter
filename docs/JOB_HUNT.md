@@ -1,18 +1,18 @@
-# 📑 Job Hunter — Original Prompt & Specification
+# Job Hunter — Original Prompt & Specification
 
 This document contains the foundational specification prompt for **Job Hunter**, detailing the system requirements, ATS endpoints, prefiltering logic, LLM stages, data schemas, and design constraints.
 
-> 💡 *For user setup instructions, see [SETUP.md](SETUP.md).*  
-> 💡 *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
-> 💡 *For the web dashboard details, see [DASHBOARD.md](DASHBOARD.md).*  
-> 💡 *For details on the job-matching engine, see [ENGINE.md](ENGINE.md).*  
-> 💡 *For setting up multiple users, see [MULTI_USER.md](MULTI_USER.md).*  
-> 💡 *For troubleshooting common issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).*  
-> 💡 *For developer guidelines & testing, see [CONTRIBUTING.md](CONTRIBUTING.md).*
+>  *For user setup instructions, see [SETUP.md](SETUP.md).*  
+>  *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
+>  *For the web dashboard details, see [DASHBOARD.md](DASHBOARD.md).*  
+>  *For details on the job-matching engine, see [ENGINE.md](ENGINE.md).*  
+>  *For setting up multiple users, see [MULTI_USER.md](MULTI_USER.md).*  
+>  *For troubleshooting common issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).*  
+>  *For developer guidelines & testing, see [CONTRIBUTING.md](CONTRIBUTING.md).*
 
 ---
 
-## 🎯 What it Does
+## What it Does
 
 One daily run performs the following automated funnel:
 
@@ -27,7 +27,7 @@ One daily run performs the following automated funnel:
 
 ---
 
-## 📡 Data Sources (Exact ATS Endpoints)
+## Data Sources (Exact ATS Endpoints)
 
 - **Greenhouse**: `GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
 - **Lever**: `GET https://api.lever.co/v0/postings/{slug}?mode=json`
@@ -54,7 +54,7 @@ Normalize all ATS boards into one dataclass with a globally unique `job_id = "{a
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Keep HTTP separate from parsing — each ATS gets a pure `parse_x(slug, company, body) -> list[Job]` function that takes decoded JSON.
 
@@ -83,7 +83,7 @@ jobhunt/
 
 ---
 
-## 🤖 LLM Layer & Google Gemini Engine
+## LLM Layer & Google Gemini Engine
 
 Two stages for token and rate efficiency:
 
@@ -92,7 +92,7 @@ Two stages for token and rate efficiency:
 
 ### Provider Architecture
 Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVIDER` env var:
-- **Google Gemini** ⭐ (`GEMINI_API_KEY`) — Screening, kit drafting, & native PDF resume analysis. Supports CSV multi-key rotation (`GEMINI_API_KEY=key1,key2`).
+- **Google Gemini**  (`GEMINI_API_KEY`) — Screening, kit drafting, & native PDF resume analysis. Supports CSV multi-key rotation (`GEMINI_API_KEY=key1,key2`).
 - **Anthropic Claude** (`ANTHROPIC_API_KEY`) — Full pipeline support including native PDF blocks. `pip install 'jobhunt[anthropic]'`.
 - **Groq** (`GROQ_API_KEY`) — Ultra-fast inference, `LLM_PROVIDER=groq`.
 - **Ollama** (`OLLAMA_HOST`) — Fully local, no key needed, `LLM_PROVIDER=ollama`.
@@ -100,7 +100,7 @@ Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVID
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
 - `--mock` flag runs fixtures through real parsers with zero network requests.
 - `--scorer keyword` provides offline dev scoring without API keys.
@@ -108,7 +108,7 @@ Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVID
 
 ---
 
-## 🔗 Documentation Links
+## Documentation Links
 
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.

@@ -2,7 +2,7 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 📡 Job Hunter — REST API Reference
+# Job Hunter — REST API Reference
 
 Job Hunter exposes a modular REST API built with Flask Blueprints.
 
@@ -42,13 +42,17 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
   "status": "healthy",
   "service": "job-hunter",
   "version": "1.0.0",
-  "environment": "production",
+  "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,
   "timestamp": 1725450000.0,
   "utc_time": "2026-09-04 13:00:00Z"
 }
 ```
+
+In a Vercel deployment missing `SUPABASE_URL` or `SUPABASE_ANON_KEY`, this
+endpoint returns HTTP `503` with `{"status":"misconfigured"}`. Local
+development reports `"environment":"local"`.
 
 ### GET /logo.png & GET /favicon.ico
 Serves the official brand logo (`image/png`) and multi-resolution binary favicon (`image/x-icon`).
@@ -120,7 +124,10 @@ Triggers the full job intelligence radar pipeline for the authenticated user.
 ```json
 {"mock": false, "send": false, "scorer": "llm"}
 ```
-**Response:** `{"status": "success", "message": "Pipeline dispatched", "mode": "cloud"}`
+Cloud Vercel dispatch returns HTTP `200` with `status: "dispatched"` and
+`mode: "github_actions"`. Local asynchronous execution returns HTTP `202`
+with `status: "success"`. A failed cloud dispatch returns `CLOUD_DISPATCH_FAILED`;
+a missing dispatch credential returns `need_github_dispatch`.
 
 ### GET /api/digest
 Returns the latest digest as an HTML document.
@@ -255,13 +262,6 @@ Removes a custom ATS target board from the candidate's radar.
 **Body:** `{"ats": "lever", "slug": "meesho"}`  
 **Response:** `{"status": "success", "message": "Removed lever:meesho from custom companies"}`
 
-### POST /api/jobs/followup
-Generates a tailored follow-up outreach note (email and LinkedIn DM) for an applied job posting based on candidate profile and elapsed application days.
-
-**Auth:** Required  
-**Body:** `{"title": "Senior Engineer", "company": "Stripe", "applied_on": "2026-08-25", "stage": "applied"}`  
-**Response:** `{"status": "success", "followup": {"subject": "...", "email_body": "...", "linkedin_dm": "..."}}`
-
 ---
 
 ## Profile
@@ -334,4 +334,5 @@ All errors follow this shape:
 | 401 | Unauthenticated (missing or invalid token) |
 | 404 | Resource not found (job_id does not exist) |
 | 429 | Rate limit exceeded |
+| 503 | Required cloud persistence or production configuration is unavailable |
 | 500 | Internal server error |

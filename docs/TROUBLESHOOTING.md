@@ -2,13 +2,13 @@
   <img src="../assets/logo.png" alt="Job Hunter Logo" width="100" height="100">
 </p>
 
-# 🔍 Troubleshooting & FAQ Guide
+# Troubleshooting & FAQ Guide
 
 This guide covers solutions to common errors, configurations, and questions encountered when setting up or running **Job Hunter**.
 
 ---
 
-## 📧 Email & SMTP Authentication Issues
+## Email & SMTP Authentication Issues
 
 ### Error: `SMTPAuthenticationError` or "Gmail Authentication Failed"
 * **Why it happens:** Standard Gmail accounts block direct SMTP logins with your primary account password for security, especially when 2-Step Verification is enabled.
@@ -27,7 +27,7 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ---
 
-## 🤖 GitHub Actions Issues
+## GitHub Actions Issues
 
 ### Warning: `Node.js 20 is deprecated... being forced to run on Node.js 24`
 * **Why it happens:** Legacy versions of standard workflows target Node.js 20, which is deprecated.
@@ -37,15 +37,9 @@ This guide covers solutions to common errors, configurations, and questions enco
   * `actions/setup-python@v6`
   * `actions/upload-artifact@v4`
 
-### Warning: `PROFILE_JSON secret not set — using profile.example.json fallback`
-* **Why it happens:** The GitHub Actions CLI workflow cannot read your local `profile.json` because it is git-ignored, so it falls back to `profile.example.json`. This applies to the CLI workflow only; authenticated web users use their own Supabase profile and isolated cache.
-* **The Solution:** Add your profile as a GitHub Action Secret:
-  1. Copy the JSON contents of your local `profile.json`.
-  2. Go to your GitHub repository $\rightarrow$ **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**.
-  3. Click **New repository secret**.
-  4. Name: `PROFILE_JSON`.
-  5. Secret: *Paste your copied JSON*.
-  6. Click **Add secret**.
+### Warning: A scheduled multi-user run processes zero users
+* **Why it happens:** Multi-user enumeration requires `SUPABASE_SERVICE_ROLE_KEY`; the anon key is intentionally subject to RLS and cannot list every profile.
+* **The solution:** Add `SUPABASE_SERVICE_ROLE_KEY` as a GitHub Actions secret and rerun the workflow. Local/single-user runs use the local `profile.json`; cloud users use their Supabase profiles. `PROFILE_JSON` is not consumed by the current workflow.
 
 ### Issue: The daily cron workflow is delayed or runs late
 * **Why it happens:** GitHub Actions runs scheduled cron jobs on a shared queue. On free tiers, scheduled runs can be delayed anywhere from 10 minutes to over an hour depending on global runner load.
@@ -54,7 +48,7 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ---
 
-## ⚡ API Quotas & Rate Limiting
+## API Quotas & Rate Limiting
 
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
 * **Why it happens:** You are screening jobs on the Google Gemini free tier API (15 RPM ceiling per key, or the daily free limit for Google AI Studio projects).
@@ -73,18 +67,18 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ---
 
-## 📋 Data & Caching Questions
+## Data & Caching Questions
 
 ### Issue: How do I backup or export my job tracker?
 * **Answer:** All job tracking data is saved in a simple text-based format in your project root:
   * `seen.json` contains raw statuses, scores, cover letters, and timestamps.
   * `out/tracker.csv` is updated on every run and can be double-clicked to open in **Microsoft Excel**, **Google Sheets**, or **LibreOffice Calc**.
-  * Keep your backups safe by committing `seen.json` or uploading it to cloud drives.
+  * Keep backups outside version control in encrypted storage. `seen.json` may contain private job-search history and generated application data.
 
 ### Question: Why did the same job show up again in my feed?
 * **Answer:** Some recruiters delete and re-post the same listing on Greenhouse or Lever. When they do, the ATS assigns it a **new unique job ID**. Because the ID changed, Job Hunter treats it as a fresh posting. You can filter duplicates out manually on your web dashboard by clicking **Mark Applied** or ignoring it.
 
-## ⚡ Filtering & Regular Expressions
+## Filtering & Regular Expressions
 
 ### Issue: Filter keywords like `"C++"` match unexpected job titles (like `"Frontend React Developer"`) on Python 3.11+
 * **Why it happens:** Python 3.11+ introduced native support for possessive quantifiers (e.g., `++`, `*+`, `?+`, `}+`). If a keyword like `"C++"` is compiled directly as a regular expression, Python 3.11 compiles it successfully as a possessive quantifier of `"C"` (matching `C` one or more times possessively). Because of this, it matches any job title containing a case-insensitive `c` (like `"React"`).
@@ -92,7 +86,7 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ---
 
-## 🔗 Documentation Links
+## Documentation Links
 
 - **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
