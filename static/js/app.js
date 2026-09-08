@@ -709,7 +709,6 @@ async function syncDashboard(force = false) {
       if (data.user_profile) {
         activeProfileData = data.user_profile;
         renderCandidateSummary(data.user_profile);
-        checkAndPromptOnboarding(data.user_profile);
       }
 
       // If version changed or force reload requested, update jobs & digest
@@ -1466,55 +1465,12 @@ function onboardingDismissedKey() {
 }
 
 function checkAndPromptOnboarding(profile) {
-  if (isOnboardingOpen || isCandidateProfileFilled(profile)) return;
-  if (Storage.get(sessionStorage, onboardingDismissedKey(), false)) return;
-  setTimeout(() => openOnboardingModal(), 250);
+  // Disabled: Auto-prompting wizard disabled. Configuration is handled on demand via Settings modal.
+  return;
 }
 
 function openOnboardingModal() {
-  if (!checkAuthOrRedirect('open profile setup onboarding')) return;
-  const modalEl = document.getElementById('onboarding-modal');
-  if (!modalEl) return;
-  isOnboardingOpen = true;
-  modalEl.classList.add('active');
-  switchOnboardingStep(1);
-
-  // Resolve auth identity defaults
-  const authName = (
-    currentAuthSession?.user?.user_metadata?.full_name ||
-    currentAuthSession?.user?.user_metadata?.name ||
-    ''
-  ).trim();
-
-  // Pre-populate from real saved data only.
-  const nameInput    = document.getElementById('onboard-prof-name');
-  const titleInput   = document.getElementById('onboard-prof-title');
-  const yearsInput   = document.getElementById('onboard-prof-years');
-  const eduInput     = document.getElementById('onboard-prof-education');
-  const skillsInput  = document.getElementById('onboard-prof-skills');
-  const targetsInput = document.getElementById('onboard-prof-targets');
-  const excludesInput= document.getElementById('onboard-prof-excludes');
-  const notifToggle  = document.getElementById('onboard-toggle-email-alerts');
-
-  const p = activeProfileData || {};
-  const savedName    = (p.name || '').trim();
-  const savedTitle   = (p.title || '').trim();
-  const savedYears   = p.experience_years ? String(p.experience_years) : '';
-  const savedEdu     = (p.education || '').trim();
-  const savedSkills  = Array.isArray(p.skills) && p.skills.length ? p.skills.join(', ') : '';
-  const savedTargets = Array.isArray(p.target_keywords) && p.target_keywords.length ? p.target_keywords.join(', ') : '';
-  const savedExcludes= Array.isArray(p.exclude_keywords) && p.exclude_keywords.length ? p.exclude_keywords.join(', ') : '';
-
-  if (nameInput)    nameInput.value    = savedName;
-  if (titleInput)   titleInput.value   = savedTitle;
-  if (yearsInput)   yearsInput.value   = savedYears;
-  if (eduInput)     eduInput.value     = savedEdu;
-  if (skillsInput)  skillsInput.value  = savedSkills;
-  if (targetsInput) targetsInput.value = savedTargets;
-  if (excludesInput)excludesInput.value= savedExcludes;
-  if (notifToggle)  notifToggle.checked = Boolean(p.email_notifications_enabled);
-
-  populateSection2FromProfile(p);
+  openProfileModal();
 }
 
 function closeOnboardingModal(force = false) {
@@ -2915,8 +2871,8 @@ async function runPipeline() {
   }
 
   if (!isCandidateProfileFilled(activeProfileData)) {
-    openOnboardingModal();
-    showToast('Please fill candidate profile radar details (Name, Target Title, Skills) first.', 'info', 4000);
+    openProfileModal();
+    showToast('Please configure your candidate profile (Name, Target Title, Skills) in Settings first.', 'info', 4000);
     return;
   }
 
@@ -3052,11 +3008,11 @@ async function runPipeline() {
 
     } else {
       appState.pipelineRunning = false;
-      // Backend guard: profile not yet filled — redirect user to onboarding
+      // Backend guard: profile not yet filled — redirect user to Settings
       if (data.message && data.message.includes('candidate profile')) {
-        if (consoleBox) consoleBox.innerText = 'Candidate radar incomplete. Please configure your profile to activate autonomous job scouting.';
-        showToast('Please complete your candidate profile first.', 'info', 4500);
-        openOnboardingModal();
+        if (consoleBox) consoleBox.innerText = 'Candidate radar incomplete. Please configure your profile in Settings to activate autonomous job scouting.';
+        showToast('Please complete your candidate profile in Settings first.', 'info', 4500);
+        openProfileModal();
       } else {
         if (consoleBox) consoleBox.innerText = 'Error: ' + (data.message || 'Failed to start pipeline');
         showToast('Pipeline notice: ' + data.message, 'error');
