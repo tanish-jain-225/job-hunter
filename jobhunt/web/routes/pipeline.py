@@ -213,37 +213,40 @@ def api_sync():
                         or ""
                     ).strip()
                     if gh_token:
-                        try:
-                            import requests
+                        v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
+                        v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
+                        v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
+                        repo_name = (
+                            os.environ.get("GITHUB_REPOSITORY") or v_repo or ""
+                        ).strip()
 
-                            v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
-                            v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
-                            v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
-                            repo_name = (
-                                os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter"
-                            ).strip()
+                        if repo_name:
+                            try:
+                                import requests
 
-                            now_ts = time.time()
-                            cached_ts, cached_runs = _GH_STATUS_CACHE.get(repo_name, (0.0, []))
-                            runs_data = []
+                                now_ts = time.time()
+                                cached_ts, cached_runs = _GH_STATUS_CACHE.get(repo_name, (0.0, []))
+                                runs_data = []
 
-                            if now_ts - cached_ts < 15.0 and cached_runs:
-                                runs_data = cached_runs
-                            else:
-                                gh_url = (
-                                    f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
-                                )
-                                gh_headers = {
-                                    "Authorization": f"Bearer {gh_token}",
-                                    "Accept": "application/vnd.github+json",
-                                    "User-Agent": "Job-Hunter-Web-App",
-                                }
-                                gh_r = requests.get(gh_url, headers=gh_headers, timeout=4)
-                                if gh_r.status_code == 200:
-                                    runs_data = gh_r.json().get("workflow_runs", [])
-                                    _GH_STATUS_CACHE[repo_name] = (now_ts, runs_data)
-                                else:
+                                if now_ts - cached_ts < 15.0 and cached_runs:
                                     runs_data = cached_runs
+                                else:
+                                    gh_url = (
+                                        f"https://api.github.com/repos/{repo_name}/actions/workflows/daily.yml/runs?per_page=1"
+                                    )
+                                    gh_headers = {
+                                        "Authorization": f"Bearer {gh_token}",
+                                        "Accept": "application/vnd.github+json",
+                                        "User-Agent": "Job-Hunter-Web-App",
+                                    }
+                                    gh_r = requests.get(gh_url, headers=gh_headers, timeout=4)
+                                    if gh_r.status_code == 200:
+                                        runs_data = gh_r.json().get("workflow_runs", [])
+                                        _GH_STATUS_CACHE[repo_name] = (now_ts, runs_data)
+                                    else:
+                                        logger.warning("GitHub Actions run polling returned %s", gh_r.status_code)
+                            except Exception as gh_e:
+                                logger.warning("Could not fetch GitHub Actions status: %s", gh_e)
 
                             if runs_data:
                                 top_run = runs_data[0]
@@ -301,8 +304,6 @@ def api_sync():
                                             set_user_pipeline_state(
                                                 email, running=False, step="error", message=pipe_state["message"]
                                             )
-                        except Exception:
-                            pass
         except Exception:
             pass
 
@@ -593,7 +594,7 @@ def api_run():
     v_owner = os.environ.get("VERCEL_GIT_REPO_OWNER")
     v_slug = os.environ.get("VERCEL_GIT_REPO_SLUG")
     v_repo = f"{v_owner}/{v_slug}" if (v_owner and v_slug) else None
-    repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "tanish-jain-225/job-hunter").strip()
+    repo_name = (os.environ.get("GITHUB_REPOSITORY") or v_repo or "").strip()
 
     # Dispatch a user-scoped worker run. The email comes from the verified session,
     # never from request JSON, so one user cannot select another user's profile.
@@ -613,6 +614,17 @@ def api_run():
                     "message": "A verified account is required for cloud pipeline dispatch.",
                 }
             ), 403
+        if not repo_name:
+            msg = "Cloud pipeline dispatch requires GITHUB_REPOSITORY to be configured in environment variables."
+            logger.warning(msg)
+            set_user_pipeline_state(email, running=False, step="error", message=msg, exit_code=1)
+            return jsonify(
+                {
+                    "status": "error",
+                    "code": "REPO_NOT_CONFIGURED",
+                    "message": msg,
+                }
+            ), 500
         try:
             import requests
 
@@ -672,7 +684,9 @@ def api_run():
 
     # If on Vercel without GH_TOKEN and not in mock mode, guide user to GitHub Actions
     if is_vercel and not gh_token and not use_mock:
-        gh_actions_url = f"https://github.com/{repo_name}/actions/workflows/daily.yml"
+        gh_actions_url = (
+            f"https://github.com/{repo_name}/actions/workflows/daily.yml" if repo_name else "https://github.com"
+        )
         msg = "Cloud Radar: GitHub Actions is ready to crawl 100+ live boards. Triggering workflow..."
         return jsonify(
             {

@@ -339,7 +339,7 @@ def test_digest_sync_and_zero_match_integrity(monkeypatch: pytest.MonkeyPatch, t
     exact_email_briefing = "<!-- EMAIL BRIEFING --><h1>0 shortlisted today</h1><p>Daily Radar Scan Completed</p>"
     mock_memory.get_user_profile.return_value = {
         "email": test_email,
-        "name": "Tanish Sanghvi",
+        "name": "Alex Doe",
         "latest_digest_html": exact_email_briefing,
     }
     mock_memory.get_pipeline_history.return_value = [{"jobs_scanned": 10458, "candidates_matched": 1072, "shortlisted": 0}]
@@ -357,7 +357,7 @@ def test_digest_sync_and_zero_match_integrity(monkeypatch: pytest.MonkeyPatch, t
     mock_memory_uncached.is_configured = True
     mock_memory_uncached.get_user_profile.return_value = {
         "email": test_email,
-        "name": "Tanish Sanghvi",
+        "name": "Alex Doe",
         "min_score_notification": 8.0,
     }
     mock_memory_uncached.get_pipeline_history.return_value = [{"jobs_scanned": 10458, "candidates_matched": 1072, "shortlisted": 0}]

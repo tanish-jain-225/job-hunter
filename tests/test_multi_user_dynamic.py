@@ -48,16 +48,14 @@ def test_llm_dynamic_system_prompts():
     assert "Stanford University" in screen_prompt
     assert "5.0 YoE" in screen_prompt
     assert "ML Infrastructure Engineer" in screen_prompt
-    assert "Tanish" not in screen_prompt
-    assert "VESIT" not in screen_prompt
+    assert "Alex Mercer" not in screen_prompt
 
     draft_prompt = llm._build_draft_system(custom_profile)
     assert "Sarah Connor" in draft_prompt
     assert "Stanford University" in draft_prompt
     assert "Skynet Neural Engine" in draft_prompt
     assert "https://github.com/sarahconnor" in draft_prompt
-    assert "Tanish" not in draft_prompt
-    assert "Edvanta" not in draft_prompt
+    assert "Alex Mercer" not in draft_prompt
 
 
 def test_digest_build_dynamic_rendering():
@@ -94,7 +92,7 @@ def test_digest_build_dynamic_rendering():
     assert "Alex Mercer" in html_content
     assert "B.Tech Computer Science" in html_content
     assert "Exceptional fit for AI training infrastructure." in html_content
-    assert "Tanish" not in html_content
+    assert "Sarah Connor" not in html_content
 
 
 def test_store_multi_tenant_isolation(tmp_path, monkeypatch):

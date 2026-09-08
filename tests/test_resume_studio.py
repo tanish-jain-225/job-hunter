@@ -145,9 +145,9 @@ def test_get_or_initialize_user(mock_supabase_env):
         patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])),
         patch("requests.post", return_value=MagicMock(status_code=201)),
     ):
-        profile = mem.get_or_initialize_user("tanish.jain@example.com", user_meta={"full_name": "Tanish Jain"})
+        profile = mem.get_or_initialize_user("alex.doe@example.com", user_meta={"full_name": "Alex Doe"})
         # New user stub: email is set, name/skills are blank, flag is False
-        assert profile["email"] == "tanish.jain@example.com"
+        assert profile["email"] == "alex.doe@example.com"
         assert profile["name"] == ""  # no fake defaults
         assert profile["skills"] == []  # no pre-populated skill list
         assert profile["onboarding_completed"] is False

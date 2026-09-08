@@ -210,3 +210,10 @@ def test_digest_logo_in_empty_state():
     assert "Daily Radar Scan Completed" in html_doc
     assert 'class="digest-footer"' in html_doc
 
+
+def test_mailer_empty_credentials_raises():
+    """Verify mailer.send raises ValueError when SMTP_USER or SMTP_PASS is empty."""
+    with patch.dict("os.environ", {"SMTP_USER": "", "SMTP_PASS": ""}):
+        with pytest.raises(ValueError, match="must not be empty"):
+            mailer.send("Subject", "<p>Body</p>", to_email="test@example.com")
+

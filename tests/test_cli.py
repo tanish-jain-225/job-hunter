@@ -260,12 +260,12 @@ def test_main_cli_routing_all(monkeypatch: pytest.MonkeyPatch):
 
 def test_cmd_profile_success_and_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     resume_file = tmp_path / "resume.txt"
-    resume_file.write_text("Tanish Sanghvi Software Engineer Resume", encoding="utf-8")
+    resume_file.write_text("Alex Doe Software Engineer Resume", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
     mock_provider = providers.GroqProvider()
     monkeypatch.setattr(cli, "resolve", lambda stage: (mock_provider, "llama-3.3-70b"))
-    monkeypatch.setattr(cli.llm, "build_profile", lambda **kw: {"name": "Tanish", "seniority": "intern"})
+    monkeypatch.setattr(cli.llm, "build_profile", lambda **kw: {"name": "Alex", "seniority": "intern"})
 
     args = argparse.Namespace(resume=str(resume_file), yaml=True)
     assert cli.cmd_profile(args) == 0

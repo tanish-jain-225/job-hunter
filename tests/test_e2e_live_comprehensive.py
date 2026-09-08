@@ -18,40 +18,40 @@ import pytest
 from jobhunt.web import create_app
 from jobhunt import llm
 
-SAMPLE_RESUME_TEXT = """TANISH SANGHVI
-Dombivli, Maharashtra | +91-7021341948 | tanishjain020205@gmail.com
+SAMPLE_RESUME_TEXT = """ALEX DOE
+San Francisco, CA | +1-555-0199 | alex.doe@example.com
 LinkedIn | GitHub | Portfolio
 
 SUMMARY
 Software Engineer and Full-Stack Developer experienced in building and deploying scalable web applications using React.js, Next.js, Node.js, Express, Flask and MongoDB. Skilled in REST API design, robust authentication, automated testing and integrating AI pipelines into production systems.
 
 EDUCATION
-Vivekanand Education Society’s Institute of Technology (VESIT), Mumbai, 2023 - Present
-B.E. in Automation & Robotics Engineering | CGPA: 7.33 / 10
-Relevant Coursework: Data Structures & Algorithms, DBMS, Machine Learning, Generative AI
+University of California, Berkeley, 2020 - 2024
+B.S. in Computer Science | GPA: 3.8 / 4.0
+Relevant Coursework: Data Structures & Algorithms, DBMS, Machine Learning, Distributed Systems
 
 SKILLS
 Languages: JavaScript (ES6+), Python, C++
 Frontend: React.js, Next.js, HTML5, CSS3, Tailwind CSS
 Backend: Node.js, Express.js, Flask, REST APIs
-Databases: MongoDB, Firestore
-Authentication: Firebase Authentication
-Deployment & Testing: Git, GitHub, Postman, Jest, Playwright, Vercel, Render
-AI & Developer Tools: Gemini AI API, GitHub Copilot, ChatGPT
+Databases: MongoDB, PostgreSQL
+Authentication: JWT, OAuth
+Deployment & Testing: Git, GitHub, Postman, Jest, Playwright, Vercel, Docker
+AI & Developer Tools: Gemini AI API, GitHub Copilot, OpenAI API
 Soft Skills: Problem Solving, Team Collaboration, Communication
 
 PROJECTS
-Edvanta - AI-Powered Educational Platform
-Tech Stack: Python, Flask, React.js, Gemini AI API, MongoDB, Firebase
+CloudLearn - AI-Powered Educational Platform
+Tech Stack: Python, Flask, React.js, Gemini AI API, PostgreSQL
 ● Designed 33 REST API endpoints in Flask to power AI tutoring and automated learning roadmaps.
 ● Integrated Gemini AI APIs using structured JSON schemas and prompt templates for deterministic student guidance.
 
-Department Ledger Portal - Academic Record System
-Tech Stack: Next.js, React, Tailwind CSS, Firebase Admin, Firestore, Gemini AI API
+Distributed Ledger Portal - Record Management System
+Tech Stack: Next.js, React, Tailwind CSS, PostgreSQL, Gemini AI API
 ● Built a full-stack application backed by 77 Jest unit tests and 5 Playwright E2E pipeline gates.
 """
 
-USER_EMAIL = "tanishjain020205@gmail.com"
+USER_EMAIL = "alex.doe@example.com"
 USER_PAYLOAD = {"id": "usr_e2e_live_test", "email": USER_EMAIL, "role": "authenticated"}
 AUTH_HEADERS = {"Authorization": "Bearer e2e-valid-jwt-token"}
 
@@ -207,14 +207,14 @@ class TestE2ELiveSuite:
     def test_06_resume_upload_json_text(self, client):
         resp = client.post(
             "/api/resume/upload",
-            json={"resume_text": SAMPLE_RESUME_TEXT, "filename": "Tanish_Sanghvi_Resume.txt"},
+            json={"resume_text": SAMPLE_RESUME_TEXT, "filename": "Alex_Doe_Resume.txt"},
             headers=AUTH_HEADERS,
         )
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["status"] == "success"
         profile = data["profile"]
-        assert "tanish" in profile.get("name", "").lower()
+        assert "alex" in profile.get("name", "").lower()
         assert len(profile.get("skills", [])) > 0
         assert len(profile.get("resume_text", "")) > 100
         print(f" [OK] 2.1 Resume text upload succeeded: Name={profile.get('name')}, Skills={len(profile.get('skills', []))}")
@@ -223,7 +223,7 @@ class TestE2ELiveSuite:
         file_data = io.BytesIO(SAMPLE_RESUME_TEXT.encode("utf-8"))
         resp = client.post(
             "/api/resume/upload",
-            data={"file": (file_data, "Tanish_Resume.pdf")},
+            data={"file": (file_data, "Alex_Resume.pdf")},
             content_type="multipart/form-data",
             headers=AUTH_HEADERS,
         )
@@ -255,7 +255,7 @@ class TestE2ELiveSuite:
 
     def test_09_full_profile_crud_and_reset(self, client):
         profile_data = {
-            "name": "Tanish Sanghvi",
+            "name": "Alex Doe",
             "title": "Full-Stack Engineer",
             "skills": ["Python", "React.js", "Node.js", "MongoDB"],
             "target_keywords": ["Full Stack Developer"],
@@ -268,7 +268,7 @@ class TestE2ELiveSuite:
         read_resp = client.get("/api/profile", headers=AUTH_HEADERS)
         assert read_resp.status_code == 200
         user_profile = read_resp.get_json()["profile"]
-        assert user_profile["name"] == "Tanish Sanghvi"
+        assert user_profile["name"] == "Alex Doe"
 
         reset_resp = client.post("/api/profile/reset", headers=AUTH_HEADERS)
         assert reset_resp.status_code == 200

@@ -26,11 +26,14 @@ def check_single_board(
     company: dict, timeout: int = 7, session: requests.Session | None = None
 ) -> tuple[dict, bool, Any]:
     """Check a single company's ATS board endpoint."""
-    ats = str(company.get("ats", "")).lower()
-    slug = str(company.get("slug", ""))
+    ats = str(company.get("ats", "")).lower().strip()
+    slug = str(company.get("slug", "")).strip()
 
     if ats not in REGISTERED_ATS:
         return company, False, "Unknown ATS"
+
+    if not slug:
+        return company, False, "Missing company slug"
 
     url_template, _ = REGISTERED_ATS[ats]
     url = url_template.format(slug=slug)

@@ -391,3 +391,11 @@ def test_prefilter_job_types_filter_and_exclude_titles():
     # Internship filter
     passed_intern = prefilter(jobs, {"job_types": ["internship"], "max_age_days": 30})
     assert len(passed_intern) == 1 and passed_intern[0].job_id == "3"
+
+
+def test_matches_location_edge_cases():
+    from jobhunt.prefilter import _matches_location
+    assert _matches_location("", "Remote") is False
+    assert _matches_location("US", "") is False
+    assert _matches_location("US", "Remote, US only") is True
+    assert _matches_location("US", "Remote, Russia") is False

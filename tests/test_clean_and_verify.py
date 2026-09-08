@@ -72,6 +72,10 @@ def test_verify_check_single_board():
     assert ok2 is False
     assert status2 == "Unknown ATS"
 
+    c3, ok3, status3 = check_single_board({"ats": "greenhouse", "slug": "   "}, session=mock_sess)
+    assert ok3 is False
+    assert status3 == "Missing company slug"
+
 
 def test_verify_check_single_board_failure_paths():
     c_invalid = {"ats": "greenhouse", "slug": "stripe", "name": "Stripe"}
@@ -148,3 +152,44 @@ def test_cli_clean_and_verify_commands(capsys):
                 cli.main()
             out = capsys.readouterr().out
             assert "AUDIT RESULTS" in out
+
+    with patch("sys.argv", ["jobhunt", "clean"]), patch("jobhunt.clean.clean_workspace", return_value=([], 0)):
+        with pytest.raises(SystemExit):
+            cli.main()
+        out = capsys.readouterr().out
+        assert "Workspace is clean!" in out
+
+    with patch("jobhunt.verify.audit_company_boards") as mock_audit_invalid:
+        mock_audit_invalid.return_value = {
+            "total": 1,
+            "valid_count": 0,
+            "invalid_count": 1,
+            "valid": [],
+            "invalid": [({"ats": "greenhouse", "slug": "broken", "name": "Broken"}, 404)],
+        }
+        with patch("sys.argv", ["jobhunt", "verify"]):
+            with pytest.raises(SystemExit):
+                cli.main()
+            out = capsys.readouterr().out
+            assert "Non-200 / Unreachable entries:" in out
+
+
+def test_clean_workspace_and_find_cleanable_errors():
+    with patch.object(Path, "iterdir", side_effect=PermissionError("Permission denied")):
+        cleanables = find_cleanable_files()
+        assert cleanables == []
+
+    fake_file = MagicMock(spec=Path)
+    fake_file.exists.return_value = True
+    fake_file.stat.return_value = MagicMock(st_size=100)
+    fake_file.unlink.side_effect = PermissionError("Cannot delete")
+    with patch("jobhunt.clean.find_cleanable_files", return_value=[fake_file]):
+        removed, freed = clean_workspace(dry_run=False)
+        assert removed == []
+        assert freed == 0
+
+
+def test_audit_company_boards_default_none():
+    with patch("jobhunt.verify.Path.is_file", return_value=False):
+        res = audit_company_boards(None)
+        assert res["total"] == 0

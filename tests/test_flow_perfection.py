@@ -257,7 +257,9 @@ def test_multi_user_batch_with_custom_companies(monkeypatch):
     mock_resp.json.return_value = [user_with_custom]
 
     monkeypatch.setattr("requests.get", lambda *a, **kw: mock_resp)
-    with patch("jobhunt.fetch.fetch_all", return_value=[Job(job_id="gh:customco:1", ats="greenhouse", company="Custom Co", title="Backend Dev", location="India", url="http://x", description="test description")]), \
+    monkeypatch.setattr("requests.post", lambda *a, **kw: mock_resp)
+    monkeypatch.setattr("requests.patch", lambda *a, **kw: mock_resp)
+    with patch("jobhunt.multi.fetch_all", return_value=[Job(job_id="gh:customco:1", ats="greenhouse", company="Custom Co", title="Backend Dev", location="India", url="http://x", description="test description")]), \
          patch("jobhunt.llm.keyword_screen", return_value=[]):
         res = run_multi_user_pipeline(mock=False, scorer="keyword")
         assert res["status"] == "success" or "users_processed" in res

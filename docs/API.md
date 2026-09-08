@@ -297,9 +297,9 @@ Upload and extract structured candidate profile data from a resume document (PDF
   "message": "Resume text successfully extracted. You can review and alter your text context before saving.",
   "resume_text": "...",
   "profile": {
-    "name": "Tanish Sanghvi",
+    "name": "Alex Doe",
     "title": "Full-Stack Developer",
-    "education": "B.E. in Automation & Robotics Engineering",
+    "education": "B.S. in Computer Science",
     "experience_years": 0.0,
     "skills": ["JavaScript", "Python", "React.js", "Node.js", "Express.js", "Next.js", "MongoDB"],
     "target_keywords": ["Full Stack Developer", "Software Engineer"],
