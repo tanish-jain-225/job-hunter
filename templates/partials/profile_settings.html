@@ -3,21 +3,21 @@
     <div class="modal-header">
       <div class="modal-header-info">
         <div class="modal-title">Profile &amp; Search Settings</div>
-        <div class="modal-subtitle" id="profile-wizard-subtitle">Step 1 of 3 — Candidate Profile &amp; Resume</div>
+        <div class="modal-subtitle" id="profile-wizard-subtitle">Step 1 of 3 — Resume &amp; Text Context</div>
       </div>
       <button class="modal-close" onclick="closeProfileModal()" aria-label="Close modal">×</button>
     </div>
 
     <!-- Step Progress Bar -->
     <div class="wizard-progress-bar">
-      <div class="wizard-step-node active" id="pws-node-1" onclick="profileWizardGoTo(1)" role="button" tabindex="0" title="Go to Step 1: Candidate Profile & Resume">
+      <div class="wizard-step-node active" id="pws-node-1" onclick="profileWizardGoTo(1)" role="button" tabindex="0" title="Go to Step 1: Resume Context">
         <div class="wizard-step-circle">1</div>
-        <div class="wizard-step-label">Profile</div>
+        <div class="wizard-step-label">Resume</div>
       </div>
       <div class="wizard-step-connector" id="pws-conn-1"></div>
-      <div class="wizard-step-node" id="pws-node-2" onclick="profileWizardGoTo(2)" role="button" tabindex="0" title="Go to Step 2: Target Roles">
+      <div class="wizard-step-node" id="pws-node-2" onclick="profileWizardGoTo(2)" role="button" tabindex="0" title="Go to Step 2: Profile & Criteria">
         <div class="wizard-step-circle">2</div>
-        <div class="wizard-step-label">Roles</div>
+        <div class="wizard-step-label">Criteria</div>
       </div>
       <div class="wizard-step-connector" id="pws-conn-2"></div>
       <div class="wizard-step-node" id="pws-node-3" onclick="profileWizardGoTo(3)" role="button" tabindex="0" title="Go to Step 3: Alert Settings">
@@ -28,10 +28,10 @@
 
     <div class="modal-body modal-body-studio">
 
-      <!-- Step 1: Candidate Identity & Resume Upload -->
+      <!-- Step 1: Resume Upload & Raw Text Context (Extraction Only) -->
       <div class="studio-wizard-step" id="profile-step-1">
         <div class="studio-section-desc">
-          Upload your resume (PDF/TXT) to extract text, or enter your candidate details directly below.
+          Upload your resume (PDF/TXT) for automated text extraction, or paste and edit your raw resume text context directly below.
         </div>
 
         <div class="resume-dropzone" id="resume-dropzone" onclick="document.getElementById('resume-file-input').click()">
@@ -44,17 +44,71 @@
           <div class="dropzone-sub">One-time text extraction &middot; No binary files stored &middot; Plain text only</div>
         </div>
 
-        <!-- Candidate Identity Inputs -->
+        <!-- Direct Resume Text Context Editor -->
         <div class="form-group" style="margin-top:16px;">
-          <label class="form-label" for="prof-name">Candidate Name <span class="form-hint-inline">(Your full name)</span> *</label>
-          <input type="text" class="form-input" id="prof-name" placeholder="e.g. Alex Morgan" autocomplete="name" required>
+          <label class="form-label" for="prof-resume-text">
+            <span>Resume Text Context</span>
+            <span class="form-hint-inline">(Extracted text appears here &mdash; edit, alter, or paste freely before proceeding)</span>
+          </label>
+          <textarea class="form-input form-textarea" id="prof-resume-text" rows="8" placeholder="Resume text context will appear here upon upload. You can also paste or customize your resume background text directly..." autocomplete="off" spellcheck="false"></textarea>
         </div>
 
+        <!-- Inline parse status -->
+        <div class="studio-alert" id="resume-status-alert" style="display:none;"></div>
+
+        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Reset all profile details and start fresh">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Reset Profile</span>
+          </button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+              <span>Cancel</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="profile-next-1" onclick="profileWizardNext(1)">
+              <span>Next: Profile &amp; Search Criteria &rarr;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Candidate Profile & Search Criteria (The Relevant Nuts) -->
+      <div class="studio-wizard-step" id="profile-step-2" style="display:none;">
+        <div class="studio-section-desc">
+          Review and customize your candidate details and search criteria below, or auto-fill everything from your resume text.
+        </div>
+
+        <!-- Auto-Fill from Resume Context Button at the Top -->
+        <div style="margin-top:14px; margin-bottom:18px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
+            <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
+          </button>
+        </div>
+
+        <!-- Candidate Name & Target Roles -->
+        <div class="form-grid-2" style="margin-top:12px;">
+          <div class="form-group">
+            <label class="form-label" for="prof-name">Candidate Name *</label>
+            <input type="text" class="form-input" id="prof-name" placeholder="e.g. Alex Morgan" autocomplete="name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
+            <input type="text" class="form-input" id="prof-targets" placeholder="Backend Engineer, Software Engineer, Full Stack Developer" autocomplete="off" spellcheck="false" required>
+          </div>
+        </div>
+
+        <!-- Hidden prof-title to maintain compatibility with backend payload expectations -->
+        <input type="hidden" id="prof-title" value="">
+
+        <!-- Core Skills -->
         <div class="form-group" style="margin-top:14px;">
-          <label class="form-label" for="prof-title">Current Title</label>
-          <input type="text" class="form-input" id="prof-title" placeholder="e.g. Software Engineer" autocomplete="off" spellcheck="false">
+          <label class="form-label" for="prof-skills">Core Skills * <span class="form-hint-inline">(comma separated)</span></label>
+          <input type="text" class="form-input" id="prof-skills" placeholder="Python, SQL, React, Go, Docker" autocomplete="off" spellcheck="false" required>
         </div>
 
+        <!-- Years of Experience & Education -->
         <div class="form-grid-2" style="margin-top:14px;">
           <div class="form-group">
             <label class="form-label" for="prof-years">Years of Experience</label>
@@ -66,75 +120,8 @@
           </div>
         </div>
 
+        <!-- Excluded Title Keywords -->
         <div class="form-group" style="margin-top:14px;">
-          <label class="form-label" for="prof-skills">Core Skills <span class="form-hint-inline">(comma separated)</span> *</label>
-          <input type="text" class="form-input" id="prof-skills" placeholder="Python, SQL, React, Go, Docker" autocomplete="off" spellcheck="false" required>
-        </div>
-
-        <!-- Direct Resume Text Context Editor -->
-        <div class="form-group" style="margin-top:14px;">
-          <label class="form-label" for="prof-resume-text">
-            <span>Resume Text Context</span>
-            <span class="form-hint-inline">(Extracted text appears here &mdash; edit or alter freely before saving)</span>
-          </label>
-          <textarea class="form-input form-textarea" id="prof-resume-text" rows="5" placeholder="Resume text context is stored here. You can paste, edit, or customize your background text directly before saving..." autocomplete="off" spellcheck="false"></textarea>
-        </div>
-
-        <!-- Inline parse status -->
-        <div class="studio-alert" id="resume-status-alert" style="display:none;"></div>
-
-        <!-- Parsed preview card (hidden until parse completes) -->
-        <div class="studio-preview-card" id="studio-resume-preview-card" style="display:none;">
-          <div class="studio-preview-header">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            <span>Extracted Profile Preview</span>
-          </div>
-          <div class="studio-preview-row"><span class="preview-label">Name</span><span class="preview-value" id="studio-prev-name">&mdash;</span></div>
-          <div class="studio-preview-row"><span class="preview-label">Title</span><span class="preview-value" id="studio-prev-title">&mdash;</span></div>
-          <div class="studio-preview-row"><span class="preview-label">Experience</span><span class="preview-value" id="studio-prev-years">&mdash;</span></div>
-          <div class="studio-preview-row">
-            <span class="preview-label">Skills</span>
-            <span class="preview-value" id="studio-prev-skills">&mdash;</span>
-          </div>
-        </div>
-
-        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Reset all profile details and start fresh">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            <span>Reset Profile</span>
-          </button>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
-              <span>Cancel</span>
-            </button>
-            <button type="button" class="btn btn-primary" id="profile-next-1" onclick="profileWizardNext(1)">
-              <span>Next: Target Roles &rarr;</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Target Roles & Filtering Preferences -->
-      <div class="studio-wizard-step" id="profile-step-2" style="display:none;">
-        <div class="studio-section-desc">
-          Define your target job titles and exclusions, or auto-fill them from your resume context.
-        </div>
-
-        <div style="margin-top:14px; margin-bottom:16px;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
-            <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-            <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
-          </button>
-        </div>
-
-        <div class="form-group" style="margin-top:16px;">
-          <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
-          <input type="text" class="form-input" id="prof-targets" placeholder="Backend Engineer, Software Engineer, Full Stack Developer, Systems Engineer" autocomplete="off" spellcheck="false" required>
-          <span class="form-hint">Only jobs matching at least one target title pattern will be screened.</span>
-        </div>
-
-        <div class="form-group" style="margin-top:16px;">
           <label class="form-label" for="prof-excludes">Excluded Title Keywords <span class="form-hint-inline">(comma separated)</span></label>
           <input type="text" class="form-input" id="prof-excludes" placeholder="Manager, Director, Sales, Recruiter, VP" autocomplete="off" spellcheck="false">
           <span class="form-hint">Any job containing these keywords in the title will be automatically filtered out.</span>
@@ -181,18 +168,6 @@
           </div>
         </div>
 
-        <!-- Experience Level -->
-        <div class="form-group" style="margin-top:16px;">
-          <div class="form-label">Experience Level</div>
-          <div class="exp-level-chips" id="prof-exp-level">
-            <label class="chip-radio"><input type="radio" name="prof-exp" value="fresher"> Fresher</label>
-            <label class="chip-radio"><input type="radio" name="prof-exp" value="0-1"> 0&ndash;1 Yr</label>
-            <label class="chip-radio"><input type="radio" name="prof-exp" value="1-3"> 1&ndash;3 Yrs</label>
-            <label class="chip-radio"><input type="radio" name="prof-exp" value="3-5"> 3&ndash;5 Yrs</label>
-            <label class="chip-radio"><input type="radio" name="prof-exp" value="5+"> 5+ Yrs</label>
-          </div>
-        </div>
-
         <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
           <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
             <span>Cancel</span>
@@ -209,7 +184,7 @@
         </div>
       </div>
 
-      <!-- Step 3: Alert Score & Briefing Modes -->
+      <!-- Step 3: Alert Score & Briefing Modes (Simple as it is now) -->
       <div class="studio-wizard-step" id="profile-step-3" style="display:none;">
         <div class="studio-section-desc">
           Set your AI qualification score threshold and select your email briefing frequency.

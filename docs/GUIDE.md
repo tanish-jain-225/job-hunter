@@ -13,12 +13,12 @@ Welcome to **Job Hunter**! Whether you are a recent graduate, seasoned software 
 1. [ Core Philosophy & What Job Hunter Does](#1--core-philosophy--what-job-hunter-does)
 2. [ Accessing Job Hunter (Cloud SaaS vs. Local Web)](#2--accessing-job-hunter-cloud-saas-vs-local-web)
 3. [ Step 1: Sign Up & Private Account Isolation](#3--step-1-sign-up--private-account-isolation)
-4. [ Step 2: The 2-Minute Onboarding Wizard](#4--step-2-the-2-minute-onboarding-wizard)
-- [Method A: Resume PDF/Text Upload (Resume Studio)](#method-a-resume-pdftext-upload-resume-studio)
-- [Method B: 1-Click Role Presets](#method-b-1-click-role-presets)
-- [Setting Target Titles & Excluded Keywords](#setting-target-titles--excluded-keywords)
-- [Setting Locations, Remote & Job Types](#setting-locations-remote--job-types)
-- [Choosing Your Email Briefing Mode](#choosing-your-email-briefing-mode)
+4. [ Step 2: Profile & Search Settings (3-Step Setup)](#4--step-2-profile--search-settings-3-step-setup)
+   - [First-Time Onboarding vs. Ongoing Settings](#first-time-onboarding-vs-ongoing-settings)
+   - [Step 1: Resume Upload & Raw Text Context](#step-1-resume-upload--raw-text-context-extraction-only)
+   - [Step 2: Candidate Profile & Search Criteria (The Relevant Nuts)](#step-2-candidate-profile--search-criteria-the-relevant-nuts)
+   - [Auto-Fill from Resume Context & 3-Tier Fallback Protection](#auto-fill-from-resume-context--3-tier-fallback-protection)
+   - [Step 3: Alert Score Threshold & Briefing Delivery Modes](#step-3-alert-score-threshold--briefing-delivery-modes)
 5. [ Step 3: Launching Your First Autonomous Job Hunt](#5--step-3-launching-your-first-autonomous-job-hunt)
 6. [ Step 4: Mastering the Interactive Job Board](#6--step-4-mastering-the-interactive-job-board)
 - [Understanding the AI Match Score (0.0 to 10.0)](#understanding-the-ai-match-score-00-to-100)
@@ -90,54 +90,81 @@ When you visit Job Hunter, you are greeted by the landing view:
 
 ---
 
-## 4.  Step 2: The 2-Minute Onboarding Wizard
+## 4.  Step 2: Profile & Search Settings (3-Step Setup)
 
-Upon your first sign in, the **Personalization Setup Wizard** opens automatically. You can also re-open this wizard at any time by clicking **Settings** in the top navigation bar.
+Job Hunter provides two streamlined ways to configure your matching radar:
+1. **First-Time Onboarding Wizard**: Automatically opens upon your very first sign-in to quickly calibrate initial preferences or select 1-click role presets (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product*).
+2. **Profile & Search Settings Modal**: Accessible anytime by clicking **Settings** in the top navigation bar. It is structured into 3 clean, dedicated sections with zero clutter, zero repetitive fields, and zero preview cards.
 
-### Method A: Resume PDF/Text Upload (Resume Studio)
-1. In **Step 1: Resume & Profile**, drag and drop your resume file (`.pdf` or `.txt`) into the upload dropzone, or paste your resume text into the text area.
-2. Click **Extract Candidate Profile with AI**.
-3. In ~2 seconds, Job Hunter extracts:
-   - Your full name
-   - Current professional title
-   - Years of experience
-   - Core technical skills (languages, frameworks, tools)
-4. Verify the extracted profile preview card. You can edit any details directly in the text editor before proceeding.
-5. Click **Continue to Search Criteria →**.
+```mermaid
+flowchart LR
+    subgraph S1["Step 1: Resume Context"]
+        A["Upload PDF/TXT"] --> B["Editable Raw Text Editor"]
+    end
+    subgraph S2["Step 2: Criteria & Auto-Fill"]
+        C["Auto-Fill from Context"] --> D["Target Titles & Skills"]
+        D --> E["Experience, Excludes & Locations"]
+    end
+    subgraph S3["Step 3: Alerts & Modes"]
+        F["Min Score Threshold"] --> G["Daily vs On-Demand"]
+        G --> H["Save to Supabase"]
+    end
+    S1 --> S2 --> S3
+```
 
-> [!NOTE]
-> **Privacy Invariant**: Job Hunter extracts resume text strictly in-memory. Binary PDF files are never stored on disk or serverless storage.
+---
 
-### Method B: 1-Click Role Presets
-If you don't have a resume handy, click any of the 1-click role preset chips:
--  **Full Stack** |  **Backend** |  **Frontend** |  **AI / ML**
--  **DevOps / SRE** |  **Data Eng** |  **Mobile Dev** |  **QA / SDET**
--  **Security** |  **Web3** |  **Product**
+### Step 1: Resume Upload & Raw Text Context (Extraction Only)
 
-Clicking a preset automatically pre-fills industry-standard target titles and recommended skills!
+The first step is dedicated entirely to your resume text context:
+1. **Upload Resume**: Drag and drop your `.pdf` or `.txt` resume into the dropzone, or click to browse.
+2. **Interactive Text Context Editor (`#prof-resume-text`)**: Extracted text instantly populates an editable textarea. You can freely edit, refine, or paste additional project context before moving forward.
+3. **Strict Privacy Invariant**: Text extraction occurs **100% in-memory**. Binary PDF files are never persisted to disk or cloud storage buckets.
+4. Click **Next: Profile & Search Criteria →** to advance to Step 2 with your resume context primed.
 
-### Setting Target Titles & Excluded Keywords
-* **Target Job Titles**: Enter roles you want to target (comma-separated), for example:
-  `Backend Engineer, Software Engineer, Full Stack Developer, AI Engineer, SDE II`
-  *(Leave blank to screen all software engineering roles).*
-* **Excluded Keywords**: Enter keywords to filter out roles you don't want:
-  `Manager, Director, VP, Sales, Recruiter, iOS`
+---
 
-### Setting Locations, Remote & Job Types
+### Step 2: Candidate Profile & Search Criteria (The Relevant Nuts)
+
+Step 2 centralizes all your candidate parameters and search preferences into a single organized form, crowned with the **Auto-Fill from Resume Context** button:
+
+#### Auto-Fill from Resume Context & 3-Tier Fallback Protection
+* Click the **Auto-Fill from Resume Context** button (`#btn-autofill-roles`) at the top of Step 2.
+* Job Hunter reads your edited resume text from Step 1 and automatically extracts and populates:
+  - **Candidate Name**
+  - **Target Job Titles**
+  - **Core Skills**
+  - **Years of Experience** & **Education**
+* **Smart In-Memory Caching**: Avoids redundant network and AI calls when clicking between wizard steps if resume text has not changed.
+* **3-Tier Fallback Engine**:
+  - **Tier 1 (Multi-Provider AI Cascade)**: Server-side AI provider cascade (**Google Gemini** `gemini-3.5-flash` $\rightarrow$ **Groq** $\rightarrow$ **Anthropic Claude** $\rightarrow$ **OpenAI**) with circular multi-key rotation and a 30s timeout ceiling.
+  - **Tier 2 (Smart Local Regex Parser)**: If upstream AI providers experience rate limits (HTTP 429), high demand (HTTP 503), or network timeouts, Job Hunter's built-in deterministic parser takes over in $\le 15$ seconds, accurately extracting your name, current title, education, and 100+ technical skills locally without external dependencies.
+  - **Tier 3 (Client Identity & Tech Defaults)**: Client UI fallback automatically supplies authenticated Supabase account identity (`full_name`, `email`) and standard tech defaults so your setup is never interrupted.
+
+#### Customizing Your Criteria:
+* **Candidate Name**: Your full name used in personalized Application Kits.
+* **Target Job Titles (Included)**: Comma-separated roles you want to screen for (e.g. `Backend Engineer, Software Engineer, Full Stack Developer, AI Engineer, SDE II`). Leave blank to consider all tech roles.
+* **Core Skills**: Comma-separated technical skills (e.g. `Python, SQL, React, Go, Docker, AWS`).
+* **Years of Experience & Education**: Numeric experience and highest degree (e.g. `B.Tech in Computer Science`).
+* **Excluded Title Keywords**: Negative keyword filters (e.g. `Manager, Director, VP, Sales, Recruiter, iOS`). Postings containing these words in their title are dropped instantly during $0 prefiltering.
+* **Job Type Preferences**: Toggle chips for *Full-Time*, *Internship*, *Remote*, *Hybrid*, *On-Site*, *Contract*, or *Part-Time*.
 * **Location Preference**:
-  -  **All India**: Considers openings across Bangalore, Mumbai, Hyderabad, Pune, Delhi-NCR, Chennai, and remote India.
-  -  **Remote Only**: Restricts matches strictly to 100% work-from-home postings.
-  -  **Specific Cities**: Type your preferred cities (e.g. `Bangalore, Pune, Remote`).
-  -  **Global**: Accepts opportunities worldwide.
-* **Job Types**: Toggle Full-Time,  Internship, Remote, Hybrid, On-Site, Contract, or Part-Time.
-* **Experience Level**: Choose your tier: *Fresher / Final Year*, *0–1 Year*, *1–3 Years*, *3–5 Years*, or *5+ Years*.
+  - **All India**: Considers openings across Bangalore, Mumbai, Hyderabad, Pune, Delhi-NCR, Chennai, and remote India.
+  - **Remote Only**: Restricts matches strictly to 100% work-from-home postings.
+  - **Specific Cities**: Dynamic text input for your preferred cities (e.g. `Bangalore, Pune, Remote`).
+  - **Global**: Accepts opportunities worldwide.
 
-### Choosing Your Email Briefing Mode
-Job Hunter lets you choose how you receive morning briefings:
-1.  **Daily 5:00 AM Radar (Recommended)**: Automatically receives a crisp HTML briefing in your inbox every morning whenever new high-match roles (score >= 7.0) are discovered.
-2.  **Instant On-Demand**: Delivers an email briefing immediately whenever you click "Run Job Hunt Now" in the app.
+---
 
-Enter your notification email address, click **Complete & Launch First Hunt **, and you're ready!
+### Step 3: Alert Score Threshold & Briefing Delivery Modes
+
+Step 3 lets you set qualification sensitivity and email delivery options:
+* **Minimum Match Score Threshold**: Choose a score between `1.0` and `10.0` (default: `7.5`). Only job opportunities meeting or exceeding this threshold trigger email notifications and appear in your morning digest.
+* **Email Briefing Mode**:
+  - **Daily Briefing (Recommended)**: Automated daily morning briefing sent when new matching roles are discovered. *(Zero Spam Guarantee: On days when zero roles pass your threshold, a clean zero-match digest confirms the radar executed without cluttering your inbox).*
+  - **On-Demand Only**: No recurring morning emails. Job Hunter sends an email digest only when you manually click **Run Job Hunt Now** in the dashboard.
+* **Notification Email**: Enter your target email address for briefings.
+* Click **Save Profile** to persist your profile and search criteria directly to Supabase PostgreSQL under Row-Level Security (RLS).
 
 ---
 

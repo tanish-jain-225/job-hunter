@@ -63,7 +63,11 @@ This guide covers solutions to common errors, configurations, and questions enco
 * **The Solution:**
   * Job Hunter includes built-in exponential backoff retries, a 60-second read timeout window (`TIMEOUT = 60`), and automatic key cooldown tracking.
   * If an endpoint remains unresponsive or in high demand across all keys, Job Hunter seamlessly cascades through available Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`).
-  * In Resume Studio, even if Google's servers take longer than 30s or fail completely, Job Hunter's **smart local regex fallback** automatically takes over in $\le 15$ seconds, extracting your candidate name, current title, education, technical skills, and target roles directly from plain text so you are never locked out of your dashboard!
+  * In Profile & Search Settings, even if upstream AI servers take longer than 30s or fail completely, Job Hunter's **3-tier fallback engine** guarantees you are never blocked:
+    1. **Tier 1 (Multi-Provider AI Cascade)**: Automatically cascades across Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation.
+    2. **Tier 2 (Smart Local Regex Parser)**: If all AI providers fail or time out, a built-in deterministic parser extracts candidate name, title, education, and 100+ skills locally in $\le 15$ seconds without external dependencies.
+    3. **Tier 3 (Client Defaults)**: The client UI seamlessly falls back to your authenticated account name and email.
+    4. Furthermore, **Step 1 provides an interactive text editor** where you can freely review, edit, or adjust your resume context text before clicking **Auto-Fill from Resume Context**!
 
 ---
 

@@ -45,11 +45,23 @@ The dashboard is designed as a single-page application with a premium Light Mode
   * **Rejected / Archived** (`rejected`)
 * Instant 1-click stage dropdown transitions with optimistic UI updates and automated elapsed-time badges (`5d ago · Follow Up`).
 
-### 2.  Resume Studio & AI Profile Extraction
-* In-dashboard PDF and text resume uploader with drag-and-drop support.
-* Automatically parses uploaded resumes via the configured AI provider (default: **Google Gemini `gemini-3.5-flash`**; also supports **Anthropic Claude** native document blocks) into structured candidate skills, target titles, seniority, and notable projects.
-* **Resilient Latency Protection**: Enforces a 30s backend execution ceiling and 45s frontend timeout, with an automatic smart local regex fallback that guarantees candidate name, title, education, and technical skills are extracted even during upstream AI provider service spikes (e.g. HTTP 503).
-* **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction onboarding.
+### 2.  Profile & Search Settings (3-Section Modal & 3-Tier Fallback Engine)
+* **Dedicated 3-Section Flow**: Accessible via the **Settings** button in the navbar, organized into three focused steps with zero duplicate fields or preview clutter:
+  * **Section 1: Resume Upload & Raw Text Context (Extraction Only)**:
+    - In-dashboard drag-and-drop dropzone supporting `.pdf` and `.txt` files (with 100% in-memory parsing; no binary PDFs stored on disk or cloud).
+    - Direct **Interactive Text Context Editor** (`#prof-resume-text`): review, edit, alter, or enhance your raw resume text context before proceeding.
+  * **Section 2: Candidate Profile & Search Criteria ("The Relevant Nuts")**:
+    - **1-Click "Auto-Fill from Resume Context" Button** (`#btn-autofill-roles`) at the very top: instantly parses Section 1's edited resume text and populates candidate details, featuring smart in-memory caching to avoid redundant API requests.
+    - Centralized fields for Candidate Name, Target Job Titles (Included), Core Skills, Years of Experience, Education, Excluded Title Keywords, Job Type Preferences (*Full-Time, Internship, Remote, Hybrid, On-Site, Contract, Part-Time*), and Location Preference (*All India, Remote Only, Specific Cities, Global*).
+  * **Section 3: Alert Settings & Delivery Modes**:
+    - Minimum AI match score threshold (1.0 to 10.0, default 7.5).
+    - Email Briefing Mode: *Daily Briefing* (automated morning emails sent when matching roles $\ge$ threshold are discovered; clean zero-match digest on 0-match days) vs. *On-Demand Only* (briefings dispatched only when manually clicking "Run Job Hunt Now").
+    - Target notification email input.
+* **3-Tier Fallback Extraction Architecture**:
+  * **Tier 1 (Multi-Provider AI Cascade)**: Server-side AI cascade (**Google Gemini** `gemini-3.5-flash` $\rightarrow$ **Groq** $\rightarrow$ **Anthropic Claude** $\rightarrow$ **OpenAI**) with circular multi-key rotation and a 30s timeout ceiling.
+  * **Tier 2 (Smart Local Regex Parser)**: If upstream AI providers experience rate limits (HTTP 429), high demand (HTTP 503), or network timeouts, Job Hunter's built-in deterministic parser takes over in $\le 15$ seconds, accurately extracting candidate name, title, education, experience years, and 100+ technical skills locally without external API dependencies.
+  * **Tier 3 (Client Identity & Tech Defaults)**: Client UI (`app.js`) fallback automatically fills authenticated Supabase identity (`full_name`, `email`) and standard tech defaults so candidate workflows are never interrupted.
+* **First-Time Setup**: The Onboarding Wizard also includes **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction setup.
 
 ### 3.  Zero-Refresh Real-Time State Sync
 * Changes made in any tab (stage updates, notes, manual additions, applied toggles) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.

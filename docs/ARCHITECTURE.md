@@ -140,8 +140,8 @@ job-hunter/
 │       ├── kit_inspect.html     # Application kit modal with 1-click copy buttons
 │       ├── landing.html         # Public landing hero and sign-in card
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
-│       ├── onboarding.html      # Onboarding wizard modal with role presets and Resume Studio
-│       └── profile_settings.html # Profile editor, search filters, Resume Studio, and alert settings
+│       ├── onboarding.html      # Setup wizard modal with 1-click role presets and in-memory resume text extraction
+│       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
 ├── tests/                       # Automated Test Suite (408 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint

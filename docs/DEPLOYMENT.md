@@ -142,11 +142,13 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
 
 1. Any candidate visits `https://your-project.vercel.app`.
 2. Signs in with email/password or Magic Link.
-3. The **Onboarding Wizard** pops up:
-   * Candidate picks a 1-click role preset (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product Lead*) or uploads a resume to extract skills in-memory.
-   * Chooses their notification preference (*Instant On-Demand* or *Daily 5:00 AM Morning Briefing*).
-   * Clicks **"Complete & Launch First Hunt"**.
-4. The system immediately screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private interactive job tracker!
+3. The candidate configures their profile and radar criteria:
+   * **First-Time Setup**: The setup wizard guides initial role selection using 1-click presets (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product*) or in-memory resume extraction.
+   * **Profile & Search Settings**: At any time, candidates can open Settings for a clean 3-step configuration:
+     - *Step 1 (Resume & Raw Text Context)*: Upload `.pdf`/`.txt` resume with 100% in-memory extraction and an editable raw text context editor.
+     - *Step 2 (Profile & Search Criteria)*: 1-click **Auto-Fill from Resume Context** with 3-tier fallback protection (AI cascade $\rightarrow$ smart local regex parser $\rightarrow$ client defaults), plus customizable target roles, skills, experience, excluded keywords, job types, and locations.
+     - *Step 3 (Alert Settings)*: Match score threshold and notification preference (*Daily 5:00 AM Morning Briefing* or *Instant On-Demand Only*).
+4. The system screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private interactive job tracker!
 
 ---
 

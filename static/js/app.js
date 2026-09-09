@@ -2041,7 +2041,46 @@ function selectMailMode(mode) {
 function populateSection2FromProfile(p, isAutoFill = false) {
   if (!p) return;
 
-  // 1. Target Job Titles (Included)
+  // 1. Candidate Name
+  const nameInput = document.getElementById('prof-name');
+  if (nameInput) {
+    const authName = (
+      currentAuthSession?.user?.user_metadata?.full_name ||
+      currentAuthSession?.user?.user_metadata?.name ||
+      ''
+    ).trim();
+    if (p.name && p.name !== 'Candidate') {
+      nameInput.value = p.name.trim();
+    } else if (!nameInput.value.trim()) {
+      nameInput.value = authName || '';
+    }
+  }
+
+  // 2. Core Skills
+  const skillsInput = document.getElementById('prof-skills');
+  if (skillsInput && (Array.isArray(p.skills) || Array.isArray(p.core_skills))) {
+    const skl = (Array.isArray(p.skills) && p.skills.length) ? p.skills : (Array.isArray(p.core_skills) ? p.core_skills : []);
+    if (skl.length > 0) skillsInput.value = skl.join(', ');
+  }
+
+  // 3. Years of Experience & Education
+  const yearsInput = document.getElementById('prof-years');
+  if (yearsInput) {
+    if (p.experience_years != null || p.years_experience != null) {
+      yearsInput.value = String(p.experience_years ?? p.years_experience);
+    } else if (!yearsInput.value.trim() && p.experience_level) {
+      const expMap = { 'fresher': 0, '0-1': 1, '1-3': 2, '3-5': 4, '5+': 6 };
+      if (p.experience_level in expMap) {
+        yearsInput.value = String(expMap[p.experience_level]);
+      }
+    }
+  }
+  const eduInput = document.getElementById('prof-education');
+  if (eduInput && p.education) {
+    eduInput.value = p.education.trim();
+  }
+
+  // 4. Target Job Titles (Included)
   let targets = [];
   if (!isAutoFill && Array.isArray(p.target_keywords) && p.target_keywords.length) {
     targets = [...p.target_keywords];
@@ -2078,7 +2117,12 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (targetsInput) targetsInput.value = targetsStr;
   if (onbTargetsInput) onbTargetsInput.value = targetsStr;
 
-  // 3. Excluded Title Keywords
+  const titleInput = document.getElementById('prof-title');
+  if (titleInput) {
+    titleInput.value = (p.title || p.current_title || (targets.length > 0 ? targets[0] : '')).trim();
+  }
+
+  // 5. Excluded Title Keywords
   let excludes = [];
   if (Array.isArray(p.exclude_keywords) && p.exclude_keywords.length) {
     excludes = p.exclude_keywords;
@@ -2091,7 +2135,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (excludesInput) excludesInput.value = excludesStr;
   if (onbExcludesInput) onbExcludesInput.value = excludesStr;
 
-  // 4. Experience Level
+  // 6. Experience Level
   let expKey = '';
   const years = p.experience_years != null ? Number(p.experience_years) : (p.years_experience != null ? Number(p.years_experience) : null);
   const seniority = (p.seniority || '').toLowerCase();
@@ -2461,6 +2505,13 @@ function profileWizardGoTo(step) {
 }
 
 function profileWizardNext(fromStep) {
+  if (fromStep === 1) {
+    const titleVal = document.getElementById('prof-title')?.value?.trim() || '';
+    const targetsInput = document.getElementById('prof-targets');
+    if (targetsInput && !targetsInput.value.trim() && titleVal) {
+      targetsInput.value = titleVal;
+    }
+  }
   profileWizardGoTo(fromStep + 1);
 }
 
@@ -2566,40 +2617,24 @@ async function handleResumeFileSelectedAndParse(event) {
       activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: file.name };
 
       // Update dropzone label and text context textarea
+      // Update dropzone label and text context textarea in Step 1
       if (dropText) dropText.innerText = `Text extracted from ${file.name}`;
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
 
-      // Populate Step 1 inputs directly
-      const nameInput = document.getElementById('prof-name');
-      const titleInput = document.getElementById('prof-title');
-      const yearsInput = document.getElementById('prof-years');
-      const eduInput = document.getElementById('prof-education');
-      const skillsInput = document.getElementById('prof-skills');
-
-      if (nameInput && p.name) nameInput.value = p.name;
-      if (titleInput && (p.title || p.current_title)) titleInput.value = p.title || p.current_title;
-      if (yearsInput && (p.experience_years != null || p.years_experience != null)) {
-        yearsInput.value = String(p.experience_years ?? p.years_experience);
-      }
-      if (eduInput && p.education) eduInput.value = p.education;
-      if (skillsInput && Array.isArray(p.skills) && p.skills.length > 0) {
-        skillsInput.value = p.skills.join(', ');
-      }
-
-      // Pre-populate Section 2 in memory so when they go to Step 2, it's ready
+      // Populate Section 2 candidate details and search criteria
       populateSection2FromProfile(p, true);
 
-      // Show inline extraction preview
+      // Inline status confirmation in Step 1
+      if (alertEl) {
+        alertEl.className = 'studio-alert success';
+        alertEl.innerText = `Text extracted from "${file.name}". You can review or edit the text context above, or continue to Step 2 to configure criteria.`;
+        alertEl.style.display = 'block';
+      }
       if (previewCard) {
-        document.getElementById('studio-prev-name').innerText = p.name || '—';
-        document.getElementById('studio-prev-title').innerText = p.title || '—';
-        document.getElementById('studio-prev-years').innerText = p.experience_years ? `${p.experience_years} years` : '—';
-        const skills = p.skills || [];
-        document.getElementById('studio-prev-skills').innerText = skills.slice(0, 8).join(', ') || '—';
-        previewCard.style.display = 'block';
+        previewCard.style.display = 'none';
       }
 
-      showToast('Resume extracted and details populated into profile.', 'success', 3500);
+      showToast('Resume extracted! Edit text context or continue to Step 2.', 'success', 3500);
     } else {
       if (dropText) dropText.innerText = `${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {
@@ -2800,7 +2835,15 @@ async function saveProfilePreferences() {
   const resumeText = resumeTextInput ? resumeTextInput.value.trim() : (activeProfileData?.resume_text || '');
 
   const jobTypes = getSelectedJobTypes('prof-job-types');
-  const expLevel = getSelectedExpLevel('prof-exp');
+  const deriveExpLevel = (y) => {
+    const num = Number(y) || 0;
+    if (num <= 0) return 'fresher';
+    if (num <= 1) return '0-1';
+    if (num <= 3) return '1-3';
+    if (num <= 5) return '3-5';
+    return '5+';
+  };
+  const expLevel = getSelectedExpLevel('prof-exp') || deriveExpLevel(years) || activeProfileData?.experience_level || '0-1';
   const locationPref = getLocationPreference('prof-location-pref', 'prof-specific-cities');
 
   const payload = {

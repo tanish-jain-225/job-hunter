@@ -298,7 +298,10 @@ jobhunt profile --resume path/to/your/resume.pdf
 
 This extracts your core skills, current title, experience level, and target keywords into [`profile.json`](profile.example.json).
 
-In the web dashboard, users can upload their resume directly through the **Resume Studio**, which automatically parses the file in-memory and populates the candidate setup wizard.
+In the web dashboard, candidates manage their preferences through a streamlined **3-section Profile & Search Settings** modal:
+- **Section 1 (Resume & Raw Text Context)**: Drag-and-drop `.pdf` or `.txt` resume upload with 100% in-memory extraction and an interactive text context editor allowing you to freely refine your raw resume text before parsing.
+- **Section 2 (Candidate Profile & Search Criteria)**: 1-click **Auto-Fill from Resume Context** button backed by a **3-tier fallback engine** (AI provider cascade $\rightarrow$ smart local regex parser $\rightarrow$ client identity defaults), plus centralized fields for target roles, skills, experience, excluded keywords, job types, and locations.
+- **Section 3 (Alert Settings & Delivery Modes)**: Minimum AI match score threshold (default: 7.5) and email briefing frequency (*Daily 5:00 AM Radar* vs. *Instant On-Demand Only*).
 
 ---
 
