@@ -1625,13 +1625,10 @@ async function submitOnboardingResumeParse() {
       }
       if (previewCard) previewCard.style.display = 'block';
 
-      // Automatically pre-populate Step 2 criteria from the extracted profile
-      populateSection2FromProfile(p, true);
-
-      // Advance to Step 2 so user can review
-      setTimeout(() => {
-        switchOnboardingStep(2);
-      }, 700);
+      // STRICT SECTION ISOLATION:
+      // Do not auto-populate Step 2 criteria or auto-advance here.
+      // Candidate reviews/edits text context in Step 1, advances when ready,
+      // and can click "Auto-Fill from Resume Context" in Step 2 on-demand.
     } else {
       showToast('Resume parsing error: ' + data.message, 'error');
       if (alertEl) {
@@ -2441,41 +2438,8 @@ function flushUserProfileData() {
   parsedResumeData = null;
   lastParsedResumeText = '';
 
-  // 9. Update in-memory local state completely empty
-  activeProfileData = {
-    name: '',
-    title: '',
-    education: '',
-    experience_years: 0,
-    skills: [],
-    target_keywords: [],
-    exclude_keywords: [],
-    resume_text: '',
-    resume_filename: '',
-    preferred_locations: [],
-    location_preference: '',
-    job_types: [],
-    experience_level: '',
-    notable_projects: [],
-    domains: [],
-    email_notifications_enabled: false,
-    min_score_notification: null,
-    onboarding_completed: false,
-    notification_email: preservedEmail,
-    email: preservedEmail,
-    mail_mode: ''
-  };
-
-  renderCandidateSummary(activeProfileData);
-  updateJobSearchButtonState();
-  Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
-
-  // Instantly persist the empty state to the server so background /api/sync never brings old data back
-  authFetch('/api/profile/reset', { method: 'POST' }).catch(err => {
-    console.warn('Profile reset sync error:', err);
-  });
-
-  showToast('All profile data emptied successfully.', 'info', 3500);
+  // Reset form inputs in frontend only — server profile is NOT wiped until user clicks "Save Profile"
+  showToast('Form inputs reset. Click "Save Profile" in Step 3 to persist, or "Cancel" to keep your current saved profile.', 'info', 4000);
 }
 
 
@@ -2505,13 +2469,7 @@ function profileWizardGoTo(step) {
 }
 
 function profileWizardNext(fromStep) {
-  if (fromStep === 1) {
-    const titleVal = document.getElementById('prof-title')?.value?.trim() || '';
-    const targetsInput = document.getElementById('prof-targets');
-    if (targetsInput && !targetsInput.value.trim() && titleVal) {
-      targetsInput.value = titleVal;
-    }
-  }
+  // Pure navigation — does not mutate or populate Section 2 fields
   profileWizardGoTo(fromStep + 1);
 }
 
@@ -2616,25 +2574,26 @@ async function handleResumeFileSelectedAndParse(event) {
       lastParsedResumeText = extractedText;
       activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: file.name };
 
-      // Update dropzone label and text context textarea
       // Update dropzone label and text context textarea in Step 1
       if (dropText) dropText.innerText = `Text extracted from ${file.name}`;
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
 
-      // Populate Section 2 candidate details and search criteria
-      populateSection2FromProfile(p, true);
+      // STRICT SECTION ISOLATION:
+      // Section 1 strictly handles resume text extraction and in-place editing.
+      // Do NOT populate Section 2 fields here.
+      // Section 2 is populated only when the user explicitly clicks "Auto-Fill from Resume Context" in Section 2.
 
       // Inline status confirmation in Step 1
       if (alertEl) {
         alertEl.className = 'studio-alert success';
-        alertEl.innerText = `Text extracted from "${file.name}". You can review or edit the text context above, or continue to Step 2 to configure criteria.`;
+        alertEl.innerText = `Text extracted from "${file.name}". Review or edit your resume text context above, then continue to Step 2 when ready.`;
         alertEl.style.display = 'block';
       }
       if (previewCard) {
         previewCard.style.display = 'none';
       }
 
-      showToast('Resume extracted! Edit text context or continue to Step 2.', 'success', 3500);
+      showToast('Resume text extracted! Review or edit text below, then click Next.', 'success', 3500);
     } else {
       if (dropText) dropText.innerText = `${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {

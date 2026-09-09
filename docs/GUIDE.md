@@ -120,7 +120,8 @@ The first step is dedicated entirely to your resume text context:
 1. **Upload Resume**: Drag and drop your `.pdf` or `.txt` resume into the dropzone, or click to browse.
 2. **Interactive Text Context Editor (`#prof-resume-text`)**: Extracted text instantly populates an editable textarea. You can freely edit, refine, or paste additional project context before moving forward.
 3. **Strict Privacy Invariant**: Text extraction occurs **100% in-memory**. Binary PDF files are never persisted to disk or cloud storage buckets.
-4. Click **Next: Profile & Search Criteria →** to advance to Step 2 with your resume context primed.
+4. **Strict Section Isolation**: Resume extraction in Step 1 strictly populates the text context editor and **never modifies or overwrites Section 2**. Each section is isolated so you have complete control.
+5. Click **Next: Profile & Search Criteria →** to advance to Step 2 with your resume context primed.
 
 ---
 
