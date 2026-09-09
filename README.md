@@ -309,7 +309,7 @@ SMTP_PASS=your-16-character-gmail-app-password
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-AUTH_REQUIRED=false
+AUTH_REQUIRED=true          # Mandatory registration (set to false for local dev without Supabase)
 
 # Flask Web Server Configuration
 FLASK_SECRET_KEY=jobhunter-secure-random-key-32-chars
@@ -491,7 +491,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # PostgreSQL schema with Row-Level Security (RLS) policies
 │   └── teardown.sql          # Idempotent reset and migration teardown script
-├── tests/                    # 404 automated test cases with 90%+ line coverage
+├── tests/                    # 408 automated test cases with 90%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -534,7 +534,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**404 unit & integration tests**):
+Run the full automated test suite locally (**408 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -566,7 +566,7 @@ ruff check .
 
 ## Documentation Index
 
-The repository includes a comprehensive 15-document technical suite:
+The repository includes a comprehensive 16-document technical suite:
 
 * **[Setup Guide](docs/SETUP.md)**: Detailed step-by-step local installation and cloud setup instructions.
 * **[Deployment Guide](docs/DEPLOYMENT.md)**: 100% Free Production Cloud Deployment on Vercel and Supabase.

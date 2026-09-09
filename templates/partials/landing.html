@@ -85,12 +85,15 @@
             <input type="email" class="form-input" id="signup-email" placeholder="you@company.com" required autocomplete="email">
           </div>
           <div class="form-group">
-            <label class="form-label" for="signup-password">Create Password (min. 6 characters)</label>
-            <input type="password" class="form-input" id="signup-password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+            <div class="form-label-row">
+              <label class="form-label" for="signup-password">Create Password</label>
+              <span class="form-hint-inline" id="signup-pw-hint">Min. 6 characters</span>
+            </div>
+            <input type="password" class="form-input" id="signup-password" placeholder="••••••••" minlength="6" required autocomplete="new-password" oninput="if(typeof validateSignupPassword==='function') validateSignupPassword(this)">
           </div>
           <button type="submit" class="btn btn-primary" id="btn-submit-signup">
             <span class="spinner" id="signup-spinner" style="display:none;"></span>
-            <span id="signup-submit-text">Create Account & Start</span>
+            <span id="signup-submit-text">Create Free Account &amp; Start</span>
           </button>
         </form>
 

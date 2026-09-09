@@ -3536,6 +3536,22 @@ async function handleSignInSubmit(e) {
   }
 }
 
+function validateSignupPassword(inputEl) {
+  const hint = document.getElementById('signup-pw-hint');
+  if (!hint || !inputEl) return;
+  const val = inputEl.value;
+  if (!val) {
+    hint.textContent = 'Min. 6 characters';
+    hint.style.color = '';
+  } else if (val.length < 6) {
+    hint.textContent = `${val.length}/6 characters (too short)`;
+    hint.style.color = 'var(--danger, #e11d48)';
+  } else {
+    hint.textContent = '✓ Password valid';
+    hint.style.color = 'var(--success, #059669)';
+  }
+}
+
 async function handleSignUpSubmit(e) {
   e.preventDefault();
   if (!supabaseClient) {
