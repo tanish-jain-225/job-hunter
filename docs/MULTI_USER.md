@@ -60,15 +60,18 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 ---
 
-## Zero-Cost Infrastructure Breakdown
+## Zero-Cost Infrastructure Breakdown & Free Capacity
 
-| Service | Free Tier Allocation | Job Hunter Usage |
-| :--- | :--- | :--- |
-| **Vercel** | 100GB bandwidth, serverless functions | Web Dashboard hosting |
-| **Supabase PostgreSQL** | 500MB database, 50,000 monthly active users | User profiles, private tracking stores, audit history |
-| **Google Gemini API** | 1,000,000 TPM, 1,500 RPD (Supplied by Candidate / System Keys) | Candidate fit screening, resume tailoring, and application kit drafting |
-| **GitHub Actions** | 2,000 free runner minutes / month | Scheduled daily radar execution |
-| **Gmail SMTP** | 500 emails / day | Daily executive briefing email delivery |
+| Service | Free Tier Allocation | Per-User Consumption | Hard Free User Limit | Role in Job Hunter |
+| :--- | :--- | :--- | :---: | :--- |
+| **Google Gemini AI** | 1,500 RPD, 1M tokens/day per key | ~4.5 requests/day | **300 Users / Key** | Primary screening & tailored kit drafting |
+| **Gmail SMTP** | 500 emails / 24 hours | 1 email digest / day | **500 Users** | Daily morning HTML career intelligence briefing |
+| **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | ~450 KB (300-job rolling window) | **1,040 Users** | Tenant-isolated profiles, tracking stores, and audit history |
+| **GitHub Actions** | 2,000 free runner mins / month | ~1.0s / user in batch mode | **1,500 Users** | Automated scheduled morning radar execution (25m job timeout) |
+| **Vercel** | 100GB bandwidth, serverless | ~15 MB / user / month | **6,600 Users** | Web Dashboard hosting and REST API |
+| **9 ATS Board Crawlers** | Public JSON APIs (88+ boards) | 0 extra (single global pass) | **Unlimited** | Scouts Greenhouse, Lever, Ashby, Workable, SmartRecruiters, etc. |
+
+> **Bottom Line:** Supports **300 Daily Active Users** out-of-the-box on 1 free Gemini key + 1 Gmail account, **500 Users** by supplying a 2nd free Gemini key (`GEMINI_API_KEY=key1,key2`), and up to **1,040 Users** on the Supabase 500 MB database free tier.
 
 ---
 

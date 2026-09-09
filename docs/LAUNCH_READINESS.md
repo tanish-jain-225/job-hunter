@@ -120,3 +120,23 @@ environment:
 The current release is intentionally classified as **public beta**, not a
 guaranteed unlimited service. Free-tier provider quotas, delivery failures, and
 external workflow availability must be monitored by the operator.
+
+---
+
+## Commercial SaaS Business Model & Monetization Roadmap
+
+Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for up to 500–1,040 users. To transition from an open-source public beta to a commercial B2C/B2B SaaS product, follow this commercial blueprint:
+
+### 1. Market Positioning & Disruptive Pricing
+
+| Plan Tier | Target Segment | Proposed Retail Price | Competitor Benchmark | Margin Profile |
+|---|---|:---:|:---:|:---:|
+| **Community** | Students, open-source | **$0.00 / mo** | Teal Free (heavily locked) | Cost: ~$0.00 (Free tier stack) |
+| **Pro Accelerator** | Active engineers & designers | **$9 – $15 / mo** | Teal+ ($29–$40/mo), Huntr ($40/mo), Jobscan ($50/mo) | **>98% Gross Margin** (~$0.01 infra cost) |
+| **Bootcamp / College** | Career placement cohorts | **$199 – $499 / mo** | Handshake / Symplicity ($$$$) | **>95% Gross Margin** |
+
+### 2. Commercial Technical Prerequisites (The 4 Milestones)
+1. **Billing Gateway**: Integrate Stripe Checkout / LemonSqueezy webhooks to automatically toggle `is_pro` status in `user_profiles`.
+2. **Immutable User ID Tenancy**: Migrate Supabase RLS from email claims to `auth.users.id` UUIDs.
+3. **Dedicated Transactional Email Domain**: Connect Amazon SES or Resend with verified SPF, DKIM, and DMARC DNS records to eliminate personal Gmail 500-email ceilings.
+4. **Dedicated Async Execution Queue**: Replace GitHub Actions on-demand workflow dispatch with an in-cluster Celery/Redis or AWS SQS + Lambda worker for instant sub-second radar crawls.

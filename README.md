@@ -51,16 +51,28 @@ The modern job search is fundamentally broken. Engineers and technology professi
 4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word LinkedIn networking outreach messages, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.0+).
 5. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
 6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links.
-7. **Runs 100% Free Forever**: Operates within free-tier allowances on Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (Free tier AI Studio), and GitHub Actions (scheduled daily worker).
+7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions—supporting **300 Daily Active Users out-of-the-box** (and up to **500–1,040 users** with multi-key CSV rotation) at **$0.00/month** total operating cost.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never automatically submits applications. It scouts, filters, scores, and drafts—leaving final application review and submission strictly under human control.
+
+### Commercial Alternatives vs. Job Hunter
+
+| Dimension | Commercial SaaS (Teal, Huntr, Jobscan) | Job Hunter (Autonomous Agent) |
+|---|---|---|
+| **Monthly Cost** | **$30 – $50 / month** ($360 – $600 / year) | **$0.00 / month forever** (100% Free Stack) |
+| **Sourcing Method** | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (88+ curated boards, 9 engines) |
+| **AI Intelligence** | Generic GPT-4o-mini wrappers | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
+| **Automation** | Manual tracking logins | **Automated Daily Morning Digest** (05:00 AM in your inbox) |
+| **Application Policy** | Risky auto-apply bots or manual entry | **The Golden Rule**: Scout & Draft; Human Submits |
+| **Data Privacy** | Closed cloud databases | **100% Private**: Supabase PostgreSQL with Row-Level Security |
 
 ---
 
 ## Table of Contents
 
 - [The Narrative: Why Job Hunter?](#the-narrative-why-job-hunter)
+- [Commercial Alternatives vs. Job Hunter](#commercial-alternatives-vs-job-hunter)
 - [Key Capabilities](#key-capabilities)
 - [System Architecture](#system-architecture)
 - [Quickstart (30-Second Offline Smoke Test)](#quickstart-30-second-offline-smoke-test)
@@ -284,7 +296,7 @@ Generate your profile from an existing resume (`.pdf`, `.txt`, or `.md`):
 jobhunt profile --resume path/to/your/resume.pdf
 ```
 
-This extracts your core skills, current title, experience level, and target keywords into [`profile.json`](profile.example.json). 
+This extracts your core skills, current title, experience level, and target keywords into [`profile.json`](profile.example.json).
 
 In the web dashboard, users can upload their resume directly through the **Resume Studio**, which automatically parses the file in-memory and populates the candidate setup wizard.
 
@@ -583,6 +595,7 @@ The repository includes a comprehensive 16-document technical suite:
 * **[Changelog](docs/CHANGELOG.md)**: Version history, release notes, and migration details.
 * **[Launch Readiness](docs/LAUNCH_READINESS.md)**: Production launch readiness checklist and audit scores.
 * **[System Specification](docs/JOB_HUNT.md)**: Master architecture specification and initial design prompt.
+* **[Code of Conduct](docs/CODE_OF_CONDUCT.md)**: Community participation guidelines and standards.
 
 ---
 

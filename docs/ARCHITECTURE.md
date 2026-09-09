@@ -25,9 +25,10 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 
 ```mermaid
 flowchart TD
-    subgraph S1["1. Public ATS Scouting Engine"]
-        A1["Greenhouse API"] & A2["Lever API"] & A3["Ashby API"]
-        A4["Workable API"] & A5["SmartRecruiters API"] & A6["Custom Boards (+Add Board)"]
+    subgraph S1["1. Public ATS Scouting Engine (88+ Boards)"]
+        A1["Greenhouse"] & A2["Lever"] & A3["Ashby"]
+        A4["Workable"] & A5["SmartRecruiters"] & A6["BambooHR"]
+        A7["Recruitee"] & A8["Breezy HR"] & A9["Pinpoint & Custom Boards"]
     end
 
     subgraph S2["2. Ingestion & Deterministic Prefiltering"]
@@ -141,7 +142,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Onboarding wizard modal with role presets and Resume Studio
 │       └── profile_settings.html # Profile editor, search filters, Resume Studio, and alert settings
-├── tests/                       # Automated Test Suite (401 passing tests)
+├── tests/                       # Automated Test Suite (408 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery

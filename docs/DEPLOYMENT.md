@@ -36,13 +36,13 @@ Deploy **Job Hunter** as a monitored public-beta cloud application. Capacity, pr
 The following limits are provider-plan examples, not guarantees. Verify current
 limits and pricing with each provider before launch.
 
-| Service | Free Plan Quotas | What Job Hunter Uses | Cost |
-| :--- | :--- | :--- | :--- |
-| **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **$0 / mo** |
-| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs | **$0 / mo** |
-| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.5-flash) | Candidate batch fit screening & tailored application kit drafting | **$0 / mo** |
-| **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar | **$0 / mo** |
-| **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **$0 / mo** |
+| Service | Free Plan Quotas | What Job Hunter Uses | Capacity Limit | Cost |
+| :--- | :--- | :--- | :---: | :--- |
+| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.5-flash) | Candidate batch fit screening & tailored application kit drafting | **300 Users / Key** | **$0 / mo** |
+| **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **500 Users** | **$0 / mo** |
+| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs (300-job rolling cap) | **1,040 Users** | **$0 / mo** |
+| **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar (25 min timeout) | **1,500 Users** | **$0 / mo** |
+| **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **6,600 Users** | **$0 / mo** |
 
 ---
 
@@ -56,7 +56,7 @@ limits and pricing with each provider before launch.
    * Copy the **Public Anon Key** (`anon` `public`) -> `SUPABASE_ANON_KEY`
    * Copy the **Service Role Secret** (`service_role` `secret`) -> `SUPABASE_SERVICE_ROLE_KEY`
 5. Go to **Authentication > URL Configuration**:
-   * Add your production Vercel domain (e.g. `https://job-hunter.vercel.app`) to **Site URL** and **Redirect URLs**.
+   * Add your production Vercel domain (e.g. `https://job-hunter-web-board.vercel.app`) to **Site URL** and **Redirect URLs**.
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` only in GitHub Actions secrets for the
 multi-user worker. Do not add it to Vercel unless a separately reviewed
