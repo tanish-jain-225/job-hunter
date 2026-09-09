@@ -1444,6 +1444,7 @@ function renderCandidateSummary(profile) {
 let isOnboardingOpen = false;
 let selectedOnboardingFile = null;
 let parsedResumeData = null;
+let lastParsedResumeText = '';
 
 function isCandidateProfileFilled(profile) {
   if (!profile) return false;
@@ -1953,14 +1954,15 @@ async function openProfileModal(tab = 'resume') {
       const notifEmail   = document.getElementById('notif-target-email');
       const notifScore   = document.getElementById('notif-min-score');
 
-      if (nameInput) nameInput.value = (p.name || '').trim();
+      if (nameInput) {
+        const candidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
+        nameInput.value = candidateName;
+      }
       if (resumeTextInput) resumeTextInput.value = p.resume_text || '';
       if (titleInput)    titleInput.value   = (p.title || p.current_title || '').trim();
       if (yearsInput)    yearsInput.value   = (p.experience_years || p.years_experience) ? String(p.experience_years || p.years_experience) : '';
       if (eduInput)      eduInput.value     = (p.education || '').trim();
       if (skillsInput)   skillsInput.value  = Array.isArray(p.skills) ? p.skills.join(', ') : (Array.isArray(p.core_skills) ? p.core_skills.join(', ') : '');
-      if (targetsInput)  targetsInput.value = Array.isArray(p.target_keywords) && p.target_keywords.length ? p.target_keywords.join(', ') : (Array.isArray(p.target_titles) && p.target_titles.length ? p.target_titles.join(', ') : '');
-      if (excludesInput) excludesInput.value= Array.isArray(p.exclude_keywords) && p.exclude_keywords.length ? p.exclude_keywords.join(', ') : '';
 
       // ── Step 3: Selectable Mail Mode (Default is unselected)
       if (p.email_notifications_enabled === true) {
@@ -1987,14 +1989,14 @@ async function openProfileModal(tab = 'resume') {
         }
       }
 
-      // ── Populate Section 2 fields from saved profile
-      populateSection2FromProfile(p);
+      // ── Populate Section 2 fields from saved profile in a single pass
+      populateSection2FromProfile(p, false);
     } else {
       const nameInput  = document.getElementById('prof-name');
       const notifEmail = document.getElementById('notif-target-email');
       const targetsInput = document.getElementById('prof-targets');
       const excludesInput= document.getElementById('prof-excludes');
-      if (nameInput)  nameInput.value  = '';
+      if (nameInput)  nameInput.value  = authName || '';
       if (notifEmail && authEmail) notifEmail.value = authEmail;
       if (targetsInput)  targetsInput.value  = '';
       if (excludesInput) excludesInput.value = '';
@@ -2006,7 +2008,7 @@ async function openProfileModal(tab = 'resume') {
     const notifEmail = document.getElementById('notif-target-email');
     const targetsInput = document.getElementById('prof-targets');
     const excludesInput= document.getElementById('prof-excludes');
-    if (nameInput)  nameInput.value  = '';
+    if (nameInput)  nameInput.value  = authName || '';
     if (notifEmail && authEmail) notifEmail.value = authEmail;
     if (targetsInput)  targetsInput.value  = '';
     if (excludesInput) excludesInput.value = '';
@@ -2035,37 +2037,36 @@ function selectMailMode(mode) {
   }
 }
 
-// Comprehensive Section 2 Auto-Fill Helper (covers Name, Target Roles, Excluded Keywords, Experience, Job Types, Locations)
+// Comprehensive Section 2 Search Filters & Criteria Auto-Fill Helper
 function populateSection2FromProfile(p, isAutoFill = false) {
   if (!p) return;
 
-  // 1. Candidate Name
-  let nameVal = (p.name || '').trim();
-  if (!nameVal && isAutoFill && p.resume_text) {
-    const lines = p.resume_text.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length > 0 && lines[0].length < 40) nameVal = lines[0];
-  }
-  const nameInput = document.getElementById('prof-name');
-  const onbNameInput = document.getElementById('onboard-prof-name');
-  if (nameInput) nameInput.value = nameVal;
-  if (onbNameInput) onbNameInput.value = nameVal;
-
-  // 2. Target Job Titles (Included)
+  // 1. Target Job Titles (Included)
   let targets = [];
-  if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
-    targets = p.target_keywords;
-  } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
-    targets = p.target_titles;
-  } else if (p.title || p.current_title) {
-    targets = [p.title || p.current_title];
-  } else if (isAutoFill) {
+  if (!isAutoFill && Array.isArray(p.target_keywords) && p.target_keywords.length) {
+    targets = [...p.target_keywords];
+  } else if (!isAutoFill && Array.isArray(p.target_titles) && p.target_titles.length) {
+    targets = [...p.target_titles];
+  } else {
+    // When isAutoFill is true OR no explicit target_keywords exist, build a comprehensive list
+    if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
+      targets.push(...p.target_keywords);
+    } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
+      targets.push(...p.target_titles);
+    }
+    if (p.title || p.current_title) {
+      targets.push(p.title || p.current_title);
+    }
     const rawSkills = Array.isArray(p.skills) ? p.skills : (Array.isArray(p.core_skills) ? p.core_skills : []);
     const skillsLower = rawSkills.map(s => String(s).toLowerCase());
-    if (skillsLower.some(s => s.includes('react') || s.includes('vue') || s.includes('front') || s.includes('javascript') || s.includes('next'))) {
+    if (skillsLower.some(s => s.includes('react') || s.includes('vue') || s.includes('front') || s.includes('javascript') || s.includes('next') || s.includes('typescript') || s.includes('html') || s.includes('css'))) {
       targets.push('Full Stack Developer', 'Frontend Engineer', 'Software Engineer');
     }
-    if (skillsLower.some(s => s.includes('python') || s.includes('node') || s.includes('flask') || s.includes('backend') || s.includes('django') || s.includes('sql'))) {
+    if (skillsLower.some(s => s.includes('python') || s.includes('node') || s.includes('flask') || s.includes('fastapi') || s.includes('backend') || s.includes('django') || s.includes('sql') || s.includes('java') || s.includes('golang') || s.includes('c++') || s.includes('c#'))) {
       targets.push('Backend Engineer', 'Software Engineer');
+    }
+    if (skillsLower.some(s => s.includes('machine learning') || s.includes('ai') || s.includes('deep learning') || s.includes('data science') || s.includes('pytorch') || s.includes('tensorflow') || s.includes('llm') || s.includes('nlp'))) {
+      targets.push('AI Engineer', 'Machine Learning Engineer', 'Data Scientist');
     }
     if (targets.length === 0) {
       targets = ['Software Engineer', 'Full Stack Developer', 'Backend Engineer'];
@@ -2188,8 +2189,8 @@ async function autoFillRolesFromResume() {
     return;
   }
 
-  // If parsedResumeData already exists in memory, populate all Step 2 fields instantly
-  if (parsedResumeData && (parsedResumeData.target_keywords?.length || parsedResumeData.skills?.length || parsedResumeData.name || parsedResumeData.title)) {
+  // If parsedResumeData already exists in memory for this exact resume text, populate all Step 2 fields instantly
+  if (parsedResumeData && lastParsedResumeText === resumeText && (parsedResumeData.target_keywords?.length || parsedResumeData.skills?.length || parsedResumeData.name || parsedResumeData.title)) {
     activeProfileData = { ...activeProfileData, ...parsedResumeData, resume_text: resumeText };
     populateSection2FromProfile(parsedResumeData, true);
     renderCandidateSummary(activeProfileData);
@@ -2214,6 +2215,12 @@ async function autoFillRolesFromResume() {
     if (data.status === 'success') {
       const p = data.profile || {};
       parsedResumeData = p;
+      lastParsedResumeText = resumeText;
+      // Preserve candidate name if already entered in Step 1
+      const currentName = document.getElementById('prof-name')?.value?.trim();
+      if (currentName) {
+        p.name = currentName;
+      }
       activeProfileData = { ...activeProfileData, ...p, resume_text: resumeText };
       renderCandidateSummary(activeProfileData);
 
@@ -2252,6 +2259,7 @@ function closeProfileModal() {
 
 function flushUserProfileData() {
   if (!checkAuthOrRedirect('flush candidate profile')) return;
+  if (!confirm('Are you sure you want to reset your candidate profile and search settings?')) return;
   const preservedEmail = (
     currentAuthSession?.user?.email ||
     activeProfileData?.notification_email ||
@@ -2387,6 +2395,7 @@ function flushUserProfileData() {
   document.querySelectorAll('.btn-preset-chip').forEach(btn => btn.classList.remove('active'));
 
   parsedResumeData = null;
+  lastParsedResumeText = '';
 
   // 9. Update in-memory local state completely empty
   activeProfileData = {
@@ -2553,6 +2562,7 @@ async function handleResumeFileSelectedAndParse(event) {
       const p = data.profile || {};
       const extractedText = data.resume_text || p.resume_text || '';
       parsedResumeData = p;
+      lastParsedResumeText = extractedText;
       activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: file.name };
 
       // Update dropzone label and text context textarea
@@ -2704,6 +2714,7 @@ async function submitResumeParse() {
       const p = data.profile || {};
       const extractedText = data.resume_text || p.resume_text || pasteText || '';
       parsedResumeData = p;
+      lastParsedResumeText = extractedText;
       activeProfileData = { ...activeProfileData, resume_text: extractedText };
       const resumeTextInput = document.getElementById('prof-resume-text') || document.getElementById('resume-paste-text');
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
@@ -2771,7 +2782,15 @@ async function saveProfilePreferences() {
   const onetimeSelected = onetimeRadio ? Boolean(onetimeRadio.checked) : false;
   const mailMode = notifEnabled ? 'daily' : (onetimeSelected ? 'onetime' : '');
 
-  const notifEmail = currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
+  const notifEmailInput = document.getElementById('notif-target-email');
+  const enteredNotifEmail = notifEmailInput ? notifEmailInput.value.trim() : '';
+  const notifEmail = enteredNotifEmail || currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
+
+  if ((notifEnabled || onetimeSelected) && !notifEmail) {
+    showToast('Please provide a destination email address for dispatch alerts.', 'warning');
+    profileWizardGoTo(3);
+    return;
+  }
 
   const minScoreInput = document.getElementById('notif-min-score');
   const minScoreVal = minScoreInput ? minScoreInput.value.trim() : '';
