@@ -79,7 +79,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 6.  Briefing Digest Reader & Kit Inspector
 * View the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or force a live rebuild.
-* Click **"View Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored cold outreach messages and custom cover notes.
+* Click **"Inspect Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored cold outreach messages, custom cover notes, resume alignment bullets, and interview prep questions (with clean fallback to opportunity metadata if no AI draft is present).
 
 ### 7.  Live Pipeline Trigger
 * An **"On-Demand Pipeline Trigger"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.

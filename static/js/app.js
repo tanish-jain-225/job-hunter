@@ -709,6 +709,7 @@ async function syncDashboard(force = false) {
       if (data.user_profile) {
         activeProfileData = data.user_profile;
         renderCandidateSummary(data.user_profile);
+        checkAndPromptOnboarding(data.user_profile);
       }
 
       // If version changed or force reload requested, update jobs & digest
@@ -1262,7 +1263,7 @@ function toggleModalAppliedDirect() {
 function openKitModal(jobId) {
   if (!checkAuthOrRedirect('inspect application kit')) return;
   const j = appState.jobsMap[jobId];
-  if (!j || !j.draft) return;
+  if (!j) return;
 
   appState.activeKitId = jobId;
   Storage.set(sessionStorage, STORAGE_KEYS.ACTIVE_KIT, jobId);
@@ -1277,10 +1278,28 @@ function openKitModal(jobId) {
 
   updateModalAppliedButton(j);
 
-  const d = j.draft;
+  const d = j.draft || {};
   let html = '';
 
-  if (d.fit_summary) {
+  const hasContent = Boolean(
+    d.fit_summary ||
+    d.cover_note ||
+    d.cold_outreach ||
+    (d.tailored_bullets && d.tailored_bullets.length) ||
+    (d.followup && d.followup.email_body)
+  );
+
+  if (!hasContent) {
+    html += `
+      <div class="kit-section" style="padding: 18px 14px; background: var(--bg-subtle, #f8fafc); border-radius: 8px; border: 1px dashed var(--border, #e2e8f0); margin-bottom: 16px;">
+        <div class="kit-label" style="margin-bottom: 6px;">Opportunity Details</div>
+        <p style="font-size: 13px; line-height: 1.6; color: var(--text-body); margin: 0;">
+          This role at <strong>${escapeHtml(j.company)}</strong> is tracked in your pipeline. Review details or open the official application posting below.
+        </p>
+        ${j.reason ? `<div class="job-reason" style="margin-top: 10px;">${escapeHtml(j.reason)}</div>` : ''}
+      </div>
+    `;
+  } else if (d.fit_summary) {
     html += `<div class="kit-section"><div class="kit-label">Why It Fits</div><p style="font-size:13px; line-height:1.6; color:var(--text-body);">${escapeHtml(d.fit_summary)}</p></div>`;
   }
 
@@ -1466,12 +1485,22 @@ function onboardingDismissedKey() {
 }
 
 function checkAndPromptOnboarding(profile) {
-  // Disabled: Auto-prompting wizard disabled. Configuration is handled on demand via Settings modal.
-  return;
+  if (!profile || isProfileIncomplete(profile)) {
+    const isDismissed = Storage.get(sessionStorage, onboardingDismissedKey(), false);
+    if (!isDismissed) {
+      openOnboardingModal();
+    }
+  }
 }
 
 function openOnboardingModal() {
-  openProfileModal();
+  if (!checkAuthOrRedirect('configure candidate profile')) return;
+  const modalEl = document.getElementById('onboarding-modal');
+  if (modalEl) {
+    modalEl.classList.add('active');
+    isOnboardingOpen = true;
+    switchOnboardingStep(1);
+  }
 }
 
 function closeOnboardingModal(force = false) {
@@ -1799,8 +1828,8 @@ function selectNotificationMode(isDaily) {
 
 async function saveOnboardingProfile(launchScan = false) {
   if (!checkAuthOrRedirect('save candidate profile')) return;
-  const btn = document.getElementById('btn-save-onboarding') || document.getElementById('btn-finish-onboarding');
-  const spinner = document.getElementById('onboard-save-spinner');
+  const btn = document.getElementById('btn-onboard-finish') || document.getElementById('btn-save-onboarding') || document.getElementById('btn-finish-onboarding');
+  const spinner = document.getElementById('onboard-finish-spinner') || document.getElementById('onboard-save-spinner');
   if (btn) btn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
 
@@ -2040,17 +2069,20 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   // 1. Candidate Name
   const nameInput = document.getElementById('prof-name');
+  const onbNameInput = document.getElementById('onboard-prof-name');
+  const authName = (
+    currentAuthSession?.user?.user_metadata?.full_name ||
+    currentAuthSession?.user?.user_metadata?.name ||
+    ''
+  ).trim();
+  const candidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
   if (nameInput) {
-    const authName = (
-      currentAuthSession?.user?.user_metadata?.full_name ||
-      currentAuthSession?.user?.user_metadata?.name ||
-      ''
-    ).trim();
-    if (p.name && p.name !== 'Candidate') {
-      nameInput.value = p.name.trim();
-    } else if (!nameInput.value.trim()) {
-      nameInput.value = authName || '';
-    }
+    if (candidateName) nameInput.value = candidateName;
+    else if (!nameInput.value.trim()) nameInput.value = authName || '';
+  }
+  if (onbNameInput) {
+    if (candidateName) onbNameInput.value = candidateName;
+    else if (!onbNameInput.value.trim()) onbNameInput.value = authName || '';
   }
 
   // 2. Core Skills
@@ -2213,6 +2245,16 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (profCities) profCities.value = citiesStr;
   const onbCities = document.getElementById('onboard-specific-cities');
   if (onbCities) onbCities.value = citiesStr;
+
+  const onbEmailInput = document.getElementById('onboard-prof-email');
+  if (onbEmailInput) {
+    const authEmail = currentAuthSession?.user?.email || '';
+    if (p.notification_email) {
+      onbEmailInput.value = p.notification_email;
+    } else if (!onbEmailInput.value.trim() && authEmail) {
+      onbEmailInput.value = authEmail;
+    }
+  }
 }
 
 async function autoFillRolesFromResume() {
@@ -2220,12 +2262,14 @@ async function autoFillRolesFromResume() {
   const onbResumeText = document.getElementById('onboarding-paste-text')?.value?.trim() || '';
   const resumeText = profResumeText || onbResumeText || activeProfileData?.resume_text || '';
 
+  const isOnboardingActive = Boolean(document.getElementById('onboarding-modal')?.classList.contains('active'));
+
   if (!resumeText && !parsedResumeData) {
     showToast('Please upload or enter your resume text in Step 1 first.', 'info');
-    if (document.getElementById('profile-modal')?.classList.contains('active')) {
-      profileWizardGoTo(1);
-    } else {
+    if (isOnboardingActive) {
       switchOnboardingStep(1);
+    } else {
+      profileWizardGoTo(1);
     }
     return;
   }
@@ -2239,9 +2283,16 @@ async function autoFillRolesFromResume() {
     return;
   }
 
-  const btn = document.getElementById('btn-autofill-roles') || document.getElementById('btn-onboard-autofill');
-  const spinner = document.getElementById('autofill-roles-spinner');
-  const btnText = document.getElementById('autofill-roles-btn-text');
+  const btn = isOnboardingActive
+    ? (document.getElementById('btn-onboard-autofill') || document.getElementById('btn-autofill-roles'))
+    : (document.getElementById('btn-autofill-roles') || document.getElementById('btn-onboard-autofill'));
+  const spinner = isOnboardingActive
+    ? (document.getElementById('onboard-autofill-spinner') || document.getElementById('autofill-roles-spinner'))
+    : (document.getElementById('autofill-roles-spinner') || document.getElementById('onboard-autofill-spinner'));
+  const btnText = isOnboardingActive
+    ? (document.getElementById('onboard-autofill-btn-text') || document.getElementById('autofill-roles-btn-text'))
+    : (document.getElementById('autofill-roles-btn-text') || document.getElementById('onboard-autofill-btn-text'));
+
   if (btn) btn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
   if (btnText) btnText.innerText = 'Extracting criteria from resume...';
@@ -2257,8 +2308,8 @@ async function autoFillRolesFromResume() {
       const p = data.profile || {};
       parsedResumeData = p;
       lastParsedResumeText = resumeText;
-      // Preserve candidate name if already entered in Step 1
-      const currentName = document.getElementById('prof-name')?.value?.trim();
+      // Preserve candidate name if already entered in Step 1 or Step 2
+      const currentName = document.getElementById('prof-name')?.value?.trim() || document.getElementById('onboard-prof-name')?.value?.trim();
       if (currentName) {
         p.name = currentName;
       }
@@ -2892,8 +2943,8 @@ async function runPipeline() {
   }
 
   if (!isCandidateProfileFilled(activeProfileData)) {
-    openProfileModal();
-    showToast('Please configure your candidate profile (Name, Target Title, Skills) in Settings first.', 'info', 4000);
+    openOnboardingModal();
+    showToast('Please configure your candidate profile (Name, Target Title, Skills) to activate your radar.', 'info', 4000);
     return;
   }
 
@@ -3031,9 +3082,9 @@ async function runPipeline() {
       appState.pipelineRunning = false;
       // Backend guard: profile not yet filled — redirect user to Settings
       if (data.message && data.message.includes('candidate profile')) {
-        if (consoleBox) consoleBox.innerText = 'Candidate radar incomplete. Please configure your profile in Settings to activate autonomous job scouting.';
-        showToast('Please complete your candidate profile in Settings first.', 'info', 4500);
-        openProfileModal();
+        if (consoleBox) consoleBox.innerText = 'Candidate radar incomplete. Please configure your profile to activate autonomous job scouting.';
+        showToast('Please complete your candidate profile to begin.', 'info', 4500);
+        openOnboardingModal();
       } else {
         if (consoleBox) consoleBox.innerText = 'Error: ' + (data.message || 'Failed to start pipeline');
         showToast('Pipeline notice: ' + data.message, 'error');

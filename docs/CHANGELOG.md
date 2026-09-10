@@ -7,6 +7,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Onboarding Setup Wizard Lifecycle & State Sync**: Re-enabled `checkAndPromptOnboarding()` to automatically prompt first-time users or incomplete candidate profiles upon sign-in and prior to autonomous pipeline execution, respecting session dismissal (`onboarding_dismissed:<id>`) so it never interrupts users repeatedly.
+- **Onboarding Button & Spinner Binding**: Corrected element references in `saveOnboardingProfile()` to target `#btn-onboard-finish` and `#onboard-finish-spinner`, ensuring proper button disablement and loading indicators during profile persistence.
+- **Candidate Name & Email Auto-Population**: Enhanced `populateSection2FromProfile()` to reliably populate Candidate Name (`#onboard-prof-name`) and Notification Email (`#onboard-prof-email`) alongside settings modal fields during resume parsing and auto-fill.
+- **Active Modal Scoping for Auto-Fill**: Updated `autoFillRolesFromResume()` to dynamically detect whether `#onboarding-modal` or `#profile-modal` is active, binding button state and visual spinner (`#onboard-autofill-spinner`) to the active container and preserving existing names without cross-modal ID interference.
+- **Application Kit Inspector Fallback**: Removed premature exit guard (`if (!j || !j.draft) return;`) in `openKitModal()`. Opportunities without pre-generated AI drafts now cleanly open the modal with opportunity metadata, stage selector, and direct posting link rather than failing silently.
+
 ### Maintenance
 - Updated the release baseline to 408 automated tests with a passing 90% aggregate coverage gate.
 - Updated GitHub Actions checkout and Python setup actions to their Node 24-compatible major versions.

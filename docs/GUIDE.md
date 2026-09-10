@@ -211,7 +211,7 @@ Every evaluated role displays a color-coded match badge:
 
 ## 7.  Step 5: Unlocking AI Application Kits
 
-For every role that scores >= 7.0, Job Hunter generates a custom **AI Application Kit**. Click **Inspect Kit** on any job card to open the modal:
+For every role that scores >= 7.0, Job Hunter generates a custom **AI Application Kit**. Click **Inspect Kit** on any job card to open the modal (for custom-added roles or opportunities without a pre-computed AI draft, the modal cleanly opens displaying full listing details, stage controls, and direct application links):
 
 ### 1. Tailored Cover Letter
 * A professional, compelling cover note drafted specifically for the role and hiring team.
