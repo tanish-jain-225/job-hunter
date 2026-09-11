@@ -334,6 +334,13 @@ code, pre, .console, .cover-box, .monospace {
 
 .sync-indicator.syncing .status-dot {
   background: var(--warning);
+  animation: pulseDot 1.2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); }
+  100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
 }
 
 .sync-indicator.offline .status-dot {
@@ -1301,7 +1308,7 @@ input:checked + .slider::before {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  padding: 18px;
+  padding: 20px;
   transition: all var(--transition-normal);
   display: flex;
   flex-direction: column;
@@ -1338,7 +1345,7 @@ input:checked + .slider::before {
 .studio-summary-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .studio-profile-name {
@@ -1356,8 +1363,8 @@ input:checked + .slider::before {
 .studio-tags-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin: 4px 0;
+  gap: 6px;
+  margin: 6px 0;
 }
 
 .studio-skill-tag {
@@ -1414,7 +1421,13 @@ input:checked + .slider::before {
 
 .studio-btn-manage {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 14px;
+}
+
+#btn-run {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 11px 16px;
 }
 
 /* Terminal Console Output */
@@ -1422,13 +1435,13 @@ input:checked + .slider::before {
   background: #090d16;
   border: 1px solid #1e293b;
   border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 14px;
   font-size: 11.5px;
   color: #38bdf8;
-  margin-top: 10px;
+  margin-top: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Tools Card (Mark Applied & Add Job) */
@@ -1474,9 +1487,9 @@ input:checked + .slider::before {
 .tab-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 10px;
   border-bottom: 2px solid var(--border);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   width: 100%;
 }
 
@@ -1574,13 +1587,13 @@ input:checked + .slider::before {
 .tracker-bar {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   background: #ffffff;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xs);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   width: 100%;
 }
 
@@ -1744,12 +1757,12 @@ input:checked + .slider::before {
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: 18px;
   box-shadow: var(--shadow-xs);
   transition: all var(--transition-fast);
   width: 100%;
@@ -3211,11 +3224,90 @@ input:checked + .slider::before {
    10. Interactive Job Board Table & Pagination Design System
    ============================================================================== */
 
+/* Cloud Radar Background Action Banner */
+.cloud-radar-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+  animation: pulseGlow 2.5s infinite ease-in-out;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.25);
+    border-color: #c7d2fe;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.08);
+    border-color: #818cf8;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.25);
+    border-color: #c7d2fe;
+  }
+}
+
+.cloud-radar-spinner-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #e0e7ff;
+  border-radius: 50%;
+  border: 1px solid #c7d2fe;
+}
+
+.cloud-radar-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(79, 70, 229, 0.25);
+  border-top-color: var(--primary, #4f46e5);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 0 !important;
+}
+
+.cloud-radar-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cloud-radar-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #3730a3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cloud-radar-sub {
+  font-size: 12px;
+  color: #4338ca;
+  line-height: 1.45;
+}
+
 /* Table / Card List Container */
 .jobs-table-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  margin-bottom: 16px;
   width: 100%;
 }
 
@@ -3273,8 +3365,8 @@ input:checked + .slider::before {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 16px;
-  margin-top: 14px;
+  padding: 14px 18px;
+  margin-top: 16px;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius);

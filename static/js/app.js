@@ -364,7 +364,20 @@ function renderJobsListHtml(jobs) {
   const cardsHtml = pagedSlice.map(j => renderJobCardHtml(j, false)).join('');
   const paginationHtml = renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages);
 
+  const cloudBannerHtml = appState.pipelineRunning ? `
+    <div class="cloud-radar-banner" role="status" aria-live="polite">
+      <div class="cloud-radar-spinner-wrap">
+        <span class="spinner cloud-radar-spinner"></span>
+      </div>
+      <div class="cloud-radar-info">
+        <div class="cloud-radar-title">Autonomous Cloud Radar Active (GitHub Actions)</div>
+        <div class="cloud-radar-sub">Scouting 88+ ATS company boards across 10,000+ job listings in the cloud. New matching roles will automatically sync upon completion (~1–2 minutes).</div>
+      </div>
+    </div>
+  ` : '';
+
   return `
+    ${cloudBannerHtml}
     <div class="jobs-table-container">
       ${cardsHtml}
     </div>
@@ -745,18 +758,24 @@ function updatePipelineConsole(pipeline) {
   }
 
   if (pipeline.running) {
+    const wasRunning = appState.pipelineRunning;
     appState.pipelineRunning = true;
     if (btn) {
       btn.disabled = true;
       btn.classList.add('btn-inactive');
     }
     if (spinner) spinner.style.display = 'inline-block';
-    if (text) text.innerText = 'Hunting Jobs...';
+    const isCloud = pipeline.mode === 'github_actions' || Boolean(pipeline.dispatched_at) || (pipeline.message && (pipeline.message.includes('GitHub Actions') || pipeline.message.includes('cloud')));
+    if (text) text.innerText = isCloud ? 'Cloud Radar Running (GitHub Actions)...' : 'Hunting Jobs...';
     if (consoleBox && pipeline.message) {
       consoleBox.innerText = `Scanning in progress...\n${pipeline.message}`;
     }
     if (mainConsole && pipeline.message) {
       mainConsole.innerText = pipeline.message;
+    }
+    setSyncStatus('syncing', isCloud ? 'Radar: Cloud Scan Active (GitHub Actions)' : 'Radar: Scanning ATS...');
+    if (!wasRunning) {
+      fetchAndRenderJobs(false);
     }
   } else {
     const wasRunning = appState.pipelineRunning;
@@ -771,6 +790,7 @@ function updatePipelineConsole(pipeline) {
       }
     }
     updateJobSearchButtonState();
+    setSyncStatus('synced');
 
     if (wasRunning) {
       fetchAndRenderJobs(false);
@@ -1049,11 +1069,11 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                 <div class="empty-state-icon" style="background:#eff6ff; color:#3b82f6;">
                   <span class="spinner" style="display:inline-block; width: 28px; height: 28px; border-width: 3.5px; margin-right: 0;"></span>
                 </div>
-                <div class="empty-state-title">Autonomous Job Scan in Progress...</div>
+                <div class="empty-state-title">Autonomous Cloud Radar in Progress (GitHub Actions)...</div>
                 <div class="empty-state-desc">
-                  Scanning 88+ ATS company boards across 9 engines and matching jobs to your candidate profile in real time. Please wait, this takes about 10-15 seconds!
+                  Scanning 88+ ATS company boards across 10,000+ job listings in the cloud and matching roles to your candidate profile with Gemini 3.5 Flash. Please wait (~1–2 minutes)!
                 </div>
-                <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Scanning target endpoints...</div>
+                <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Autonomous cloud runner active... Dispatching worker nodes and querying company boards...</div>
               </div>
             `;
           } else {
@@ -2521,7 +2541,15 @@ async function runPipeline() {
 
     if (data.status === 'dispatched') {
       showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
-      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 100+ company boards (~1-2 mins).';
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('btn-inactive');
+      }
+      if (spinner) spinner.style.display = 'inline-block';
+      if (text) text.innerText = 'Cloud Radar Running (GitHub Actions)...';
+      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 88+ company boards (~1-2 mins).';
+      setSyncStatus('syncing', 'Radar: Cloud Scan Active (GitHub Actions)');
+      fetchAndRenderJobs(false);
       
       let pollCount = 0;
       const pollGitHubPipeline = async () => {
@@ -2544,6 +2572,7 @@ async function runPipeline() {
                 showToast(syncData.pipeline.message || 'Cloud Radar encountered an error', 'error');
               }
               updateJobSearchButtonState();
+              setSyncStatus('synced');
               return;
             }
           }
@@ -2555,6 +2584,7 @@ async function runPipeline() {
         } else {
           appState.pipelineRunning = false;
           updateJobSearchButtonState();
+          setSyncStatus('synced');
           await fetchAndRenderJobs(false);
           refreshDigest(true);
         }
