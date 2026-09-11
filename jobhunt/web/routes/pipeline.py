@@ -149,7 +149,13 @@ def api_sync():
 
     # Fetch active in-memory pipeline state or sync latest remote run from Supabase
     pipe_state = get_user_pipeline_state(email)
-    dispatched_at = pipe_state.get("dispatched_at") or 0
+    req_dispatched_at = request.args.get("dispatched_at", type=float)
+    dispatched_at = req_dispatched_at or pipe_state.get("dispatched_at") or 0.0
+    if req_dispatched_at and not pipe_state.get("dispatched_at"):
+        pipe_state["dispatched_at"] = req_dispatched_at
+        pipe_state["running"] = True
+        pipe_state["step"] = "running"
+        pipe_state["mode"] = "github_actions"
 
     if email and memory.is_configured:
         try:
@@ -176,15 +182,7 @@ def api_sync():
                 remote_status = str(last_run.get("status") or "").lower()
                 remote_is_active = remote_status in {"queued", "running", "dispatched", "in_progress"}
 
-                if dispatched_at and (time.time() - dispatched_at) > 180:
-                    # Do not claim success when the worker status cannot be correlated.
-                    run_logs = "Cloud Radar status timed out. Check GitHub Actions for the worker result."
-                    pipe_state["running"] = False
-                    pipe_state["step"] = "error"
-                    pipe_state["message"] = run_logs
-                    pipe_state.pop("dispatched_at", None)
-                    set_user_pipeline_state(email, running=False, step="error", message=run_logs, exit_code=1)
-                elif is_newer and remote_status in {"failed", "error"}:
+                if is_newer and remote_status in {"failed", "error"}:
                     run_logs = last_run.get("logs") or "Cloud Radar failed while processing this run."
                     pipe_state["running"] = False
                     pipe_state["step"] = "error"
@@ -205,7 +203,16 @@ def api_sync():
                 elif is_newer and remote_is_active:
                     pipe_state["running"] = True
                     pipe_state["step"] = "running"
+                    pipe_state["mode"] = "github_actions"
                     pipe_state["message"] = "Cloud Radar is running. Results will appear when screening is complete."
+                elif dispatched_at and (time.time() - dispatched_at) > 180:
+                    # Do not claim success when the worker status cannot be correlated.
+                    run_logs = "Cloud Radar status timed out. Check GitHub Actions for the worker result."
+                    pipe_state["running"] = False
+                    pipe_state["step"] = "error"
+                    pipe_state["message"] = run_logs
+                    pipe_state.pop("dispatched_at", None)
+                    set_user_pipeline_state(email, running=False, step="error", message=run_logs, exit_code=1)
                 elif pipe_state.get("running"):
                     # Check GitHub Actions API for live workflow execution state
                     gh_token = (
@@ -649,6 +656,7 @@ def api_run():
             gh_payload = {"ref": "main", "inputs": {"mode": "user", "user_email": email}}
             gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
             if gh_resp.status_code in (200, 204):
+                _GH_STATUS_CACHE.pop(repo_name, None)
                 msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 100+ company boards in the cloud..."
                 dispatched_time = time.time()
                 set_user_pipeline_state(

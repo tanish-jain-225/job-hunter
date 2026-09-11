@@ -717,6 +717,9 @@ async function syncDashboard(force = false) {
 
       if (data.pipeline) {
         updatePipelineConsole(data.pipeline);
+        if (data.pipeline.running && !appState.isCloudPollerActive) {
+          startCloudPoller(data.pipeline.dispatched_at);
+        }
       }
 
       if (data.user_profile) {
@@ -731,7 +734,9 @@ async function syncDashboard(force = false) {
         refreshDigest(true);
       }
 
-      setSyncStatus('synced');
+      if (!appState.pipelineRunning && (!data.pipeline || !data.pipeline.running)) {
+        setSyncStatus('synced');
+      }
     }
   } catch (err) {
     console.warn('Sync check notice:', err);
@@ -743,6 +748,106 @@ async function syncDashboard(force = false) {
   }
 }
 
+let cloudPollerTimer = null;
+
+// Persistent Cloud Pipeline Poller (GitHub Actions)
+// Guarantees loading indicator stays active uninterrupted until GitHub Actions returns an error or an answer
+function startCloudPoller(dispatchedAt = null) {
+  if (dispatchedAt) {
+    appState.cloudDispatchedAt = Number(dispatchedAt);
+    try {
+      sessionStorage.setItem('jobhunt_active_cloud_run', JSON.stringify({ dispatched_at: appState.cloudDispatchedAt }));
+    } catch (_) {}
+  } else if (!appState.cloudDispatchedAt) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('jobhunt_active_cloud_run') || '{}');
+      if (saved.dispatched_at && (Date.now() / 1000 - saved.dispatched_at) < 1200) {
+        appState.cloudDispatchedAt = Number(saved.dispatched_at);
+      }
+    } catch (_) {}
+  }
+
+  appState.pipelineRunning = true;
+  appState.isCloudPollerActive = true;
+
+  const btn = document.getElementById('btn-run');
+  const spinner = document.getElementById('run-spinner');
+  const text = document.getElementById('run-text');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('btn-inactive');
+  }
+  if (spinner) spinner.style.display = 'inline-block';
+  if (text) text.innerText = 'Cloud Radar Running (GitHub Actions)...';
+  setSyncStatus('syncing', 'Radar: Cloud Scan Active (GitHub Actions)');
+
+  if (cloudPollerTimer) {
+    clearTimeout(cloudPollerTimer);
+    cloudPollerTimer = null;
+  }
+
+  let pollCount = 0;
+  const poll = async () => {
+    pollCount++;
+    try {
+      const q = appState.cloudDispatchedAt ? `?dispatched_at=${encodeURIComponent(appState.cloudDispatchedAt)}` : '';
+      const syncRes = await authFetch(`/api/sync${q}`, { cache: 'no-store' });
+      const syncData = await parseJsonResponse(syncRes);
+
+      if (syncData && syncData.status === 'success') {
+        const pipeline = syncData.pipeline;
+        renderMetrics(syncData.stats);
+
+        if (pipeline) {
+          const isCompleted = pipeline.step === 'completed' && !pipeline.running;
+          const isError = pipeline.step === 'error' && !pipeline.running;
+
+          // Loading indicator stops ONLY when an answer or error is returned
+          if (isCompleted || isError) {
+            appState.pipelineRunning = false;
+            appState.isCloudPollerActive = false;
+            appState.cloudDispatchedAt = null;
+            try { sessionStorage.removeItem('jobhunt_active_cloud_run'); } catch (_) {}
+
+            if (isCompleted) {
+              showToast('Autonomous Cloud Radar completed! Results synchronized.', 'success', 4000);
+              await fetchAndRenderJobs(false);
+              refreshDigest(true);
+              broadcastSync('STATE_MUTATED');
+            } else {
+              showToast(pipeline.message || 'Cloud Radar encountered an error', 'error');
+            }
+            updatePipelineConsole(pipeline);
+            updateJobSearchButtonState();
+            setSyncStatus('synced');
+            return;
+          } else {
+            updatePipelineConsole(pipeline);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Cloud radar poll check:', e);
+    }
+
+    if (appState.pipelineRunning && pollCount < 400) {
+      cloudPollerTimer = setTimeout(poll, 3000);
+    } else if (pollCount >= 400) {
+      appState.pipelineRunning = false;
+      appState.isCloudPollerActive = false;
+      appState.cloudDispatchedAt = null;
+      try { sessionStorage.removeItem('jobhunt_active_cloud_run'); } catch (_) {}
+      showToast('Cloud Radar polling reached maximum timeout (20 minutes).', 'error');
+      updateJobSearchButtonState();
+      setSyncStatus('synced');
+      await fetchAndRenderJobs(false);
+    }
+  };
+
+  cloudPollerTimer = setTimeout(poll, 2500);
+}
+
 // Live Pipeline Console & Button State Updater
 function updatePipelineConsole(pipeline) {
   const btn = document.getElementById('btn-run');
@@ -752,7 +857,7 @@ function updatePipelineConsole(pipeline) {
   const mainConsole = document.getElementById('main-run-console');
 
   if (!pipeline) {
-    if (spinner) spinner.style.display = 'none';
+    if (!appState.pipelineRunning && spinner) spinner.style.display = 'none';
     updateJobSearchButtonState();
     return;
   }
@@ -778,8 +883,17 @@ function updatePipelineConsole(pipeline) {
       fetchAndRenderJobs(false);
     }
   } else {
+    // If the candidate initiated an active cloud dispatch, do NOT stop loading on premature idle states
+    if (appState.cloudDispatchedAt && pipeline.step !== 'completed' && pipeline.step !== 'error') {
+      return;
+    }
+
     const wasRunning = appState.pipelineRunning;
     appState.pipelineRunning = false;
+    appState.cloudDispatchedAt = null;
+    appState.isCloudPollerActive = false;
+    try { sessionStorage.removeItem('jobhunt_active_cloud_run'); } catch (_) {}
+
     if (spinner) spinner.style.display = 'none';
     if (text) text.innerText = 'Run Job Hunt Now';
     if (consoleBox && pipeline.message) {
@@ -810,6 +924,10 @@ function updateJobSearchButtonState() {
   if (appState.pipelineRunning) {
     btn.disabled = true;
     btn.classList.add('btn-inactive');
+    if (spinner) spinner.style.display = 'inline-block';
+    if (text && (appState.cloudDispatchedAt || appState.isCloudPollerActive)) {
+      text.innerText = 'Cloud Radar Running (GitHub Actions)...';
+    }
     return;
   }
 
@@ -2541,81 +2659,18 @@ async function runPipeline() {
 
     if (data.status === 'dispatched') {
       showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
-      if (btn) {
-        btn.disabled = true;
-        btn.classList.add('btn-inactive');
-      }
-      if (spinner) spinner.style.display = 'inline-block';
-      if (text) text.innerText = 'Cloud Radar Running (GitHub Actions)...';
       if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 88+ company boards (~1-2 mins).';
-      setSyncStatus('syncing', 'Radar: Cloud Scan Active (GitHub Actions)');
       fetchAndRenderJobs(false);
-      
-      let pollCount = 0;
-      const pollGitHubPipeline = async () => {
-        pollCount++;
-        try {
-          const syncRes = await authFetch('/api/sync', { cache: 'no-store' });
-          const syncData = await parseJsonResponse(syncRes);
-          if (syncData.status === 'success') {
-            updatePipelineConsole(syncData.pipeline);
-            renderMetrics(syncData.stats);
-
-            if (syncData.pipeline && !syncData.pipeline.running && (syncData.pipeline.step === 'completed' || syncData.pipeline.step === 'error')) {
-              appState.pipelineRunning = false;
-              if (syncData.pipeline.step === 'completed') {
-                showToast('Autonomous Cloud Radar completed! Results synchronized.', 'success', 4000);
-                await fetchAndRenderJobs(false);
-                refreshDigest(true);
-                broadcastSync('STATE_MUTATED');
-              } else {
-                showToast(syncData.pipeline.message || 'Cloud Radar encountered an error', 'error');
-              }
-              updateJobSearchButtonState();
-              setSyncStatus('synced');
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('GitHub poll notice:', e);
-        }
-        if (pollCount < 60 && appState.pipelineRunning) {
-          setTimeout(pollGitHubPipeline, 3500);
-        } else {
-          appState.pipelineRunning = false;
-          updateJobSearchButtonState();
-          setSyncStatus('synced');
-          await fetchAndRenderJobs(false);
-          refreshDigest(true);
-        }
-      };
-      setTimeout(pollGitHubPipeline, 2500);
+      startCloudPoller(data.dispatched_at || (Date.now() / 1000));
 
     } else if (data.status === 'need_github_dispatch') {
-      appState.pipelineRunning = false;
-      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 100+ live board crawl in the cloud...';
-      showToast('Opening GitHub Actions to run the live 100+ board radar in the cloud...', 'info', 5000);
+      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 100+ live board crawl in the cloud... Monitoring for results.';
+      showToast('Opening GitHub Actions to run the live radar in the cloud... Loader will monitor until results arrive.', 'info', 5000);
+      fetchAndRenderJobs(false);
       if (data.actions_url) {
         window.open(data.actions_url, '_blank');
       }
-      updateJobSearchButtonState();
-
-      // Poll in background so when GitHub Actions finishes, the web dashboard automatically refreshes
-      let bgPollCount = 0;
-      const pollBg = async () => {
-        bgPollCount++;
-        try {
-          const syncRes = await authFetch('/api/sync', { cache: 'no-store' });
-          const syncData = await parseJsonResponse(syncRes);
-          if (syncData.status === 'success') {
-            renderMetrics(syncData.stats);
-            await fetchAndRenderJobs(false);
-            refreshDigest(true);
-          }
-        } catch (_) {}
-        if (bgPollCount < 30) setTimeout(pollBg, 5000);
-      };
-      setTimeout(pollBg, 5000);
+      startCloudPoller(Date.now() / 1000);
 
     } else if (data.status === 'success' || data.status === 'busy') {
       showToast('Pipeline scanner running in background...', 'info', 2500);
@@ -3513,6 +3568,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial check on job search button activation state
   updateJobSearchButtonState();
+
+  // Resume any in-flight cloud radar run across reloads
+  try {
+    const savedRun = JSON.parse(sessionStorage.getItem('jobhunt_active_cloud_run') || '{}');
+    if (savedRun.dispatched_at && (Date.now() / 1000 - savedRun.dispatched_at) < 1200) {
+      startCloudPoller(savedRun.dispatched_at);
+    }
+  } catch (_) {}
 });
 
 // Job Type & Location Preference Extraction Helpers
