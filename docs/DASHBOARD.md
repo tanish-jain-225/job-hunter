@@ -61,7 +61,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
   * **Tier 1 (Multi-Provider AI Cascade)**: Server-side AI cascade (**Google Gemini** `gemini-3.5-flash` $\rightarrow$ **Groq** $\rightarrow$ **Anthropic Claude** $\rightarrow$ **OpenAI**) with circular multi-key rotation and a 30s timeout ceiling.
   * **Tier 2 (Smart Local Regex Parser)**: If upstream AI providers experience rate limits (HTTP 429), high demand (HTTP 503), or network timeouts, Job Hunter's built-in deterministic parser takes over in $\le 15$ seconds, accurately extracting candidate name, title, education, experience years, and 100+ technical skills locally without external API dependencies.
   * **Tier 3 (Client Identity & Tech Defaults)**: Client UI (`app.js`) fallback automatically fills authenticated Supabase identity (`full_name`, `email`) and standard tech defaults so candidate workflows are never interrupted.
-* **First-Time Setup**: The Onboarding Wizard also includes **11 One-Click Role Presets** (Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product) for instant zero-friction setup.
+* **On-Demand Configuration**: Candidate profiles and radar preferences are configured cleanly on demand in the Settings Studio without intrusive setup wizards or forced prompts.
 
 ### 3.  Zero-Refresh Real-Time State Sync
 * Changes made in any tab (stage updates, notes, manual additions, applied toggles) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.

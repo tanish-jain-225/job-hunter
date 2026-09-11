@@ -20,7 +20,7 @@ Job Hunter supports two operating models that share the exact same core engine:
 │ - 100% Free ($0/mo)                       │ - 100% Free ($0/mo on free-tier stack)     │
 │ - Runs locally on your machine            │ - Supabase PostgreSQL (Auth & RLS Storage) │
 │ - Daily Windows task or GitHub Actions    │ - GitHub Actions (Automated 05:00 AM Cron) │
-│ - Private resume & tracking data on disk  │ - Multi-user candidate onboarding & kits   │
+│ - Private resume & tracking data on disk  │ - Multi-user candidate profiles & kits     │
 └───────────────────────────────────────────┴────────────────────────────────────────────┘
 ```
 
@@ -179,7 +179,8 @@ To receive personalized HTML career digests in your email inbox every weekday mo
 1. Create a free account at **[supabase.com](https://supabase.com)** and click **"New Project"** (e.g. `job-hunter`).
 2. Once provisioned, open the **SQL Editor** from the left sidebar.
 3. Click **"New Query"**, paste the entire contents of [`supabase/schema.sql`](../supabase/schema.sql), and click **Run**.
-   * *This creates the 3 multi-tenant tables (`user_profiles`, `user_tracked_jobs`, `user_pipeline_runs`), triggers, indexes, and activates Row-Level Security (RLS).*
+   * *This creates the 3 multi-tenant tables (`user_profiles`, `user_tracked_jobs`, `user_pipeline_runs`), triggers, indexes, cascading foreign keys, and activates Row-Level Security (RLS).*
+   * *(To cleanly reset or tear down your tables at any point, use [`supabase/teardown.sql`](../supabase/teardown.sql)).*
 4. Navigate to **Project Settings** -> **API**:
    * Copy **Project URL** -> `SUPABASE_URL`
    * Copy **Project API Keys** -> `anon` `public` -> `SUPABASE_ANON_KEY`
@@ -324,7 +325,7 @@ Open **`http://localhost:5000`** in your browser.
 
 **Features Available in the Web Dashboard**:
 * **Interactive Job Board**: Table/Card list with responsive client-side pagination (10, 25, or 50 opportunities per page) and in-card 5-stage dropdown selectors.
-* **Resume Studio**: Drag-and-drop PDF resume parser with AI skill extraction and 11 one-click role presets.
+* **Resume Studio**: Drag-and-drop PDF resume parser with AI skill extraction and 1-click criteria auto-fill.
 * **Application Kit Inspector**: Tailored cover notes, 80-word cold outreach messages, and matching resume bullets with 1-click clipboard copy.
 * **Smart Follow-Up Nudges**: Automated elapsed-time badges (`5d ago · Follow Up`) highlight applications that have been awaiting response for 4+ days, generating tailored follow-up copy.
 
@@ -332,11 +333,7 @@ Open **`http://localhost:5000`** in your browser.
 
 ### Step 4.2: Run the 1-Click Master Automation Pipeline
 
-ightarrow$ filtering $
-ightarrow$ screening $
-ightarrow$ drafting $
-ightarrow$ exporting CSV $
-ightarrow$ opening browser preview):
+Run the entire end-to-end pipeline in one command (fetching $\rightarrow$ filtering $\rightarrow$ screening $\rightarrow$ drafting $\rightarrow$ exporting CSV $\rightarrow$ opening browser preview):
 
 ```bash
 python auto.py
@@ -373,19 +370,15 @@ Deploy Job Hunter to the cloud so it runs 24/7 without needing your laptop power
 ### Step 5.1: Deploy Web Dashboard to Vercel
 
 1. Push your repository to GitHub.
-2. Visit **[vercel.com](https://vercel.com)** $
-ightarrow$ **Add New $
-ightarrow$ Project** $
-ightarrow$ Import your `job-hunter` repository.
-3. In **Settings $
-ightarrow$ Environment Variables**, configure:
+2. Visit **[vercel.com](https://vercel.com)** $\rightarrow$ **Add New** $\rightarrow$ **Project** $\rightarrow$ Import your `job-hunter` repository.
+3. In **Settings** $\rightarrow$ **Environment Variables**, configure:
    * `GEMINI_API_KEY`: Your Gemini API key
    * `SUPABASE_URL`: `https://your-project.supabase.co`
    * `SUPABASE_ANON_KEY`: Your Supabase anon public key
    * `AUTH_REQUIRED`: `true`
    * `FLASK_SECRET_KEY`: Random 32-char string
    * `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (Optional, for test emails)
-  * `GH_TOKEN`, `GITHUB_REPOSITORY` (Required for cloud on-demand radar triggers)
+   * `GH_TOKEN`, `GITHUB_REPOSITORY` (Required for cloud on-demand radar triggers)
 4. Click **Deploy**. Vercel will build and serve your app at `https://your-project.vercel.app`!
 
 ---
@@ -394,18 +387,14 @@ ightarrow$ Environment Variables**, configure:
 
 Job Hunter includes a scheduled cloud workflow in [`.github/workflows/daily.yml`](../.github/workflows/daily.yml) that crawls ATS boards, screens matches, and dispatches briefings every day:
 
-1. Open your GitHub repository $
-ightarrow$ **Settings $
-ightarrow$ Secrets and variables $
-ightarrow$ Actions**.
+1. Open your GitHub repository $\rightarrow$ **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**.
 2. Add the following **Repository Secrets**:
    * `GEMINI_API_KEY`
    * `SMTP_USER` & `SMTP_PASS`
    * `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    * `MAIL_TO` (For single-user mode)
 3. Navigate to the **Actions** tab in your repository:
-   * Select **Daily Career Intelligence Digest** $
-ightarrow$ Click **"Run workflow"** to test it immediately.
+   * Select **Daily Career Intelligence Digest** $\rightarrow$ Click **"Run workflow"** to test it immediately.
   * By default, it executes automatically every day at **05:00 AM IST (23:30 UTC)**.
 
 ---
@@ -433,8 +422,8 @@ Run these diagnostic commands to verify each subsystem of the product:
 | **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | Verified |
 | **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | Verified |
 | **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **408 passed tests** with 100% success rate | Verified |
-| **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across 25 source files | Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **414 passed tests** with 100% success rate | Verified |
+| **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across all source files | Verified |
 | **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | Verified |
 
 ---
@@ -451,8 +440,7 @@ Run these diagnostic commands to verify each subsystem of the product:
 * **Fix**: Ensure 2-Step Verification is active on your Google account and generate a 16-character **App Password** from [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
 
 ### Issue 4: Gemini Rate Limits (`HTTP 429: Resource Exhausted`)
-* **Fix**: Pass multiple free Gemini keys separated by commas in `GEMINI_API_KEY=key1,key2`. Job Hunter automatically alternates between keys round-robin. In addition, Job Hunter's dynamic fallback cascading automatically routes requests through `gemini-flash-latest` $
-ightarrow$ `gemini-flash-lite-latest` with cooldown tracking.
+* **Fix**: Pass multiple free Gemini keys separated by commas in `GEMINI_API_KEY=key1,key2`. Job Hunter automatically alternates between keys round-robin. In addition, Job Hunter's dynamic fallback cascading automatically routes requests through `gemini-flash-latest` $\rightarrow$ `gemini-flash-lite-latest` with cooldown tracking.
 
 ### Issue 5: Supabase RLS Permission Denied on API routes
 * **Fix**: Ensure you ran [`supabase/schema.sql`](../supabase/schema.sql) in your Supabase SQL Editor to grant table and sequence permissions to `authenticated` and `service_role`.

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 from typing import Any
 from pathlib import Path
 from uuid import uuid4
-from flask import Blueprint, after_this_request, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 
 from ... import cli, llm
 from ...auth import require_auth
@@ -69,7 +70,7 @@ def api_companies():
                 data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
             )
         except Exception as e:
-            logger.warning(f"Failed to load companies.yaml: {e}")
+            logger.warning("Failed to load companies.yaml: %s", e)
 
     search = request.args.get("search", "").lower().strip()
     ats_filter = request.args.get("ats", "all").lower().strip()
@@ -205,7 +206,7 @@ def api_add_custom_company():
             with open(profile_path, "w", encoding="utf-8") as f:
                 json.dump(prof, f, indent=2)
         except Exception as e:
-            logger.warning(f"Could not cache profile locally: {e}")
+            logger.warning("Could not cache profile locally: %s", e)
 
     return jsonify({
         "status": "success",
@@ -261,7 +262,7 @@ def api_delete_custom_company():
             with open(profile_path, "w", encoding="utf-8") as f:
                 json.dump(prof, f, indent=2)
         except Exception as e:
-            logger.warning(f"Could not cache profile locally: {e}")
+            logger.warning("Could not cache profile locally: %s", e)
 
     return jsonify({"status": "success", "message": f"Removed {ats}:{slug} from custom companies"})
 
@@ -325,15 +326,17 @@ def api_export_csv():
     export_path = configured_path.with_name(f".tracker-{uuid4().hex}.csv")
     csv_path = Path(st.export_csv(export_path)).resolve()
 
-    @after_this_request
-    def remove_export(response):
-        try:
-            csv_path.unlink(missing_ok=True)
-        except OSError:
-            logger.warning("Unable to remove temporary CSV export %s", csv_path)
-        return response
+    try:
+        csv_bytes = csv_path.read_bytes()
+    finally:
+        csv_path.unlink(missing_ok=True)
 
-    return send_file(str(csv_path), mimetype="text/csv", as_attachment=True, download_name="tracker.csv")
+    return send_file(
+        io.BytesIO(csv_bytes),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="tracker.csv",
+    )
 
 
 @jobs_bp.route("/api/jobs")

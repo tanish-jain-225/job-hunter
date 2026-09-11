@@ -12,7 +12,9 @@ from app import app
 def client(monkeypatch):
     app.config["TESTING"] = True
     monkeypatch.setenv("AUTH_REQUIRED", "false")
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.setenv("SUPABASE_URL", "")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
     with app.test_client() as client:
         yield client
 

@@ -98,6 +98,9 @@ def test_digest_build_dynamic_rendering():
 def test_store_multi_tenant_isolation(tmp_path, monkeypatch):
     """Verify two distinct users have strictly isolated Store instances and local caches."""
     monkeypatch.setenv("VERCEL", "0")
+    monkeypatch.setenv("SUPABASE_URL", "")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
     store_user_a = Store("seen.json", user_email="user_a@enterprise.com")
     store_user_b = Store("seen.json", user_email="user_b@startup.io")
@@ -134,11 +137,14 @@ def test_dynamic_mailer_dispatch():
 
 def test_run_pipeline_dynamic_execution(tmp_path, monkeypatch):
     """Verify run_pipeline executes with dynamic user profile and store."""
+    monkeypatch.setenv("SUPABASE_URL", "")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
     custom_profile = {
         "name": "Dev User",
         "email": "dev.user@cloud.com",
-        "core_skills": ["Python", "FastAPI", "PostgreSQL"],
-        "target_titles": ["Python Developer", "Backend Engineer"],
+        "core_skills": ["Go", "Distributed Systems", "Kubernetes"],
+        "target_titles": ["Software Engineer", "Backend Engineer"],
         "notable_projects": ["High Speed API Gateway"],
     }
 

@@ -5,12 +5,14 @@ from __future__ import annotations
 import logging
 import json
 import os
+import threading
 import time
 from pathlib import Path
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 
-from ... import cli
+from ... import cli, digest, mailer
 from ...auth import require_auth
+from ...fetch import Job
 from ...memory import SupabaseMemory
 from ...store import Store, get_user_profile_path, get_writable_path
 from ..state import (
@@ -568,12 +570,21 @@ def api_run():
 
     profile_dict = dict(user_profile) if user_profile else {}
     if user_profile:
+        pjson = user_profile.get("profile_json") or {}
+        if not isinstance(pjson, dict):
+            pjson = {}
         profile_dict["current_title"] = user_profile.get("title") or ""
         profile_dict["core_skills"] = user_profile.get("skills") or []
-        profile_dict["target_keywords"] = user_profile.get("target_keywords") or []
-        profile_dict["target_titles"] = user_profile.get("target_keywords") or []
-        profile_dict["exclude_keywords"] = user_profile.get("exclude_keywords") or []
-        profile_dict["exclude_titles"] = user_profile.get("exclude_keywords") or []
+        # target_keywords / target_titles: prefer the user's canonical target_keywords column;
+        # fall back to profile_json.target_titles from the parsed resume AI output.
+        target_kws = user_profile.get("target_keywords") or pjson.get("target_titles") or []
+        profile_dict["target_keywords"] = target_kws
+        profile_dict["target_titles"] = target_kws
+        # exclude_keywords / exclude_titles: prefer the user's exclude_keywords column;
+        # fall back to profile_json.exclude_keywords from the parsed resume AI output.
+        exclude_kws = user_profile.get("exclude_keywords") or pjson.get("exclude_keywords") or []
+        profile_dict["exclude_keywords"] = exclude_kws
+        profile_dict["exclude_titles"] = exclude_kws
         profile_dict["education"] = user_profile.get("education") or ""
         profile_dict["years_experience"] = user_profile.get("experience_years") or 0.0
         if email:
@@ -788,9 +799,6 @@ def api_run():
                 exit_code=exit_code,
             )
 
-    from flask import current_app
-    import threading
-
     is_testing = current_app.testing or bool(data.get("sync")) or is_vercel
     if is_testing:
         worker()
@@ -846,8 +854,6 @@ def api_history():
 @require_auth
 def api_email_test():
     """Send a live test career briefing email to verify SMTP delivery."""
-    from flask import current_app
-
     limiter = current_app.extensions.get("limiter")
     if limiter and not current_app.testing:
         from werkzeug.exceptions import HTTPException
@@ -856,8 +862,8 @@ def api_email_test():
             limiter.limit("3 per hour")(lambda: None)()
         except HTTPException:
             raise
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Rate limit check warning: %s", e)
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
     memory = SupabaseMemory(token=token)
@@ -885,9 +891,6 @@ def api_email_test():
                 "message": "SMTP is not configured on the server. Please set SMTP_USER and SMTP_PASS in .env",
             }
         ), 400
-
-    from ... import digest, mailer
-    from ...fetch import Job
 
     demo_job = Job(
         job_id="test:sample:101",

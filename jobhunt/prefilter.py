@@ -10,10 +10,13 @@ Empty job_types = accept all employment types.
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 
 from .fetch import Job
+
+logger = logging.getLogger(__name__)
 
 # Remote / work-from-home detection patterns
 REMOTE_HINTS = (
@@ -244,9 +247,13 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
         kept.append(j)
 
     total = len(jobs)
-    print(
-        f"  prefilter: {total} -> {len(kept)} "
-        f"(dropped title={stats['title']} location={stats['location']} "
-        f"stale={stats['age']} job_type={stats['job_type']})"
+    logger.info(
+        "  prefilter: %d -> %d (dropped title=%d location=%d stale=%d job_type=%d)",
+        total,
+        len(kept),
+        stats["title"],
+        stats["location"],
+        stats["age"],
+        stats["job_type"],
     )
     return kept

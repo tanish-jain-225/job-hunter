@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from flask import g
 
@@ -58,7 +58,7 @@ def get_project_root() -> Path:
 ROOT = get_project_root()
 
 
-def get_current_user_context() -> Tuple[Optional[str], Optional[str]]:
+def get_current_user_context() -> tuple[str | None, str | None]:
     """Extract (email, access_token) from active authenticated session.
 
     Delegates to app module if monkeypatched in testing environments.
@@ -74,7 +74,7 @@ def get_current_user_context() -> Tuple[Optional[str], Optional[str]]:
     return email, token
 
 
-def get_user_profile(cfg: dict, email: Optional[str], token: Optional[str]) -> dict:
+def get_user_profile(cfg: dict, email: str | None, token: str | None) -> dict:
     """Load one user's profile from Supabase, then their isolated local cache."""
     memory = SupabaseMemory(token=token)
     if email and email != "developer@local":
@@ -120,7 +120,7 @@ def _prune_pipeline_states_locked() -> None:
             _USER_LOG_BUFFERS.pop(k, None)
 
 
-def get_user_pipeline_state(email: Optional[str]) -> dict:
+def get_user_pipeline_state(email: str | None) -> dict:
     """Retrieve thread-safe pipeline execution state for a specific user."""
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
@@ -135,7 +135,7 @@ def get_user_pipeline_state(email: Optional[str]) -> dict:
         return dict(_USER_PIPELINE_STATES[key])
 
 
-def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
+def set_user_pipeline_state(email: str | None, **kwargs) -> dict:
     """Update thread-safe pipeline execution state for a specific user."""
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
@@ -152,7 +152,7 @@ def set_user_pipeline_state(email: Optional[str], **kwargs) -> dict:
         return dict(_USER_PIPELINE_STATES[key])
 
 
-def publish_user_pipeline_log(email: Optional[str], message: str) -> None:
+def publish_user_pipeline_log(email: str | None, message: str) -> None:
     """Append a real-time log event to user's circular log stream buffer."""
     if not message:
         return
@@ -166,14 +166,14 @@ def publish_user_pipeline_log(email: Optional[str], message: str) -> None:
             _USER_LOG_BUFFERS[key] = buf[-_MAX_LOGS_PER_USER:]
 
 
-def get_user_pipeline_logs(email: Optional[str]) -> list[str]:
+def get_user_pipeline_logs(email: str | None) -> list[str]:
     """Retrieve snapshot of current pipeline logs for user."""
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
         return list(_USER_LOG_BUFFERS.get(key, []))
 
 
-def clear_user_pipeline_logs(email: Optional[str]) -> None:
+def clear_user_pipeline_logs(email: str | None) -> None:
     """Clear circular log stream buffer for user."""
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
@@ -188,7 +188,7 @@ def get_store_version(st: Store) -> str:
             for jid, d in sorted(st.data.items())
         ]
         content = f"{len(st.data)}|" + "|".join(items)
-        return hashlib.md5(content.encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
     except Exception:
         return str(int(time.time()))
 

@@ -141,7 +141,7 @@ def test_store_rolls_back_when_cloud_mutation_fails(tmp_path: Path):
 
     st = Store(tmp_path / "seen.json")
     st.user_email = "candidate@example.com"
-    st.memory = FailingMemory()
+    st.memory = FailingMemory()  # type: ignore[assignment]
     st.data["custom:acme:1"] = {
         "job_id": "custom:acme:1",
         "applied": False,
@@ -165,7 +165,7 @@ def test_store_auto_csv_export_sync(tmp_path: Path, monkeypatch):
 
     assert csv_path.exists()
     csv_text = csv_path.read_text(encoding="utf-8")
-    assert job_id in csv_text
+    assert job_id is not None and job_id in csv_text
     assert "GitHub" in csv_text
 
 
@@ -177,6 +177,7 @@ def test_store_score_clamping(tmp_path: Path):
     j1 = st.add_job(title="High Score Job", company="AcmeHigh", score=15.0)
     j2 = st.add_job(title="Low Score Job", company="AcmeLow", score=-5.0)
 
+    assert j1 is not None and j2 is not None
     assert st.data[j1]["score"] == 10.0
     assert st.data[j2]["score"] == 0.0
 
@@ -230,6 +231,7 @@ def test_store_add_job_invalid_score(tmp_path: Path):
     """Test add_job handling invalid non-numeric score."""
     st = Store(tmp_path / "seen.json")
     j1 = st.add_job(title="Invalid Score Job", company="Test", score="invalid-score")  # type: ignore
+    assert j1 is not None
     assert st.data[j1]["score"] == 7.5
 
 

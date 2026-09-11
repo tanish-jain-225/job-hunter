@@ -129,8 +129,8 @@ job-hunter/
 │   │   └── app.js               # SPA client controller, Supabase sync, job board pagination
 │   └── assets/                  # Runtime logo and favicon assets
 ├── supabase/                    # Database Architecture
-│   ├── schema.sql               # PostgreSQL schema: tables, indexes, and Row-Level Security policies
-│   └── teardown.sql             # Idempotent database purge and reset script
+│   ├── schema.sql               # Atomic PostgreSQL schema: tables, indexes, cascading FKs, and RLS policies
+│   └── teardown.sql             # Atomic, cascade-safe database reset and migration teardown script
 ├── templates/                   # Jinja2 HTML Templates
 │   ├── index.html               # Main shell template with modern favicon tags and font preloads
 │   └── partials/                # Modular UI partials
@@ -140,9 +140,9 @@ job-hunter/
 │       ├── kit_inspect.html     # Application kit modal with 1-click copy buttons
 │       ├── landing.html         # Public landing hero and sign-in card
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
-│       ├── onboarding.html      # Setup wizard modal with 1-click role presets and in-memory resume text extraction
+│       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (408 passing tests)
+├── tests/                       # Automated Test Suite (414 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
@@ -151,6 +151,7 @@ job-hunter/
 │   ├── test_flow_perfection.py  # End-to-end multi-provider and multi-tenant flows
 │   ├── test_full_suite_perfection.py # Broad cross-subsystem perfection validation
 │   ├── test_providers.py        # LLM provider rotation, throttling, and fallback cascades
+│   ├── test_schema_sql.py       # Supabase schema and teardown SQL integrity and symmetry validation
 │   └── ...                      # Comprehensive coverage across fetch, memory, store, etc.
 ├── app.py                       # Local Flask development server bootstrap
 ├── auto.py                      # Stable root automation entry point

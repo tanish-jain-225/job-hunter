@@ -130,6 +130,7 @@ LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or incl
 * **Per-Key Independent 15 RPM Throttling**: Rather than stalling all keys under a shared timer, each key tracks its own last invocation timestamp (`_enforce_key_throttle(key, min_interval=4.0)`). During automated test execution (`PYTEST_CURRENT_TEST`), physical sleeps are cleanly bypassed, accelerating test suite execution by >80% while keeping production throttling 100% intact.
 * **Extended 60s Generation Timeout**: Generous 60s read timeout (`TIMEOUT = 60`) prevents premature cutoffs on long JSON kits during upstream latency.
 * **Automatic Model Cascading**: When `gemini-3.5-flash` hits Google AI Studio project limits (`HTTP 429: Resource Exhausted`) or transient high demand (`HTTP 503`), the engine automatically cascades the active payload through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`), with temporary cooldown tracking (`_MODEL_COOLDOWN_MAP`) ensuring continuous real-time execution without dropping candidates.
+* **Header-Based Secret Transport**: Google Gemini requests transport API keys securely via `x-goog-api-key` HTTP request headers rather than URL query parameters, preventing secret exposure in proxy server logs and referrer headers.
 * **Deterministic Provider State Isolation**: The engine exports `reset_provider_state()` to atomically clear throttles, key counters, and model cooldowns, ensuring complete state isolation across production runs and automated tests (`tests/conftest.py`).
 
 ---

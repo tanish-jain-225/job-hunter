@@ -14,6 +14,14 @@ def reset_global_provider_state():
     reset_provider_state()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_transient_test_artifacts():
+    """Ensure test artifacts are cleaned up when the pytest session completes."""
+    yield
+    from jobhunt.clean import clean_workspace
+    clean_workspace(dry_run=False)
+
+
 class DummyResponse:
     """Stub HTTP response for testing HTTP client code."""
 

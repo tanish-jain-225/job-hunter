@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import logging
 import os
 import tempfile
 import time
@@ -21,6 +22,8 @@ import urllib.parse
 import threading
 from .fetch import Job
 from .memory import SupabaseMemory
+
+logger = logging.getLogger(__name__)
 
 _CSV_EXPORT_LOCK = threading.Lock()
 
@@ -607,7 +610,11 @@ class Store:
                     pass
 
         if purged > 0:
-            print(f"  [prune] purged {purged} stale jobs to stay under free storage limits (capped at {max_count}).")
+            logger.info(
+                "  [prune] purged %d stale jobs to stay under free storage limits (capped at %d).",
+                purged,
+                max_count,
+            )
 
     def save(self, auto_export: bool = True) -> None:
         self.prune_old_jobs()

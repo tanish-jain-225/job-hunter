@@ -14,7 +14,7 @@ Welcome to **Job Hunter**! Whether you are a recent graduate, seasoned software 
 2. [ Accessing Job Hunter (Cloud SaaS vs. Local Web)](#2--accessing-job-hunter-cloud-saas-vs-local-web)
 3. [ Step 1: Sign Up & Private Account Isolation](#3--step-1-sign-up--private-account-isolation)
 4. [ Step 2: Profile & Search Settings (3-Step Setup)](#4--step-2-profile--search-settings-3-step-setup)
-   - [First-Time Onboarding vs. Ongoing Settings](#first-time-onboarding-vs-ongoing-settings)
+   - [Direct On-Demand Setup](#direct-on-demand-setup)
    - [Step 1: Resume Upload & Raw Text Context](#step-1-resume-upload--raw-text-context-extraction-only)
    - [Step 2: Candidate Profile & Search Criteria (The Relevant Nuts)](#step-2-candidate-profile--search-criteria-the-relevant-nuts)
    - [Auto-Fill from Resume Context & 3-Tier Fallback Protection](#auto-fill-from-resume-context--3-tier-fallback-protection)
@@ -92,9 +92,8 @@ When you visit Job Hunter, you are greeted by the landing view:
 
 ## 4.  Step 2: Profile & Search Settings (3-Step Setup)
 
-Job Hunter provides two streamlined ways to configure your matching radar:
-1. **First-Time Onboarding Wizard**: Automatically opens upon your very first sign-in to quickly calibrate initial preferences or select 1-click role presets (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data Eng, Mobile, QA, Security, Web3, Product*).
-2. **Profile & Search Settings Modal**: Accessible anytime by clicking **Settings** in the top navigation bar. It is structured into 3 clean, dedicated sections with zero clutter, zero repetitive fields, and zero preview cards.
+### Direct On-Demand Setup
+Configure your matching radar anytime by clicking **Settings** in the top navigation bar, or when prompted before running a job hunt if your criteria are not yet set. The studio is structured into 3 clean, dedicated sections with zero clutter, zero repetitive fields, and zero intrusive pop-ups:
 
 ```mermaid
 flowchart LR

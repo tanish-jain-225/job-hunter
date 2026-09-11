@@ -4,7 +4,11 @@
 -- Features: Strict Tenant Isolation (RLS), Resume Studio, Notification Preferences
 -- ==============================================================================
 
+BEGIN;
+
+-- ------------------------------------------------------------------------------
 -- 1. Create User Profiles Table (Primary Key: email)
+-- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_profiles (
     email TEXT PRIMARY KEY,
     name TEXT DEFAULT '',
@@ -30,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Ensure columns exist if table was previously created (safe for re-runs)
+-- Ensure columns exist if table was previously created (safe for re-runs / migrations)
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS resume_text TEXT DEFAULT '';
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS resume_filename TEXT DEFAULT '';
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT FALSE;
@@ -51,8 +55,9 @@ WHERE onboarding_completed = FALSE
   AND name IS NOT NULL AND name != '' AND name != 'Candidate'
   AND array_length(skills, 1) > 0;
 
--- Index on user_profiles
+-- Performance Indexes on user_profiles
 CREATE INDEX IF NOT EXISTS idx_user_profiles_updated_at ON public.user_profiles (updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_created_at ON public.user_profiles (created_at DESC);
 
 -- ------------------------------------------------------------------------------
 -- 2. Create User Tracked Jobs Table (Keyed by user_email + job_id)
@@ -91,7 +96,7 @@ UPDATE public.user_tracked_jobs
 SET application_stage = 'applied'
 WHERE applied = TRUE AND (application_stage = 'to_apply' OR application_stage IS NULL);
 
--- Performance Indexes
+-- Performance Indexes on user_tracked_jobs
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_created ON public.user_tracked_jobs (user_email, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_score ON public.user_tracked_jobs (user_email, score DESC);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_applied ON public.user_tracked_jobs (user_email, applied);
@@ -99,13 +104,12 @@ CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_stage ON public.user_trac
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_ats ON public.user_tracked_jobs (user_email, ats);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_created_at ON public.user_tracked_jobs (created_at DESC);
 
-
 -- ------------------------------------------------------------------------------
 -- 3. Create User Pipeline Execution History Table
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_pipeline_runs (
     id BIGSERIAL PRIMARY KEY,
-    user_email TEXT NOT NULL,
+    user_email TEXT NOT NULL REFERENCES public.user_profiles(email) ON DELETE CASCADE,
     run_timestamp TIMESTAMPTZ DEFAULT NOW(),
     jobs_scanned INTEGER DEFAULT 0,
     candidates_matched INTEGER DEFAULT 0,
@@ -115,18 +119,45 @@ CREATE TABLE IF NOT EXISTS public.user_pipeline_runs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Safe migration: ensure foreign key cascade exists on user_pipeline_runs for older schemas
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.user_pipeline_runs'::regclass
+          AND contype = 'f'
+    ) THEN
+        -- Purge any orphaned runs before adding foreign key constraint
+        DELETE FROM public.user_pipeline_runs
+        WHERE user_email NOT IN (SELECT email FROM public.user_profiles);
+
+        ALTER TABLE public.user_pipeline_runs
+            ADD CONSTRAINT fk_user_pipeline_runs_email
+            FOREIGN KEY (user_email)
+            REFERENCES public.user_profiles(email)
+            ON DELETE CASCADE;
+    END IF;
+EXCEPTION
+    WHEN others THEN NULL;
+END $$;
+
+-- Performance Indexes on user_pipeline_runs
 CREATE INDEX IF NOT EXISTS idx_user_pipeline_runs_email ON public.user_pipeline_runs (user_email, run_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_user_pipeline_runs_created_at ON public.user_pipeline_runs (created_at DESC);
 
 -- ------------------------------------------------------------------------------
 -- 4. Auto-update updated_at Trigger Function
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS trigger_user_profiles_updated_at ON public.user_profiles;
 CREATE TRIGGER trigger_user_profiles_updated_at
@@ -150,16 +181,11 @@ ALTER TABLE public.user_pipeline_runs ENABLE ROW LEVEL SECURITY;
 -- ------------------------------------------------------------------------------
 
 -- user_profiles Policies
+-- Drop legacy separate policies to eliminate redundant OR evaluation overhead on SELECT
 DROP POLICY IF EXISTS "Allow user to view own profile" ON public.user_profiles;
-CREATE POLICY "Allow user to view own profile"
-    ON public.user_profiles FOR SELECT
-    USING (
-        lower((select auth.jwt()) ->> 'email') = lower(email) 
-        OR ((select auth.jwt()) ->> 'role') = 'service_role'
-    );
-
 DROP POLICY IF EXISTS "Allow user to insert/update own profile" ON public.user_profiles;
-CREATE POLICY "Allow user to insert/update own profile"
+DROP POLICY IF EXISTS "Allow user to manage own profile" ON public.user_profiles;
+CREATE POLICY "Allow user to manage own profile"
     ON public.user_profiles FOR ALL
     USING (
         lower((select auth.jwt()) ->> 'email') = lower(email) 
@@ -197,10 +223,18 @@ CREATE POLICY "Allow user to access own pipeline runs"
     );
 
 -- ------------------------------------------------------------------------------
--- 7. Grant Table and Sequence Access
+-- 7. Grant Schema, Table, Sequence, and Function Access
 -- ------------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
 GRANT ALL ON TABLE public.user_profiles TO authenticated, service_role;
 GRANT ALL ON TABLE public.user_tracked_jobs TO authenticated, service_role;
 GRANT ALL ON TABLE public.user_pipeline_runs TO authenticated, service_role;
+
 GRANT ALL ON SEQUENCE public.user_tracked_jobs_id_seq TO authenticated, service_role;
 GRANT ALL ON SEQUENCE public.user_pipeline_runs_id_seq TO authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated, service_role;
+
+GRANT EXECUTE ON FUNCTION public.handle_updated_at() TO authenticated, service_role;
+
+COMMIT;

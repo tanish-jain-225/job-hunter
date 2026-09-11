@@ -149,7 +149,7 @@ def api_profile():
             with open(profile_path, "w", encoding="utf-8") as f:
                 json.dump(merged_profile, f, indent=2)
         except Exception as e:
-            logger.warning(f"Could not cache profile locally: {e}")
+            logger.warning("Could not cache profile locally: %s", e)
 
         return jsonify(
             {
@@ -207,7 +207,7 @@ def api_profile_reset():
         with open(profile_path, "w", encoding="utf-8") as f:
             json.dump(blank_profile, f, indent=2)
     except Exception as e:
-        logger.warning(f"Could not reset local profile cache: {e}")
+        logger.warning("Could not reset local profile cache: %s", e)
 
     return jsonify(
         {
@@ -275,7 +275,7 @@ def api_resume_upload():
         )
         parsed_profile = future.result(timeout=30.0)
     except Exception as e:
-        logger.warning(f"AI profile extraction notice ({e}), using smart local parser.")
+        logger.warning("AI profile extraction notice (%s), using smart local parser.", e)
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
@@ -286,19 +286,25 @@ def api_resume_upload():
         derived_title = ""
         derived_edu = ""
         if resume_text:
-            lines = [l.strip() for l in resume_text.splitlines() if l.strip()]
-            first_lines = [l for l in lines[:10] if len(l) < 50]
+            lines = [line.strip() for line in resume_text.splitlines() if line.strip()]
+            first_lines = [line for line in lines[:10] if len(line) < 50]
             if first_lines:
                 derived_name = first_lines[0]
-            title_keywords = ["Engineer", "Developer", "Architect", "Scientist", "Designer", "Specialist", "Analyst", "Lead", "Manager", "Consultant"]
-            for l in lines[:15]:
-                if any(tk.lower() in l.lower() for tk in title_keywords) and len(l) < 60:
-                    derived_title = l
+            title_keywords = [
+                "Engineer", "Developer", "Architect", "Scientist", "Designer",
+                "Specialist", "Analyst", "Lead", "Manager", "Consultant",
+            ]
+            for line in lines[:15]:
+                if any(tk.lower() in line.lower() for tk in title_keywords) and len(line) < 60:
+                    derived_title = line
                     break
-            edu_keywords = ["B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master", "Degree", "University", "College", "Institute"]
-            for l in lines:
-                if any(ek.lower() in l.lower() for ek in edu_keywords) and len(l) < 80:
-                    derived_edu = l
+            edu_keywords = [
+                "B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master",
+                "Degree", "University", "College", "Institute",
+            ]
+            for line in lines:
+                if any(ek.lower() in line.lower() for ek in edu_keywords) and len(line) < 80:
+                    derived_edu = line
                     break
 
         if not derived_name or len(derived_name) > 40:
@@ -429,11 +435,9 @@ def api_profile_preferences():
             profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
             profile_path.parent.mkdir(parents=True, exist_ok=True)
             with open(profile_path, "w", encoding="utf-8") as f:
-                import json
-
                 json.dump(merged, f, indent=2)
         except Exception as e:
-            logger.warning(f"Could not cache preferences locally: {e}")
+            logger.warning("Could not cache preferences locally: %s", e)
 
         return jsonify(
             {

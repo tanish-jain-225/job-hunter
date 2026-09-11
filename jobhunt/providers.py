@@ -286,6 +286,7 @@ class GeminiProvider(Provider):
                 r = requests.post(
                     url,
                     params={"key": key},
+                    headers={"x-goog-api-key": key},
                     json=body,
                     timeout=TIMEOUT,
                 )

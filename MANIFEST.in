@@ -1,7 +1,6 @@
 include README.md
 recursive-include docs *.md
 include LICENSE
-include config.yaml
 include config.example.yaml
 include companies.yaml
 include profile.example.json

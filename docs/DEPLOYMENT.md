@@ -16,7 +16,7 @@ Deploy **Job Hunter** as a monitored public-beta cloud application. Capacity, pr
 │    Vercel Serverless (Free)    │ ────► │     Supabase PostgreSQL (Free)  │
 │  - Python Flask REST API       │       │  - Row-Level Security (RLS)     │
 │  - Static Responsive Dashboard │       │  - Candidate Profiles & Kits    │
-│  - Live Candidate Onboarding   │       │  - 50,000 Monthly Active Users  │
+│  - Candidate Profile Studio    │       │  - 50,000 Monthly Active Users  │
 └────────────────────────────────┘       └─────────────────────────────────┘
                 │                                         │
                 ▼                                         ▼
@@ -142,12 +142,10 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
 
 1. Any candidate visits `https://your-project.vercel.app`.
 2. Signs in with email/password or Magic Link.
-3. The candidate configures their profile and radar criteria:
-   * **First-Time Setup**: The setup wizard guides initial role selection using 1-click presets (*Full Stack, Backend, Frontend, AI/ML, DevOps, Data, Product*) or in-memory resume extraction.
-   * **Profile & Search Settings**: At any time, candidates can open Settings for a clean 3-step configuration:
-     - *Step 1 (Resume & Raw Text Context)*: Upload `.pdf`/`.txt` resume with 100% in-memory extraction and an editable raw text context editor.
-     - *Step 2 (Profile & Search Criteria)*: 1-click **Auto-Fill from Resume Context** with 3-tier fallback protection (AI cascade $\rightarrow$ smart local regex parser $\rightarrow$ client defaults), plus customizable target roles, skills, experience, excluded keywords, job types, and locations.
-     - *Step 3 (Alert Settings)*: Match score threshold and notification preference (*Daily 5:00 AM Morning Briefing* or *Instant On-Demand Only*).
+3. The candidate configures their profile and radar criteria via the 3-step **Profile & Search Settings**:
+   - *Step 1 (Resume & Raw Text Context)*: Upload `.pdf`/`.txt` resume with 100% in-memory extraction and an editable raw text context editor.
+   - *Step 2 (Profile & Search Criteria)*: 1-click **Auto-Fill from Resume Context** with 3-tier fallback protection (AI cascade $\rightarrow$ smart local regex parser $\rightarrow$ client defaults), plus customizable target roles, skills, experience, excluded keywords, job types, and locations.
+   - *Step 3 (Alert Settings)*: Match score threshold and notification preference (*Daily 5:00 AM Morning Briefing* or *Instant On-Demand Only*).
 4. The system screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private interactive job tracker!
 
 ---

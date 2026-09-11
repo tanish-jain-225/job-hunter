@@ -1479,465 +1479,24 @@ function isProfileIncomplete(profile) {
   return !isCandidateProfileFilled(profile);
 }
 
+function checkAndPromptOnboarding(profile) {
+  // Initial setup wizard removed per user request. Profile configuration is handled on-demand via Settings modal.
+  return;
+}
+
 function onboardingDismissedKey() {
   const userId = currentAuthSession?.user?.id || currentAuthSession?.user?.email || 'anonymous';
   return `onboarding_dismissed:${userId}`;
 }
 
-function checkAndPromptOnboarding(profile) {
-  if (!profile || isProfileIncomplete(profile)) {
-    const isDismissed = Storage.get(sessionStorage, onboardingDismissedKey(), false);
-    if (!isDismissed) {
-      openOnboardingModal();
-    }
-  }
-}
-
 function openOnboardingModal() {
-  if (!checkAuthOrRedirect('configure candidate profile')) return;
-  const modalEl = document.getElementById('onboarding-modal');
-  if (modalEl) {
-    modalEl.classList.add('active');
-    isOnboardingOpen = true;
-    switchOnboardingStep(1);
-  }
+  openProfileModal();
 }
 
 function closeOnboardingModal(force = false) {
   const modalEl = document.getElementById('onboarding-modal');
   if (modalEl) modalEl.classList.remove('active');
   isOnboardingOpen = false;
-  selectedOnboardingFile = null;
-  Storage.set(sessionStorage, onboardingDismissedKey(), true);
-}
-
-function switchOnboardingStep(step) {
-  const step1 = document.getElementById('onboarding-step-1');
-  const step2 = document.getElementById('onboarding-step-2');
-  const ind1 = document.getElementById('onboarding-step-indicator-1');
-  const ind2 = document.getElementById('onboarding-step-indicator-2');
-  const conn1 = document.getElementById('step-connector-1');
-
-  const c1 = document.getElementById('step-circle-1');
-  const c2 = document.getElementById('step-circle-2');
-
-  if (step === 1) {
-    if (step1) step1.style.display = 'block';
-    if (step2) step2.style.display = 'none';
-    if (ind1) { ind1.className = 'step-node active'; }
-    if (ind2) { ind2.className = 'step-node'; }
-    if (conn1) { conn1.className = 'step-connector'; }
-    if (c1) c1.innerText = '1';
-    if (c2) c2.innerText = '2';
-  } else if (step === 2) {
-    if (step1) step1.style.display = 'none';
-    if (step2) step2.style.display = 'block';
-    if (ind1) { ind1.className = 'step-node completed'; }
-    if (ind2) { ind2.className = 'step-node active'; }
-    if (conn1) { conn1.className = 'step-connector active'; }
-    if (c1) c1.innerText = '1';
-    if (c2) c2.innerText = '2';
-  }
-}
-
-function handleOnboardingFileSelected(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  selectedOnboardingFile = file;
-  const dropText = document.getElementById('onboarding-dropzone-text');
-  if (dropText) {
-    dropText.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-  }
-}
-
-function initOnboardingDropzone() {
-  const dropzone = document.getElementById('onboarding-dropzone');
-  if (!dropzone) return;
-
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.add('dragover');
-    }, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.remove('dragover');
-    }, false);
-  });
-
-  dropzone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files && files.length > 0) {
-      selectedOnboardingFile = files[0];
-      const dropText = document.getElementById('onboarding-dropzone-text');
-      if (dropText) {
-        dropText.innerText = `Selected: ${files[0].name} (${(files[0].size / 1024).toFixed(1)} KB)`;
-      }
-    }
-  }, false);
-}
-
-async function submitOnboardingResumeParse() {
-  if (!checkAuthOrRedirect('parse resume')) return;
-  const btn = document.getElementById('btn-onboarding-parse');
-  const spinner = document.getElementById('onboarding-spinner');
-  const btnText = document.getElementById('onboarding-parse-btn-text');
-  const alertEl = document.getElementById('onboarding-status-alert');
-  const pasteText = document.getElementById('onboarding-paste-text')?.value || '';
-
-  if (!selectedOnboardingFile && !pasteText.trim()) {
-    showToast('Please select a resume file or paste resume text.', 'info');
-    return;
-  }
-
-  if (btn) btn.disabled = true;
-  if (spinner) spinner.style.display = 'inline-block';
-  if (btnText) btnText.innerText = 'Extracting candidate profile with AI...';
-  if (alertEl) alertEl.style.display = 'none';
-
-  try {
-    let res;
-    if (selectedOnboardingFile) {
-      const formData = new FormData();
-      formData.append('file', selectedOnboardingFile);
-      res = await authFetch('/api/resume/upload', {
-        method: 'POST',
-        body: formData
-      });
-    } else {
-      res = await authFetch('/api/resume/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume_text: pasteText, filename: 'pasted_resume.txt' })
-      });
-    }
-
-    const data = await parseJsonResponse(res);
-    if (data.status === 'success') {
-      showToast('Resume parsed successfully!', 'success');
-      if (alertEl) {
-        alertEl.className = 'studio-alert success';
-        alertEl.innerText = data.message;
-        alertEl.style.display = 'block';
-      }
-
-      const p = data.profile || {};
-      const extractedText = data.resume_text || p.resume_text || '';
-      parsedResumeData = p;
-      activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: selectedOnboardingFile?.name || '' };
-
-      // Populate editable text area with extracted text context so user can alter it
-      const pasteInput = document.getElementById('onboarding-paste-text');
-      if (pasteInput && extractedText) {
-        pasteInput.value = extractedText;
-      }
-
-      // Render live preview card
-      const previewCard = document.getElementById('onboarding-preview-card');
-      const prevName = document.getElementById('preview-name');
-      const prevTitle = document.getElementById('preview-title');
-      const prevYears = document.getElementById('preview-years');
-      const prevSkills = document.getElementById('preview-skills-container');
-
-      if (prevName) prevName.innerText = p.name || 'Candidate';
-      if (prevTitle) prevTitle.innerText = p.title || 'Software Engineer';
-      if (prevYears) prevYears.innerText = `${p.experience_years || 2} Years`;
-      if (prevSkills) {
-        const skillsList = p.skills || [];
-        prevSkills.innerHTML = skillsList.slice(0, 10).map(s => `<span class="preview-tag">${escapeHtml(s)}</span>`).join('');
-      }
-      if (previewCard) previewCard.style.display = 'block';
-
-      // STRICT SECTION ISOLATION:
-      // Do not auto-populate Step 2 criteria or auto-advance here.
-      // Candidate reviews/edits text context in Step 1, advances when ready,
-      // and can click "Auto-Fill from Resume Context" in Step 2 on-demand.
-    } else {
-      showToast('Resume parsing error: ' + data.message, 'error');
-      if (alertEl) {
-        alertEl.className = 'studio-alert error';
-        alertEl.innerText = `Error: ${data.message}`;
-        alertEl.style.display = 'block';
-      }
-    }
-  } catch (err) {
-    showToast('Notice: ' + err.message, 'error');
-    if (alertEl) {
-      alertEl.className = 'studio-alert error';
-      alertEl.innerText = err.message;
-      alertEl.style.display = 'block';
-    }
-  } finally {
-    if (btn) btn.disabled = false;
-    if (spinner) spinner.style.display = 'none';
-    if (btnText) btnText.innerText = 'Extract Candidate Profile with AI';
-  }
-}
-
-const ROLE_PRESETS = {
-  fullstack: {
-    title: 'Full Stack Engineer',
-    skills: ['TypeScript', 'React', 'Node.js', 'Python', 'PostgreSQL', 'REST APIs', 'Docker', 'Git'],
-    targets: ['Full Stack Engineer', 'Full Stack Developer', 'Software Engineer', 'Senior Full Stack Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  backend: {
-    title: 'Backend Engineer',
-    skills: ['Python', 'Go', 'PostgreSQL', 'FastAPI', 'Redis', 'Docker', 'Microservices', 'Distributed Systems'],
-    targets: ['Backend Engineer', 'Backend Developer', 'Systems Engineer', 'Software Engineer II'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  frontend: {
-    title: 'Frontend Engineer',
-    skills: ['JavaScript', 'TypeScript', 'React', 'Next.js', 'CSS3', 'HTML5', 'Tailwind', 'REST APIs'],
-    targets: ['Frontend Engineer', 'Frontend Developer', 'UI Engineer', 'Web Developer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  ai_ml: {
-    title: 'AI / Machine Learning Engineer',
-    skills: ['Python', 'PyTorch', 'LLMs', 'OpenAI', 'Gemini', 'LangChain', 'FastAPI', 'Vector DBs'],
-    targets: ['AI Engineer', 'ML Engineer', 'Machine Learning Engineer', 'AI Software Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  devops: {
-    title: 'DevOps / Cloud / SRE',
-    skills: ['Kubernetes', 'Docker', 'AWS', 'GCP', 'Terraform', 'CI/CD', 'Linux', 'Prometheus'],
-    targets: ['DevOps Engineer', 'Site Reliability Engineer', 'Cloud Engineer', 'Platform Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  data_engineer: {
-    title: 'Data Engineer',
-    skills: ['Python', 'SQL', 'PostgreSQL', 'Apache Spark', 'Airflow', 'Snowflake', 'BigQuery', 'Kafka'],
-    targets: ['Data Engineer', 'Data Platform Engineer', 'Analytics Engineer', 'ETL Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  product_manager: {
-    title: 'Product Manager',
-    skills: ['System Design', 'Agile', 'Jira', 'Roadmapping', 'User Research', 'Product Strategy'],
-    targets: ['Product Manager', 'Associate PM', 'Technical PM', 'Growth PM'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  mobile_dev: {
-    title: 'Mobile Developer',
-    skills: ['Swift', 'Kotlin', 'Flutter', 'React Native', 'iOS', 'Android', 'Mobile App Development'],
-    targets: ['Android Developer', 'iOS Developer', 'Flutter Developer', 'React Native Developer', 'Mobile Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  qa_engineer: {
-    title: 'QA / SDET',
-    skills: ['Selenium', 'Cypress', 'Playwright', 'Test Automation', 'Manual Testing', 'QA'],
-    targets: ['QA Engineer', 'SDET', 'Test Engineer', 'Automation Engineer', 'Quality Engineer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  security: {
-    title: 'Security Engineer',
-    skills: ['Cybersecurity', 'Penetration Testing', 'AppSec', 'Network Security', 'Cryptography'],
-    targets: ['Security Engineer', 'AppSec Engineer', 'Penetration Tester', 'Cybersecurity Analyst', 'Cloud Security'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  },
-  blockchain: {
-    title: 'Blockchain / Web3',
-    skills: ['Solidity', 'Smart Contracts', 'Web3.js', 'Ethereum', 'Rust', 'Cryptography'],
-    targets: ['Blockchain Developer', 'Smart Contract Engineer', 'Web3 Developer', 'Solidity Developer'],
-    excludes: [],
-    job_types: ['fulltime', 'internship']
-  }
-};
-
-function applyRolePreset(presetKey) {
-  const preset = ROLE_PRESETS[presetKey];
-  if (!preset) return;
-
-  document.querySelectorAll('.btn-preset-chip').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(`'${presetKey}'`));
-  });
-
-  const targetsInput = document.getElementById('onboard-prof-targets');
-  if (targetsInput) targetsInput.value = preset.targets.join(', ');
-
-  const excludesInput = document.getElementById('onboard-prof-excludes');
-  if (excludesInput) excludesInput.value = preset.excludes.join(', ');
-
-  const profTargetsInput = document.getElementById('prof-targets');
-  if (profTargetsInput) profTargetsInput.value = preset.targets.join(', ');
-  const profExcludesInput = document.getElementById('prof-excludes');
-  if (profExcludesInput) profExcludesInput.value = preset.excludes.join(', ');
-  
-  // Set job types
-  ['onboard-job-types', 'prof-job-types'].forEach(containerId => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        const isTarget = preset.job_types.includes(cb.value);
-        cb.checked = isTarget;
-        const label = cb.closest('.chip-toggle');
-        if (label) label.classList.toggle('active', isTarget);
-      });
-    }
-  });
-
-  const profSkillsInput = document.getElementById('prof-skills');
-  if (profSkillsInput) profSkillsInput.value = preset.skills.join(', ');
-  const profTitleInput = document.getElementById('prof-title');
-  if (profTitleInput && !profTitleInput.value.trim()) profTitleInput.value = preset.title;
-
-  const onbText = document.getElementById('onboarding-paste-text');
-  if (onbText && !onbText.value.trim()) {
-    onbText.value = `Target Role: ${preset.title}\nSkills: ${preset.skills.join(', ')}\nFocus Areas: ${preset.targets.join(', ')}`;
-  }
-
-  if (!activeProfileData) activeProfileData = {};
-  activeProfileData.title = preset.title;
-  activeProfileData.skills = preset.skills;
-  activeProfileData.target_keywords = preset.targets;
-  activeProfileData.exclude_keywords = preset.excludes;
-  activeProfileData.job_types = preset.job_types;
-
-  showToast(`Applied "${preset.title}" preset. Targets and skills updated.`, 'success', 2500);
-}
-
-function selectNotificationMode(isDaily) {
-  const ondemandCard = document.getElementById('mode-card-ondemand');
-  const dailyCard = document.getElementById('mode-card-daily');
-  const ondemandRadio = document.getElementById('mode-radio-ondemand');
-  const dailyRadio = document.getElementById('mode-radio-daily');
-  const toggle = document.getElementById('onboard-toggle-email-alerts');
-
-  if (ondemandCard) ondemandCard.classList.toggle('active', !isDaily);
-  if (dailyCard) dailyCard.classList.toggle('active', isDaily);
-  if (ondemandRadio) ondemandRadio.innerText = isDaily ? '○' : '●';
-  if (dailyRadio) dailyRadio.innerText = isDaily ? '●' : '○';
-  if (toggle) toggle.checked = isDaily;
-}
-
-async function saveOnboardingProfile(launchScan = false) {
-  if (!checkAuthOrRedirect('save candidate profile')) return;
-  const btn = document.getElementById('btn-onboard-finish') || document.getElementById('btn-save-onboarding') || document.getElementById('btn-finish-onboarding');
-  const spinner = document.getElementById('onboard-finish-spinner') || document.getElementById('onboard-save-spinner');
-  if (btn) btn.disabled = true;
-  if (spinner) spinner.style.display = 'inline-block';
-
-  const targetsInput = document.getElementById('onboard-prof-targets');
-  const targets = targetsInput
-    ? targetsInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.target_keywords) ? activeProfileData.target_keywords : []);
-
-  const excludesInput = document.getElementById('onboard-prof-excludes');
-  const excludes = excludesInput
-    ? excludesInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : []);
-
-  const notifToggle = document.getElementById('onboard-toggle-email-alerts');
-  const notifEnabled = notifToggle ? Boolean(notifToggle.checked) : false;
-
-  const authName = (
-    currentAuthSession?.user?.user_metadata?.full_name ||
-    currentAuthSession?.user?.user_metadata?.name ||
-    ''
-  ).trim();
-
-  const nameInput = document.getElementById('onboard-prof-name');
-  const name = nameInput ? nameInput.value.trim() : (activeProfileData?.name || authName || '');
-
-  const titleInput = document.getElementById('onboard-prof-title');
-  const title = titleInput ? titleInput.value.trim() : (activeProfileData?.title || activeProfileData?.current_title || '');
-
-  const yearsInput = document.getElementById('onboard-prof-years');
-  const years = yearsInput ? (parseFloat(yearsInput.value) || 0) : (activeProfileData?.experience_years || 0);
-
-  const eduInput = document.getElementById('onboard-prof-education');
-  const education = eduInput ? eduInput.value.trim() : (activeProfileData?.education || '');
-
-  const skillsInput = document.getElementById('onboard-prof-skills');
-  const skills = skillsInput
-    ? skillsInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.skills) ? activeProfileData.skills : []);
-
-  const resumeTextInput = document.getElementById('onboarding-paste-text');
-  const resumeText = resumeTextInput ? resumeTextInput.value.trim() : (activeProfileData?.resume_text || '');
-
-  const jobTypes = getSelectedJobTypes('onboard-job-types');
-  const expLevel = getSelectedExpLevel('onboard-exp');
-  const preferredLocations = getLocationPreference('onboard-location-pref', 'onboard-specific-cities');
-  const mailMode = notifEnabled ? 'daily' : 'onetime';
-
-  const notifEmailInput = document.getElementById('onboard-prof-email');
-  const notificationEmail = (notifEmailInput ? notifEmailInput.value.trim() : '') || currentAuthSession?.user?.email || activeProfileData?.notification_email || '';
-
-  const payload = {
-    name,
-    title,
-    experience_years: years,
-    education,
-    skills,
-    target_keywords: targets,
-    exclude_keywords: excludes,
-    resume_text: resumeText,
-    resume_filename: activeProfileData?.resume_filename || '',
-    email_notifications_enabled: notifEnabled,
-    mail_mode: mailMode,
-    notification_email: notificationEmail,
-    min_score_notification: activeProfileData?.min_score_notification || 7.0,
-    onboarding_completed: Boolean(name && skills.length > 0 && targets.length > 0),
-    job_types: jobTypes,
-    experience_level: expLevel,
-    preferred_locations: preferredLocations
-  };
-
-  appState.isSavingProfile = true;
-
-  try {
-    const res = await authFetch('/api/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await parseJsonResponse(res);
-
-    if (data.status === 'success') {
-      const savedProfile = data.profile || payload;
-      activeProfileData = { ...savedProfile };
-      Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
-      renderCandidateSummary(savedProfile);
-      updateJobSearchButtonState();
-      closeOnboardingModal(true);
-      Storage.set(sessionStorage, onboardingDismissedKey(), true);
-      showToast('Profile setup complete! Welcome to Job Hunter.', 'success', 3500);
-      appState.isSavingProfile = false;
-      await syncDashboard(true);
-
-      if (launchScan) {
-        // Automatically launch first autonomous radar scan
-        setTimeout(() => {
-          triggerJobSearch();
-        }, 400);
-      }
-    } else {
-      showToast('Failed to save profile: ' + data.message, 'error');
-    }
-  } catch (err) {
-    showToast('Notice: ' + err.message, 'error');
-  } finally {
-    appState.isSavingProfile = false;
-    if (btn) btn.disabled = false;
-    if (spinner) spinner.style.display = 'none';
-  }
 }
 
 // --------------------------------------------------------------------------
@@ -2258,19 +1817,11 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 }
 
 async function autoFillRolesFromResume() {
-  const profResumeText = document.getElementById('prof-resume-text')?.value?.trim() || '';
-  const onbResumeText = document.getElementById('onboarding-paste-text')?.value?.trim() || '';
-  const resumeText = profResumeText || onbResumeText || activeProfileData?.resume_text || '';
-
-  const isOnboardingActive = Boolean(document.getElementById('onboarding-modal')?.classList.contains('active'));
+  const resumeText = document.getElementById('prof-resume-text')?.value?.trim() || activeProfileData?.resume_text || '';
 
   if (!resumeText && !parsedResumeData) {
     showToast('Please upload or enter your resume text in Step 1 first.', 'info');
-    if (isOnboardingActive) {
-      switchOnboardingStep(1);
-    } else {
-      profileWizardGoTo(1);
-    }
+    profileWizardGoTo(1);
     return;
   }
 
@@ -2283,15 +1834,9 @@ async function autoFillRolesFromResume() {
     return;
   }
 
-  const btn = isOnboardingActive
-    ? (document.getElementById('btn-onboard-autofill') || document.getElementById('btn-autofill-roles'))
-    : (document.getElementById('btn-autofill-roles') || document.getElementById('btn-onboard-autofill'));
-  const spinner = isOnboardingActive
-    ? (document.getElementById('onboard-autofill-spinner') || document.getElementById('autofill-roles-spinner'))
-    : (document.getElementById('autofill-roles-spinner') || document.getElementById('onboard-autofill-spinner'));
-  const btnText = isOnboardingActive
-    ? (document.getElementById('onboard-autofill-btn-text') || document.getElementById('autofill-roles-btn-text'))
-    : (document.getElementById('autofill-roles-btn-text') || document.getElementById('onboard-autofill-btn-text'));
+  const btn = document.getElementById('btn-autofill-roles');
+  const spinner = document.getElementById('autofill-roles-spinner');
+  const btnText = document.getElementById('autofill-roles-btn-text');
 
   if (btn) btn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
@@ -2309,7 +1854,7 @@ async function autoFillRolesFromResume() {
       parsedResumeData = p;
       lastParsedResumeText = resumeText;
       // Preserve candidate name if already entered in Step 1 or Step 2
-      const currentName = document.getElementById('prof-name')?.value?.trim() || document.getElementById('onboard-prof-name')?.value?.trim();
+      const currentName = document.getElementById('prof-name')?.value?.trim();
       if (currentName) {
         p.name = currentName;
       }
@@ -2943,7 +2488,7 @@ async function runPipeline() {
   }
 
   if (!isCandidateProfileFilled(activeProfileData)) {
-    openOnboardingModal();
+    openProfileModal();
     showToast('Please configure your candidate profile (Name, Target Title, Skills) to activate your radar.', 'info', 4000);
     return;
   }
@@ -3084,7 +2629,7 @@ async function runPipeline() {
       if (data.message && data.message.includes('candidate profile')) {
         if (consoleBox) consoleBox.innerText = 'Candidate radar incomplete. Please configure your profile to activate autonomous job scouting.';
         showToast('Please complete your candidate profile to begin.', 'info', 4500);
-        openOnboardingModal();
+        openProfileModal();
       } else {
         if (consoleBox) consoleBox.innerText = 'Error: ' + (data.message || 'Failed to start pipeline');
         showToast('Pipeline notice: ' + data.message, 'error');
@@ -3932,7 +3477,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize draft saving & dropzones
   initDraftSaving();
   initDropzoneHandlers();
-  initOnboardingDropzone();
 
   // Initialize Supabase Authentication & start data sync
   initAuth();

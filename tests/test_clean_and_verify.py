@@ -21,37 +21,76 @@ def test_find_cleanable_files_and_clean_workspace(tmp_path: Path):
     protected_env = tmp_path / ".env"
     protected_env.write_text("GEMINI_API_KEY=test", encoding="utf-8")
 
+    protected_profile = tmp_path / "profile.json"
+    protected_profile.write_text("{}", encoding="utf-8")
+
+    protected_profile_ex = tmp_path / "profile.example.json"
+    protected_profile_ex.write_text("{}", encoding="utf-8")
+
     stale_seen_1 = tmp_path / "seen_123456.json"
     stale_seen_1.write_text("{}", encoding="utf-8")
 
     stale_seen_2 = tmp_path / "seen_test_cli.json"
     stale_seen_2.write_text("{}", encoding="utf-8")
 
+    stale_profile = tmp_path / "profile_255921b9d80f.json"
+    stale_profile.write_text("{}", encoding="utf-8")
+
+    coverage_file = tmp_path / ".coverage"
+    coverage_file.write_text("cov", encoding="utf-8")
+
     tmp_file = tmp_path / "test.tmp"
     tmp_file.write_text("data", encoding="utf-8")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(exist_ok=True)
+    protected_tracker = out_dir / "tracker.csv"
+    protected_tracker.write_text("id\n", encoding="utf-8")
+    stale_tracker = out_dir / "tracker_123.csv"
+    stale_tracker.write_text("id\n", encoding="utf-8")
+    stale_tmp_tracker = out_dir / ".tracker-abc123.csv"
+    stale_tmp_tracker.write_text("id\n", encoding="utf-8")
 
     cleanables = find_cleanable_files(tmp_path)
     cleanable_names = [p.name for p in cleanables]
 
     assert "seen.json" not in cleanable_names
     assert ".env" not in cleanable_names
+    assert "profile.json" not in cleanable_names
+    assert "profile.example.json" not in cleanable_names
+    assert "tracker.csv" not in cleanable_names
+
     assert "seen_123456.json" in cleanable_names
     assert "seen_test_cli.json" in cleanable_names
+    assert "profile_255921b9d80f.json" in cleanable_names
+    assert ".coverage" in cleanable_names
     assert "test.tmp" in cleanable_names
+    assert "tracker_123.csv" in cleanable_names
+    assert ".tracker-abc123.csv" in cleanable_names
 
     # Test dry run
     removed, freed = clean_workspace(tmp_path, dry_run=True)
-    assert len(removed) == 3
+    assert len(removed) == 7
     assert stale_seen_1.exists()
+    assert stale_profile.exists()
+    assert stale_tracker.exists()
 
     # Test actual cleanup
     removed_real, freed_real = clean_workspace(tmp_path, dry_run=False)
-    assert len(removed_real) == 3
+    assert len(removed_real) == 7
     assert freed_real > 0
     assert not stale_seen_1.exists()
     assert not stale_seen_2.exists()
+    assert not stale_profile.exists()
+    assert not coverage_file.exists()
+    assert not stale_tracker.exists()
+    assert not stale_tmp_tracker.exists()
+
     assert protected_seen.exists()
     assert protected_env.exists()
+    assert protected_profile.exists()
+    assert protected_profile_ex.exists()
+    assert protected_tracker.exists()
 
 
 def test_verify_check_single_board():
@@ -129,7 +168,7 @@ def test_audit_company_boards_empty_and_invalid_files(tmp_path: Path):
     assert list_result["total"] == 2
     assert list_result["invalid_count"] == 0
 
-    assert audit_company_boards([{"ats": "greenhouse"}, "not a company"])["total"] == 1
+    assert audit_company_boards([{"ats": "greenhouse"}, "not a company"])["total"] == 1  # type: ignore[list-item]
 
 
 def test_cli_clean_and_verify_commands(capsys):

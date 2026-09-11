@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import logging
 import os
 import threading
 import time
@@ -16,6 +17,8 @@ from typing import Any, Callable, Dict, Optional
 
 import requests
 from flask import current_app, g, jsonify, request
+
+logger = logging.getLogger(__name__)
 
 try:
     import jwt
@@ -220,7 +223,7 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
                     _TOKEN_CACHE[token_hash] = (user_data, now + _CACHE_TTL_SECONDS)
                 return user_data
         except Exception as e:
-            print(f"[Auth] Supabase verification request failed: {e}")
+            logger.warning("[Auth] Supabase verification request failed: %s", e)
             return None
 
     # 3. If no secret and no Supabase URL configured, fallback decode without signature if in dev mode

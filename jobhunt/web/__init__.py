@@ -24,7 +24,6 @@ from .state import (
 
 logger = logging.getLogger(__name__)
 
-_IS_PROD = os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"
 
 def handle_exception(e: Exception):
     """Global exception handler converting unhandled exceptions into structured JSON responses.

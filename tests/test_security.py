@@ -10,10 +10,12 @@ Verifies that key security properties of the Flask application hold:
 from __future__ import annotations
 
 import os
-import pytest
+import sys
 from unittest.mock import patch
 
-from jobhunt.web import create_app
+import pytest
+
+from jobhunt.web import create_app, handle_exception
 from jobhunt.web.state import sanitize_profile_for_response
 
 
@@ -136,13 +138,15 @@ class TestErrorResponses:
 
     @patch.dict(os.environ, {"VERCEL": "1"})
     def test_production_error_message_is_generic(self, client):
-        """In production (VERCEL=1), 500 error messages must be generic."""
-        # This test verifies the _IS_PROD flag logic in web/__init__.py
-        from jobhunt.web import _IS_PROD
-
-        # Note: _IS_PROD is set at module import time, so we verify the logic exists
-        # The actual value depends on env at import time
-        assert isinstance(_IS_PROD, bool), "_IS_PROD must be a bool"
+        """In production (VERCEL=1), 500 error messages must be generic, not exposing internals."""
+        with client.application.test_request_context():
+            secret_leak = "FATAL: Postgres password=my_super_secret_pw! connection refused"
+            resp, status_code = handle_exception(RuntimeError(secret_leak))
+            assert status_code == 500
+            data = resp.get_json()
+            assert data["status"] == "error"
+            assert data["message"] == "An internal error occurred. Please try again later."
+            assert "my_super_secret_pw" not in data["message"]
 
     def test_error_response_not_empty(self, client):
         """Error responses must always return a non-empty body."""
@@ -160,18 +164,12 @@ class TestRateLimiting:
 
     def test_limiter_extension_registered_when_available(self):
         """If flask-limiter is installed, it should be in app.extensions."""
-        try:
-            import flask_limiter  # noqa: F401
-
-            app = create_app()
-            assert "limiter" in app.extensions, "flask-limiter is installed but not registered in app.extensions"
-        except ImportError:
-            pytest.skip("flask-limiter not installed")
+        pytest.importorskip("flask_limiter")
+        app = create_app()
+        assert "limiter" in app.extensions, "flask-limiter is installed but not registered in app.extensions"
 
     def test_app_starts_without_flask_limiter(self):
         """App must start cleanly even if flask-limiter is not installed."""
-        import sys
-
         # Temporarily hide flask_limiter from imports
         original = sys.modules.get("flask_limiter")
         sys.modules["flask_limiter"] = None  # type: ignore[assignment]

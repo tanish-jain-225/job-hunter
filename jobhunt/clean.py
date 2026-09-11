@@ -20,6 +20,7 @@ def find_cleanable_files(root: Path | str | None = None) -> list[Path]:
     # Protected core filenames that must NEVER be deleted
     protected = {
         "seen.json",
+        "tracker.csv",
         "config.yaml",
         "config.example.yaml",
         "companies.yaml",
@@ -28,13 +29,15 @@ def find_cleanable_files(root: Path | str | None = None) -> list[Path]:
         "resume.pdf",
         ".env",
         ".env.example",
+        "digest.html",
     }
 
     try:
         dirs_to_scan = [base]
-        state_dir = base / "state"
-        if state_dir.is_dir():
-            dirs_to_scan.append(state_dir)
+        for sub in ("state", "out", "scratch"):
+            sub_dir = base / sub
+            if sub_dir.is_dir():
+                dirs_to_scan.append(sub_dir)
 
         for search_dir in dirs_to_scan:
             for p in search_dir.iterdir():
@@ -47,11 +50,20 @@ def find_cleanable_files(root: Path | str | None = None) -> list[Path]:
                 # 1. Target leftover seen_*.json test/scratch stores (e.g. seen_111d68d06e2d.json, seen_test_cli.json)
                 if name.startswith("seen_") and name.endswith(".json"):
                     cleanable.append(p)
-                # 2. Target temporary write tests or transient atomic files
-                elif name.startswith(".writable_test") or name.endswith(".tmp") or name.endswith(".bak"):
+                # 2. Target leftover user-scoped test profiles (e.g. profile_255921b9d80f.json)
+                elif name.startswith("profile_") and name.endswith(".json") and name != "profile.example.json":
+                    cleanable.append(p)
+                # 3. Target temporary export artifacts and user tracker CSVs (e.g. .tracker-*.csv, tracker_*.csv)
+                elif (name.startswith(".tracker-") or name.startswith("tracker_")) and name.endswith(".csv"):
+                    cleanable.append(p)
+                # 4. Target coverage reports and temporary write test artifacts
+                elif name == ".coverage" or name.startswith(".writable_test") or name.endswith(".tmp") or name.endswith(".bak"):
+                    cleanable.append(p)
+                # 5. Any transient files inside scratch/
+                elif search_dir.name == "scratch":
                     cleanable.append(p)
     except Exception as e:
-        logger.warning(f"Error scanning directory for cleanup: {e}")
+        logger.warning("Error scanning directory for cleanup: %s", e)
 
     return sorted(cleanable)
 
@@ -74,6 +86,6 @@ def clean_workspace(root: Path | str | None = None, dry_run: bool = False) -> tu
             removed.append(target)
             freed_bytes += size
         except Exception as e:
-            logger.warning(f"Could not remove temporary file {target}: {e}")
+            logger.warning("Could not remove temporary file %s: %s", target, e)
 
     return removed, freed_bytes

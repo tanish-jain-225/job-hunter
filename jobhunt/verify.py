@@ -72,7 +72,7 @@ def audit_company_boards(
                     data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
                 )
             except Exception as e:
-                logger.error(f"Failed to load companies file {p}: {e}")
+                logger.error("Failed to load companies file %s: %s", p, e)
     elif isinstance(companies_input, list):
         company_list = [c for c in companies_input if isinstance(c, dict)]
 
@@ -100,7 +100,7 @@ def audit_company_boards(
                     else:
                         invalid.append((c, status))
                 except Exception as e:
-                    logger.warning(f"Error checking company board: {e}")
+                    logger.warning("Error checking company board: %s", e)
 
     return {
         "total": len(company_list),
