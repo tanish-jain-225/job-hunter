@@ -142,7 +142,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (414 passing tests)
+├── tests/                       # Automated Test Suite (418 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
@@ -152,6 +152,7 @@ job-hunter/
 │   ├── test_full_suite_perfection.py # Broad cross-subsystem perfection validation
 │   ├── test_providers.py        # LLM provider rotation, throttling, and fallback cascades
 │   ├── test_schema_sql.py       # Supabase schema and teardown SQL integrity and symmetry validation
+│   ├── test_deployment_manifests.py # Vercel, API, .env.example, and CI/CD workflow validation
 │   └── ...                      # Comprehensive coverage across fetch, memory, store, etc.
 ├── app.py                       # Local Flask development server bootstrap
 ├── auto.py                      # Stable root automation entry point
