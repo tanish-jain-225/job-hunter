@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -30,24 +32,88 @@ PROFILE = {
 
 
 class StubProvider(Provider):
-    """Records every call and replays canned replies in order."""
+    """Records every call and replays canned replies in order or matched by request context."""
 
     name = "stub"
 
-    def __init__(self, replies: list[str | Exception] | None = None):
-        self.replies: list[str | Exception] = list(replies or [])
+    def __init__(self, replies: list[str | Exception | Any] | None = None):
+        self.replies: list[str | Exception | Any] = list(replies or [])
         self.calls: list[dict] = []
+        self._lock = threading.Lock()
 
     def complete(self, model, system, user, max_tokens, json_mode=False):
-        self.calls.append(
-            {"model": model, "system": system, "user": user, "max_tokens": max_tokens, "json_mode": json_mode}
-        )
-        if not self.replies:
-            return "[]"
-        reply = self.replies.pop(0)
-        if isinstance(reply, Exception):
-            raise reply
-        return reply
+        with self._lock:
+            self.calls.append(
+                {"model": model, "system": system, "user": user, "max_tokens": max_tokens, "json_mode": json_mode}
+            )
+            if not self.replies:
+                return "[]"
+
+            chosen_idx = 0
+            # If multiple replies are queued and prompt contains JOBS, match the reply by job_id
+            if "JOBS:\n" in user and len(self.replies) > 1:
+                try:
+                    payload_str = user.split("JOBS:\n", 1)[1]
+                    batch_jobs = json.loads(payload_str)
+                    prompt_ids = {
+                        str(j.get("job_id")) for j in batch_jobs if isinstance(j, dict) and j.get("job_id")
+                    }
+                    if prompt_ids:
+                        best_match = None
+                        best_overlap = 0
+                        unreserved_idx = None
+                        for idx, candidate in enumerate(self.replies):
+                            if callable(candidate):
+                                if unreserved_idx is None:
+                                    unreserved_idx = idx
+                                continue
+                            if not isinstance(candidate, str):
+                                # Exceptions or other objects are not reserved for specific job IDs
+                                if unreserved_idx is None:
+                                    unreserved_idx = idx
+                                continue
+                            try:
+                                cand_data = json.loads(candidate)
+                                if isinstance(cand_data, list):
+                                    cand_ids = {
+                                        str(item.get("job_id"))
+                                        for item in cand_data
+                                        if isinstance(item, dict) and item.get("job_id")
+                                    }
+                                    overlap = len(prompt_ids & cand_ids)
+                                    if overlap > best_overlap:
+                                        best_overlap = overlap
+                                        best_match = idx
+                                    elif not cand_ids or not any(":" in cid for cid in cand_ids):
+                                        if unreserved_idx is None:
+                                            unreserved_idx = idx
+                                elif isinstance(cand_data, dict):
+                                    jid = cand_data.get("job_id")
+                                    if jid and str(jid) in prompt_ids:
+                                        best_match = idx
+                                        best_overlap = 1
+                                    elif (not jid or ":" not in str(jid)) and unreserved_idx is None:
+                                        unreserved_idx = idx
+                                else:
+                                    if unreserved_idx is None:
+                                        unreserved_idx = idx
+                            except Exception:
+                                if unreserved_idx is None:
+                                    unreserved_idx = idx
+
+                        if best_match is not None:
+                            chosen_idx = best_match
+                        elif unreserved_idx is not None:
+                            chosen_idx = unreserved_idx
+                except Exception:
+                    pass
+
+            reply = self.replies.pop(chosen_idx)
+            if callable(reply):
+                reply = reply(user)
+            if isinstance(reply, Exception):
+                raise reply
+            return reply
 
     # convenience: the JOBS payload the stage actually sent
     def payload(self, i: int = 0) -> list[dict]:
