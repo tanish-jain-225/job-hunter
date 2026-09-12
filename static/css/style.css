@@ -179,6 +179,8 @@ code, pre, .console, .cover-box, .monospace {
   transition: all var(--transition-normal);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .navbar-container {
@@ -279,6 +281,7 @@ code, pre, .console, .cover-box, .monospace {
 .brand-text-block {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .brand-title {
@@ -489,6 +492,7 @@ code, pre, .console, .cover-box, .monospace {
 .user-info-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   max-width: 140px;
   overflow: hidden;
   cursor: pointer;
@@ -668,6 +672,7 @@ code, pre, .console, .cover-box, .monospace {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   width: 100%;
 }
 
@@ -863,6 +868,7 @@ input:checked + .slider::before {
 .landing-tag {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   background: var(--primary-light);
   border: 1px solid var(--primary-border);
   color: var(--primary);
@@ -917,7 +923,7 @@ input:checked + .slider::before {
   border-radius: 8px;
   background: var(--primary-light);
   color: var(--primary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -948,6 +954,7 @@ input:checked + .slider::before {
   min-width: 280px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
 .auth-card-inner {
@@ -1131,6 +1138,8 @@ input:checked + .slider::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .pipeline-step-badge {
@@ -1192,6 +1201,8 @@ input:checked + .slider::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .ats-logo-tag {
@@ -1299,6 +1310,7 @@ input:checked + .slider::before {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   width: 100%;
 }
 
@@ -1312,6 +1324,7 @@ input:checked + .slider::before {
   transition: all var(--transition-normal);
   display: flex;
   flex-direction: column;
+  gap: 14px;
   width: 100%;
 }
 
@@ -1323,7 +1336,7 @@ input:checked + .slider::before {
 .card-title {
   font-size: 14px;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1357,14 +1370,14 @@ input:checked + .slider::before {
 .studio-profile-title {
   font-size: 12.5px;
   color: var(--text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .studio-tags-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 6px 0;
+  margin: 2px 0;
 }
 
 .studio-skill-tag {
@@ -1394,7 +1407,7 @@ input:checked + .slider::before {
 }
 
 .studio-notif-status {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .notif-badge-on {
@@ -1402,10 +1415,14 @@ input:checked + .slider::before {
   font-weight: 700;
   background: var(--success-bg);
   border: 1px solid var(--success-border);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   font-size: 11px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1.2;
 }
 
 .notif-badge-off {
@@ -1413,10 +1430,14 @@ input:checked + .slider::before {
   font-weight: 600;
   background: var(--bg-muted);
   border: 1px solid var(--border);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   font-size: 11px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1.2;
 }
 
 .studio-btn-manage {
@@ -1609,6 +1630,7 @@ input:checked + .slider::before {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 6px;
   flex: 2 1 240px;
   min-width: 200px;
 }
@@ -1822,6 +1844,8 @@ input:checked + .slider::before {
 .ats-tag {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
   padding: 2px 7px;
   border-radius: 4px;
   font-size: 10px;
@@ -1885,6 +1909,7 @@ input:checked + .slider::before {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 8px;
   width: 100%;
 }
 
@@ -2038,6 +2063,7 @@ input:checked + .slider::before {
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   animation: slideUp 0.22s ease;
 }
 
@@ -2087,6 +2113,7 @@ input:checked + .slider::before {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -2141,6 +2168,7 @@ input:checked + .slider::before {
 .wizard-tag {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   background: var(--primary-light);
   border: 1px solid var(--primary-border);
   color: var(--primary);
@@ -2215,6 +2243,7 @@ input:checked + .slider::before {
 .step-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .step-label {
@@ -2423,6 +2452,8 @@ input:checked + .slider::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  width: 100%;
 }
 
 .mode-card-badge {
@@ -2455,6 +2486,8 @@ input:checked + .slider::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  width: 100%;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -2490,6 +2523,7 @@ input:checked + .slider::before {
 .preview-meta-item {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .preview-meta-lbl {
@@ -3666,6 +3700,7 @@ input:checked + .slider::before {
   transition: all var(--transition-fast, 0.15s ease);
   display: flex;
   flex-direction: column;
+  gap: 8px;
   flex: 1 1 200px;
   min-width: 0;
   box-sizing: border-box;
@@ -3984,6 +4019,7 @@ input:checked + .slider::before {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    gap: 6px !important;
     width: 100% !important;
   }
 
@@ -4468,6 +4504,7 @@ input:checked + .slider::before {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    gap: 6px !important;
     padding: 5px 8px !important;
     font-size: 10.5px !important;
     border-radius: 5px !important;
@@ -4676,6 +4713,7 @@ input:checked + .slider::before {
     justify-content: space-between !important;
     display: flex !important;
     align-items: center !important;
+    gap: 8px !important;
     margin-top: 2px !important;
   }
 

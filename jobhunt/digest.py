@@ -26,40 +26,41 @@ def _badge(job: Job) -> str:
     return (
         f'<span style="background:{bg};color:{color};font-weight:800;'
         f"padding:5px 12px;border-radius:999px;font-size:12.5px;border:1px solid {LINE};"
-        f"display:inline-block;text-align:center;"
+        f"display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;"
         f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{badge_label}</span>'
     )
 
 
 def _job_type_badge(j: Job) -> str:
     hay = f"{j.title} {j.location}".lower()
+    common_style = "display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;line-height:1.2;box-sizing:border-box;"
     if any(h in hay for h in ("remote", "wfh", "work from home", "distributed")):
-        return '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bfdbfe;">Remote</span>'
+        return f'<span style="{common_style}background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;">Remote</span>'
     elif any(h in hay for h in ("hybrid", "flexible")):
-        return '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #fde68a;">Hybrid</span>'
+        return f'<span style="{common_style}background:#fef3c7;color:#92400e;border:1px solid #fde68a;">Hybrid</span>'
     elif any(h in hay for h in ("intern", "internship", "trainee")):
-        return '<span style="background:#f0fdf4;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #bbf7d0;">Internship</span>'
+        return f'<span style="{common_style}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">Internship</span>'
     else:
-        return '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid #e2e8f0;">On-Site</span>'
+        return f'<span style="{common_style}background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;">On-Site</span>'
 
 
 def _bullets(items: list[str]) -> str:
     if not items:
         return ""
     lis = "".join(
-        f'<li style="margin:0 0 6px 0;color:#334155;font-size:13.5px;line-height:1.5;'
+        f'<li style="margin:0;color:#334155;font-size:13px;line-height:1.5;'
         f'word-break:break-word;overflow-wrap:anywhere;">'
         f"{html.escape(str(i))}</li>"
         for i in items
     )
-    return f'<ul style="margin:8px 0 0 0;padding-left:18px;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">{lis}</ul>'
+    return f'<ul style="margin:0;padding-left:18px;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:4px;">{lis}</ul>'
 
 
 def _section(label: str, body: str) -> str:
     if not body:
         return ""
     return (
-        f'<div style="margin-top:16px;margin-bottom:6px;width:100%;box-sizing:border-box;display:block;clear:both;">'
+        f'<div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;">'
         f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
         f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;">{label}</div>{body}</div>'
     )
@@ -69,7 +70,7 @@ def _para(t: str) -> str:
     if not t:
         return ""
     return (
-        f'<p style="margin:8px 0 0 0;color:#334155;font-size:13.5px;'
+        f'<p style="margin:0;color:#334155;font-size:13.5px;'
         f'line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">{html.escape(t)}</p>'
     )
 
@@ -106,35 +107,67 @@ def _card(j: Job) -> str:
         else:
             india_badge = "Global / Check Location"
 
+    project_badge = ""
+    best_project = d.get("best_project")
+    if best_project:
+        project_badge = f'<span style="background:#fdf2f8;color:#9d174d;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #fbcfe8;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">Project: {html.escape(str(best_project))}</span>'
+
     salary_html = ""
     salary_val = d.get("salary_range_inr") or getattr(j, "salary", "")
     if salary_val:
-        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">{html.escape(str(salary_val))}</span>'
+        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #a7f3d0;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{html.escape(str(salary_val))}</span>'
 
-    # Display a concise Why It Fits summary
+    # Display concise sections
     fit_text = d.get("fit_summary") or j.reason or ""
     fit_html = _section("Why It Fits", _para(fit_text))
 
+    bullets_html = _section("Tailored Highlights", _bullets(d.get("tailored_bullets", [])))
+    skills_html = _section("Key Matching Skills", _bullets(d.get("matching_skills", [])))
+    gaps_html = _section("Gaps & Hard Requirements", _bullets(d.get("gaps", [])))
+
+    outreach_html = ""
+    if d.get("cold_outreach"):
+        outreach_html = _section(
+            "Direct Outreach Note",
+            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;">{html.escape(str(d["cold_outreach"]))}</div>',
+        )
+
+    cover_html = ""
+    if d.get("cover_note"):
+        cover_html = _section(
+            "Cover Note (Edit Before Sending)",
+            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;">{html.escape(str(d["cover_note"]))}</div>',
+        )
+
+    questions_html = _section("Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))
+
     return f"""
-<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:20px 20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
-  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;width:100%;box-sizing:border-box;margin-bottom:12px;">
-    <div style="flex:1 1 180px;min-width:0;display:block;">
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:14px;clear:both;">
+  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;">
+    <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;">
       <div style="font-size:16px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
-      <div style="color:{MUTED};font-size:12.5px;margin-top:5px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
+      <div style="color:{MUTED};font-size:12.5px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
     </div>
-    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;max-width:100%;box-sizing:border-box;">{_badge(j)}</div>
+    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;">{_badge(j)}</div>
   </div>
 
-  <div class="card-badges-flex" style="margin-top:10px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+  <div class="card-badges-flex" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
     {_job_type_badge(j)}
-    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;word-break:break-word;overflow-wrap:anywhere;display:inline-block;max-width:100%;box-sizing:border-box;">{html.escape(india_badge)}</span>
+    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #bfdbfe;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{html.escape(india_badge)}</span>
+    {project_badge}
     {salary_html}
   </div>
 
   {fit_html}
+  {bullets_html}
+  {skills_html}
+  {gaps_html}
+  {outreach_html}
+  {cover_html}
+  {questions_html}
 
-  <div class="card-footer-flex" style="margin-top:18px;padding-top:14px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;">
-    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-flex;align-items:center;justify-content:center;background:{ACCENT};
+  <div class="card-footer-flex" style="margin-top:4px;padding-top:14px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;">
+    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;background:{ACCENT};
        color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;
        padding:10px 18px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;">Open Job Listing &amp; Apply →</a>
     <span style="color:{MUTED};font-size:11px;word-break:break-all;overflow-wrap:anywhere;text-align:right;">ID: {html.escape(j.job_id)}</span>
@@ -177,25 +210,25 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
             else f"No new remote matches today — {today}"
         )
         body = f"""
-<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
-  <div class="empty-header-flex" style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
-    <div class="empty-logo-frame" style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;margin:0 14px 6px 0;box-sizing:border-box;">
+<div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:16px;clear:both;">
+  <div class="empty-header-flex" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+    <div class="empty-logo-frame" style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">
       <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;">
         <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;flex-shrink:0;min-width:32px;margin:0;" onerror="this.src='/logo.png'">
       </a>
     </div>
-    <div style="flex:1 1 180px;min-width:0;margin-bottom:6px;">
+    <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;">
       <div class="empty-title" style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">Daily Radar Scan Completed</div>
-      <div class="empty-desc" style="color:{MUTED};font-size:12.5px;margin-top:4px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
+      <div class="empty-desc" style="color:{MUTED};font-size:12.5px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
     </div>
   </div>
 
-  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin-bottom:16px;word-break:break-word;overflow-wrap:anywhere;">
+  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin:0;word-break:break-word;overflow-wrap:anywhere;">
     Our autonomous crawler scanned <b>{scanned} postings</b> across <b>88+ curated ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint).
   </p>
 
-  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:14px 16px;margin-bottom:18px;box-sizing:border-box;width:100%;">
-    <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Active Criteria Evaluated</div>
+  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:14px 16px;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:8px;">
+    <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Active Criteria Evaluated</div>
     <div style="font-size:12.5px;color:#334155;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">
       • <b>Target Roles:</b> {html.escape(target_str)}<br>
       • <b>Locations:</b> {html.escape(locs_str)}<br>
@@ -203,7 +236,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     </div>
   </div>
 
-  <div style="color:#475569;font-size:13px;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">
+  <div style="color:#475569;font-size:13px;line-height:1.6;margin:0;word-break:break-word;overflow-wrap:anywhere;">
     <b>Radar Status: Active &amp; Monitoring.</b> You will be immediately alerted as soon as new matching opportunities are published by target companies.
   </div>
 </div>"""
@@ -224,15 +257,6 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       flex-shrink: 0 !important;
       box-sizing: border-box !important;
     }}
-    .digest-logo-container, .digest-logo-frame {{
-      margin: 0 14px 6px 0 !important;
-    }}
-    .empty-logo-frame {{
-      margin: 0 14px 6px 0 !important;
-    }}
-    .digest-footer-logo-frame {{
-      margin: 0 12px 2px 0 !important;
-    }}
     .digest-logo-img, .empty-logo-img, .digest-footer-logo {{
       flex-shrink: 0 !important;
       min-width: fit-content;
@@ -243,29 +267,24 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     img {{ max-width: 100%; height: auto; }}
     table {{ max-width: 100%; }}
     @media only screen and (max-width: 480px) {{
-      .digest-wrap {{ padding: 12px 6px !important; }}
-      .digest-card {{ padding: 16px 14px !important; border-radius: 10px !important; margin-bottom: 14px !important; }}
+      .digest-wrap {{ padding: 12px 6px !important; gap: 14px !important; }}
+      .digest-card {{ padding: 16px 14px !important; border-radius: 10px !important; margin-bottom: 14px !important; gap: 12px !important; }}
       .digest-header-flex {{ gap: 10px !important; }}
-      .digest-logo-container, .digest-logo-frame {{ margin: 0 12px 4px 0 !important; }}
-      .empty-logo-frame {{ margin: 0 12px 4px 0 !important; }}
-      .digest-footer-logo-frame {{ margin: 0 10px 2px 0 !important; }}
       .card-header-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }}
-      .card-badge-wrap {{ align-self: flex-start !important; margin-top: 4px !important; }}
+      .card-badge-wrap {{ align-self: flex-start !important; }}
+      .card-badges-flex {{ gap: 6px !important; }}
       .card-footer-flex {{ flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }}
       .btn-apply-email {{ width: 100% !important; text-align: center !important; justify-content: center !important; }}
       .digest-title {{ font-size: 18px !important; }}
-      .digest-footer {{ margin-top: 20px !important; padding-top: 14px !important; }}
+      .digest-footer {{ margin-top: 18px !important; padding-top: 14px !important; }}
     }}
     @media only screen and (max-width: 340px) {{
-      .digest-wrap {{ padding: 6px 2px !important; }}
-      .digest-card {{ padding: 10px 6px !important; border-radius: 8px !important; margin-bottom: 10px !important; }}
+      .digest-wrap {{ padding: 6px 2px !important; gap: 10px !important; }}
+      .digest-card {{ padding: 12px 8px !important; border-radius: 8px !important; margin-bottom: 10px !important; gap: 10px !important; }}
       .digest-header-flex {{ gap: 6px !important; }}
-      .digest-logo-container, .digest-logo-frame {{ margin: 0 10px 4px 0 !important; }}
-      .empty-logo-frame {{ margin: 0 10px 4px 0 !important; }}
-      .digest-footer-logo-frame {{ margin: 0 8px 2px 0 !important; }}
       .digest-logo-img {{ width: 30px !important; height: 30px !important; border-radius: 7px !important; }}
       .digest-title {{ font-size: 15px !important; line-height: 1.25 !important; }}
-      .digest-meta-line {{ font-size: 11px !important; line-height: 1.4 !important; }}
+      .digest-meta-line {{ font-size: 11px !important; line-height: 1.4 !important; padding: 8px 10px !important; }}
       .card-header-flex {{ gap: 6px !important; }}
       .card-badges-flex {{ gap: 4px !important; }}
       .btn-apply-email {{ font-size: 11px !important; padding: 7px 10px !important; border-radius: 6px !important; }}
@@ -279,34 +298,38 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       .digest-footer-source-row {{ font-size: 9.5px !important; }}
     }}
     @media only screen and (max-width: 300px) {{
-      .digest-wrap {{ padding: 4px 1px !important; }}
+      .digest-wrap {{ padding: 4px 1px !important; gap: 8px !important; }}
       .digest-card {{ padding: 8px 4px !important; border-radius: 6px !important; }}
-      .digest-logo-container, .digest-logo-frame {{ margin: 0 8px 3px 0 !important; }}
-      .empty-logo-frame {{ margin: 0 8px 3px 0 !important; }}
-      .digest-footer-logo-frame {{ margin: 0 6px 2px 0 !important; }}
       .digest-title {{ font-size: 13.5px !important; }}
       .btn-apply-email {{ font-size: 10.5px !important; padding: 6px 8px !important; }}
     }}
   </style>
 </head>
 <body style="margin:0;padding:16px 8px;background:{BG};box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;color:{TEXT};">
-  <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
-    <div class="digest-header-flex" style="display:flex;align-items:center;gap:14px;margin-bottom:16px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
-      <div class="digest-logo-container" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 14px 6px 0;box-sizing:border-box;">
+  <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;clear:both;box-sizing:border-box;">
+    <div class="digest-header-flex" style="display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
+      <div class="digest-logo-container" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;">
         <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
           <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:contain;flex-shrink:0;min-width:40px;margin:0;" onerror="this.src='/logo.png'">
         </a>
       </div>
-      <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0 0 6px 0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
+      <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
     </div>
-    <div class="digest-meta-line" style="color:{MUTED};font-size:12.5px;margin:0 0 20px 0;line-height:1.6;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
-      {today} · Candidate: {cand_info} · Scanned <b>{scanned}</b> postings · <b>{candidates}</b> passed filter · <b>{len(jobs)}</b> shortlisted<br>
-      Tracker: {stats.get("tracked", 0)} total seen
+    <div class="digest-meta-line" style="color:{MUTED};font-size:12.5px;line-height:1.6;display:flex;flex-direction:column;gap:6px;background:#ffffff;border:1px solid {LINE};border-radius:10px;padding:12px 16px;box-shadow:0 1px 2px rgba(15,23,42,0.04);width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span>{today} · Candidate: {cand_info}</span>
+        <span>Tracker: <b>{stats.get('tracked', 0)}</b> total seen</span>
+      </div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px;">
+        <span>Scanned <b>{scanned}</b> postings</span> ·
+        <span><b>{candidates}</b> passed filter</span> ·
+        <span style="color:#166534;font-weight:700;"><b>{len(jobs)}</b> shortlisted</span>
+      </div>
     </div>
     {body}
-    <div class="digest-footer" style="color:{MUTED};font-size:11.5px;line-height:1.6;margin-top:28px;border-top:1px solid {LINE};padding-top:16px;display:block;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;clear:both;">
-      <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;box-sizing:border-box;margin-bottom:6px;">
-        <div class="digest-footer-logo-frame" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 12px 2px 0;box-sizing:border-box;">
+    <div class="digest-footer" style="color:{MUTED};font-size:11.5px;line-height:1.6;margin-top:12px;border-top:1px solid {LINE};padding-top:16px;display:flex;flex-direction:column;gap:8px;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;clear:both;">
+      <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+        <div class="digest-footer-logo-frame" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;">
           <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;">
             <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};flex-shrink:0;min-width:20px;margin:0;" onerror="this.src='/logo.png'">
           </a>
@@ -315,8 +338,8 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
           Autonomous execution engine by <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="color:{ACCENT};font-weight:700;text-decoration:none;">Job Hunter</a>. Application kits drafted from candidate profile.
         </span>
       </div>
-      <div class="digest-footer-source-row" style="display:block;font-size:11px;color:#94a3b8;width:100%;box-sizing:border-box;word-break:break-all;margin-top:6px;clear:both;">
-        <span style="margin-right:4px;">Source:</span>
+      <div class="digest-footer-source-row" style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;width:100%;box-sizing:border-box;word-break:break-all;">
+        <span style="margin-right:2px;">Source:</span>
         <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="color:{ACCENT};text-decoration:underline;font-weight:600;word-break:break-all;">{WEBSITE_URL}</a>
       </div>
     </div>

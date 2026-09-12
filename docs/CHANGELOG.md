@@ -15,12 +15,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Application Kit Inspector Fallback**: Removed premature exit guard (`if (!j || !j.draft) return;`) in `openKitModal()`. Opportunities without pre-generated AI drafts now cleanly open the modal with opportunity metadata, stage selector, and direct posting link rather than failing silently.
 
 ### Maintenance
+- **Pure Flexbox & Spacing Consistency (Mail & UI)**: Standardized both the daily HTML digest mailer (`jobhunt/digest.py`) and executive web dashboard (`static/css/style.css`) to use pure Flexbox architecture (`display: flex` / `display: inline-flex`). Enforced uniform, proportional margin, padding, and gap hierarchy across all components (navbar, hero cards, search toolbar, filter pills, job cards, modals, wizard stepper, preferences, email cards, and briefing status bars). Added responsive media queries scaling gracefully down to 300px ultra-narrow screens without clipping or horizontal overflow.
+- **Automated Digest Flexbox & Deployment Test Suite**: Added `tests/test_digest_flexbox_and_spacing_consistency` to `tests/test_digest_mailer.py` and `tests/test_deployment_manifests.py`, expanding the automated test suite to **419 passed tests** with **90.10%** code coverage.
 - **DevOps CI/CD Action Version Alignment**: Standardized `.github/workflows/ci.yml` and `.github/workflows/daily.yml` to official marketplace stable action versions `actions/checkout@v4` and `actions/setup-python@v5`.
-- **Automated Deployment Manifests & Workflows Test Suite**: Added `tests/test_deployment_manifests.py` verifying `vercel.json` serverless routing, `api/index.py` WSGI handler, `api/requirements.txt`, `.env.example` completeness and safety, and workflow action version tags, expanding the automated test suite to **418 passed tests** with **90.04%** code coverage.
 - **Docker-Free Serverless Deployment Architecture**: Preserved a lightweight, pure-serverless deployment profile leveraging native Vercel Python WSGI functions and automated GitHub Actions cloud radar without container overhead.
 - **100% Strict Type Safety (0 Mypy Errors)**: Resolved typing ambiguities across test suites (`test_store.py`, `test_clean_and_verify.py`), achieving a clean 0-error baseline across all source and test files under `mypy . --ignore-missing-imports`.
 - **Code Quality & Linter Compliance**: Promoted deferred imports to top-level in web blueprints (`pipeline.py`), eliminated ambiguous variable names, unified logger warnings in `auth.py`, and verified clean Ruff linter compliance.
-- Updated the release baseline to 418 automated tests with a passing 90% aggregate coverage gate.
+- Updated the release baseline to 419 automated tests with a passing 90% aggregate coverage gate (90.10%).
 
 ### Security
 - **Header-Based Gemini API Key Transport**: Migrated Google Gemini API authentication in `jobhunt/providers.py` to transmit API credentials exclusively via `headers={"x-goog-api-key": key}` rather than URL query parameters, preventing secret leakage in proxy server logs, browser histories, or HTTP referrers.

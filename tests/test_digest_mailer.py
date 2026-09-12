@@ -217,3 +217,56 @@ def test_mailer_empty_credentials_raises():
         with pytest.raises(ValueError, match="must not be empty"):
             mailer.send("Subject", "<p>Body</p>", to_email="test@example.com")
 
+
+def test_digest_flexbox_and_spacing_consistency():
+    """Verify digest HTML elements enforce pure flexbox, consistent gaps, padding, and margins."""
+    job = Job(
+        job_id="ashby:stripe:1",
+        ats="ashby",
+        company="Stripe",
+        title="Staff Infrastructure Engineer",
+        location="Bengaluru, India / Remote",
+        url="https://stripe.com/jobs/1",
+        description="Build highly reliable payment infra",
+        score=9.6,
+        reason="Direct match for distributed systems experience",
+        draft={
+            "fit_summary": "Exceptional fit with candidate distributed systems background.",
+            "india_eligibility": "India-Based Role",
+            "best_project": "Global Ledger Core",
+            "tailored_bullets": ["Architected distributed ledger pipeline.", "Optimized latency down to 12ms."],
+            "matching_skills": ["Python", "Go", "Distributed Systems", "PostgreSQL"],
+            "gaps": ["None identified"],
+            "cold_outreach": "Hi hiring team, I developed Global Ledger Core...",
+            "cover_note": "Dear Stripe Team,\nI am thrilled to apply...",
+            "questions_to_ask": ["How is consensus managed across geographic regions?"],
+            "salary_range_inr": "₹45,00,000 - ₹65,00,000",
+        },
+    )
+    subject, html_doc = digest.build([job], scanned=88, candidates=12, stats={"tracked": 88})
+
+    # Validate card flexbox container and gaps
+    assert 'class="digest-card"' in html_doc
+    assert "display:flex;flex-direction:column;gap:14px;" in html_doc
+    assert "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;" in html_doc
+    assert "display:flex;align-items:center;gap:8px;flex-wrap:wrap;" in html_doc
+
+    # Validate rich sections and badges
+    assert "India-Based Role" in html_doc
+    assert "Project: Global Ledger Core" in html_doc
+    assert "₹45,00,000 - ₹65,00,000" in html_doc
+    assert "Tailored Highlights" in html_doc
+    assert "Key Matching Skills" in html_doc
+    assert "Gaps &amp; Hard Requirements" in html_doc or "Gaps & Hard Requirements" in html_doc
+    assert "Direct Outreach Note" in html_doc
+    assert "Cover Note (Edit Before Sending)" in html_doc
+    assert "Technical Questions to Ask" in html_doc
+
+    # Validate footer and media queries
+    assert 'class="card-footer-flex"' in html_doc
+    assert "border-top:1px solid #e2e8f0" in html_doc
+    assert "@media only screen and (max-width: 480px)" in html_doc
+    assert "@media only screen and (max-width: 340px)" in html_doc
+    assert "@media only screen and (max-width: 300px)" in html_doc
+
+
