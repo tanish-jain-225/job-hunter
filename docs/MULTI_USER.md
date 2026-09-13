@@ -84,6 +84,9 @@ python -m jobhunt multi-run --mock --scorer keyword
 
 # Live run across all active users
 python -m jobhunt multi-run --send
+
+# Targeted run for a single authenticated user
+python -m jobhunt multi-run --user-email candidate@example.com --send
 ```
 
 ### Via GitHub Actions:

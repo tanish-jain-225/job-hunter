@@ -89,6 +89,7 @@ Returns candidate identity and metadata extracted from the validated Supabase JW
 Returns current pipeline state, live job stats, and user profile summary for real-time zero-refresh synchronization.
 
 **Auth:** Required  
+**Query params:** `?dispatched_at=<timestamp>` (optional, to correlate with recent remote runs)  
 **Response:**
 ```json
 {
@@ -133,13 +134,14 @@ a missing dispatch credential returns `need_github_dispatch`.
 Returns the latest digest as an HTML document.
 
 **Auth:** Required  
-**Query params:** `?force` or `?live` to force a live rebuild  
+**Query params:** `?force`, `?live`, or `?rebuild` to force a live rebuild; `?t=<timestamp>` for cache busting  
 **Response:** `text/html`
 
 ### POST /api/email/test
 Dispatches a live test career briefing email to verify SMTP delivery credentials.
 
 **Auth:** Required  
+**Rate limit:** 3 per hour per IP (when flask-limiter is installed)  
 **Response:** `{"status": "success", "message": "Test briefing successfully sent to user@example.com!", "target_email": "user@example.com"}`
 
 ### GET /api/history

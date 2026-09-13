@@ -336,6 +336,12 @@ jobhunt verify --workers 10
 
 # 8. Clean temporary caches and test state
 jobhunt clean
+
+# 9. Batch run across all multi-tenant candidate accounts
+jobhunt multi-run --send
+
+# 10. Targeted batch run for a single authenticated candidate
+jobhunt multi-run --user-email candidate@example.com --send
 ```
 
 ---
