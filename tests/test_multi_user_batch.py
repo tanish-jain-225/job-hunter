@@ -377,3 +377,48 @@ def test_digest_sync_and_zero_match_integrity(monkeypatch: pytest.MonkeyPatch, t
         # Must have called update_user_profile_json to cache the result
         mock_memory_uncached.update_user_profile_json.assert_called_once()
 
+
+def test_multi_user_batch_strictly_zero_shortlisted_when_below_threshold(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Verify that multi-user pipeline run strictly yields 0 shortlisted jobs when jobs score below threshold."""
+    from jobhunt import multi
+    from jobhunt.fetch import Job
+    from jobhunt.store import Store
+
+    mock_user = {
+        "email": "strict@example.com",
+        "name": "Strict Threshold User",
+        "min_score_notification": 8.5,
+        "email_notifications_enabled": False,
+        "target_keywords": ["Python"],
+    }
+
+    import requests
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = [mock_user]
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
+
+    recorded_runs = []
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.record_pipeline_run", lambda self, email, run_dict, **kw: recorded_runs.append((email, run_dict)))
+
+    # Mock fetch to return 1 job that will be scored 7.0 (below 8.5)
+    test_job = Job("1", "gh", "TestCo", "Python Dev", "Remote", "http://x", "description", score=7.0)
+    monkeypatch.setattr("jobhunt.multi.fetch_all", lambda *a, **kw: [test_job])
+    monkeypatch.setattr("jobhunt.multi.prefilter", lambda raw, flt: raw)
+    monkeypatch.setattr("jobhunt.multi.llm.keyword_screen", lambda jobs, prof: None)
+    for j in [test_job]:
+        j.score = 7.0
+
+    st_file = tmp_path / "seen_strict.json"
+    multi_store = Store(str(st_file))
+    monkeypatch.setattr("jobhunt.multi.Store", lambda *a, **kw: multi_store)
+
+    res = multi.run_multi_user_pipeline(mock=False, scorer="keyword")
+
+    # Shortlisted MUST be 0 — strictly honoring 8.5 threshold, NO fallback to 5.0!
+    assert res["total_shortlisted"] == 0
+    assert len(recorded_runs) == 1
+    assert recorded_runs[0][1]["shortlisted"] == 0
+
+

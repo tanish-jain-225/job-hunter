@@ -422,8 +422,9 @@ def api_digest():
     base_score_threshold = float(cfg.get("score_threshold", 7.0))
     min_score_target = base_score_threshold
     if profile_data:
-        raw = profile_data.get("min_score_notification")
-        if raw is not None:
+        pjson = profile_data.get("profile_json") if isinstance(profile_data.get("profile_json"), dict) else {}
+        raw = profile_data.get("min_score_notification") or pjson.get("min_score_notification")
+        if raw is not None and str(raw).strip() != "":
             try:
                 min_score_target = float(raw)
             except (ValueError, TypeError):
@@ -435,24 +436,25 @@ def api_digest():
     if shortlisted_in_run == 0:
         jobs_list = []
     elif remote_profile and remote_profile.get("latest_digest_job_ids"):
-        # Select exact jobs recorded for the latest briefing
+        # Select exact jobs recorded for the latest briefing (only those clearing user threshold)
         for jid in (remote_profile.get("latest_digest_job_ids") or []):
             if jid in st.data:
                 d = st.data[jid]
-                jobs_list.append(
-                    Job(
-                        job_id=jid,
-                        ats=jid.split(":")[0] if ":" in jid else "jobhunt",
-                        company=d.get("company", ""),
-                        title=d.get("title", ""),
-                        location=d.get("location", ""),
-                        url=d.get("url", "#"),
-                        description="",
-                        score=d.get("score"),
-                        reason=d.get("reason"),
-                        draft=d.get("draft") or {},
+                if (d.get("score") or 0) >= min_score_target:
+                    jobs_list.append(
+                        Job(
+                            job_id=jid,
+                            ats=jid.split(":")[0] if ":" in jid else "jobhunt",
+                            company=d.get("company", ""),
+                            title=d.get("title", ""),
+                            location=d.get("location", ""),
+                            url=d.get("url", "#"),
+                            description="",
+                            score=d.get("score"),
+                            reason=d.get("reason"),
+                            draft=d.get("draft") or {},
+                        )
                     )
-                )
     else:
         for jid, d in st.data.items():
             if (d.get("score") or 0) >= min_score_target and not d.get("applied"):

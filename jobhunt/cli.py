@@ -160,8 +160,12 @@ def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict)
         llm.keyword_screen(jobs, profile)
 
 
-def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
-    """Select scored jobs and build the shortlist above the threshold."""
+def _select_shortlist(jobs: list, cfg: dict, profile: dict | None = None) -> tuple[list, list]:
+    """Select scored jobs and build the shortlist above the threshold.
+
+    Strictly honors the user's min_score_notification setting from profile (or score_threshold
+    from config). If 0 jobs meet the threshold, shortlist is strictly empty (0 shortlisted).
+    """
     unscored_count = sum(1 for j in jobs if j.score is None)
     if unscored_count > 0:
         print(
@@ -170,12 +174,19 @@ def _select_shortlist(jobs: list, cfg: dict) -> tuple[list, list]:
         )
 
     threshold = float(cfg.get("score_threshold", 7.0))
+    if profile:
+        pjson = profile.get("profile_json") if isinstance(profile.get("profile_json"), dict) else {}
+        raw_threshold = profile.get("min_score_notification") or pjson.get("min_score_notification")
+        if raw_threshold is not None and str(raw_threshold).strip() != "":
+            try:
+                threshold = float(raw_threshold)
+            except (ValueError, TypeError):
+                pass
+
     top_n = int(os.environ.get("MAX_PER_DIGEST") or cfg.get("max_per_digest", 7))
 
     scored_jobs = [j for j in jobs if j.score is not None]
     shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
-    if not shortlist and scored_jobs:
-        shortlist = [j for j in sorted(scored_jobs, key=lambda x: x.score or 0, reverse=True) if (j.score or 0) >= 5.0]
     shortlist.sort(key=lambda j: j.score or 0, reverse=True)
     shortlist = shortlist[:top_n]
 
@@ -435,7 +446,7 @@ def run_pipeline(
             return 1
 
         # 4. Shortlist + draft
-        scored_jobs, shortlist = _select_shortlist(jobs, cfg)
+        scored_jobs, shortlist = _select_shortlist(jobs, cfg, profile=profile)
         _draft_kits(shortlist, profile, use_scorer, cfg)
 
         # 5. Digest + mail

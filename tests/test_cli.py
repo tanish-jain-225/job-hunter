@@ -122,6 +122,39 @@ def test_select_shortlist_unscored():
     assert len(shortlist) == 1
 
 
+def test_select_shortlist_strictly_respects_user_threshold_or_zero():
+    """Verify that jobs below user's min_score_notification are NOT shortlisted, with 0 fallback."""
+    jobs = [
+        Job("1", "gh", "Acme", "Dev 1", "remote", "http://x", "desc", score=7.8),
+        Job("2", "gh", "Acme", "Dev 2", "remote", "http://x", "desc", score=6.5),
+        Job("3", "gh", "Acme", "Dev 3", "remote", "http://x", "desc", score=5.5),
+    ]
+    cfg = {"score_threshold": 7.0, "max_per_digest": 5}
+
+    # Case A: User set threshold to 8.0 in profile — all 3 jobs are below 8.0
+    profile_high = {"min_score_notification": 8.0}
+    scored, shortlist = cli._select_shortlist(jobs, cfg, profile=profile_high)
+    assert len(scored) == 3
+    # Must be strictly empty (0 shortlisted) — NO 5.0 fallback!
+    assert len(shortlist) == 0
+
+    # Case B: User set threshold to 8.0 in nested profile_json
+    profile_nested = {"profile_json": {"min_score_notification": "8.0"}}
+    scored, shortlist = cli._select_shortlist(jobs, cfg, profile=profile_nested)
+    assert len(shortlist) == 0
+
+    # Case C: Threshold is 7.5 — only Job 1 (score 7.8) clears
+    profile_mid = {"min_score_notification": 7.5}
+    scored, shortlist = cli._select_shortlist(jobs, cfg, profile=profile_mid)
+    assert len(shortlist) == 1
+    assert shortlist[0].job_id == "1"
+
+    # Case D: Sub-5.0 jobs when default threshold is 7.0 — must be 0 shortlisted, never fall back
+    low_jobs = [Job("4", "gh", "Acme", "Dev 4", "remote", "http://x", "desc", score=6.2)]
+    scored, shortlist = cli._select_shortlist(low_jobs, cfg)
+    assert len(shortlist) == 0
+
+
 def test_draft_kits_llm_and_error(monkeypatch: pytest.MonkeyPatch):
     dummy_prov = Provider()
     monkeypatch.setattr(cli, "resolve", lambda stage: (dummy_prov, "test-model"))
