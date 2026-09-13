@@ -26,14 +26,14 @@ def _badge(job: Job) -> str:
     return (
         f'<span style="background:{bg};color:{color};font-weight:800;'
         f"padding:5px 12px;border-radius:999px;font-size:12.5px;border:1px solid {LINE};"
-        f"display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;"
-        f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{badge_label}</span>'
+        f"display:inline-block;vertical-align:middle;text-align:center;line-height:1.2;"
+        f'word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;margin:0 0 6px 0;">{badge_label}</span>'
     )
 
 
 def _job_type_badge(j: Job) -> str:
     hay = f"{j.title} {j.location}".lower()
-    common_style = "display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;line-height:1.2;box-sizing:border-box;"
+    common_style = "display:inline-block;vertical-align:middle;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;line-height:1.2;box-sizing:border-box;margin:0 6px 6px 0;"
     if any(h in hay for h in ("remote", "wfh", "work from home", "distributed")):
         return f'<span style="{common_style}background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;">Remote</span>'
     elif any(h in hay for h in ("hybrid", "flexible")):
@@ -48,21 +48,21 @@ def _bullets(items: list[str]) -> str:
     if not items:
         return ""
     lis = "".join(
-        f'<li style="margin:0;color:#334155;font-size:13px;line-height:1.5;'
+        f'<li style="margin:0 0 5px 0;padding:0;color:#334155;font-size:13px;line-height:1.5;'
         f'word-break:break-word;overflow-wrap:anywhere;">'
         f"{html.escape(str(i))}</li>"
         for i in items
     )
-    return f'<ul style="margin:0;padding-left:18px;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:4px;">{lis}</ul>'
+    return f'<ul style="margin:0 0 4px 0;padding-left:18px;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:4px;">{lis}</ul>'
 
 
 def _section(label: str, body: str) -> str:
     if not body:
         return ""
     return (
-        f'<div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;">'
+        f'<div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;margin:0 0 14px 0;">'
         f'<div style="color:{MUTED};font-size:11px;letter-spacing:.09em;'
-        f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;">{label}</div>{body}</div>'
+        f'text-transform:uppercase;font-weight:800;word-break:break-word;overflow-wrap:anywhere;margin:0 0 6px 0;">{label}</div>{body}</div>'
     )
 
 
@@ -70,7 +70,7 @@ def _para(t: str) -> str:
     if not t:
         return ""
     return (
-        f'<p style="margin:0;color:#334155;font-size:13.5px;'
+        f'<p style="margin:0 0 6px 0;color:#334155;font-size:13.5px;'
         f'line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">{html.escape(t)}</p>'
     )
 
@@ -110,12 +110,12 @@ def _card(j: Job) -> str:
     project_badge = ""
     best_project = d.get("best_project")
     if best_project:
-        project_badge = f'<span style="background:#fdf2f8;color:#9d174d;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #fbcfe8;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">Project: {html.escape(str(best_project))}</span>'
+        project_badge = f'<span style="background:#fdf2f8;color:#9d174d;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #fbcfe8;display:inline-block;vertical-align:middle;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;margin:0 6px 6px 0;">Project: {html.escape(str(best_project))}</span>'
 
     salary_html = ""
     salary_val = d.get("salary_range_inr") or getattr(j, "salary", "")
     if salary_val:
-        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #a7f3d0;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{html.escape(str(salary_val))}</span>'
+        salary_html = f'<span style="background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #a7f3d0;display:inline-block;vertical-align:middle;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;margin:0 6px 6px 0;">{html.escape(str(salary_val))}</span>'
 
     # Display concise sections
     fit_text = d.get("fit_summary") or j.reason or ""
@@ -129,31 +129,31 @@ def _card(j: Job) -> str:
     if d.get("cold_outreach"):
         outreach_html = _section(
             "Direct Outreach Note",
-            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;">{html.escape(str(d["cold_outreach"]))}</div>',
+            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;margin:0 0 4px 0;">{html.escape(str(d["cold_outreach"]))}</div>',
         )
 
     cover_html = ""
     if d.get("cover_note"):
         cover_html = _section(
             "Cover Note (Edit Before Sending)",
-            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;">{html.escape(str(d["cover_note"]))}</div>',
+            f'<div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:12px 14px;color:#1e293b;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;margin:0 0 4px 0;">{html.escape(str(d["cover_note"]))}</div>',
         )
 
     questions_html = _section("Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))
 
     return f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:14px;clear:both;">
-  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;">
-    <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;">
-      <div style="font-size:16px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">{html.escape(j.title)}</div>
+  <div class="card-header-flex" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;margin:0 0 6px 0;">
+    <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;margin:0 0 6px 0;">
+      <div style="font-size:16px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;margin:0 0 4px 0;">{html.escape(j.title)}</div>
       <div style="color:{MUTED};font-size:12.5px;font-weight:500;word-break:break-word;overflow-wrap:anywhere;">{html.escape(meta)}</div>
     </div>
-    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;">{_badge(j)}</div>
+    <div class="card-badge-wrap" style="flex-shrink:0;display:inline-block;vertical-align:top;max-width:100%;box-sizing:border-box;margin:0 0 6px 0;">{_badge(j)}</div>
   </div>
 
-  <div class="card-badges-flex" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
+  <div class="card-badges-flex" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box;margin:0 0 6px 0;">
     {_job_type_badge(j)}
-    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #bfdbfe;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;">{html.escape(india_badge)}</span>
+    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #bfdbfe;display:inline-block;vertical-align:middle;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;margin:0 6px 6px 0;">{html.escape(india_badge)}</span>
     {project_badge}
     {salary_html}
   </div>
@@ -167,9 +167,9 @@ def _card(j: Job) -> str:
   {questions_html}
 
   <div class="card-footer-flex" style="margin-top:4px;padding-top:14px;border-top:1px solid {LINE};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%;box-sizing:border-box;">
-    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;background:{ACCENT};
+    <a href="{html.escape(j.url)}" target="_blank" rel="noopener noreferrer" class="btn-apply-email" style="display:inline-block;vertical-align:middle;background:{ACCENT};
        color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;
-       padding:10px 18px;border-radius:8px;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;">Open Job Listing &amp; Apply →</a>
+       padding:10px 20px;border-radius:8px;line-height:1.2;box-shadow:0 2px 4px rgba(79,70,229,0.25);word-break:break-word;overflow-wrap:anywhere;text-align:center;box-sizing:border-box;mso-padding-alt:0;">Open Job Listing &amp; Apply →</a>
     <span style="color:{MUTED};font-size:11px;word-break:break-all;overflow-wrap:anywhere;text-align:right;">ID: {html.escape(j.job_id)}</span>
   </div>
 </div>"""
@@ -211,24 +211,24 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         )
         body = f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:24px 20px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:16px;clear:both;">
-  <div class="empty-header-flex" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
-    <div class="empty-logo-frame" style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">
-      <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;">
-        <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;flex-shrink:0;min-width:32px;margin:0;" onerror="this.src='/logo.png'">
+  <div class="empty-header-flex" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%;box-sizing:border-box;margin:0 0 10px 0;">
+    <div class="empty-logo-frame" style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;flex-shrink:0;display:inline-block;vertical-align:middle;box-sizing:border-box;margin:0 10px 0 0;">
+      <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none;">
+        <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" border="0" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;flex-shrink:0;min-width:32px;margin:0;outline:none;border:none;">
       </a>
     </div>
     <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;">
-      <div class="empty-title" style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;">Daily Radar Scan Completed</div>
+      <div class="empty-title" style="font-size:17px;font-weight:800;color:{TEXT};line-height:1.3;word-break:break-word;overflow-wrap:anywhere;margin:0 0 4px 0;">Daily Radar Scan Completed</div>
       <div class="empty-desc" style="color:{MUTED};font-size:12.5px;word-break:break-word;overflow-wrap:anywhere;">No new high-match postings found (0 candidates cleared the match bar today)</div>
     </div>
   </div>
 
-  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin:0;word-break:break-word;overflow-wrap:anywhere;">
+  <p style="color:#334155;font-size:13.5px;line-height:1.6;margin:0 0 14px 0;word-break:break-word;overflow-wrap:anywhere;">
     Our autonomous crawler scanned <b>{scanned} postings</b> across <b>88+ curated ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint).
   </p>
 
-  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:14px 16px;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:8px;">
-    <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Active Criteria Evaluated</div>
+  <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:14px 16px;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:8px;margin:0 0 14px 0;">
+    <div style="color:{MUTED};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 4px 0;">Active Criteria Evaluated</div>
     <div style="font-size:12.5px;color:#334155;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">
       • <b>Target Roles:</b> {html.escape(target_str)}<br>
       • <b>Locations:</b> {html.escape(locs_str)}<br>
@@ -249,11 +249,11 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <base target="_blank">
   <style>
+    :host {{ display: block; width: 100%; box-sizing: border-box; }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }}
     .digest-logo-container, .digest-logo-frame, .empty-logo-frame, .digest-footer-logo-frame {{
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      display: inline-block !important;
+      vertical-align: middle !important;
       flex-shrink: 0 !important;
       box-sizing: border-box !important;
     }}
@@ -262,10 +262,13 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       min-width: fit-content;
       display: block !important;
       margin: 0 !important;
+      border: 0;
+      outline: none;
+      text-decoration: none;
     }}
     body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; color: {TEXT}; }}
-    img {{ max-width: 100%; height: auto; }}
-    table {{ max-width: 100%; }}
+    img {{ max-width: 100%; height: auto; border: 0; outline: none; }}
+    table {{ max-width: 100%; border-collapse: collapse; }}
     @media only screen and (max-width: 480px) {{
       .digest-wrap {{ padding: 12px 6px !important; gap: 14px !important; }}
       .digest-card {{ padding: 16px 14px !important; border-radius: 10px !important; margin-bottom: 14px !important; gap: 12px !important; }}
@@ -287,7 +290,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       .digest-meta-line {{ font-size: 11px !important; line-height: 1.4 !important; padding: 8px 10px !important; }}
       .card-header-flex {{ gap: 6px !important; }}
       .card-badges-flex {{ gap: 4px !important; }}
-      .btn-apply-email {{ font-size: 11px !important; padding: 7px 10px !important; border-radius: 6px !important; }}
+      .btn-apply-email {{ font-size: 11px !important; padding: 8px 12px !important; border-radius: 6px !important; }}
       .empty-header-flex {{ gap: 8px !important; }}
       .empty-logo-img {{ width: 24px !important; height: 24px !important; }}
       .empty-title {{ font-size: 14px !important; }}
@@ -306,17 +309,22 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   </style>
 </head>
 <body style="margin:0;padding:16px 8px;background:{BG};box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;color:{TEXT};">
+  <!--[if (gte mso 9)|(IE)]>
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="680" style="width:680px;">
+  <tr>
+  <td align="left" valign="top">
+  <![endif]-->
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;clear:both;box-sizing:border-box;">
-    <div class="digest-header-flex" style="display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;flex-wrap:wrap;">
-      <div class="digest-logo-container" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;">
-        <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
-          <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:contain;flex-shrink:0;min-width:40px;margin:0;" onerror="this.src='/logo.png'">
+    <div class="digest-header-flex" style="display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;flex-wrap:wrap;margin:0 0 14px 0;">
+      <div class="digest-logo-container" style="display:inline-block;vertical-align:middle;flex-shrink:0;box-sizing:border-box;margin:0 12px 0 0;">
+        <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none;flex-shrink:0;">
+          <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" border="0" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:contain;flex-shrink:0;min-width:40px;margin:0;outline:none;text-decoration:none;">
         </a>
       </div>
       <div class="digest-title" style="flex:1 1 200px;min-width:0;color:{TEXT};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;margin:0;word-break:break-word;overflow-wrap:anywhere;">Job Hunter — Career Intelligence Briefing</div>
     </div>
-    <div class="digest-meta-line" style="color:{MUTED};font-size:12.5px;line-height:1.6;display:flex;flex-direction:column;gap:6px;background:#ffffff;border:1px solid {LINE};border-radius:10px;padding:12px 16px;box-shadow:0 1px 2px rgba(15,23,42,0.04);width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div class="digest-meta-line" style="color:{MUTED};font-size:12.5px;line-height:1.6;display:flex;flex-direction:column;gap:6px;background:#ffffff;border:1px solid {LINE};border-radius:10px;padding:12px 16px;box-shadow:0 1px 2px rgba(15,23,42,0.04);width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;margin:0 0 16px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 0 4px 0;">
         <span>{today} · Candidate: {cand_info}</span>
         <span>Tracker: <b>{stats.get('tracked', 0)}</b> total seen</span>
       </div>
@@ -328,10 +336,10 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     </div>
     {body}
     <div class="digest-footer" style="color:{MUTED};font-size:11.5px;line-height:1.6;margin-top:12px;border-top:1px solid {LINE};padding-top:16px;display:flex;flex-direction:column;gap:8px;width:100%;box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere;clear:both;">
-      <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;box-sizing:border-box;">
-        <div class="digest-footer-logo-frame" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;">
-          <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;">
-            <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};flex-shrink:0;min-width:20px;margin:0;" onerror="this.src='/logo.png'">
+      <div class="digest-footer-brand-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;box-sizing:border-box;margin:0 0 4px 0;">
+        <div class="digest-footer-logo-frame" style="display:inline-block;vertical-align:middle;flex-shrink:0;box-sizing:border-box;margin:0 8px 0 0;">
+          <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;flex-shrink:0;">
+            <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" border="0" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};flex-shrink:0;min-width:20px;margin:0;outline:none;text-decoration:none;">
           </a>
         </div>
         <span class="digest-footer-text" style="color:{MUTED};font-size:11.5px;line-height:1.5;flex:1 1 200px;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
@@ -344,6 +352,11 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       </div>
     </div>
   </div>
+  <!--[if (gte mso 9)|(IE)]>
+  </td>
+  </tr>
+  </table>
+  <![endif]-->
 </body>
 </html>"""
     return subject, html_doc
