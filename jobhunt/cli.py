@@ -175,7 +175,8 @@ def _select_shortlist(jobs: list, cfg: dict, profile: dict | None = None) -> tup
 
     threshold = float(cfg.get("score_threshold", 7.0))
     if profile:
-        pjson = profile.get("profile_json") if isinstance(profile.get("profile_json"), dict) else {}
+        raw_pjson = profile.get("profile_json")
+        pjson = raw_pjson if isinstance(raw_pjson, dict) else {}
         raw_threshold = profile.get("min_score_notification") or pjson.get("min_score_notification")
         if raw_threshold is not None and str(raw_threshold).strip() != "":
             try:
@@ -230,7 +231,7 @@ def _build_and_send_digest(
     out_html = Path(cfg.get("digest_file", "out/digest.html"))
     tracker_csv = Path(cfg.get("tracker_csv", "out/tracker.csv"))
 
-    send = getattr(send_or_args, "send", False) if isinstance(send_or_args, argparse.Namespace) else bool(send_or_args)
+    send = getattr(send_or_args, "send", False) if isinstance(send_or_args, argparse.Namespace) else send_or_args
 
     subject, html_content = digest.build(
         shortlist,

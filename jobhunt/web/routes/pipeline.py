@@ -422,7 +422,8 @@ def api_digest():
     base_score_threshold = float(cfg.get("score_threshold", 7.0))
     min_score_target = base_score_threshold
     if profile_data:
-        pjson = profile_data.get("profile_json") if isinstance(profile_data.get("profile_json"), dict) else {}
+        raw_pjson = profile_data.get("profile_json")
+        pjson = raw_pjson if isinstance(raw_pjson, dict) else {}
         raw = profile_data.get("min_score_notification") or pjson.get("min_score_notification")
         if raw is not None and str(raw).strip() != "":
             try:
