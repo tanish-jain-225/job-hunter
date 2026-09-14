@@ -293,7 +293,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   <td align="left" valign="top">
   <![endif]-->
   <div class="digest-wrap" style="max-width:680px;width:100%;margin:0 auto;display:block;clear:both;box-sizing:border-box;">
-    
+
     <!-- HEADER -->
     <div class="digest-header" style="display:block;width:100%;margin:0 0 16px 0;box-sizing:border-box;">
       <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;width:100%;">
