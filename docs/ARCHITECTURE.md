@@ -18,6 +18,7 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 3. **Resilient Multi-Tier AI Provider Strategy**: Google Gemini 3.5 Flash is the default intelligence engine with circular multi-key CSV rotation, independent 15 RPM leaky-bucket throttling, and dynamic fallback cascades to `gemini-flash-latest` and `gemini-flash-lite-latest`.
 4. **Responsive Fluid Layout**: The frontend uses responsive Flexbox-based styling and mobile breakpoints for compact viewports.
 5. **Multi-Tenant Security by Default**: PostgreSQL Row-Level Security and authenticated route guards protect tenant data. The current database key is normalized email; immutable user-ID tenancy remains a hardening task.
+6. **Resilient Session & Offline Token Architecture**: The backend supports sub-millisecond offline HMAC-SHA256 signature verification via `SUPABASE_JWT_SECRET` with zero external network hops, immune to rate limits. The frontend client pairs this with proactive token refresh (<90s expiry) and automatic silent 401 retry.
 
 ---
 
@@ -100,7 +101,7 @@ job-hunter/
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package
 │   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.0")
-│   ├── auth.py                  # JWT decoding, user context resolution, and @require_auth decorator
+│   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, verify, stats)
 │   ├── digest.py                # Responsive HTML email digest builder with inline CSS and logo guard
@@ -126,7 +127,7 @@ job-hunter/
 │   ├── css/
 │   │   └── style.css            # 12-section pure Flexbox executive light mode design system
 │   ├── js/
-│   │   └── app.js               # SPA client controller, Supabase sync, job board pagination
+│   │   └── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
 │   └── assets/                  # Runtime logo and favicon assets
 ├── supabase/                    # Database Architecture
 │   ├── schema.sql               # Atomic PostgreSQL schema: tables, indexes, cascading FKs, and RLS policies

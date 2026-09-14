@@ -27,6 +27,24 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ---
 
+## Authentication & Session Management Issues
+
+### Error: Dashboard Session Expiring Frequently or Prompting "Your secure session has expired"
+* **Why it happens:**
+  1. **Missing `SUPABASE_JWT_SECRET` on Serverless Backend**: When `SUPABASE_JWT_SECRET` is not set in Vercel or `.env`, the serverless backend must verify every user request via an outbound HTTP call to Supabase (`GET /auth/v1/user`). Under frequent background polling or serverless container cold starts, Supabase Auth enforces rate limits (`HTTP 429 Too Many Requests`) or outbound calls exceed the 5-second timeout, causing the backend to reject tokens as invalid (`401 UNAUTHORIZED`).
+  2. **Browser Background Timer Throttling**: When leaving the Job Hunter tab in the background or putting your laptop to sleep, the browser suspends JavaScript timers, causing the access token to expire without auto-refreshing.
+* **The Solution:**
+  1. **Configure `SUPABASE_JWT_SECRET`**:
+     * Open your Supabase Dashboard $\rightarrow$ **Project Settings** $\rightarrow$ **API** $\rightarrow$ **JWT Settings**.
+     * Copy the **Legacy JWT Secret** (used to verify HMAC-SHA256 tokens).
+     * Add `SUPABASE_JWT_SECRET=<your-secret>` to your local [`.env`](../.env) and in **Vercel Dashboard $\rightarrow$ Settings $\rightarrow$ Environment Variables**.
+     * *Result*: Verification becomes an instant, local mathematical signature check that executes in $<1$ ms with zero network calls, completely immune to rate limits and external timeouts.
+  2. **Proactive Refresh & Silent 401 Retries**:
+     * Job Hunter's frontend ([`static/js/app.js`](../static/js/app.js)) automatically inspects token expiration (`expires_at`) before every API call, refreshing nearing tokens proactively.
+     * If a `401` is ever returned, the client silently invokes `supabaseClient.auth.refreshSession()` and retries the request once before declaring a session expired.
+
+---
+
 ## GitHub Actions Issues
 
 ### Warning: `Node.js 20 is deprecated... being forced to run on Node.js 24`

@@ -6,7 +6,7 @@
 
 Job Hunter exposes a modular REST API built with Flask Blueprints.
 
-Operational endpoints require authentication via `Authorization: Bearer <token>` header or `sb_access_token` HttpOnly cookie. Public discovery routes (`/`, `/api/health`, `/api/auth/config`, `/logo.png`) are accessible without authentication.
+Operational endpoints require authentication via `Authorization: Bearer <token>` header or `sb_access_token` HttpOnly cookie. Token verification is performed offline via HMAC-SHA256 signature checking when `SUPABASE_JWT_SECRET` is configured, falling back to Supabase's Auth API (`/auth/v1/user`) with thread-safe in-memory caching. Public discovery routes (`/`, `/api/health`, `/api/auth/config`, `/logo.png`) are accessible without authentication.
 
 ---
 

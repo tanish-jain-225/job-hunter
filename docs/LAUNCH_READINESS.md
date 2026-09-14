@@ -19,13 +19,14 @@ identity guarantees, not extra steps required for the current deployment.
   `Referer` metadata.
 - Resume upload behavior is now consistent: PDF and TXT are supported; DOCX is
   not advertised or silently decoded as text.
+- Offline HMAC token verification (`SUPABASE_JWT_SECRET`) and resilient client-side session auto-refresh lifecycle prevent false-positive session drops on Vercel.
 - Regression status: 421 tests pass on the current suite; affected release
   tests, Ruff, coverage, and workflow YAML validation pass.
 
 ## Current release status
 
-- **Deployment:** Ready for a public beta only when Vercel has valid Supabase
-  credentials and a server-side GitHub workflow-dispatch token configured.
+- **Deployment:** Ready for a public beta when Vercel has valid Supabase
+  credentials (including `SUPABASE_JWT_SECRET`) and a server-side GitHub workflow-dispatch token configured.
 - **User workflow:** Sign up, complete a profile, run an isolated scan, view
   synchronized jobs, and receive scheduled email only when notifications are
   enabled.

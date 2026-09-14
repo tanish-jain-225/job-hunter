@@ -374,7 +374,7 @@ The web dashboard is an interactive single-page application built with modern va
 * **Resume Studio**: Drag-and-drop resume upload with automated PDF text extraction, structured skill classification, and candidate profile setup.
 * **Smart Follow-Up Nudges**: Injects `⏳ Xd ago · Follow Up` badges on applied listings and generates context-aware follow-up notes with 1-click clipboard copy.
 * **Live SSE Pipeline Stream**: Streams real-time crawling and screening logs line-by-line via Server-Sent Events (`/api/pipeline/stream`).
-* **Real-Time Zero-Refresh Sync**: Synchronizes state cross-tab and cross-device via version hashing (`/api/sync`).
+* **Real-Time Zero-Refresh Sync**: Synchronizes state cross-tab and cross-device via an adaptive 15-second heartbeat and version hashing (`/api/sync`), backed by proactive session token refresh and silent 401 retries.
 * **CSV Export**: Instant 1-click download of your complete job pipeline (`out/tracker.csv`).
 
 ---
@@ -441,6 +441,7 @@ flowchart TD
 3. **Configure Vercel Environment Variables**:
    * `SUPABASE_URL`
    * `SUPABASE_ANON_KEY`
+   * `SUPABASE_JWT_SECRET` (Supabase Legacy JWT secret for instant offline token verification and preventing 429 rate limits on serverless)
    * `GEMINI_API_KEY`
    * `FLASK_SECRET_KEY`
    * `AUTH_REQUIRED=true`

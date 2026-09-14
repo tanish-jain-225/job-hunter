@@ -185,6 +185,7 @@ To receive personalized HTML career digests in your email inbox every weekday mo
    * Copy **Project URL** -> `SUPABASE_URL`
    * Copy **Project API Keys** -> `anon` `public` -> `SUPABASE_ANON_KEY`
    * Copy **Project API Keys** -> `service_role` `secret` -> `SUPABASE_SERVICE_ROLE_KEY`
+   * Under **JWT Settings**, copy **Legacy JWT Secret** -> `SUPABASE_JWT_SECRET` *(strongly recommended for instant, zero-network HMAC verification on Vercel serverless)*
 5. Navigate to **Authentication** -> **URL Configuration**:
    * Set **Site URL** to your local dev URL `http://localhost:5000` (or production Vercel URL `https://your-app.vercel.app`).
    * Add the same URL under **Redirect URLs**.
@@ -235,6 +236,7 @@ MAIL_TO=your-email@gmail.com
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+SUPABASE_JWT_SECRET=your-supabase-legacy-jwt-secret
 AUTH_REQUIRED=false
 
 # 4. GitHub Actions Workflow Dispatch (For cloud on-demand radar from web UI)
@@ -375,6 +377,7 @@ Deploy Job Hunter to the cloud so it runs 24/7 without needing your laptop power
    * `GEMINI_API_KEY`: Your Gemini API key
    * `SUPABASE_URL`: `https://your-project.supabase.co`
    * `SUPABASE_ANON_KEY`: Your Supabase anon public key
+   * `SUPABASE_JWT_SECRET`: Your Supabase Legacy JWT secret *(prevents 429 rate limits on Vercel)*
    * `AUTH_REQUIRED`: `true`
    * `FLASK_SECRET_KEY`: Random 32-char string
    * `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (Optional, for test emails)

@@ -393,6 +393,48 @@ let authConfig = {
   supabase_url: '',
   supabase_anon_key: ''
 };
+let sessionRefreshInFlight = null;
+
+// Proactively ensure valid, unexpired Supabase session token
+async function ensureFreshSession() {
+  if (!supabaseClient) return currentAuthSession;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expiresAt = currentAuthSession?.expires_at || 0;
+  // If no session or token is expiring within 90 seconds, perform proactive refresh
+  const needsRefresh = !currentAuthSession || (expiresAt > 0 && expiresAt - nowSec < 90);
+
+  if (!needsRefresh) {
+    return currentAuthSession;
+  }
+
+  if (sessionRefreshInFlight) {
+    return await sessionRefreshInFlight;
+  }
+
+  sessionRefreshInFlight = (async () => {
+    try {
+      if (currentAuthSession) {
+        const { data, error } = await supabaseClient.auth.refreshSession();
+        if (!error && data?.session) {
+          currentAuthSession = data.session;
+          return currentAuthSession;
+        }
+      }
+      const { data } = await supabaseClient.auth.getSession();
+      if (data?.session) {
+        currentAuthSession = data.session;
+      }
+    } catch (e) {
+      console.warn('Proactive session refresh notice:', e);
+    } finally {
+      sessionRefreshInFlight = null;
+    }
+    return currentAuthSession;
+  })();
+
+  return await sessionRefreshInFlight;
+}
 
 // Central Authentication & Utility Access Guard
 function checkAuthOrRedirect(actionName = 'access this utility') {
@@ -405,7 +447,7 @@ function checkAuthOrRedirect(actionName = 'access this utility') {
   return true;
 }
 
-// Authenticated Fetch Wrapper with Automatic Token Refresh
+// Authenticated Fetch Wrapper with Proactive Token Refresh & Silent Retry
 async function authFetch(url, options = {}) {
   const opts = { ...options };
   const headers = new Headers(opts.headers || {});
@@ -426,16 +468,9 @@ async function authFetch(url, options = {}) {
   }
   if (requestKey) inFlightMutationKeys.add(requestKey);
 
-  // Retrieve freshest token from active Supabase session if available
+  // Proactively ensure valid token before dispatching request
   if (supabaseClient) {
-    try {
-      const { data } = await supabaseClient.auth.getSession();
-      if (data?.session) {
-        currentAuthSession = data.session;
-      }
-    } catch (e) {
-      console.warn('Session refresh notice:', e);
-    }
+    await ensureFreshSession();
   }
 
   if (currentAuthSession && currentAuthSession.access_token) {
@@ -445,11 +480,27 @@ async function authFetch(url, options = {}) {
   opts.headers = headers;
 
   try {
-    const res = await fetch(url, opts);
-    if (res.status === 401 && authConfig.auth_required) {
-      // ONLY prompt login modal if user previously had an active session that expired
-      if (currentAuthSession) {
-        console.warn('Session expired mid-usage (401). Prompting re-authentication.');
+    let res = await fetch(url, opts);
+
+    // If 401 received, attempt silent token refresh once and retry before declaring session expired
+    if (res.status === 401 && authConfig.auth_required && supabaseClient && currentAuthSession) {
+      console.warn('Received 401; attempting silent session refresh before invalidation...');
+      try {
+        const { data, error } = await supabaseClient.auth.refreshSession();
+        if (!error && data?.session?.access_token) {
+          currentAuthSession = data.session;
+          headers.set('Authorization', `Bearer ${currentAuthSession.access_token}`);
+          opts.headers = headers;
+          // Retry the failed request once with the refreshed token
+          res = await fetch(url, opts);
+        }
+      } catch (refreshErr) {
+        console.warn('Silent session refresh retry error:', refreshErr);
+      }
+
+      // If still 401 after retry, then prompt re-authentication
+      if (res.status === 401 && currentAuthSession) {
+        console.warn('Session truly expired or revoked (401). Prompting re-authentication.');
         currentAuthSession = null;
         stopHeartbeat();
         setAppView('landing');
@@ -457,6 +508,7 @@ async function authFetch(url, options = {}) {
         setAuthFeedback('Your secure session has expired. Please sign in again.', 'error');
       }
     }
+
     return res;
   } catch (err) {
     throw err;
@@ -2970,7 +3022,7 @@ function startHeartbeat() {
     if (!document.hidden && navigator.onLine) {
       syncDashboard(false);
     }
-  }, 2500);
+  }, 15000);
 }
 
 function stopHeartbeat() {
@@ -2985,8 +3037,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopHeartbeat();
   } else {
-    syncDashboard(false);
-    startHeartbeat();
+    // When tab wakes up from sleep/background, refresh session first to prevent stale 401s
+    ensureFreshSession().then(() => {
+      syncDashboard(false);
+      startHeartbeat();
+    });
   }
 });
 

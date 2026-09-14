@@ -55,6 +55,7 @@ limits and pricing with each provider before launch.
    * Copy the **Project URL** (`https://xyzcompany.supabase.co`) -> `SUPABASE_URL`
    * Copy the **Public Anon Key** (`anon` `public`) -> `SUPABASE_ANON_KEY`
    * Copy the **Service Role Secret** (`service_role` `secret`) -> `SUPABASE_SERVICE_ROLE_KEY`
+   * Under **JWT Settings**, copy the **Legacy JWT Secret** -> `SUPABASE_JWT_SECRET` *(prevents 429 rate limits on Vercel by enabling offline token verification)*
 5. Go to **Authentication > URL Configuration**:
    * Add your production Vercel domain (e.g. `https://job-hunter-web-board.vercel.app`) to **Site URL** and **Redirect URLs**.
 
@@ -98,6 +99,7 @@ GEMINI_API_KEY=your-gemini-api-key
 
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_JWT_SECRET=your-supabase-legacy-jwt-secret
 AUTH_REQUIRED=true
 
 SMTP_HOST=smtp.gmail.com

@@ -65,6 +65,8 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 3.  Zero-Refresh Real-Time State Sync
 * Changes made in any tab (stage updates, notes, manual additions, applied toggles) automatically sync across all open browser windows and devices via `/api/sync` heartbeat version hashing.
+* **15-Second Adaptive Heartbeat**: Periodically checks for remote updates and active pipeline runs without overloading serverless instances or triggering API rate limits.
+* **Resilient Session Management**: Client `authFetch` automatically inspects token lifetime, proactively refreshing expiring tokens within 90 seconds, and safely refreshes upon waking from background tabs or device sleep.
 * Deterministic version tokens dynamically hash job stages, private notes, fit scores, and timestamps.
 * A **Live Synced** status pill in the top header provides visual pulse indicators and one-click manual synchronization.
 
