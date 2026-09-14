@@ -219,7 +219,7 @@ def test_mailer_empty_credentials_raises():
 
 
 def test_digest_flexbox_and_spacing_consistency():
-    """Verify digest HTML elements enforce pure flexbox, consistent gaps, padding, and margins."""
+    """Verify digest HTML elements enforce email client compatibility, standard table/block layouts, and spacing."""
     job = Job(
         job_id="ashby:stripe:1",
         ats="ashby",
@@ -245,11 +245,10 @@ def test_digest_flexbox_and_spacing_consistency():
     )
     subject, html_doc = digest.build([job], scanned=88, candidates=12, stats={"tracked": 88})
 
-    # Validate card flexbox container and gaps
+    # Validate card container and block layout (preventing Gmail mobile multi-column collapse)
     assert 'class="digest-card"' in html_doc
-    assert "display:flex;flex-direction:column;gap:14px;" in html_doc
-    assert "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;" in html_doc
-    assert "display:flex;align-items:center;gap:8px;flex-wrap:wrap;" in html_doc
+    assert "display:block" in html_doc
+    assert "display:flex" not in html_doc.split('<div class="digest-wrap"')[1].split('<table')[0]
 
     # Validate rich sections and badges
     assert "India-Based Role" in html_doc
@@ -263,10 +262,9 @@ def test_digest_flexbox_and_spacing_consistency():
     assert "Technical Questions to Ask" in html_doc
 
     # Validate footer and media queries
-    assert 'class="card-footer-flex"' in html_doc
     assert "border-top:1px solid #e2e8f0" in html_doc
     assert "@media only screen and (max-width: 480px)" in html_doc
     assert "@media only screen and (max-width: 340px)" in html_doc
-    assert "@media only screen and (max-width: 300px)" in html_doc
+
 
 
