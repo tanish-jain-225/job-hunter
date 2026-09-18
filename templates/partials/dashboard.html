@@ -37,7 +37,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         <span>On-Demand Pipeline Scout</span>
       </div>
-      <button class="btn btn-primary" id="btn-run" onclick="runPipeline()" title="Scout 88+ company ATS endpoints and match jobs to your profile">
+      <button class="btn btn-primary" id="btn-run" onclick="runPipeline()" title="Scout 94+ company ATS endpoints and match jobs to your profile">
         <span class="spinner" id="run-spinner" style="display:none;"></span>
         <span id="run-text">Run Job Hunt Now</span>
       </button>
@@ -153,6 +153,13 @@
             <option value="recruitee">Recruitee</option>
             <option value="breezy">Breezy HR</option>
             <option value="pinpoint">Pinpoint</option>
+          </select>
+
+          <label for="tracker-location-filter" class="sr-only">Filter by Location</label>
+          <select class="form-input tracker-select" id="tracker-location-filter" onchange="handleLocationFilterChange(this.value)" aria-label="Filter by Location">
+            <option value="all">All Locations</option>
+            <option value="india">🇮🇳 India-Based</option>
+            <option value="remote">🌐 Remote-Friendly</option>
           </select>
 
           <label for="tracker-sort-select" class="sr-only">Sort Jobs By</label>

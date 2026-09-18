@@ -116,7 +116,29 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="prof-education">Education</label>
-            <input type="text" class="form-input" id="prof-education" placeholder="e.g. B.Tech in Computer Science" autocomplete="off" spellcheck="false">
+            <input type="text" class="form-input" id="prof-education" placeholder="e.g. B.Tech Computer Science / Tier-1 College / 8.5 CGPA" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+
+        <!-- Notice Period & Indian CTC Compensation -->
+        <div class="form-grid-3" style="margin-top:14px;">
+          <div class="form-group">
+            <label class="form-label" for="prof-notice-period">Notice Period</label>
+            <select class="form-input" id="prof-notice-period">
+              <option value="immediate">Immediate / Serving Notice (&lt; 15d)</option>
+              <option value="15_days">15 Days</option>
+              <option value="30_days" selected>30 Days (Standard)</option>
+              <option value="60_days">60 Days</option>
+              <option value="90_days">90 Days (IT Services)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-current-ctc">Current CTC <span class="form-hint-inline">(₹ LPA)</span></label>
+            <input type="number" min="0" max="500" step="0.5" class="form-input" id="prof-current-ctc" placeholder="e.g. 12" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-expected-ctc">Expected CTC <span class="form-hint-inline">(₹ LPA)</span></label>
+            <input type="number" min="0" max="500" step="0.5" class="form-input" id="prof-expected-ctc" placeholder="e.g. 20" autocomplete="off">
           </div>
         </div>
 
@@ -163,8 +185,20 @@
             </label>
           </div>
           <div id="prof-specific-cities-input" style="display:none; margin-top:10px;">
+            <div class="tech-hub-presets-label" style="font-size:12px; color:var(--text-muted, #64748b); margin-bottom:6px; font-weight:600;">
+              Quick-add Indian Tech Hubs:
+            </div>
+            <div class="tech-hub-chips" id="prof-tech-hub-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Bengaluru')">+ Bengaluru</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Hyderabad')">+ Hyderabad</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Pune')">+ Pune</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Delhi-NCR')">+ Delhi-NCR</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Mumbai')">+ Mumbai</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Chennai')">+ Chennai</button>
+              <button type="button" class="hub-chip" onclick="toggleCityPreset('Remote')">+ Remote (India)</button>
+            </div>
             <input type="text" class="form-input" id="prof-specific-cities"
-                   placeholder="e.g. Bangalore, Mumbai, Pune, Hyderabad, Remote" autocomplete="off" spellcheck="false">
+                   placeholder="e.g. Bengaluru, Hyderabad, Pune, Mumbai, Remote" autocomplete="off" spellcheck="false">
           </div>
         </div>
 

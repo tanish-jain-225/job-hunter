@@ -20,7 +20,7 @@ planning estimates, not guarantees.
 
 ```mermaid
 flowchart LR
-    A["88+ ATS Boards across 9 Engines (Single Crawl)"] --> B["Global Pool (~2,000 Raw Postings)"]
+    A["94+ ATS Boards across 9 Engines (Single Crawl)"] --> B["Global Pool (~2,000 Raw Postings)"]
     B --> C["Deterministic Filter (Per User)"]
     C --> D["Stage 1: Gemini Screening (1.2s)"]
     D --> E["Stage 2: Gemini Kit Drafting (2.0s)"]
@@ -35,7 +35,7 @@ flowchart LR
 | Metric | 100 Users | 250 Users | 500 Users | 750 Users | 1,500 Users |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Daily Discovered Jobs** | ~2,000 | ~2,000 | ~2,000 | ~2,000 | ~2,000 |
-| **ATS Crawl Requests** | ~88 | ~88 | ~88 | ~88 | ~88 |
+| **ATS Crawl Requests** | ~94 | ~94 | ~94 | ~94 | ~94 |
 | **Stage 1 Screening Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
 | **Stage 2 Kit Drafting Calls (Gemini)** | ~300 | ~750 | ~1,500 | ~2,250 | ~4,500 |
 | **Emails Dispatched / Day** | 100 | 250 | 500 | 750 | 1,500 |
@@ -57,7 +57,7 @@ flowchart LR
 | **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | ~450 KB (300-job FIFO window) | **1,040 Users** | 🛑 **Storage Ceiling** (database disk) |
 | **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | ~1.0s / user in batch pass | **1,500 Users** | ✅ 25 min daily schedule headroom |
 | **Vercel Hobby** | 100 GB monthly bandwidth | ~15 MB / user / month | **6,600 Users** | ✅ High headroom |
-| **9 ATS Board Crawlers** | Public JSON endpoints (88+ boards) | 0 extra (single global pass) | **Unlimited** | ✅ Completely independent of user volume |
+| **9 ATS Board Crawlers** | Public JSON endpoints (94+ boards) | 0 extra (single global pass) | **Unlimited** | ✅ Completely independent of user volume |
 
 ### A. Primary AI Engine: Google Gemini Flash (`gemini-3.5-flash`)
 * **Default Model**: `gemini-3.5-flash`
@@ -156,7 +156,7 @@ Commercial job search platforms charge substantial recurring subscription fees w
 
 | Platform | Model / Category | User Pricing | Annual Cost / User | Sourcing Method | Application Safety | AI Intelligence |
 |---|---|:---:|:---:|---|---|---|
-| **Job Hunter** | **Autonomous Career Intelligence** | **$0.00 / mo** | **$0.00** | **Direct Public ATS APIs** (88+ boards across 9 engines) | **The Golden Rule** (Scout & Draft; Human Submits) | **Google Gemini 3.5 Flash** (1M context, multi-key rotation, 0% fallback) |
+| **Job Hunter** | **Autonomous Career Intelligence** | **$0.00 / mo** | **$0.00** | **Direct Public ATS APIs** (94+ boards across 9 engines) | **The Golden Rule** (Scout & Draft; Human Submits) | **Google Gemini 3.5 Flash** (1M context, multi-key rotation, 0% fallback) |
 | **Teal (`tealhq.com`)** | Manual Tracker & Resume Builder | $29 – $40 / mo ($9/wk) | $348 – $480 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
 | **Huntr (`huntr.co`)** | Kanban Board & AI Tailor | $30 – $40 / mo | $360 – $480 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
 | **LoopCV (`loopcv.pro`)** | Auto-Apply Bot | €10 – €40 / mo | ~$130 – $500 | ⚠️ Aggregator scraping (LinkedIn, Indeed) | ⚠️ Spray-and-Pray Bot (High ATS blacklist risk) | Heuristic template filler |
@@ -184,7 +184,7 @@ Should Job Hunter transition from a free self-hosted/community tool to a commerc
 ### A. Unit Economics Comparison
 * **Commercial Competitor Cost Structure:** Competitors incur heavy server-side browser scraping overhead, proxy rotation expenses, and retail OpenAI API fees (~$0.50 – $1.50 per user per month).
 * **Job Hunter Cost Structure:**
-  * Single-pass crawl amortizes 88+ ATS boards across all users ($0.00).
+  * Single-pass crawl amortizes 94+ ATS boards across all users ($0.00).
   * Deterministic regex gate drops 98% of jobs prior to LLM invocation ($0.00).
   * Gemini 3.5 Flash batch screening costs ~$0.0001 per evaluated job.
   * **Total infrastructure cost per active user:** **~$0.01 / month**.
@@ -193,7 +193,7 @@ Should Job Hunter transition from a free self-hosted/community tool to a commerc
 
 | Plan Tier | Target Audience | Proposed Pricing | Key Value Proposition | Gross Margin |
 |---|---|:---:|---|:---:|
-| **Community (Free Forever)** | Students, junior devs, open-source | **$0.00** | Daily morning briefing, 88 ATS boards, 5-stage tracking, 1 resume | 100% Free |
+| **Community (Free Forever)** | Students, junior devs, open-source | **$0.00** | Daily morning briefing, 94 ATS boards, 5-stage tracking, 1 resume | 100% Free |
 | **Pro Career Accelerator** | Active job seekers, career switchers | **$9 – $15 / mo**<br>*(vs. Teal/Huntr $30–$40)* | Instant on-demand radar, unlimited custom company boards, multi-persona resumes (e.g. Frontend vs. Fullstack), priority AI drafting | **>98%** |
 | **University / Bootcamp Cohorts** | Career services, bootcamp placement teams | **$199 – $499 / mo** | Administrative cohort dashboard, placement velocity tracking, student compliance analytics | **>95%** |
 

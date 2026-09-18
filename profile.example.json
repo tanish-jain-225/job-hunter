@@ -7,6 +7,11 @@
   "years_experience": 1,
   "graduation_year": 2026,
   "education": "B.Tech in Computer Engineering (2022 - 2026) | CGPA: 8.5 / 10",
+  "notice_period": "30_days",
+  "current_ctc_lpa": 14,
+  "expected_ctc_lpa": 22,
+  "location_preference": "all_india",
+  "preferred_locations": ["Bengaluru", "Hyderabad", "Pune", "Delhi-NCR", "Remote"],
   "core_skills": [
     "JavaScript (ES6+)",
     "TypeScript",

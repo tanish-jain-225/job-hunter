@@ -190,6 +190,9 @@ def api_profile_reset():
         "preferred_locations": [],
         "job_types": [],  # e.g. ["fulltime", "internship", "remote", "hybrid", "onsite"]
         "experience_level": "",  # e.g. "fresher", "0-1", "1-3", "3-5", "5+"
+        "notice_period": "30_days",  # e.g. "immediate", "15_days", "30_days", "60_days", "90_days"
+        "current_ctc_lpa": 0,
+        "expected_ctc_lpa": 0,
         "min_salary_lpa": 0,
         "preferred_sectors": [],  # e.g. ["fintech", "saas", "edtech"]
         "profile_json": {},
@@ -370,6 +373,9 @@ def api_resume_upload():
         "job_types": parsed_profile.get("job_types") or (existing or {}).get("job_types") or [],
         "experience_level": parsed_profile.get("experience_level") or (existing or {}).get("experience_level") or "",
         "seniority": parsed_profile.get("seniority") or "",
+        "notice_period": (existing or {}).get("notice_period") or "30_days",
+        "current_ctc_lpa": (existing or {}).get("current_ctc_lpa") or 0,
+        "expected_ctc_lpa": (existing or {}).get("expected_ctc_lpa") or 0,
         "min_salary_lpa": (existing or {}).get("min_salary_lpa") or 0,
         "preferred_sectors": (existing or {}).get("preferred_sectors") or [],
         "profile_json": parsed_profile,
@@ -406,8 +412,12 @@ def api_profile_preferences():
                 "status": "success",
                 "preferences": {
                     "preferred_locations": profile.get("preferred_locations") or [],
+                    "location_preference": profile.get("location_preference") or "all_india",
                     "job_types": profile.get("job_types") or [],
                     "experience_level": profile.get("experience_level") or "",
+                    "notice_period": profile.get("notice_period") or "30_days",
+                    "current_ctc_lpa": profile.get("current_ctc_lpa") or 0,
+                    "expected_ctc_lpa": profile.get("expected_ctc_lpa") or 0,
                     "min_salary_lpa": profile.get("min_salary_lpa") or 0,
                     "preferred_sectors": profile.get("preferred_sectors") or [],
                     "target_keywords": profile.get("target_keywords") or [],
@@ -445,8 +455,12 @@ def api_profile_preferences():
                 "message": "Search preferences updated successfully.",
                 "preferences": {
                     "preferred_locations": merged.get("preferred_locations") or [],
+                    "location_preference": merged.get("location_preference") or "all_india",
                     "job_types": merged.get("job_types") or [],
                     "experience_level": merged.get("experience_level") or "",
+                    "notice_period": merged.get("notice_period") or "30_days",
+                    "current_ctc_lpa": merged.get("current_ctc_lpa") or 0,
+                    "expected_ctc_lpa": merged.get("expected_ctc_lpa") or 0,
                     "min_salary_lpa": merged.get("min_salary_lpa") or 0,
                     "preferred_sectors": merged.get("preferred_sectors") or [],
                 },

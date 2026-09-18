@@ -232,3 +232,20 @@ def test_audit_company_boards_default_none():
     with patch("jobhunt.verify.Path.is_file", return_value=False):
         res = audit_company_boards(None)
         assert res["total"] == 0
+
+
+def test_companies_yaml_integrity():
+    import yaml
+
+    comp_file = Path(__file__).resolve().parent.parent / "companies.yaml"
+    assert comp_file.is_file()
+    data = yaml.safe_load(comp_file.read_text(encoding="utf-8"))
+    companies = data.get("companies", [])
+    assert len(companies) == 94
+    valid_ats = {"greenhouse", "lever", "ashby", "workable", "smartrecruiters", "bamboohr", "recruitee", "breezy", "pinpoint"}
+    for c in companies:
+        assert "ats" in c and "slug" in c and "name" in c
+        assert c["ats"] in valid_ats
+        assert len(str(c["slug"]).strip()) > 0
+        assert len(str(c["name"]).strip()) > 0
+

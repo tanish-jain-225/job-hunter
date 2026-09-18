@@ -196,6 +196,9 @@ def test_profile_reset_endpoint(client, mock_supabase_env):
         assert data["status"] == "success"
         assert data["profile"]["title"] == ""
         assert data["profile"]["skills"] == []
+        assert data["profile"]["notice_period"] == "30_days"
+        assert data["profile"]["current_ctc_lpa"] == 0
+        assert data["profile"]["expected_ctc_lpa"] == 0
         assert data["profile"]["onboarding_completed"] is False
 
 
@@ -272,3 +275,49 @@ def test_resume_upload_pdf_file_fallback_parsing(client, mock_supabase_env):
         assert data_res["status"] == "success"
         assert data_res["profile"]["name"] == "John Doe"
         assert "Python" in data_res["profile"]["skills"] or "AWS" in data_res["profile"]["skills"]
+
+
+def test_profile_preferences_notice_and_ctc(client, mock_supabase_env):
+    """Verify GET and POST /api/profile/preferences with notice period and CTC parameters."""
+    mock_profile = [
+        {
+            "email": "user@test.com",
+            "preferred_locations": ["Bengaluru", "Pune"],
+            "location_preference": "all_india",
+            "job_types": ["fulltime"],
+            "experience_level": "1-3",
+            "notice_period": "15_days",
+            "current_ctc_lpa": 12,
+            "expected_ctc_lpa": 20,
+            "min_salary_lpa": 18,
+            "preferred_sectors": ["fintech"],
+        }
+    ]
+
+    with patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: mock_profile)):
+        res = client.get("/api/profile/preferences", headers={"Authorization": "Bearer mock-token"})
+        assert res.status_code == 200
+        prefs = res.get_json()["preferences"]
+        assert prefs["notice_period"] == "15_days"
+        assert prefs["current_ctc_lpa"] == 12
+        assert prefs["expected_ctc_lpa"] == 20
+        assert prefs["location_preference"] == "all_india"
+
+    with patch("requests.post", return_value=MagicMock(status_code=201)):
+        res_post = client.post(
+            "/api/profile/preferences",
+            json={
+                "notice_period": "immediate",
+                "current_ctc_lpa": 15,
+                "expected_ctc_lpa": 25,
+                "location_preference": "all_india",
+            },
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res_post.status_code == 200
+        saved = res_post.get_json()["preferences"]
+        assert saved["notice_period"] == "immediate"
+        assert saved["current_ctc_lpa"] == 15
+        assert saved["expected_ctc_lpa"] == 25
+        assert saved["location_preference"] == "all_india"
+

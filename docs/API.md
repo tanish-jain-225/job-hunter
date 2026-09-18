@@ -167,7 +167,24 @@ Returns all tracked jobs with filtering and sorting.
 | `min_score` | float | — |
 | `sort` | `date` / `score` / `company` | `date` |
 
-**Response:** `{"status": "success", "count": 18, "jobs": [...]}`
+**Response:** `{"status": "success", "count": 18, "jobs": [...]}`  
+Each job object includes standard metadata (`job_id`, `title`, `company`, `location`, `url`, `score`, `application_stage`, `notes`, `date_discovered`) and an optional AI-drafted Application Kit (`draft`):
+```json
+{
+  "fit_summary": "Strong technical alignment with backend microservices...",
+  "india_eligibility": "India-Based Role",
+  "job_type": "fulltime",
+  "salary_range_inr": "₹16-24 LPA",
+  "best_project": "AI Career Intelligence Platform",
+  "tailored_bullets": ["Dynamic resume alignment bullet 1", "..."],
+  "matching_skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+  "gaps": ["No Kubernetes in production"],
+  "cover_note": "Direct, 120-160 word professional cover note...",
+  "cold_outreach": "Concise recruiter outreach message under 80 words...",
+  "referral_request": "Short LinkedIn referral request under 60 words for peer/alumni outreach...",
+  "questions_to_ask": ["Deep technical question 1", "Question 2"]
+}
+```
 
 ### POST /api/jobs/stage
 Update the application pipeline stage for a job.
@@ -271,18 +288,18 @@ Removes a custom ATS target board from the candidate's radar.
 ### GET /api/profile
 Returns the authenticated user's candidate profile.
 
-**Auth:** Required
+**Auth:** Required  
 **Data isolation:** The response is resolved for the authenticated user from Supabase, with only that user's isolated local cache as a fallback.
 
 ### POST /api/profile
 Update candidate profile and search preferences.
 
 **Auth:** Required  
-**Body:** Partial or full profile JSON (merged with existing profile in Supabase)
+**Body:** Partial or full profile JSON (merged with existing profile in Supabase). Supports `notice_period`, `current_ctc_lpa`, `expected_ctc_lpa`, `location_preference`, `preferred_locations`, `skills`, `target_keywords`, and `exclude_keywords`.  
 **Data isolation:** The submitted profile is stored against the authenticated user's identity.
 
 ### POST /api/profile/reset
-Flush out the candidate profile, resume text, and notification preferences.
+Flush out the candidate profile, resume text, and notification preferences, resetting to default baseline (`notice_period: "30_days"`, `current_ctc_lpa: 0`, `expected_ctc_lpa: 0`).
 
 **Auth:** Required
 
@@ -305,6 +322,9 @@ Upload and extract structured candidate profile data from a resume document (PDF
     "experience_years": 0.0,
     "skills": ["JavaScript", "Python", "React.js", "Node.js", "Express.js", "Next.js", "MongoDB"],
     "target_keywords": ["Full Stack Developer", "Software Engineer"],
+    "notice_period": "30_days",
+    "current_ctc_lpa": 0,
+    "expected_ctc_lpa": 0,
     "resume_text": "..."
   },
   "parsed_profile": {...}
@@ -312,14 +332,43 @@ Upload and extract structured candidate profile data from a resume document (PDF
 ```
 
 ### GET /api/profile/preferences
-Returns search preference settings (locations, job types, salary floor).
+Returns search preference settings (locations, job types, salary floor, notice period, and Indian CTC expectations).
 
-**Auth:** Required
+**Auth:** Required  
+**Response:**
+```json
+{
+  "status": "success",
+  "preferences": {
+    "preferred_locations": ["Bengaluru", "Hyderabad", "Pune", "Delhi-NCR", "Remote"],
+    "location_preference": "all_india",
+    "job_types": ["fulltime", "remote"],
+    "experience_level": "1-3",
+    "notice_period": "30_days",
+    "current_ctc_lpa": 14,
+    "expected_ctc_lpa": 22,
+    "min_salary_lpa": 18,
+    "preferred_sectors": []
+  }
+}
+```
 
 ### POST /api/profile/preferences
 Update search preference settings.
 
-**Auth:** Required
+**Auth:** Required  
+**Body (JSON):**
+```json
+{
+  "location_preference": "all_india",
+  "preferred_locations": ["Bengaluru", "Pune", "Remote"],
+  "job_types": ["fulltime"],
+  "notice_period": "15_days",
+  "current_ctc_lpa": 12,
+  "expected_ctc_lpa": 20
+}
+```
+**Response:** `{"status": "success", "message": "Search preferences updated successfully.", "preferences": {...}}`
 
 ---
 

@@ -26,7 +26,7 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 
 ```mermaid
 flowchart TD
-    subgraph S1["1. Public ATS Scouting Engine (88+ Boards)"]
+    subgraph S1["1. Public ATS Scouting Engine (94+ Boards)"]
         A1["Greenhouse"] & A2["Lever"] & A3["Ashby"]
         A4["Workable"] & A5["SmartRecruiters"] & A6["BambooHR"]
         A7["Recruitee"] & A8["Breezy HR"] & A9["Pinpoint & Custom Boards"]
@@ -47,9 +47,10 @@ flowchart TD
 
     subgraph S4["4. Application Kit Drafting Engine"]
         D1["Tailored Cover Letter"]
-        D2["80-word Cold Outreach Message"]
-        D3["Matching Resume Bullets & Gaps"]
-        D4["Smart Follow-Up Nudges (>4d elapsed)"]
+        D2["80-word Recruiter Outreach Message"]
+        D3["<60-word LinkedIn Referral Request"]
+        D4["Matching Resume Bullets & Gaps"]
+        D5["Smart Follow-Up Nudges (>4d elapsed)"]
     end
 
     subgraph S5["5. Dual Storage & State Synchronization"]
@@ -66,8 +67,8 @@ flowchart TD
 
     S1 --> B1 --> B2 --> B3
     B3 -->|Filtered Shortlist| C1 --> C2 --> C3 --> C4
-    C4 -->|Scores >= 7.0| D1 & D2 & D3 & D4
-    D1 & D2 & D3 & D4 --> E1 & E2 --> E3
+    C4 -->|Scores >= 7.0| D1 & D2 & D3 & D4 & D5
+    D1 & D2 & D3 & D4 & D5 --> E1 & E2 --> E3
     E3 --> F1 & F2 & F3
 ```
 
@@ -143,7 +144,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (421 passing tests)
+├── tests/                       # Automated Test Suite (424 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery

@@ -7,12 +7,16 @@
 # Every single entry below is verified live HTTP 200 OK against public APIs.
 
 companies:
-  # --- Top Indian Unicorns, Startups & India Hubs (100% Live 200 OK) ---
+  # --- Top Indian Unicorns, High-Growth Startups & GCC Hubs (100% Live 200 OK) ---
+  - {ats: smartrecruiters, slug: Swiggy, name: Swiggy}
+  - {ats: lever, slug: paytm, name: Paytm}
   - {ats: greenhouse, slug: razorpaysoftwareprivatelimited, name: Razorpay}
   - {ats: lever, slug: meesho, name: Meesho}
   - {ats: lever, slug: cred, name: CRED}
   - {ats: greenhouse, slug: groww, name: Groww}
   - {ats: greenhouse, slug: slice, name: Slice}
+  - {ats: ashby, slug: atlan, name: Atlan}
+  - {ats: lever, slug: pocketfm, name: Pocket FM}
   - {ats: greenhouse, slug: inmobi, name: InMobi}
   - {ats: greenhouse, slug: glance, name: Glance}
   - {ats: ashby, slug: sarvam, name: Sarvam AI}
@@ -24,9 +28,11 @@ companies:
   - {ats: lever, slug: epifi, name: Fi Money}
   - {ats: lever, slug: fampay, name: FamPay}
   - {ats: smartrecruiters, slug: freshworks, name: Freshworks}
+  - {ats: smartrecruiters, slug: Grab, name: Grab India R&D}
+  - {ats: smartrecruiters, slug: BoschGroup, name: Bosch India}
+  - {ats: smartrecruiters, slug: cars24, name: Cars24}
   - {ats: greenhouse, slug: thoughtworks, name: Thoughtworks}
   - {ats: greenhouse, slug: rubrik, name: Rubrik India}
-  - {ats: greenhouse, slug: postman, name: Postman}
   - {ats: greenhouse, slug: hackerrank, name: HackerRank}
   - {ats: ashby, slug: almabase, name: Almabase}
   - {ats: greenhouse, slug: upgrade, name: upGrad}

@@ -29,6 +29,7 @@ DRAFT_KEYS = (
     "gaps",
     "cover_note",
     "cold_outreach",
+    "referral_request",
     "questions_to_ask",
 )
 
@@ -221,6 +222,12 @@ def _build_screen_system(profile: dict | None = None, cfg: dict | None = None) -
         details.append(f"{yoe} YoE")
     if seniority:
         details.append(f"Level: {seniority}")
+    notice = (profile or {}).get("notice_period")
+    if notice:
+        details.append(f"Notice: {str(notice).replace('_', ' ')}")
+    expected_ctc = (profile or {}).get("expected_ctc_lpa")
+    if expected_ctc:
+        details.append(f"Target CTC: ₹{expected_ctc} LPA")
 
     context = f"candidate {name}"
     if details:
@@ -435,9 +442,15 @@ def _build_draft_system(profile: dict | None = None) -> str:
     github = (profile or {}).get("github", "")
     github_ref = f" ({github})" if github else ""
 
+    notice = (profile or {}).get("notice_period")
+    notice_line = f"- Notice Period / Availability: {str(notice).replace('_', ' ')}" if notice else "- Availability: Available to join"
+    ctc = (profile or {}).get("expected_ctc_lpa")
+    ctc_line = f"\n- Target CTC: ₹{ctc} LPA" if ctc else ""
+
     return f"""You prepare an application kit for candidate {name} based strictly on their resume/profile:
 - Education: {edu}
 - Core Skills: {skills}
+{notice_line}{ctc_line}
 - Key Projects:
 {projects_str}
 
@@ -447,14 +460,15 @@ Return ONLY a JSON object:
 {{
   "fit_summary": str,          // 2 sentences: why this role is a strong match for candidate
   "india_eligibility": str,    // MUST be one of: 'India-Based Role' (if job location mentions India/Indian city), 'Remote-Friendly' (if job is remote/WFH), 'Hybrid India' (if hybrid in India), 'Global (Verify Location)' (if location is unclear or outside India). Base this on the job location field, not assumptions.
-  "job_type": str,             // "remote" | "hybrid" | "onsite" | "internship"
-  "salary_range_inr": str,     // Extract salary if mentioned in JD. Format as '₹X-Y LPA' for Indian roles or 'USD $X-Y' for US. Empty string if not mentioned.
+  "job_type": str,             // "remote" | "hybrid" | "onsite" | "internship" | "contract"
+  "salary_range_inr": str,     // Extract salary if mentioned in JD. Format as '₹X-Y LPA' for Indian roles, '₹Xk/mo' stipend for internships, or 'USD $X-Y' for US. Empty string if not mentioned.
   "best_project": str,         // Best project to highlight from candidate's profile + 1 sentence rationale
   "tailored_bullets": [str],   // 3-4 resume bullets dynamically rewritten from candidate's background for THIS job
   "matching_skills": [str],    // 4-8 matching skills candidate possesses for this role
   "gaps": [str],               // 1-3 honest missing requirements and how to address them
   "cover_note": str,           // 120-160 words. Plain, direct cover note with zero fluff or generic flattery.
-  "cold_outreach": str,        // Under 80 words. Concise cold message referencing role title, key project, technical match{github_ref}.
+  "cold_outreach": str,        // Under 80 words. Concise recruiter cold message referencing role title, key tech stack, availability/notice period{github_ref}.
+  "referral_request": str,     // Under 60 words. Short professional LinkedIn message asking an engineering peer/alumnus for an internal referral with key tech alignment.
   "questions_to_ask": [str]    // 2 sharp technical questions showing thorough reading of the JD
 }}"""
 
@@ -503,6 +517,7 @@ def draft(
                 "gaps": _ensure_list(kit.get("gaps")),
                 "cover_note": str(kit.get("cover_note") or ""),
                 "cold_outreach": str(kit.get("cold_outreach") or ""),
+                "referral_request": str(kit.get("referral_request") or ""),
                 "questions_to_ask": _ensure_list(kit.get("questions_to_ask")),
             }
             print(f"  drafted {j.title} @ {j.company}")
@@ -511,7 +526,7 @@ def draft(
             j.draft = {
                 k: (
                     ""
-                    if k in ("fit_summary", "india_eligibility", "best_project", "cover_note", "cold_outreach")
+                    if k in ("fit_summary", "india_eligibility", "best_project", "cover_note", "cold_outreach", "referral_request")
                     else []
                 )
                 for k in DRAFT_KEYS

@@ -49,10 +49,48 @@ INTERNSHIP_HINTS = (
     "co-op",
     "coop",
     "summer intern",
+    "winter intern",
     "graduate intern",
     "fresher",
     "entry level",
+    "graduate engineer trainee",
+    "get",
+    "trainee engineer",
+    "sde intern",
+    "software intern",
 )
+
+# Contract / Freelance detection patterns
+CONTRACT_HINTS = (
+    "contract",
+    "contractor",
+    "freelance",
+    "freelancer",
+    "consultant",
+    "temporary",
+    "fixed-term",
+    "fixed term",
+    "retainer",
+    "c2c",
+)
+
+# Part-time detection patterns
+PARTTIME_HINTS = (
+    "part-time",
+    "part time",
+    "parttime",
+)
+
+# Explicit non-India restricted patterns (e.g. US/Canada/UK only roles)
+NON_INDIA_RESTRICTIONS = [
+    r"\b(us only|usa only|united states only|north america only|canada only|uk only|europe only|latam only|emea only)\b",
+    r"\b(must reside in (the )?(us|usa|united states|canada|uk|europe))\b",
+    r"\b(us citizens? only|us work authorization required|green card only)\b",
+    r"\b(est|pst|cst|mst) timezone only\b",
+    r"\b(remote\s*[-–(,:/]?\s*(us|usa|united states|uk|europe|americas|latam|emea|canada|north america))\b",
+    r"\b(united states & canada|us & canada)\b",
+    r"\bno c2c\b",
+]
 
 # Comprehensive list of Indian cities / regions for "All India" match
 INDIA_LOCATIONS = [
@@ -105,10 +143,12 @@ INDIA_LOCATIONS = [
     "maharashtra",
     "telangana",
     "tamilnadu",
+    "tamil nadu",
     "andhra",
     "gujarat",
     "uttar pradesh",
     "haryana",
+    "kerala",
     "in",  # ISO country code
 ]
 
@@ -142,6 +182,11 @@ def _detect_job_type(j: Job) -> set[str]:
         (re.search(rf"\b{re.escape(h)}\b", hay) if len(h) <= 6 else h in hay)
         for h in INTERNSHIP_HINTS
     ) and not any(neg in hay for neg in INTERN_NEGATIONS)
+    is_contract = any(
+        (re.search(rf"\b{re.escape(h)}\b", hay) if len(h) <= 6 else h in hay)
+        for h in CONTRACT_HINTS
+    )
+    is_parttime = any(h in hay for h in PARTTIME_HINTS)
 
     if is_remote:
         types.add("remote")
@@ -149,12 +194,14 @@ def _detect_job_type(j: Job) -> set[str]:
         types.add("hybrid")
     if is_intern:
         types.add("internship")
+    if is_contract:
+        types.add("contract")
+    if is_parttime:
+        types.add("parttime")
     if not types or ("remote" not in types and "hybrid" not in types):
         types.add("onsite")
-    if not is_intern:
+    if not is_intern and not is_contract and not is_parttime:
         types.add("fulltime")
-    else:
-        types.add("internship")
 
     return types
 
@@ -187,8 +234,24 @@ def _matches_location(target_loc: str, text: str) -> bool:
 def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
     inc = cfg.get("include_titles") or []
     exc = cfg.get("exclude_titles") or []
-    locs = [loc.lower().strip() for loc in (cfg.get("locations") or [])]
-    exc_locs = cfg.get("exclude_locations") or []
+
+    raw_locs = cfg.get("locations") or cfg.get("location_preference") or cfg.get("preferred_locations") or []
+    if isinstance(raw_locs, dict):
+        loc_type = raw_locs.get("type", "")
+        if loc_type == "all_india":
+            raw_locs = ["all_india"]
+        else:
+            raw_locs = raw_locs.get("locations") or []
+    elif isinstance(raw_locs, str):
+        raw_locs = [raw_locs]
+
+    locs = [str(loc).lower().strip() for loc in raw_locs if str(loc).strip()]
+    is_all_india = "all_india" in locs
+
+    exc_locs = list(cfg.get("exclude_locations") or [])
+    if is_all_india:
+        exc_locs.extend(NON_INDIA_RESTRICTIONS)
+
     allow_remote = bool(cfg.get("allow_remote", True))
     max_age = cfg.get("max_age_days")
     job_types_filter = [jt.lower().strip() for jt in (cfg.get("job_types") or [])]
@@ -217,13 +280,19 @@ def prefilter(jobs: list[Job], cfg: dict) -> list[Job]:
         loc_lower = (j.location or "").lower()
         hay = f"{j.location} {j.title}".lower()
 
-        if exc_locs_re and _match(exc_locs_re, loc_lower):
+        if exc_locs_re and (_match(exc_locs_re, loc_lower) or _match(exc_locs_re, hay)):
             stats["location"] += 1
             continue
 
-        is_in_target = any(_matches_location(loc, hay) for loc in locs) if locs else True
-
-        if locs:
+        if is_all_india:
+            is_in_india = any(_matches_location(loc, hay) for loc in INDIA_LOCATIONS)
+            is_remote = allow_remote and any(h in hay for h in REMOTE_HINTS)
+            is_hybrid = allow_remote and any(h in hay for h in HYBRID_HINTS)
+            if not is_in_india and not is_remote and not is_hybrid:
+                stats["location"] += 1
+                continue
+        elif locs:
+            is_in_target = any(_matches_location(loc, hay) for loc in locs)
             is_remote = allow_remote and any(h in hay for h in REMOTE_HINTS)
             is_hybrid = allow_remote and any(h in hay for h in HYBRID_HINTS)
             if not is_remote and not is_hybrid and not is_in_target:

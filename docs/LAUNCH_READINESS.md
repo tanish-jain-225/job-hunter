@@ -20,7 +20,7 @@ identity guarantees, not extra steps required for the current deployment.
 - Resume upload behavior is now consistent: PDF and TXT are supported; DOCX is
   not advertised or silently decoded as text.
 - Offline HMAC token verification (`SUPABASE_JWT_SECRET`) and resilient client-side session auto-refresh lifecycle prevent false-positive session drops on Vercel.
-- Regression status: 421 tests pass on the current suite; affected release
+- Regression status: 424 tests pass on the current suite; affected release
   tests, Ruff, coverage, and workflow YAML validation pass.
 
 ## Current release status

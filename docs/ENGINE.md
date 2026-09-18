@@ -25,7 +25,7 @@ graph TD
 Before any LLM token is spent, all fetched postings are run through quick regex and date matches defined in [config.yaml](../config.yaml):
 * **Include Titles:** Matches target roles (e.g., `software engineer`, `backend`, `intern`).
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
-* **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`.
+* **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`. Supports `all_india` preference with automatic tech hub matching and non-India exclusion heuristics.
 * **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
 * **Date Freshness:** Discards jobs published longer than `max_age_days` (default `21` days) ago.
 
@@ -48,6 +48,7 @@ The LLM is prompted to assign a score from **`0.0` to `10.0`** based on:
 2. **Seniority Alignment:** Does the job match the target seniority level (e.g. Intern/Junior vs. Principal)?
 3. **Domain Match:** Does the job domain align with the candidate's experience?
 4. **India & Remote Eligibility:** Evaluates location compatibility for Indian and remote-friendly roles.
+5. **Notice Period & Target CTC Context:** Injects candidate availability (e.g. 15 or 30 days) and target compensation in ₹ LPA into evaluation prompts.
 
 The LLM returns a JSON list:
 ```json
@@ -73,7 +74,9 @@ The engine sends the full job description (up to **6,000 characters**, configure
 * **Tailored Resume Bullets:** 3 high-impact bullet points demonstrating skills matching the job requirements that you can insert into your resume.
 * **Gaps Analysis:** An honest assessment of missing requirements and how to address them.
 * **Cover Note:** A direct, professional outreach letter tailored directly to the hiring team.
-* **Cold Outreach:** A concise (<80 words) direct message for LinkedIn/email networking.
+* **Cold Outreach:** A concise (<80 words) recruiter outreach message referencing the exact role title, tech match, and candidate availability.
+* **Referral Request:** A short (<60 words) LinkedIn message asking an engineering peer or alumnus for an internal referral with key tech alignment.
+* **Salary Range (INR/USD):** Extracted compensation formatted as `₹X-Y LPA` for full-time Indian roles, `₹Xk/mo` for internships, or `USD $X-Y`.
 * **Interview Questions:** 2 sharp technical questions showing thorough reading of the JD.
 
 ---

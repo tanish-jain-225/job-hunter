@@ -735,6 +735,20 @@ pre,
   margin-bottom: 0;
 }
 
+/* Responsive 3-Column Flex Form Row */
+.form-grid-3 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+}
+
+.form-grid-3 > .form-group {
+  flex: 1 1 180px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .form-label-row {
   display: flex;
   justify-content: space-between;
@@ -3716,6 +3730,83 @@ input:checked + .slider::before {
   border-color: var(--primary);
   background: var(--primary-light);
   color: var(--primary);
+}
+
+/* India-First Hub Preset Chips */
+.tech-hub-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hub-chip {
+  background: var(--bg-muted, #f1f5f9);
+  color: var(--text-body, #334155);
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.hub-chip:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: var(--text-heading, #0f172a);
+}
+
+.hub-chip.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #3b82f6;
+  font-weight: 700;
+}
+
+/* India Eligibility & LPA Compensation Card Badges */
+.badge-india-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 9999px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.badge-salary-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 9999px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.kit-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 /* Copy Button */

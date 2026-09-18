@@ -17,6 +17,7 @@
 const STORAGE_KEYS = {
   ACTIVE_TAB: 'jobhunt_active_tab',
   STATUS_FILTER: 'jobhunt_status_filter',
+  LOCATION_FILTER: 'jobhunt_location_filter',
   SEARCH_QUERY: 'jobhunt_search_query',
   ATS_FILTER: 'jobhunt_ats_filter',
   SORT_BY: 'jobhunt_sort_by',
@@ -61,11 +62,54 @@ const Storage = {
   }
 };
 
+// Indian Tech Hubs & Compensation Helpers
+const INDIA_CITIES = [
+  'bengaluru', 'bangalore', 'hyderabad', 'pune', 'delhi', 'ncr', 'noida', 'gurugram', 'gurgaon',
+  'mumbai', 'chennai', 'kolkata', 'ahmedabad', 'india', 'ind'
+];
+
+function isIndiaJob(j) {
+  if (!j) return false;
+  const loc = (j.location || '').toLowerCase();
+  if (INDIA_CITIES.some(c => loc.includes(c))) return true;
+  if (/\b(in|ind|india)\b/i.test(loc)) return true;
+  return false;
+}
+
+function isRemoteJob(j) {
+  if (!j) return false;
+  const loc = (j.location || '').toLowerCase();
+  const title = (j.title || '').toLowerCase();
+  return ['remote', 'wfh', 'hybrid', 'anywhere', 'work from home'].some(k => loc.includes(k) || title.includes(k));
+}
+
+function formatSalaryBadge(j) {
+  if (!j) return '';
+  let sal = (j.salary || '').trim();
+  if (!sal && j.title) {
+    const match = j.title.match(/(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)/i) ||
+                  j.title.match(/(₹\s*[\d,]+(?:\s*-\s*₹?\s*[\d,]+)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)/i);
+    if (match) sal = match[1];
+  }
+  if (!sal && j.description) {
+    const descSample = j.description.slice(0, 500);
+    const match = descSample.match(/(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)/i) ||
+                  descSample.match(/(₹\s*[\d,]+(?:\s*-\s*₹?\s*[\d,]+)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)/i) ||
+                  descSample.match(/(₹\s*[\d,]+(?:\s*stipend)?)/i);
+    if (match) sal = match[1];
+  }
+  if (!sal) return '';
+  const isRupee = sal.includes('₹') || /lpa|lakh|lac/i.test(sal);
+  const icon = isRupee ? '₹' : '💰';
+  return `<span class="badge-salary-pill" title="Compensation / Stipend">${icon} ${escapeHtml(sal)}</span>`;
+}
+
 // Global In-Memory Application State
 const appState = {
   version: null,
   stats: { tracked: 0, emailed: 0, applied: 0, shortlisted: 0, unapplied: 0 },
   filter: 'all',
+  locationFilter: Storage.get(localStorage, STORAGE_KEYS.LOCATION_FILTER, 'all') || 'all',
   ats: 'all',
   sort: 'date',
   search: '',
@@ -371,7 +415,7 @@ function renderJobsListHtml(jobs) {
       </div>
       <div class="cloud-radar-info">
         <div class="cloud-radar-title">Autonomous Cloud Radar Active (GitHub Actions)</div>
-        <div class="cloud-radar-sub">Scouting 88+ ATS company boards across 10,000+ job listings in the cloud. New matching roles will automatically sync upon completion (~1–2 minutes).</div>
+        <div class="cloud-radar-sub">Scouting 94+ ATS company boards across 10,000+ job listings in the cloud. New matching roles will automatically sync upon completion (~1–2 minutes).</div>
       </div>
     </div>
   ` : '';
@@ -663,6 +707,12 @@ function syncUrlState() {
       url.searchParams.set('search', appState.search);
     } else {
       url.searchParams.delete('search');
+    }
+
+    if (appState.locationFilter && appState.locationFilter !== 'all') {
+      url.searchParams.set('loc', appState.locationFilter);
+    } else {
+      url.searchParams.delete('loc');
     }
 
     if (appState.activeKitId) {
@@ -1129,10 +1179,12 @@ function renderJobCardHtml(j, isNew = false) {
   const scoreClass = j.score >= 8.5 ? 'score-high' : (j.score >= 7.0 ? 'score-mid' : 'score-low');
   const stage = j.application_stage || (j.applied ? 'applied' : 'to_apply');
   const isApplied = Boolean(j.applied || stage === 'applied' || stage === 'interviewing' || stage === 'offer' || stage === 'rejected');
-  const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach);
+  const hasDraft = j.draft && (j.draft.cover_note || j.draft.fit_summary || j.draft.cold_outreach || j.draft.referral_request);
   const applyUrl = resolveJobUrl(j);
   const searchQuery = appState.search;
   const followupInfo = getElapsedAppliedInfo(j);
+  const isIndia = isIndiaJob(j);
+  const salaryBadge = formatSalaryBadge(j);
 
   return `
     <div class="job-item ${isNew ? 'job-item-new' : ''}" id="job-card-${escapeHtml(j.job_id)}">
@@ -1146,6 +1198,8 @@ function renderJobCardHtml(j, isNew = false) {
         <div class="job-sub">
           <span class="job-sub-company"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>${highlightText(j.company, searchQuery)}</span>
           <span class="job-sub-location"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>${highlightText(j.location || 'Remote/Unspecified', searchQuery)}</span>
+          ${isIndia ? '<span class="badge-india-pill">🇮🇳 India</span>' : ''}
+          ${salaryBadge}
           <span class="job-sub-id">(${escapeHtml(j.job_id)})</span>
         </div>
         ${j.reason ? `<div class="job-reason">${escapeHtml(j.reason)}</div>` : ''}
@@ -1184,14 +1238,17 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
   const searchInput = document.getElementById('tracker-search-input');
   const atsSelect = document.getElementById('tracker-ats-select');
   const sortSelect = document.getElementById('tracker-sort-select');
+  const locFilterSelect = document.getElementById('tracker-location-filter') || document.getElementById('tracker-location-select');
 
   appState.search = searchInput ? searchInput.value.trim() : '';
   appState.ats = atsSelect ? atsSelect.value : 'all';
   appState.sort = sortSelect ? sortSelect.value : 'date';
+  if (locFilterSelect) appState.locationFilter = locFilterSelect.value || 'all';
 
   Storage.set(localStorage, STORAGE_KEYS.SEARCH_QUERY, appState.search);
   Storage.set(localStorage, STORAGE_KEYS.ATS_FILTER, appState.ats);
   Storage.set(localStorage, STORAGE_KEYS.SORT_BY, appState.sort);
+  Storage.set(localStorage, STORAGE_KEYS.LOCATION_FILTER, appState.locationFilter);
   syncUrlState();
 
   if (jobsAbortController) {
@@ -1241,7 +1298,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                 </div>
                 <div class="empty-state-title">Autonomous Cloud Radar in Progress (GitHub Actions)...</div>
                 <div class="empty-state-desc">
-                  Scanning 88+ ATS company boards across 10,000+ job listings in the cloud and matching roles to your candidate profile with Gemini 3.5 Flash. Please wait (~1–2 minutes)!
+                  Scanning 94+ ATS company boards across 10,000+ job listings in the cloud and matching roles to your candidate profile with Gemini 3.5 Flash. Please wait (~1–2 minutes)!
                 </div>
                 <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Autonomous cloud runner active... Dispatching worker nodes and querying company boards...</div>
               </div>
@@ -1256,7 +1313,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Candidate Profile Required</div>
                   <div class="empty-state-desc">
-                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 88+ company boards.
+                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 94+ company boards.
                   </div>
                   <button class="btn btn-primary" onclick="openProfileModal()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -1272,7 +1329,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Your Live Job Radar is Ready</div>
                   <div class="empty-state-desc">
-                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 88+ company boards!
+                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 94+ company boards!
                   </div>
                   <button class="btn btn-primary" onclick="runPipeline()" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -1313,6 +1370,12 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
       filteredJobs = filteredJobs.filter(j => kw.some(k => (j.title || '').toLowerCase().includes(k) || (j.location || '').toLowerCase().includes(k)));
     }
 
+    if (appState.locationFilter === 'india') {
+      filteredJobs = filteredJobs.filter(j => isIndiaJob(j));
+    } else if (appState.locationFilter === 'remote') {
+      filteredJobs = filteredJobs.filter(j => isRemoteJob(j));
+    }
+
     appState.jobsList = filteredJobs;
     appState.jobsMap = {};
     filteredJobs.forEach(j => { appState.jobsMap[j.job_id] = j; });
@@ -1345,17 +1408,28 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
   }
 }
 
+function handleLocationFilterChange(val) {
+  appState.locationFilter = val || 'all';
+  Storage.set(localStorage, STORAGE_KEYS.LOCATION_FILTER, appState.locationFilter);
+  syncUrlState();
+  fetchAndRenderJobs(true);
+}
+
 function resetFiltersAndSearch() {
   const searchInput = document.getElementById('tracker-search-input');
   const atsSelect = document.getElementById('tracker-ats-select');
+  const locSelect = document.getElementById('tracker-location-filter') || document.getElementById('tracker-location-select');
   const clearBtn = document.getElementById('search-clear-btn');
 
   if (searchInput) searchInput.value = '';
   if (clearBtn) clearBtn.style.display = 'none';
   if (atsSelect) atsSelect.value = 'all';
+  if (locSelect) locSelect.value = 'all';
 
   appState.search = '';
   appState.ats = 'all';
+  appState.locationFilter = 'all';
+  Storage.set(localStorage, STORAGE_KEYS.LOCATION_FILTER, 'all');
   appState.page = 1;
   setFilter('all');
 }
@@ -1387,13 +1461,43 @@ function clearSearch() {
   fetchAndRenderJobs(false);
 }
 
+// Robust cross-browser clipboard copy helper with legacy fallback
+function copyTextSafely(text) {
+  if (navigator.clipboard && window.isSecureContext && typeof navigator.clipboard.writeText === 'function') {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        resolve();
+      } else {
+        reject(new Error('Browser execCommand copy rejected'));
+      }
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 // Copy section text helper
 function copySectionText(textId, btnId) {
   const el = document.getElementById(textId);
   if (!el) return;
   const txt = el.innerText;
   
-  navigator.clipboard.writeText(txt).then(() => {
+  copyTextSafely(txt).then(() => {
     const btn = document.getElementById(btnId);
     if (!btn) return;
 
@@ -1401,6 +1505,8 @@ function copySectionText(textId, btnId) {
     let originalHtml = '';
     if (type === 'outreach') {
       originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
+    } else if (type === 'referral') {
+      originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Referral Note</span>`;
     } else if (type === 'cover') {
       originalHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
     } else if (type === 'followup') {
@@ -1471,10 +1577,25 @@ function openKitModal(jobId) {
   const d = j.draft || {};
   let html = '';
 
+  const isIndia = isIndiaJob(j);
+  const salaryBadge = formatSalaryBadge(j);
+  const notice = activeProfileData?.notice_period;
+  const expCtc = activeProfileData?.expected_ctc_lpa;
+
+  html += `
+    <div class="kit-context-strip">
+      ${isIndia ? '<span class="badge-india-pill">🇮🇳 India-Based Opportunity</span>' : '<span style="color:var(--text-muted); font-size:12px; font-weight:600;">🌐 Global Opportunity</span>'}
+      ${salaryBadge}
+      ${notice ? `<span class="kit-meta-item"><strong>Notice:</strong> ${escapeHtml(notice.replace(/_/g, ' '))}</span>` : ''}
+      ${expCtc != null && expCtc !== '' ? `<span class="kit-meta-item"><strong>Expected CTC:</strong> ₹${escapeHtml(String(expCtc))} LPA</span>` : ''}
+    </div>
+  `;
+
   const hasContent = Boolean(
     d.fit_summary ||
     d.cover_note ||
     d.cold_outreach ||
+    d.referral_request ||
     (d.tailored_bullets && d.tailored_bullets.length) ||
     (d.followup && d.followup.email_body)
   );
@@ -1493,9 +1614,21 @@ function openKitModal(jobId) {
     html += `<div class="kit-section"><div class="kit-label">Why It Fits</div><p style="font-size:13px; line-height:1.6; color:var(--text-body);">${escapeHtml(d.fit_summary)}</p></div>`;
   }
 
+  const referralLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Referral Note</span>`;
   const outreachLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Outreach</span>`;
   const coverLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Note</span>`;
   const followupLabelSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Follow-Up</span>`;
+
+  if (d.referral_request) {
+    html += `
+      <div class="kit-section">
+        <div class="kit-label">
+          <span>LinkedIn Referral Request (&lt;60 words)</span>
+          <button class="copy-btn" id="btn-copy-referral" data-original="referral" onclick="copySectionText('referral-text', 'btn-copy-referral')">${referralLabelSvg}</button>
+        </div>
+        <div class="cover-box" id="referral-text" style="background:#f0fdf4; color:#166534; border-color:#bbf7d0; font-family:var(--font-mono, monospace); font-size:12.5px;">${escapeHtml(d.referral_request)}</div>
+      </div>`;
+  }
 
   if (d.followup && d.followup.email_body) {
     html += `
@@ -1995,6 +2128,23 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const onbCities = document.getElementById('onboard-specific-cities');
   if (onbCities) onbCities.value = citiesStr;
 
+  // Indian Context Preferences (Notice Period, Current & Expected CTC)
+  const noticeInput = document.getElementById('prof-notice-period');
+  if (noticeInput) {
+    noticeInput.value = p.notice_period || 'immediate';
+  }
+  const currentCtcInput = document.getElementById('prof-current-ctc');
+  if (currentCtcInput) {
+    currentCtcInput.value = (p.current_ctc_lpa != null && p.current_ctc_lpa !== '') ? String(p.current_ctc_lpa) : '';
+  }
+  const expectedCtcInput = document.getElementById('prof-expected-ctc');
+  if (expectedCtcInput) {
+    expectedCtcInput.value = (p.expected_ctc_lpa != null && p.expected_ctc_lpa !== '') ? String(p.expected_ctc_lpa) : '';
+  }
+
+  // Update active state of Indian Tech Hub preset chips
+  updateHubChipsActiveState();
+
   const onbEmailInput = document.getElementById('onboard-prof-email');
   if (onbEmailInput) {
     const authEmail = currentAuthSession?.user?.email || '';
@@ -2004,6 +2154,47 @@ function populateSection2FromProfile(p, isAutoFill = false) {
       onbEmailInput.value = authEmail;
     }
   }
+}
+
+// Preset Indian tech hub chip toggles
+function toggleCityPreset(city) {
+  const profRadio = document.querySelector('input[name="prof-location-pref"][value="specific_cities"]');
+  if (profRadio) {
+    profRadio.checked = true;
+    document.querySelectorAll('input[name="prof-location-pref"]').forEach(r => {
+      r.closest('.radio-option')?.classList.toggle('active', r.checked);
+    });
+  }
+  const profSpecificContainer = document.getElementById('prof-specific-cities-input');
+  if (profSpecificContainer) profSpecificContainer.style.display = 'block';
+
+  const input = document.getElementById('prof-specific-cities');
+  if (!input) return;
+
+  let currentCities = input.value.split(',').map(s => s.trim()).filter(Boolean);
+  const cityLower = city.toLowerCase();
+  const existingIdx = currentCities.findIndex(c => c.toLowerCase() === cityLower);
+
+  if (existingIdx >= 0) {
+    currentCities.splice(existingIdx, 1);
+  } else {
+    currentCities.push(city);
+  }
+  input.value = currentCities.join(', ');
+  updateHubChipsActiveState();
+}
+
+function updateHubChipsActiveState() {
+  const input = document.getElementById('prof-specific-cities');
+  const val = (input ? input.value : '').toLowerCase();
+  const currentCities = val.split(',').map(s => s.trim()).filter(Boolean);
+
+  document.querySelectorAll('.hub-chip').forEach(chip => {
+    const rawCity = chip.getAttribute('data-city') || chip.innerText.replace(/^[+✓]\s*/, '').trim();
+    const isActive = currentCities.some(c => c.toLowerCase() === rawCity.toLowerCase());
+    chip.classList.toggle('active', isActive);
+    chip.innerHTML = (isActive ? '✓ ' : '+ ') + rawCity;
+  });
 }
 
 async function autoFillRolesFromResume() {
@@ -2591,6 +2782,15 @@ async function saveProfilePreferences() {
   const expLevel = getSelectedExpLevel('prof-exp') || deriveExpLevel(years) || activeProfileData?.experience_level || '0-1';
   const locationPref = getLocationPreference('prof-location-pref', 'prof-specific-cities');
 
+  const noticeInput = document.getElementById('prof-notice-period');
+  const noticePeriod = noticeInput ? noticeInput.value : (activeProfileData?.notice_period || 'immediate');
+
+  const curCtcInput = document.getElementById('prof-current-ctc');
+  const curCtc = (curCtcInput && curCtcInput.value.trim() !== '') ? parseFloat(curCtcInput.value) : (activeProfileData?.current_ctc_lpa ?? null);
+
+  const expCtcInput = document.getElementById('prof-expected-ctc');
+  const expCtc = (expCtcInput && expCtcInput.value.trim() !== '') ? parseFloat(expCtcInput.value) : (activeProfileData?.expected_ctc_lpa ?? null);
+
   const payload = {
     name,
     title,
@@ -2610,6 +2810,9 @@ async function saveProfilePreferences() {
     experience_level: expLevel,
     location_preference: locationPref,
     preferred_locations: locationPref,
+    notice_period: noticePeriod,
+    current_ctc_lpa: curCtc,
+    expected_ctc_lpa: expCtc,
     domains: activeProfileData?.domains || parsedResumeData?.domains || [],
     notable_projects: activeProfileData?.notable_projects || parsedResumeData?.notable_projects || []
   };
@@ -2711,7 +2914,7 @@ async function runPipeline() {
 
     if (data.status === 'dispatched') {
       showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
-      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 88+ company boards (~1-2 mins).';
+      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 94+ company boards (~1-2 mins).';
       fetchAndRenderJobs(false);
       startCloudPoller(data.dispatched_at || (Date.now() / 1000));
 
@@ -3081,6 +3284,8 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'Escape') {
     if (document.getElementById('add-job-modal')?.classList.contains('active')) {
       closeAddJobModal();
+    } else if (document.getElementById('add-company-modal')?.classList.contains('active')) {
+      closeAddCompanyModal();
     } else if (document.getElementById('kit-modal')?.classList.contains('active')) {
       closeKitModal();
     } else if (document.getElementById('profile-modal')?.classList.contains('active')) {
@@ -3101,6 +3306,10 @@ document.addEventListener('click', (e) => {
   const addJobModal = document.getElementById('add-job-modal');
   if (addJobModal && e.target === addJobModal) {
     closeAddJobModal();
+  }
+  const addCompanyModal = document.getElementById('add-company-modal');
+  if (addCompanyModal && e.target === addCompanyModal) {
+    closeAddCompanyModal();
   }
   const kitModal = document.getElementById('kit-modal');
   if (kitModal && e.target === kitModal) {
@@ -3579,9 +3788,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sortParam = params.get('sort');
   const searchParam = params.get('search');
   const kitParam = params.get('kit');
+  const locParam = params.get('loc');
 
   appState.activeTab = tabParam || Storage.get(localStorage, STORAGE_KEYS.ACTIVE_TAB, 'digest');
   appState.filter = statusParam || Storage.get(localStorage, STORAGE_KEYS.STATUS_FILTER, 'all');
+  appState.locationFilter = locParam || Storage.get(localStorage, STORAGE_KEYS.LOCATION_FILTER, 'all') || 'all';
   appState.ats = atsParam || Storage.get(localStorage, STORAGE_KEYS.ATS_FILTER, 'all');
   appState.sort = sortParam || Storage.get(localStorage, STORAGE_KEYS.SORT_BY, 'date');
   appState.search = searchParam || Storage.get(localStorage, STORAGE_KEYS.SEARCH_QUERY, '');
@@ -3595,6 +3806,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('search-clear-btn');
   const atsSelect = document.getElementById('tracker-ats-select');
   const sortSelect = document.getElementById('tracker-sort-select');
+  const locFilterSelect = document.getElementById('tracker-location-filter') || document.getElementById('tracker-location-select');
 
   if (searchInput) {
     searchInput.value = appState.search;
@@ -3602,6 +3814,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (atsSelect) atsSelect.value = appState.ats;
   if (sortSelect) sortSelect.value = appState.sort;
+  if (locFilterSelect) locFilterSelect.value = appState.locationFilter;
+
+  const profCitiesInput = document.getElementById('prof-specific-cities');
+  if (profCitiesInput) {
+    profCitiesInput.addEventListener('input', updateHubChipsActiveState);
+  }
 
   // Set filter pill
   document.querySelectorAll('.filter-pills .pill').forEach(el => el.classList.remove('active'));
@@ -3690,7 +3908,7 @@ document.addEventListener('change', (e) => {
 
 // Copy to Clipboard global helper
 function copyToClipboard(text, btnEl) {
-  navigator.clipboard.writeText(text).then(() => {
+  copyTextSafely(text).then(() => {
     const originalText = btnEl.innerHTML;
     btnEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg><span style="color:#059669; font-weight:800;">Copied!</span>`;
     showToast('Copied to clipboard!', 'success');

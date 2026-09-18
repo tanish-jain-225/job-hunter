@@ -88,7 +88,7 @@ jobhunt/
 Two stages for token and rate efficiency:
 
 - **Screen** — batch ~8 jobs per call, truncate each JD to ~1000 chars, return JSON array of `{job_id, score, reason}`. Default: **Google Gemini** (`gemini-3.5-flash`, 1M tokens/day free) for high throughput.
-- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, india_eligibility, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, questions_to_ask[]}`. Default: **Google Gemini** (`gemini-3.5-flash`).
+- **Draft** — only for jobs above the score threshold. Send ~6000 chars of JD, return `{fit_summary, india_eligibility, job_type, salary_range_inr, best_project, tailored_bullets[], matching_skills[], gaps[], cover_note, cold_outreach, referral_request, questions_to_ask[]}`. Default: **Google Gemini** (`gemini-3.5-flash`).
 
 ### Provider Architecture
 Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVIDER` env var:

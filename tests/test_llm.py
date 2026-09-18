@@ -465,3 +465,40 @@ def test_screen_multi_worker_missing_and_invalid_score():
     assert jobs[0].score == 0.0
     assert jobs[0].reason == "invalid score test"
     assert jobs[1].score is None
+
+
+def test_draft_includes_referral_request_and_context():
+    jobs = make_jobs(1)
+    kit = {
+        "fit_summary": "Great fit for backend.",
+        "tailored_bullets": ["Optimized SQL queries."],
+        "gaps": ["None"],
+        "cover_note": "Hi team, excited about the role.",
+        "cold_outreach": "Hi Recruiter, check my profile.",
+        "referral_request": "Hi John, noticed the opening on your team. Would appreciate a referral!",
+        "questions_to_ask": ["What is the tech roadmap?"],
+    }
+    stub = StubProvider([json.dumps(kit)])
+    custom_profile = {
+        "name": "Arjun Sharma",
+        "education": "B.Tech",
+        "core_skills": ["Python", "FastAPI"],
+        "notice_period": "15_days",
+        "expected_ctc_lpa": 18,
+    }
+
+    # Verify prompt builders include notice period and target CTC
+    screen_sys = llm._build_screen_system(custom_profile)
+    assert "Notice: 15 days" in screen_sys
+    assert "Target CTC: ₹18 LPA" in screen_sys
+
+    draft_sys = llm._build_draft_system(custom_profile)
+    assert "15 days" in draft_sys
+    assert "Target CTC: ₹18 LPA" in draft_sys
+    assert "referral_request" in draft_sys
+
+    llm.draft(jobs, custom_profile, provider=stub, model="m")
+    d = jobs[0].draft
+    assert "referral_request" in d
+    assert d["referral_request"] == "Hi John, noticed the opening on your team. Would appreciate a referral!"
+

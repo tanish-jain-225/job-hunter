@@ -52,7 +52,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
     - Direct **Interactive Text Context Editor** (`#prof-resume-text`): review, edit, alter, or enhance your raw resume text context before proceeding.
   * **Section 2: Candidate Profile & Search Criteria ("The Relevant Nuts")**:
     - **1-Click "Auto-Fill from Resume Context" Button** (`#btn-autofill-roles`) at the very top: instantly parses Section 1's edited resume text and populates candidate details, featuring smart in-memory caching to avoid redundant API requests.
-    - Centralized fields for Candidate Name, Target Job Titles (Included), Core Skills, Years of Experience, Education, Excluded Title Keywords, Job Type Preferences (*Full-Time, Internship, Remote, Hybrid, On-Site, Contract, Part-Time*), and Location Preference (*All India, Remote Only, Specific Cities, Global*).
+    - Centralized fields for Candidate Name, Target Job Titles (Included), Core Skills, Years of Experience, Education, Notice Period (*Immediate, 15d, 30d, 60d, 90d*), Current & Expected CTC (*₹ LPA*), Excluded Title Keywords, Job Type Preferences (*Full-Time, Internship, Remote, Hybrid, On-Site, Contract, Part-Time*), and Location Preference (*All India, Remote Only, Specific Cities with quick-add Tech Hub presets for Bengaluru, Hyderabad, Pune, Delhi-NCR, Mumbai, Chennai, Remote*).
   * **Section 3: Alert Settings & Delivery Modes**:
     - Minimum AI match score threshold (1.0 to 10.0, default 7.5).
     - Email Briefing Mode: *Daily Briefing* (automated morning emails sent when matching roles $\ge$ threshold are discovered; clean zero-match digest on 0-match days) vs. *On-Demand Only* (briefings dispatched only when manually clicking "Run Job Hunt Now").
@@ -77,11 +77,12 @@ The dashboard is designed as a single-page application with a premium Light Mode
 ### 5.  Search, Sort, and Status Filters
 * **Interactive Search Bar:** Query by company name, job title, locations, or specific technologies. Press `/` anywhere on the page to focus the search bar, with instant clearing via `Esc`.
 * **Crawl Source Filter:** Filter by ATS platform (*Greenhouse*, *Lever*, *Ashby*, *Workable*, *SmartRecruiters*, *BambooHR*, *Recruitee*, *Breezy HR*, *Pinpoint*, or *Custom*).
+* **Location Filter:** Filter directly by geography (*All Locations*, *🇮🇳 India-Based*, or *🌐 Remote-Friendly*).
 * **Sorting Options:** Sort jobs by *Date*, *Match Score*, or *Company*.
 
 ### 6.  Briefing Digest Reader & Kit Inspector
 * View the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or force a live rebuild.
-* Click **"Inspect Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored cold outreach messages, custom cover notes, resume alignment bullets, and interview prep questions (with clean fallback to opportunity metadata if no AI draft is present).
+* Click **"Inspect Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored recruiter outreach messages, <60-word LinkedIn referral requests (for peer/alumni outreach), custom cover notes, resume alignment bullets, and interview prep questions (with clean fallback to opportunity metadata if no AI draft is present).
 
 ### 7.  Live Pipeline Trigger
 * An **"On-Demand Pipeline Trigger"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.

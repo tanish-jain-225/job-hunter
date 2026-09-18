@@ -725,14 +725,28 @@ def api_run():
     # Build custom_filters from user's search preferences
     custom_filters = {}
     if user_profile:
+        loc_pref = user_profile.get("location_preference")
         preferred_locs = user_profile.get("preferred_locations") or []
         job_types = user_profile.get("job_types") or []
         exp_level = user_profile.get("experience_level") or ""
 
-        # Location filter: if user set preferred locations, use them; otherwise all-India open
-        if preferred_locs:
+        # Location filter: handle both string and structured dict preferences cleanly
+        if isinstance(loc_pref, dict):
+            if loc_pref.get("type") == "all_india":
+                custom_filters["locations"] = ["all_india"]
+            elif loc_pref.get("locations"):
+                custom_filters["locations"] = loc_pref["locations"]
+        elif loc_pref == "all_india":
+            custom_filters["locations"] = ["all_india"]
+        elif isinstance(preferred_locs, dict):
+            if preferred_locs.get("type") == "all_india":
+                custom_filters["locations"] = ["all_india"]
+            elif preferred_locs.get("locations"):
+                custom_filters["locations"] = preferred_locs["locations"]
+        elif isinstance(preferred_locs, list) and preferred_locs:
             custom_filters["locations"] = preferred_locs
-        # else: leave empty = accept all locations
+        elif isinstance(preferred_locs, str) and preferred_locs:
+            custom_filters["locations"] = [preferred_locs]
 
         # Job types filter
         if job_types:

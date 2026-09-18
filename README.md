@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-421%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-424%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-90%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -45,10 +45,10 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 **Job Hunter (`job-hunter`)** flips the model completely. It is your private, autonomous career intelligence agent that runs continuously:
 
-1. **Scouts Public ATS Endpoints Directly**: Discovers open positions directly from public, unauthenticated career board APIs across 88+ curated tech companies and 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, and **Pinpoint**) with zero brittle web scraping and zero authentication barriers.
+1. **Scouts Public ATS Endpoints Directly**: Discovers open positions directly from public, unauthenticated career board APIs across 94+ curated tech companies and 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, and **Pinpoint**) with zero brittle web scraping and zero authentication barriers.
 2. **Eliminates Noise at $0 Cost**: Drops ~98% of out-of-scope, senior executive, or stale postings deterministically using fast regex title, location, and freshness rules **before spending a single AI token**.
 3. **Evaluates Fit via Google Gemini 3.5 Flash**: Batches surviving jobs (8 jobs/request) to compute structured candidate fit scores (0.0 to 10.0) against your parsed resume context using **Google Gemini (`gemini-3.5-flash`)**, featuring 1M free daily tokens per project, circular multi-key rotation, 15 RPM leaky-bucket pacing, and automated dynamic fallback cascades (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`).
-4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word LinkedIn networking outreach messages, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.0+).
+4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.0+).
 5. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
 6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links.
 7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions—supporting **300 Daily Active Users out-of-the-box** (and up to **500–1,040 users** with multi-key CSV rotation) at **$0.00/month** total operating cost.
@@ -61,7 +61,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 | Dimension | Commercial SaaS (Teal, Huntr, Jobscan) | Job Hunter (Autonomous Agent) |
 |---|---|---|
 | **Monthly Cost** | **$30 – $50 / month** ($360 – $600 / year) | **$0.00 / month forever** (100% Free Stack) |
-| **Sourcing Method** | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (88+ curated boards, 9 engines) |
+| **Sourcing Method** | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (94+ curated boards, 9 engines) |
 | **AI Intelligence** | Generic GPT-4o-mini wrappers | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
 | **Automation** | Manual tracking logins | **Automated Daily Morning Digest** (05:00 AM in your inbox) |
 | **Application Policy** | Risky auto-apply bots or manual entry | **The Golden Rule**: Scout & Draft; Human Submits |
@@ -128,7 +128,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 [3. LLM Screening] ───────── Batched candidate fit evaluation (0.0 to 10.0) via Google Gemini 3.5 Flash (llm.py)
            │                 └─ Multi-key rotation, 15 RPM leaky-bucket pacing & fallback cascades
            ▼
-[4. Kit Drafting] ────────── Tailored cover notes, LinkedIn DMs, matching bullets & interview prep for >= 7.0 (llm.py)
+[4. Kit Drafting] ────────── Tailored cover notes, recruiter DMs, referral requests, matching bullets & prep for >= 7.0 (llm.py)
            │
            ▼
 [5. Persistence] ─────────── Local JSON (seen.json) / Supabase PostgreSQL with Row-Level Security (store.py / memory.py)
@@ -507,7 +507,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 421 automated test cases with 90%+ line coverage
+├── tests/                    # 424 automated test cases with 90%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -522,7 +522,7 @@ job-hunter/
 │   ├── ci.yml                # CI test matrix (Python 3.9-3.12), linting, typing & coverage gates
 │   └── daily.yml             # Scheduled daily morning batch crawler & email briefing
 ├── config.yaml               # Deterministic filter rules & LLM batch thresholds
-├── companies.yaml            # 88+ curated company boards across 9 ATS engines
+├── companies.yaml            # 94+ curated company boards across 9 ATS engines
 ├── app.py                    # Local WSGI development server
 └── auto.py                   # Master cross-platform pipeline launcher script
 ```
@@ -554,7 +554,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**421 unit & integration tests**):
+Run the full automated test suite locally (**424 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -578,7 +578,7 @@ ruff check .
 | **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | Verified |
 | **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | Verified |
 | **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **421 passed tests** with 100% success rate | Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **424 passed tests** with 100% success rate | Verified |
 | **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across all source files | Verified |
 | **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | Verified |
 
