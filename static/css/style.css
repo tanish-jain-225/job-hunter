@@ -263,6 +263,7 @@ pre,
 .brand-logo-frame {
   width: 36px;
   height: 36px;
+  aspect-ratio: 1 / 1;
   border-radius: 9px;
   background: var(--primary-light);
   border: 1px solid var(--primary-border);
@@ -280,6 +281,7 @@ pre,
 .brand-logo {
   width: 100%;
   height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
   display: block;
 }
@@ -288,6 +290,7 @@ pre,
   display: flex;
   align-items: center;
   justify-content: center;
+  aspect-ratio: 1 / 1;
 }
 
 /* Universal Logo Containers: Guaranteed Margins & Padding to Prevent Any Overlaps or Touching */
@@ -303,6 +306,7 @@ pre,
   flex-shrink: 0 !important;
   margin-right: 12px !important;
   box-sizing: border-box !important;
+  aspect-ratio: 1 / 1 !important;
 }
 
 .digest-footer-logo-frame,
@@ -313,9 +317,10 @@ pre,
   flex-shrink: 0 !important;
   margin-right: 10px !important;
   box-sizing: border-box !important;
+  aspect-ratio: 1 / 1 !important;
 }
 
-/* Universal Logo Visibility Guard (Prevents Any Container from Squishing or Hiding Logos) */
+/* Universal Logo Visibility & Aspect-Ratio Guard (Prevents Any Container from Squishing or Hiding Logos) */
 .brand-logo-frame,
 .brand-logo,
 .brand-fallback-icon,
@@ -331,6 +336,8 @@ pre,
 .digest-footer-logo {
   flex-shrink: 0 !important;
   min-width: fit-content;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: contain !important;
 }
 
 .brand-text-block {
@@ -4169,6 +4176,7 @@ input:checked + .slider::before {
     height: 24px !important;
     min-width: 24px !important;
     min-height: 24px !important;
+    aspect-ratio: 1 / 1 !important;
     padding: 1px !important;
     margin-right: 8px !important;
     border-radius: 5px !important;
@@ -5269,6 +5277,8 @@ input:checked + .slider::before {
     width: 20px !important;
     height: 20px !important;
     min-width: 20px !important;
+    min-height: 20px !important;
+    aspect-ratio: 1 / 1 !important;
   }
 
   .landing-hero-title {

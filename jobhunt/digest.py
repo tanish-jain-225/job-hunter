@@ -226,7 +226,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
       <td valign="top" style="width:36px;vertical-align:top;padding:0 12px 0 0;">
         <div class="empty-logo-frame" style="background:#eff6ff;line-height:1;padding:6px;border-radius:10px;border:1px solid #bfdbfe;display:block;">
           <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
-            <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" border="0" class="empty-logo-img" style="display:block;width:32px;height:32px;border-radius:6px;outline:none;border:none;">
+            <img src="{LOGO_URL}" alt="Job Hunter" width="32" height="32" border="0" class="empty-logo-img" style="display:block;width:32px;height:32px;aspect-ratio:1/1;object-fit:contain;border-radius:6px;outline:none;border:none;">
           </a>
         </div>
       </td>
@@ -267,6 +267,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     body {{ margin: 0; padding: 0; background-color: {BG}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; color: {TEXT}; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }}
     table, td {{ border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
     img {{ max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }}
+    .digest-logo-img, .empty-logo-img, .digest-footer-logo {{ aspect-ratio: 1 / 1 !important; object-fit: contain !important; }}
     @media only screen and (max-width: 480px) {{
       .digest-wrap {{ padding: 12px 8px !important; }}
       .digest-card {{ padding: 16px 14px !important; border-radius: 10px !important; margin-bottom: 14px !important; }}
@@ -300,7 +301,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         <tr>
           <td valign="middle" style="width:40px;vertical-align:middle;padding:0 12px 0 0;">
             <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;">
-              <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" border="0" class="digest-logo-img" style="display:block;width:40px;height:40px;border-radius:10px;border:1px solid {LINE};object-fit:contain;outline:none;text-decoration:none;">
+              <img src="{LOGO_URL}" alt="Job Hunter Logo" width="40" height="40" border="0" class="digest-logo-img" style="display:block;width:40px;height:40px;aspect-ratio:1/1;object-fit:contain;border-radius:10px;border:1px solid {LINE};outline:none;text-decoration:none;">
             </a>
           </td>
           <td valign="middle" style="vertical-align:middle;text-align:left;">
@@ -338,7 +339,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
         <tr>
           <td valign="top" style="width:20px;vertical-align:top;padding:2px 8px 0 0;">
             <a href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;">
-              <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" border="0" class="digest-footer-logo" style="display:block;width:20px;height:20px;border-radius:4px;border:1px solid {LINE};outline:none;text-decoration:none;">
+              <img src="{LOGO_URL}" alt="Job Hunter" width="20" height="20" border="0" class="digest-footer-logo" style="display:block;width:20px;height:20px;aspect-ratio:1/1;object-fit:contain;border-radius:4px;border:1px solid {LINE};outline:none;text-decoration:none;">
             </a>
           </td>
           <td valign="top" style="vertical-align:top;text-align:left;">
