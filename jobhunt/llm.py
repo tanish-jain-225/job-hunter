@@ -283,7 +283,8 @@ def screen(
         provider, model = resolve("screen")
 
     batch_size = max(1, int(batch_size))
-    profile_blob = json.dumps(profile, ensure_ascii=False)
+    clean_profile = {k: v for k, v in (profile or {}).items() if k not in ("resume_text", "raw_resume", "raw_text", "resume_bytes")}
+    profile_blob = json.dumps(clean_profile, ensure_ascii=False)
     batches = [jobs[i : i + batch_size] for i in range(0, len(jobs), batch_size)]
     system_prompt = _build_screen_system(profile)
 
