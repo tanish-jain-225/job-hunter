@@ -598,7 +598,7 @@ Run this diagnostic checklist to verify every subsystem:
 |---|---|---|:---:|
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
 | **2. Board Reachability** | `jobhunt verify --workers 10` | 94/94 boards verified reachable (HTTP 200) | ✅ Passed |
-| **3. Automated Test Suite** | `python -m pytest tests/` | **424 passed tests** in ~55s | ✅ Passed |
+| **3. Automated Test Suite** | `python -m pytest tests/` | **429 passed tests** in ~55s | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
 | **5. Type Checking** | `mypy jobhunt` | Success: no issues found | ✅ Passed |
 | **6. Code Linting** | `ruff check .` | All checks passed (0 errors) | ✅ Passed |

@@ -349,3 +349,170 @@ def test_api_jobs_notes_returns_version_and_stats(client, monkeypatch: pytest.Mo
     assert "version" in data
     assert "stats" in data
     assert data["notes"] == "Top fit"
+
+
+# ==============================================================================
+# 6. Critical Coverage Boosters (Views, Clean, State, Prefilter, CLI)
+# ==============================================================================
+
+
+def test_views_serve_favicon_fallback_and_auth_misconfigured(client, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    # 1. Favicon fallback when favicon.ico is absent
+    fake_root = tmp_path / "fake_root"
+    (fake_root / "static" / "assets").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr("jobhunt.web.routes.views.ROOT", fake_root)
+    # Neither favicon nor logo
+    resp = client.get("/favicon.ico")
+    assert resp.status_code == 204
+
+    # With logo only
+    logo_file = fake_root / "static" / "assets" / "logo.png"
+    logo_file.write_bytes(b"\x89PNG\r\n\x1a\n")
+    resp_logo = client.get("/favicon.ico")
+    assert resp_logo.status_code == 200
+
+    # 2. API Auth Config misconfiguration on Vercel
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+    resp_cfg = client.get("/api/auth/config")
+    assert resp_cfg.status_code == 503
+    assert resp_cfg.json["code"] == "AUTH_BACKEND_MISCONFIGURED"
+
+
+def test_clean_workspace_scratch_dir(tmp_path: Path):
+    from jobhunt.clean import find_cleanable_files
+    scratch_dir = tmp_path / "scratch"
+    scratch_dir.mkdir()
+    scratch_file = scratch_dir / "transient_file.txt"
+    scratch_file.write_text("temporary")
+    cleanables = find_cleanable_files(tmp_path)
+    assert scratch_file in cleanables
+
+
+def test_state_profile_path_read_and_circular_log_buffer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import json
+    from jobhunt.web.state import (
+        get_user_profile,
+        publish_user_pipeline_log,
+        get_user_pipeline_logs,
+        clear_user_pipeline_logs,
+        _MAX_LOGS_PER_USER,
+    )
+    # 1. Profile file read fallback in get_user_profile
+    fake_profile = tmp_path / "profile.json"
+    fake_profile.write_text(json.dumps({"name": "File Profile User", "target_roles": ["SDE"]}), encoding="utf-8")
+    cfg = {"profile_file": str(fake_profile)}
+    monkeypatch.setattr("jobhunt.store.get_user_profile_path", lambda pf, email: fake_profile)
+    p = get_user_profile(cfg, email="test_file_user@example.com", token=None)
+    assert p.get("name") == "File Profile User"
+
+    # Corrupt profile file handling
+    fake_profile.write_text("{corrupt-json", encoding="utf-8")
+    p_bad = get_user_profile(cfg, email="test_bad_user@example.com", token=None)
+    assert p_bad == {}
+
+    # 2. Circular log buffer max limit
+    user_email = "circular_logger@example.com"
+    clear_user_pipeline_logs(user_email)
+    for i in range(_MAX_LOGS_PER_USER + 15):
+        publish_user_pipeline_log(user_email, f"Log message {i}")
+    logs = get_user_pipeline_logs(user_email)
+    assert len(logs) == _MAX_LOGS_PER_USER
+    assert logs[-1] == f"Log message {_MAX_LOGS_PER_USER + 14}"
+    clear_user_pipeline_logs(user_email)
+    assert len(get_user_pipeline_logs(user_email)) == 0
+
+
+def test_prefilter_all_india_dict_and_location_heuristics():
+    from jobhunt.fetch import Job
+    from jobhunt.prefilter import prefilter, _detect_job_type
+
+    # Job type heuristics
+    contract_types = _detect_job_type(Job(job_id="c1", ats="lever", company="C", title="Contract React Developer", location="Remote", url="#", description=""))
+    assert "contract" in contract_types
+    parttime_types = _detect_job_type(Job(job_id="p1", ats="lever", company="P", title="Part-time Technical Writer", location="Remote", url="#", description=""))
+    assert "parttime" in parttime_types
+
+    # Prefilter with dict location preferences: all_india vs specific
+    cfg_all_india = {
+        "location_preference": {"type": "all_india"},
+        "include_titles": ["Engineer"],
+        "allow_remote": True,
+    }
+    jobs = [
+        Job(job_id="1", ats="lever", company="A", title="Backend Engineer", location="Bengaluru, Karnataka, India", url="#", description=""),
+        Job(job_id="2", ats="lever", company="B", title="Software Engineer", location="London, UK", url="#", description=""),
+        Job(job_id="3", ats="lever", company="C", title="Frontend Engineer", location="Anywhere (100% Remote)", url="#", description=""),
+        Job(job_id="4", ats="lever", company="D", title="Staff Engineer", location="US Only - Must reside in USA", url="#", description=""),
+    ]
+    survived = prefilter(jobs, cfg_all_india)
+    survived_ids = [j.job_id for j in survived]
+    assert "1" in survived_ids
+    assert "2" not in survived_ids
+    assert "3" in survived_ids
+    assert "4" not in survived_ids
+
+    # Location preference with specific location list dict
+    cfg_specific = {
+        "location_preference": {"type": "specific", "locations": ["pune"]},
+        "include_titles": ["Engineer"],
+        "allow_remote": False,
+    }
+    pune_job = Job(job_id="5", ats="lever", company="E", title="QA Engineer", location="Pune, India", url="#", description="")
+    survived_spec = prefilter([pune_job], cfg_specific)
+    assert len(survived_spec) == 1
+
+
+def test_cli_run_supabase_sync_success_and_empty_branches(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import argparse
+    from jobhunt.fetch import Job
+
+    mock_mem = MagicMock()
+    mock_mem.is_configured = True
+    monkeypatch.setattr("jobhunt.cli.SupabaseMemory", lambda token=None: mock_mem)
+    monkeypatch.setattr("jobhunt.cli.fetch_all", lambda *a, **k: [
+        Job(job_id="g:1", ats="greenhouse", company="Stripe", title="SDE II", location="Remote", url="#", description="Go")
+    ])
+    monkeypatch.setattr("jobhunt.cli._build_and_send_digest", lambda *a, **k: ("Subject", "<html>Digest</html>"))
+
+    # Case 1: not jobs (empty new jobs)
+    monkeypatch.setattr("jobhunt.cli.prefilter", lambda jobs, cfg: [])
+    args_empty = argparse.Namespace(
+        companies=str(tmp_path / "companies.yaml"),
+        profile=str(tmp_path / "profile.json"),
+        send=False,
+        dry_run=True,
+        scorer="keyword",
+        user_email="sync_empty@example.com",
+        token="tok123",
+        to_email=None,
+    )
+    (tmp_path / "companies.yaml").write_text("companies: []", encoding="utf-8")
+    ret_empty = cli.run_pipeline(
+        args=args_empty,
+        user_email="sync_empty@example.com",
+        token="tok123",
+        mock=True,
+    )
+    assert ret_empty == 0
+    assert mock_mem.update_user_profile_json.called
+    assert mock_mem.record_pipeline_run.called
+
+    # Case 2: successful job run with shortlist
+    mock_mem.reset_mock()
+    monkeypatch.setattr("jobhunt.cli.prefilter", lambda jobs, cfg: jobs)
+    monkeypatch.setattr("jobhunt.cli._screen_jobs", lambda jobs, profile, args, cfg: None)
+    monkeypatch.setattr("jobhunt.cli._select_shortlist", lambda jobs, cfg, profile=None: (jobs, jobs))
+    monkeypatch.setattr("jobhunt.cli._draft_kits", lambda *a, **k: None)
+
+    ret_success = cli.run_pipeline(
+        args=args_empty,
+        user_email="sync_empty@example.com",
+        token="tok123",
+        mock=True,
+    )
+    assert ret_success == 0
+    assert mock_mem.update_user_profile_json.called
+    assert mock_mem.record_pipeline_run.called
+
