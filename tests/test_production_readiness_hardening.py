@@ -285,8 +285,9 @@ def test_llm_ensure_list_variations():
 
 
 def test_llm_empty_screening_and_batching():
-    """Verify llm.screen immediately returns on empty jobs list."""
+    """Verify llm.screen and llm.draft immediately return on empty jobs list."""
     assert llm.screen([], {"name": "Candidate"}) == []
+    assert llm.draft([], {"name": "Candidate"}) == []
 
 
 # --------------------------------------------------------------------------

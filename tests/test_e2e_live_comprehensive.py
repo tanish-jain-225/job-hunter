@@ -64,6 +64,7 @@ def client():
         yield c
 
 
+@pytest.mark.live
 class TestE2ELiveSuite:
     """End-to-End Live Testing covering all features."""
 

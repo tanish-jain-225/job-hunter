@@ -44,6 +44,10 @@ jobs:
         run: |
           pytest --cov=jobhunt --cov-report=term-missing --cov-fail-under=90 tests/
 
+      - name: Run live E2E suite (fully mocked, always offline)
+        run: |
+          pytest -m live -v --tb=short tests/test_e2e_live_comprehensive.py
+
       - name: Security Coverage Gate — auth + web minimum 75%
         run: |
           coverage run --source=jobhunt.auth,jobhunt.web -m pytest \

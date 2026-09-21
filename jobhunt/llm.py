@@ -352,6 +352,9 @@ def screen(
     max_workers: int = 1,
     api_key: str | None = None,
 ) -> list[Job]:
+    if not jobs:
+        return []
+
     if provider is None or model is None:
         provider, model = resolve("screen")
 
@@ -588,6 +591,8 @@ def draft(
     api_key: str | None = None,
 ) -> list[Job]:
     """Stage 2: full kit for the shortlist. One call per job, best model."""
+    if not jobs:
+        return []
     if provider is None or model is None:
         provider, model = resolve("draft")
     profile_blob = json.dumps(profile, ensure_ascii=False)

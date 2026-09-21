@@ -357,7 +357,10 @@ def api_jobs():
     # Resolve the user's actual notification threshold for the "shortlisted" status filter.
     # This ensures the interactive board's "shortlisted" view is consistent with what
     # was included in the email briefing — both use the user's min_score_notification.
-    shortlist_threshold = float(cfg.get("score_threshold", 7.0))
+    try:
+        shortlist_threshold: float = float(cfg.get("score_threshold", 7.0))
+    except (ValueError, TypeError):
+        shortlist_threshold = 7.0
     if email and status == "shortlisted":
         from ...memory import SupabaseMemory
         mem = SupabaseMemory(token=token)
@@ -379,7 +382,7 @@ def api_jobs():
         job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
 
         # Filter status
-        if status == "shortlisted" and (item.get("score") or 0.0) < shortlist_threshold:
+        if status == "shortlisted" and float(item.get("score") or 0.0) < shortlist_threshold:
             continue
         elif status == "applied" and not item.get("applied"):
             continue
@@ -391,7 +394,7 @@ def api_jobs():
             continue
 
         # Filter min_score
-        if min_score is not None and (item.get("score") or 0.0) < min_score:
+        if min_score is not None and float(item.get("score") or 0.0) < min_score:
             continue
 
         # Filter search text
@@ -424,7 +427,31 @@ def api_jobs():
     else:  # default: date
         jobs_list.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
 
-    return jsonify({"status": "success", "count": len(jobs_list), "jobs": jobs_list})
+    # Pagination — defaults are generous (200/page) so existing clients
+    # that omit page/per_page still receive all their jobs in one call.
+    total = len(jobs_list)
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        per_page = max(1, min(500, int(request.args.get("per_page", 200))))
+    except (ValueError, TypeError):
+        per_page = 200
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated = jobs_list[start:end]
+    pages = max(1, -(-total // per_page))  # ceiling division
+
+    return jsonify({
+        "status": "success",
+        "total": total,
+        "count": len(paginated),
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "jobs": paginated,
+    })
 
 
 

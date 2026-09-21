@@ -89,7 +89,13 @@ def test_api_jobs(client):
     data = res.get_json()
     assert data["status"] == "success"
     assert "count" in data
+    assert "total" in data
+    assert "page" in data
+    assert "per_page" in data
+    assert "pages" in data
     assert isinstance(data["jobs"], list)
+    assert data["page"] == 1
+    assert data["per_page"] == 200  # default
 
     # Test status filter
     res_shortlisted = client.get("/api/jobs?status=shortlisted")
@@ -102,6 +108,20 @@ def test_api_jobs(client):
     res_search = client.get("/api/jobs?search=nonexistentcompanyxyz123")
     assert res_search.status_code == 200
     assert res_search.get_json()["count"] == 0
+    assert res_search.get_json()["total"] == 0
+
+    # Test pagination params — page 2 of 1-per-page returns empty or valid slice
+    res_page = client.get("/api/jobs?per_page=1&page=1")
+    assert res_page.status_code == 200
+    page_data = res_page.get_json()
+    assert page_data["per_page"] == 1
+    assert page_data["page"] == 1
+    assert len(page_data["jobs"]) <= 1
+
+    # Test per_page cap at 500
+    res_capped = client.get("/api/jobs?per_page=9999")
+    assert res_capped.status_code == 200
+    assert res_capped.get_json()["per_page"] == 500
 
 
 def test_api_digest_fallback(client, tmp_path, monkeypatch):
