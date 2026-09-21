@@ -1868,9 +1868,9 @@ async function openProfileModal(tab = 'resume') {
       }
       if (resumeTextInput) resumeTextInput.value = p.resume_text || '';
       if (titleInput)    titleInput.value   = (p.title || p.current_title || '').trim();
-      if (yearsInput)    yearsInput.value   = (p.experience_years || p.years_experience) ? String(p.experience_years || p.years_experience) : '';
+      if (yearsInput)    yearsInput.value   = (p.experience_years != null || p.years_experience != null) ? String(p.experience_years ?? p.years_experience) : '';
       if (eduInput)      eduInput.value     = (p.education || '').trim();
-      if (skillsInput)   skillsInput.value  = Array.isArray(p.skills) ? p.skills.join(', ') : (Array.isArray(p.core_skills) ? p.core_skills.join(', ') : '');
+      if (skillsInput)   skillsInput.value  = Array.isArray(p.skills) ? p.skills.join(', ') : (Array.isArray(p.core_skills) ? p.core_skills.join(', ') : (typeof p.skills === 'string' ? p.skills : ''));
 
       // ── Step 3: Selectable Mail Mode (Default is unselected)
       if (p.email_notifications_enabled === true) {
@@ -1882,7 +1882,7 @@ async function openProfileModal(tab = 'resume') {
       }
 
       if (notifEmail)  notifEmail.value    = p.notification_email || authEmail;
-      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '';
+      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '7.5';
 
       // ── Step 1 Next button: always accessible
       const nextBtn = document.getElementById('profile-next-1');
@@ -2037,6 +2037,12 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   let excludes = [];
   if (Array.isArray(p.exclude_keywords) && p.exclude_keywords.length) {
     excludes = p.exclude_keywords;
+  } else if (Array.isArray(p.exclude_titles) && p.exclude_titles.length) {
+    excludes = p.exclude_titles;
+  } else if (Array.isArray(p.avoid_roles) && p.avoid_roles.length) {
+    excludes = p.avoid_roles;
+  } else if (typeof p.exclude_keywords === 'string' && p.exclude_keywords.trim()) {
+    excludes = p.exclude_keywords.split(',').map(s => s.trim()).filter(Boolean);
   } else if (isAutoFill) {
     excludes = ['Manager', 'Director', 'Sales', 'Recruiter', 'VP'];
   }
@@ -2074,7 +2080,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   // 5. Job Type Preferences
   let jobTypes = Array.isArray(p.job_types) && p.job_types.length ? p.job_types : [];
-  if (isAutoFill && jobTypes.length === 0) {
+  if (jobTypes.length === 0) {
     if (expKey === 'fresher' || seniority.includes('intern')) {
       jobTypes = ['fulltime', 'internship', 'remote'];
     } else {
@@ -2100,11 +2106,12 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (p.location_preference) {
     locPref = typeof p.location_preference === 'object' ? (p.location_preference.type || '') : p.location_preference;
     citiesList = Array.isArray(p.location_preference.locations) ? p.location_preference.locations : [];
-  } else if (Array.isArray(p.preferred_locations) && p.preferred_locations.length) {
-    locPref = 'specific_cities';
+  }
+  if (!citiesList.length && Array.isArray(p.preferred_locations) && p.preferred_locations.length) {
     citiesList = p.preferred_locations;
-  } else if (isAutoFill) {
-    locPref = 'all_india';
+  }
+  if (!locPref) {
+    locPref = citiesList.length ? 'specific_cities' : 'all_india';
   }
 
   ['prof-location-pref', 'onboard-location-pref'].forEach(radioName => {
@@ -2131,7 +2138,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   // Indian Context Preferences (Notice Period, Current & Expected CTC)
   const noticeInput = document.getElementById('prof-notice-period');
   if (noticeInput) {
-    noticeInput.value = p.notice_period || 'immediate';
+    noticeInput.value = p.notice_period || '30_days';
   }
   const currentCtcInput = document.getElementById('prof-current-ctc');
   if (currentCtcInput) {
@@ -2139,7 +2146,9 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   }
   const expectedCtcInput = document.getElementById('prof-expected-ctc');
   if (expectedCtcInput) {
-    expectedCtcInput.value = (p.expected_ctc_lpa != null && p.expected_ctc_lpa !== '') ? String(p.expected_ctc_lpa) : '';
+    expectedCtcInput.value = (p.expected_ctc_lpa != null && p.expected_ctc_lpa !== '')
+      ? String(p.expected_ctc_lpa)
+      : (p.min_salary_lpa ? String(p.min_salary_lpa) : '');
   }
 
   // Update active state of Indian Tech Hub preset chips
@@ -2290,7 +2299,7 @@ function flushUserProfileData() {
   const fieldIds = [
     'prof-name', 'prof-title', 'prof-years', 'prof-education',
     'prof-skills', 'prof-targets', 'prof-excludes', 'prof-resume-text',
-    'prof-specific-cities', 'notif-min-score',
+    'prof-specific-cities', 'notif-min-score', 'prof-current-ctc', 'prof-expected-ctc',
     'onboard-prof-name', 'onboard-prof-title', 'onboard-prof-years',
     'onboard-prof-education', 'onboard-prof-skills', 'onboard-prof-targets',
     'onboard-prof-excludes', 'onboard-specific-cities', 'onboarding-paste-text',
@@ -2300,6 +2309,9 @@ function flushUserProfileData() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+
+  const noticeInput = document.getElementById('prof-notice-period');
+  if (noticeInput) noticeInput.value = '30_days';
 
   // Preserve email input intact
   const emailInput = document.getElementById('notif-target-email');

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import email.utils
 import os
+import re
 import smtplib
 from email.message import EmailMessage
 
@@ -24,7 +26,21 @@ def send(subject: str, html_body: str, to_email: str | None = None) -> None:
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = to_addr
-    msg.set_content("This digest is HTML. Open it in an HTML-capable client.")
+    msg["Date"] = email.utils.formatdate(localtime=True)
+    msg["Message-ID"] = email.utils.make_msgid(domain=user.split("@")[-1] if "@" in user else None)
+    msg["Auto-Submitted"] = "auto-generated"
+    msg["Precedence"] = "bulk"
+    msg["X-Auto-Response-Suppress"] = "All"
+
+    # Provide clean plain-text fallback to maximize inbox deliverability and lower spam scoring
+    plain_text = re.sub(r"<[^>]+>", " ", html_body)
+    plain_text = re.sub(r"\s+", " ", plain_text).strip()
+    if not plain_text:
+        plain_text = "Job Hunter Executive Digest. Please open in an HTML-capable email client."
+    else:
+        plain_text = plain_text[:2000]
+
+    msg.set_content(plain_text)
     msg.add_alternative(html_body, subtype="html")
 
     try:

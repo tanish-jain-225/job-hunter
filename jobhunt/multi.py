@@ -89,6 +89,21 @@ def merge_user_profile(row: dict) -> dict:
     res["min_salary_lpa"] = (
         row.get("min_salary_lpa") if row.get("min_salary_lpa") is not None else (pjson.get("min_salary_lpa") or 0)
     )
+    res["notice_period"] = row.get("notice_period") or pjson.get("notice_period") or "30_days"
+    res["current_ctc_lpa"] = (
+        row.get("current_ctc_lpa") if row.get("current_ctc_lpa") is not None else pjson.get("current_ctc_lpa")
+    )
+    res["expected_ctc_lpa"] = (
+        row.get("expected_ctc_lpa")
+        if row.get("expected_ctc_lpa") is not None
+        else (pjson.get("expected_ctc_lpa") or row.get("min_salary_lpa") or pjson.get("min_salary_lpa") or 0)
+    )
+    res["education"] = row.get("education") or pjson.get("education") or ""
+    res["experience_years"] = (
+        row.get("experience_years")
+        if row.get("experience_years") is not None
+        else (pjson.get("experience_years") if pjson.get("experience_years") is not None else pjson.get("years_experience", 0))
+    )
     res["preferred_sectors"] = (
         row.get("preferred_sectors")
         if row.get("preferred_sectors") is not None
@@ -97,7 +112,7 @@ def merge_user_profile(row: dict) -> dict:
     res["min_score_notification"] = (
         row.get("min_score_notification")
         if row.get("min_score_notification") is not None
-        else pjson.get("min_score_notification")
+        else (pjson.get("min_score_notification") or 7.5)
     )
     res["notification_email"] = (
         row.get("notification_email")
@@ -229,6 +244,13 @@ def run_multi_user_pipeline(
                 profile_dict["education"] = user.get("education") or ""
                 profile_dict["years_experience"] = user.get("experience_years") or 0.0
 
+            # Candidate-specific API key (if provided by user in profile)
+            user_dict: dict[str, Any] = user if isinstance(user, dict) else {}
+            raw_pjson = user_dict.get("profile_json")
+            user_pjson: dict[str, Any] = raw_pjson if isinstance(raw_pjson, dict) else {}
+            candidate_api_key = user_dict.get("GEMINI_API_KEY") or user_pjson.get("GEMINI_API_KEY")
+            candidate_api_key = str(candidate_api_key).strip() if candidate_api_key else None
+
             # Build dynamic per-user filters
             user_filters = dict(cfg.get("filters", {}))
             user_targets = user.get("target_keywords") or []
@@ -303,6 +325,7 @@ def run_multi_user_pipeline(
                             jd_chars=int(cfg.get("screen_jd_chars", 800)),
                             delay_seconds=float(cfg.get("llm_delay_seconds", 6.0)),
                             max_workers=int(cfg.get("llm_max_workers", 1)),
+                            api_key=candidate_api_key,
                         )
                     except Exception as e:
                         print(f"  ! Screening error ({e}). Falling back to keyword matcher...")
@@ -328,6 +351,7 @@ def run_multi_user_pipeline(
                             provider=d_provider,
                             model=d_model,
                             delay_seconds=float(cfg.get("llm_delay_seconds", 6.0)),
+                            api_key=candidate_api_key,
                         )
                     except Exception as e:
                         print(f"  ! Drafting error ({e}). Using standard kit drafts.")

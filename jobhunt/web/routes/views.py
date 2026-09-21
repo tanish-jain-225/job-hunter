@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import time
 
-from flask import Blueprint, g, jsonify, render_template, send_file
+from flask import Blueprint, g, jsonify, render_template, request, send_file
 
 from ...auth import get_supabase_config, require_auth
 from ..state import ROOT
@@ -23,10 +23,34 @@ def index():
 @views_bp.route("/api/health")
 def api_health():
     """Service health check endpoint for monitoring, Vercel status, and uptime verification."""
+    import requests
+
     is_vercel = os.environ.get("VERCEL") == "1"
     supabase_cfg = get_supabase_config()
     auth_backend_ready = bool(supabase_cfg.get("supabase_url") and supabase_cfg.get("supabase_anon_key"))
     production_misconfigured = is_vercel and not auth_backend_ready
+
+    memory_configured = bool(
+        supabase_cfg.get("supabase_url")
+        and (supabase_cfg.get("supabase_anon_key") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
+    )
+
+    db_status = "unconfigured"
+    if memory_configured:
+        db_status = "connected"
+        if request.args.get("deep") == "1":
+            try:
+                probe_url = f"{supabase_cfg['supabase_url']}/rest/v1/"
+                resp = requests.get(
+                    probe_url,
+                    headers={"apikey": supabase_cfg.get("supabase_anon_key") or ""},
+                    timeout=1.5,
+                )
+                if resp.status_code not in (200, 401, 403, 404):
+                    db_status = "unreachable"
+            except Exception:
+                db_status = "unreachable"
+
     return jsonify(
         {
             "status": "misconfigured" if production_misconfigured else "healthy",
@@ -34,10 +58,9 @@ def api_health():
             "version": "1.0.0",
             "environment": "vercel" if is_vercel else "local",
             "auth_required": supabase_cfg.get("auth_required", False),
-            "memory_connected": bool(
-                supabase_cfg.get("supabase_url")
-                and (supabase_cfg.get("supabase_anon_key") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
-            ),
+            "memory_connected": memory_configured,
+            "database_status": db_status,
+            "llm_default_model": "gemini-3.5-flash",
             "timestamp": time.time(),
             "utc_time": time.strftime("%Y-%m-%d %H:%M:%SZ", time.gmtime()),
         }

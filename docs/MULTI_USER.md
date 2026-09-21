@@ -54,7 +54,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
      - Deterministic title/location pre-filtering narrows down candidate jobs.
      - Deduplication checks the user's private `user_tracked_jobs` table to prevent re-evaluating previously scored jobs.
      - Surviving new jobs are screened and application kits drafted.
-   - **Shared Provider Configuration**: Pipeline provider credentials are loaded from deployment environment variables. Candidate profiles never persist or return provider API keys, so tenant profile data remains safe to expose through the authenticated application API.
+   - **Shared Provider Configuration & Thread Safety**: Pipeline provider credentials default to deployment environment variables. When candidate-specific API keys are supplied (e.g. BYOK), they propagate thread-safely through function arguments without mutating global process environment variables (`os.environ["GEMINI_API_KEY"]`), preventing cross-tenant key leakage during concurrent worker tasks. Candidate profiles never persist or return provider API keys, so tenant profile data remains safe to expose through the authenticated application API.
      - Results are synchronized to their private Supabase partition.
      - A personalized HTML briefing is dispatched if email notifications are enabled.
 

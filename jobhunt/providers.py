@@ -46,6 +46,7 @@ _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _LAST_CALL_MAP: dict[str, float] = {}
 _KEY_LAST_CALL_MAP: dict[str, float] = {}
 _MODEL_COOLDOWN_MAP: dict[str, float] = {}
+_MODEL_ALIAS_MAP: dict[str, str] = {}
 _GEMINI_KEY_COUNTER: int = 0
 _GEMINI_COUNTER_LOCK = threading.Lock()
 
@@ -64,6 +65,22 @@ def _is_model_cooling_down(model: str) -> bool:
     with _RATE_LOCK:
         return time.time() < _MODEL_COOLDOWN_MAP.get(model, 0.0)
 
+
+def _record_model_alias(from_model: str, to_model: str) -> None:
+    """Cache working endpoint alias for a model name to eliminate subsequent 404 retries."""
+    if from_model and to_model:
+        with _RATE_LOCK:
+            _MODEL_ALIAS_MAP[from_model] = to_model
+
+
+def _resolve_model_alias(model: str) -> str:
+    """Resolve model through any cached endpoint alias."""
+    if not model:
+        return model
+    with _RATE_LOCK:
+        return _MODEL_ALIAS_MAP.get(model, model)
+
+
 def reset_provider_state() -> None:
     """Thread-safely reset all provider global throttles, cooldown caches, and key rotation counters."""
     global _GEMINI_KEY_COUNTER
@@ -72,6 +89,7 @@ def reset_provider_state() -> None:
         _LAST_CALL_MAP.clear()
         _KEY_LAST_CALL_MAP.clear()
         _MODEL_COOLDOWN_MAP.clear()
+        _MODEL_ALIAS_MAP.clear()
     with _GEMINI_COUNTER_LOCK:
         _GEMINI_KEY_COUNTER = 0
 
@@ -141,10 +159,25 @@ class Provider:
         if self.required_env:
             self._env(self.required_env)
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+    def complete(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_mode: bool = False,
+        api_key: str | None = None,
+    ) -> str:
         raise NotImplementedError
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
+    def complete_document(
+        self,
+        model: str,
+        prompt: str,
+        pdf: bytes,
+        max_tokens: int,
+        api_key: str | None = None,
+    ) -> str:
         raise UnsupportedDocument(f"{self.name} cannot read PDFs here - pass a .txt/.md resume instead")
 
     @staticmethod
@@ -172,7 +205,13 @@ class AnthropicProvider(Provider):
     required_env = "ANTHROPIC_API_KEY"
     _client_instance: Any = None
 
-    def _client(self):
+    def _client(self, api_key: str | None = None):
+        if api_key and str(api_key).strip():
+            try:
+                from anthropic import Anthropic
+            except ImportError:
+                raise LLMError("pip install anthropic") from None
+            return Anthropic(api_key=str(api_key).strip())
         if not hasattr(self, "_client_instance") or self._client_instance is None:
             try:
                 from anthropic import Anthropic
@@ -185,11 +224,23 @@ class AnthropicProvider(Provider):
     def _text(msg) -> str:
         return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+    def complete(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_mode: bool = False,
+        api_key: str | None = None,
+    ) -> str:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                msg = self._client().messages.create(
+                try:
+                    c = self._client(api_key=api_key) if api_key else self._client()
+                except TypeError:
+                    c = self._client()
+                msg = c.messages.create(
                     model=model,
                     max_tokens=max_tokens,
                     system=system,
@@ -207,11 +258,22 @@ class AnthropicProvider(Provider):
                 raise LLMError(f"anthropic error: {e}") from e
         raise LLMError("anthropic failed after maximum retries")
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
+    def complete_document(
+        self,
+        model: str,
+        prompt: str,
+        pdf: bytes,
+        max_tokens: int,
+        api_key: str | None = None,
+    ) -> str:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                msg = self._client().messages.create(
+                try:
+                    c = self._client(api_key=api_key) if api_key else self._client()
+                except TypeError:
+                    c = self._client()
+                msg = c.messages.create(
                     model=model,
                     max_tokens=max_tokens,
                     messages=[
@@ -251,20 +313,25 @@ class GeminiProvider(Provider):
     required_env = "GEMINI_API_KEY"
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
-    def _post(self, model: str, body: dict) -> str:
+    def _post(self, model: str, body: dict, api_key: str | None = None) -> str:
         import random
 
-        if _is_model_cooling_down(model):
-            if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                return self._post("gemini-flash-latest", body)
-            elif model == "gemini-flash-latest":
-                return self._post("gemini-flash-lite-latest", body)
+        effective_model = _resolve_model_alias(model)
+        if _is_model_cooling_down(effective_model):
+            if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                effective_model = _resolve_model_alias("gemini-flash-latest")
+            elif effective_model == "gemini-flash-latest":
+                effective_model = "gemini-flash-lite-latest"
 
-        all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
+        if api_key and str(api_key).strip():
+            all_configured_keys = [str(api_key).strip()]
+        else:
+            all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
+
         if not all_configured_keys:
             raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
         max_retries = max(2, min(4, len(all_configured_keys)))
-        url = f"{self.BASE}/{model}:generateContent"
+        url = f"{self.BASE}/{effective_model}:generateContent"
 
         with _GEMINI_COUNTER_LOCK:
             global _GEMINI_KEY_COUNTER
@@ -272,7 +339,10 @@ class GeminiProvider(Provider):
             _GEMINI_KEY_COUNTER += 1
 
         for attempt in range(max_retries):
-            active_keys = _get_active_api_keys("GEMINI_API_KEY")
+            if api_key and str(api_key).strip():
+                active_keys = all_configured_keys
+            else:
+                active_keys = _get_active_api_keys("GEMINI_API_KEY")
             if not active_keys:
                 # All keys in temporary cooldown — wait briefly for key window reset
                 time.sleep(1.0)
@@ -313,13 +383,13 @@ class GeminiProvider(Provider):
                     time.sleep(total_delay)
                     continue
                 elif r.status_code == 429 and attempt == max_retries - 1:
-                    _record_model_cooldown(model, 600.0)
-                    if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                        print(f"  ! {model} quota exceeded across all keys — cascading to gemini-flash-latest...")
-                        return self._post("gemini-flash-latest", body)
-                    elif model == "gemini-flash-latest":
+                    _record_model_cooldown(effective_model, 600.0)
+                    if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                        print(f"  ! {effective_model} quota exceeded across all keys — cascading to gemini-flash-latest...")
+                        return self._post("gemini-flash-latest", body, api_key=api_key)
+                    elif effective_model == "gemini-flash-latest":
                         print("  ! gemini-flash-latest quota exceeded — cascading to gemini-flash-lite-latest...")
-                        return self._post("gemini-flash-lite-latest", body)
+                        return self._post("gemini-flash-lite-latest", body, api_key=api_key)
 
                 elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
                     delay = 1.0 * (attempt + 1) + random.uniform(0.1, 0.4)
@@ -329,22 +399,21 @@ class GeminiProvider(Provider):
                     time.sleep(delay)
                     continue
                 elif r.status_code in (500, 502, 503, 504) and attempt == max_retries - 1:
-                    _record_model_cooldown(model, 60.0)
-                    if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-latest...")
-                        return self._post("gemini-flash-latest", body)
-                    elif model == "gemini-flash-latest":
-                        print(f"  ! {model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-lite-latest...")
-                        return self._post("gemini-flash-lite-latest", body)
+                    _record_model_cooldown(effective_model, 60.0)
+                    if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                        print(f"  ! {effective_model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-latest...")
+                        return self._post("gemini-flash-latest", body, api_key=api_key)
+                    elif effective_model == "gemini-flash-latest":
+                        print(f"  ! {effective_model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-lite-latest...")
+                        return self._post("gemini-flash-lite-latest", body, api_key=api_key)
 
                 if r.status_code == 404:
-                    _record_model_cooldown(model, 86400.0)
-                    if model != "gemini-flash-latest":
-                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-flash-latest...")
-                        return self._post("gemini-flash-latest", body)
-                    elif model != "gemini-3.5-flash":
-                        print(f"  ! {model} HTTP 404 — retrying with model fallback gemini-3.5-flash...")
-                        return self._post("gemini-3.5-flash", body)
+                    _record_model_cooldown(effective_model, 86400.0)
+                    target_fallback = "gemini-flash-latest" if effective_model != "gemini-flash-latest" else "gemini-flash-lite-latest"
+                    _record_model_alias(model, target_fallback)
+                    _record_model_alias(effective_model, target_fallback)
+                    print(f"  ! {effective_model} HTTP 404 — cached alias -> {target_fallback}...")
+                    return self._post(target_fallback, body, api_key=api_key)
                 if r.status_code != 200:
                     raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
                 try:
@@ -378,18 +447,26 @@ class GeminiProvider(Provider):
                     print(f"  ! gemini network error/timeout ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
                     time.sleep(delay)
                     continue
-                if model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                    _record_model_cooldown(model, 180.0)
-                    print(f"  ! {model} network error/timeout across all keys — cascading to gemini-flash-latest...")
-                    return self._post("gemini-flash-latest", body)
-                elif model == "gemini-flash-latest":
-                    _record_model_cooldown(model, 180.0)
+                if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
+                    _record_model_cooldown(effective_model, 180.0)
+                    print(f"  ! {effective_model} network error/timeout across all keys — cascading to gemini-flash-latest...")
+                    return self._post("gemini-flash-latest", body, api_key=api_key)
+                elif effective_model == "gemini-flash-latest":
+                    _record_model_cooldown(effective_model, 180.0)
                     print("  ! gemini-flash-latest network error/timeout — cascading to gemini-flash-lite-latest...")
-                    return self._post("gemini-flash-lite-latest", body)
+                    return self._post("gemini-flash-lite-latest", body, api_key=api_key)
                 raise LLMError(f"gemini network error: {e}") from e
         raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+    def complete(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_mode: bool = False,
+        api_key: str | None = None,
+    ) -> str:
         gen: dict[str, Any] = {"maxOutputTokens": max_tokens, "temperature": 0.2}
         if json_mode:
             gen["responseMimeType"] = "application/json"
@@ -399,9 +476,16 @@ class GeminiProvider(Provider):
         }
         if system:
             body["system_instruction"] = {"parts": [{"text": system}]}
-        return self._post(model, body)
+        return self._post(model, body, api_key=api_key)
 
-    def complete_document(self, model: str, prompt: str, pdf: bytes, max_tokens: int) -> str:
+    def complete_document(
+        self,
+        model: str,
+        prompt: str,
+        pdf: bytes,
+        max_tokens: int,
+        api_key: str | None = None,
+    ) -> str:
         return self._post(
             model,
             {
@@ -416,6 +500,7 @@ class GeminiProvider(Provider):
                 ],
                 "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.2},
             },
+            api_key=api_key,
         )
 
 
@@ -427,11 +512,22 @@ class OpenAICompatProvider(Provider):
     default_base = "https://api.groq.com/openai/v1"
     key_env = "GROQ_API_KEY"
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+    def complete(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_mode: bool = False,
+        api_key: str | None = None,
+    ) -> str:
         import random
 
         base = os.getenv("LLM_BASE_URL", self.default_base).rstrip("/")
-        all_configured_keys = Provider._get_api_keys(self.key_env)
+        if api_key and str(api_key).strip():
+            all_configured_keys = [str(api_key).strip()]
+        else:
+            all_configured_keys = Provider._get_api_keys(self.key_env)
         if not all_configured_keys:
             raise LLMError(f"{self.key_env} is not set (see .env.example)")
 
@@ -442,7 +538,10 @@ class OpenAICompatProvider(Provider):
 
         max_retries = max(6, len(all_configured_keys) * 3)
         for attempt in range(max_retries):
-            active_keys = _get_active_api_keys(self.key_env)
+            if api_key and str(api_key).strip():
+                active_keys = all_configured_keys
+            else:
+                active_keys = _get_active_api_keys(self.key_env)
             if not active_keys:
                 time.sleep(3.0)
                 active_keys = all_configured_keys
@@ -513,7 +612,15 @@ class OllamaProvider(Provider):
 
     name = "ollama"
 
-    def complete(self, model: str, system: str, user: str, max_tokens: int, json_mode: bool = False) -> str:
+    def complete(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_mode: bool = False,
+        api_key: str | None = None,
+    ) -> str:
         base = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
         payload: dict[str, Any] = {

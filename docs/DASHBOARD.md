@@ -133,6 +133,7 @@ Authorization: Bearer <supabase_access_token>
 
 ### 0. Health & Service Monitoring
 * **Endpoint:** `GET /api/health`
+* **Query Parameters:** `?deep=1` (optional, executes an active REST probe to Supabase)
 * **Response:**
   ```json
   {
@@ -142,6 +143,8 @@ Authorization: Bearer <supabase_access_token>
     "environment": "local",
     "auth_required": false,
     "memory_connected": true,
+    "database_status": "connected",
+    "llm_default_model": "gemini-3.5-flash",
     "timestamp": 1771587600.0,
     "utc_time": "2026-08-20 12:45:00Z"
   }

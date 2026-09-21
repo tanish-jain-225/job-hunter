@@ -184,6 +184,61 @@ class SupabaseMemory:
                     row_filename = row.get("resume_filename")
                     filename_val = row_filename if row_filename is not None else (pjson.get("resume_filename") or "")
 
+                    row_education = row.get("education")
+                    education_val = row_education if row_education is not None else (pjson.get("education") or "")
+
+                    row_exp_years = row.get("experience_years")
+                    exp_years_val = (
+                        float(row_exp_years)
+                        if row_exp_years is not None
+                        else (
+                            float(pjson["experience_years"])
+                            if pjson.get("experience_years") is not None
+                            else (
+                                float(pjson["years_experience"])
+                                if pjson.get("years_experience") is not None
+                                else 0.0
+                            )
+                        )
+                    )
+
+                    row_job_types = row.get("job_types")
+                    job_types_val = (
+                        row_job_types
+                        if (row_job_types and isinstance(row_job_types, list))
+                        else (pjson.get("job_types") or [])
+                    )
+
+                    row_preferred_locs = row.get("preferred_locations")
+                    preferred_locs_val = (
+                        row_preferred_locs
+                        if (row_preferred_locs and isinstance(row_preferred_locs, list))
+                        else (pjson.get("preferred_locations") or [])
+                    )
+
+                    loc_pref_val = row.get("location_preference") or pjson.get("location_preference") or {
+                        "type": "specific_cities" if preferred_locs_val else "all_india",
+                        "locations": preferred_locs_val,
+                    }
+
+                    notice_val = row.get("notice_period") or pjson.get("notice_period") or "30_days"
+
+                    cur_ctc_val = (
+                        row.get("current_ctc_lpa")
+                        if row.get("current_ctc_lpa") is not None
+                        else pjson.get("current_ctc_lpa")
+                    )
+
+                    exp_ctc_val = (
+                        row.get("expected_ctc_lpa")
+                        if row.get("expected_ctc_lpa") is not None
+                        else (
+                            pjson.get("expected_ctc_lpa")
+                            if pjson.get("expected_ctc_lpa") is not None
+                            else (row.get("min_salary_lpa") or pjson.get("min_salary_lpa"))
+                        )
+                    )
+
                     res_profile = {
                         **pjson,
                         **row,
@@ -201,7 +256,7 @@ class SupabaseMemory:
                             else (
                                 float(pjson["min_score_notification"])
                                 if pjson.get("min_score_notification") is not None
-                                else None
+                                else 7.5
                             )
                         ),
                         "onboarding_completed": bool(
@@ -212,6 +267,14 @@ class SupabaseMemory:
                         "skills": skills_val,
                         "target_keywords": targets_val,
                         "exclude_keywords": excludes_val,
+                        "education": education_val,
+                        "experience_years": exp_years_val,
+                        "job_types": job_types_val,
+                        "preferred_locations": preferred_locs_val,
+                        "location_preference": loc_pref_val,
+                        "notice_period": notice_val,
+                        "current_ctc_lpa": cur_ctc_val,
+                        "expected_ctc_lpa": exp_ctc_val,
                     }
                     for dk in (
                         "latest_digest_html",
@@ -332,6 +395,18 @@ class SupabaseMemory:
         except (ValueError, TypeError):
             min_score_val = None
 
+        raw_notice = profile.get("notice_period") or "30_days"
+        raw_cur_ctc = profile.get("current_ctc_lpa")
+        raw_exp_ctc = profile.get("expected_ctc_lpa")
+        try:
+            cur_ctc_val = float(raw_cur_ctc) if raw_cur_ctc is not None and str(raw_cur_ctc).strip() != "" else None
+        except (ValueError, TypeError):
+            cur_ctc_val = None
+        try:
+            exp_ctc_val = float(raw_exp_ctc) if raw_exp_ctc is not None and str(raw_exp_ctc).strip() != "" else None
+        except (ValueError, TypeError):
+            exp_ctc_val = None
+
         pjson = profile.get("profile_json")
         if not isinstance(pjson, dict):
             pjson = {}
@@ -349,6 +424,8 @@ class SupabaseMemory:
             "onboarding_completed": bool(profile.get("onboarding_completed", False)),
             "name": profile.get("name") if profile.get("name") is not None else "",
             "title": profile.get("title") if profile.get("title") is not None else "",
+            "education": profile.get("education") or "",
+            "experience_years": float(profile.get("experience_years") or 0),
             "skills": skills_list,
             "target_keywords": targets_list,
             "exclude_keywords": excludes_list,
@@ -356,9 +433,14 @@ class SupabaseMemory:
             "location_preference": loc_pref_obj,
             "job_types": job_types_list,
             "experience_level": profile.get("experience_level") or "",
-            "min_salary_lpa": float(profile.get("min_salary_lpa") or 0),
+            "notice_period": raw_notice,
+            "current_ctc_lpa": cur_ctc_val,
+            "expected_ctc_lpa": exp_ctc_val,
+            "min_salary_lpa": float(profile.get("min_salary_lpa") or exp_ctc_val or 0),
             "preferred_sectors": profile.get("preferred_sectors") or [],
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
+            "domains": profile.get("domains") or [],
+            "notable_projects": profile.get("notable_projects") or [],
         }
 
         for dk in ("latest_digest_html", "latest_digest_subject", "latest_digest_at", "latest_digest_shortlisted", "latest_digest_job_ids", "custom_companies"):

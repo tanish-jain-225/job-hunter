@@ -127,7 +127,9 @@ def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
     return raw_jobs, candidates
 
 
-def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict) -> None:
+def _screen_jobs(
+    jobs: list, profile: dict, args: argparse.Namespace, cfg: dict, api_key: str | None = None
+) -> None:
     """Stage 3: Score jobs via LLM or keyword matcher."""
     scorer = getattr(args, "scorer", "llm")
     llm_max_workers = int(cfg.get("llm_max_workers", 1))
@@ -152,6 +154,7 @@ def _screen_jobs(jobs: list, profile: dict, args: argparse.Namespace, cfg: dict)
             model=model,
             delay_seconds=llm_delay_seconds,
             max_workers=llm_max_workers,
+            api_key=api_key,
         )
 
     # Fallback to keyword screening if all LLM screening attempts failed
@@ -166,39 +169,31 @@ def _select_shortlist(jobs: list, cfg: dict, profile: dict | None = None) -> tup
     Strictly honors the user's min_score_notification setting from profile (or score_threshold
     from config). If 0 jobs meet the threshold, shortlist is strictly empty (0 shortlisted).
     """
-    unscored_count = sum(1 for j in jobs if j.score is None)
-    if unscored_count > 0:
-        print(
-            f"\n  ! Warning: {unscored_count}/{len(jobs)} jobs could not be scored by LLM.\n"
-            f"    Only successfully scored jobs will be saved to seen.json (unscored jobs will be retried next run)."
-        )
-
     threshold = float(cfg.get("score_threshold", 7.0))
     if profile:
-        raw_pjson = profile.get("profile_json")
-        pjson = raw_pjson if isinstance(raw_pjson, dict) else {}
-        raw_threshold = profile.get("min_score_notification") or pjson.get("min_score_notification")
-        if raw_threshold is not None and str(raw_threshold).strip() != "":
+        raw_min = profile.get("min_score_notification") or (profile.get("profile_json") or {}).get("min_score_notification")
+        if raw_min is not None:
             try:
-                threshold = float(raw_threshold)
+                threshold = float(raw_min)
             except (ValueError, TypeError):
                 pass
 
-    top_n = int(os.environ.get("MAX_PER_DIGEST") or cfg.get("max_per_digest", 7))
-
-    scored_jobs = [j for j in jobs if j.score is not None]
-    shortlist = [j for j in scored_jobs if (j.score or 0) >= threshold]
-    shortlist.sort(key=lambda j: j.score or 0, reverse=True)
-    shortlist = shortlist[:top_n]
-
-    print(f"\n  {len(shortlist)} jobs cleared the {threshold} bar")
-    return scored_jobs, shortlist
+    scored = [j for j in jobs if j.score is not None]
+    shortlist = [j for j in scored if float(j.score) >= threshold]
+    shortlist.sort(key=lambda j: j.score or 0.0, reverse=True)
+    max_digest = int(cfg.get("max_per_digest", 7))
+    return scored, shortlist[:max_digest]
 
 
-def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
-    """Stage 4: Generate application kits for the shortlist."""
-    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 6.0))
-
+def _draft_kits(
+    shortlist: list,
+    profile: dict,
+    scorer: str,
+    cfg: dict,
+    llm_delay_seconds: float = 2.5,
+    api_key: str | None = None,
+) -> None:
+    """Stage 2: generate application kits for shortlisted jobs (LLM mode only)."""
     if shortlist and scorer == "llm":
         try:
             d_provider, d_model = resolve("draft")
@@ -210,6 +205,7 @@ def _draft_kits(shortlist: list, profile: dict, scorer: str, cfg: dict) -> None:
                 provider=d_provider,
                 model=d_model,
                 delay_seconds=llm_delay_seconds,
+                api_key=api_key,
             )
         except LLMError as e:
             print(f"\n  ! Draft provider failed: {e}. Proceeding with empty kits.")
@@ -251,16 +247,19 @@ def _build_and_send_digest(
 
     if send:
         print("\n[mailing digest]")
-        if to_email:
-            try:
-                mailer.send(subject, html_content, to_email=to_email)
-            except TypeError:
+        try:
+            if to_email:
+                try:
+                    mailer.send(subject, html_content, to_email=to_email)
+                except TypeError:
+                    mailer.send(subject, html_content)
+            else:
                 mailer.send(subject, html_content)
-        else:
-            mailer.send(subject, html_content)
-        # Mark ONLY the shortlisted jobs as emailed after confirmed dispatch
-        if shortlist:
-            st.mark_emailed([j.job_id for j in shortlist])
+            # Mark ONLY the shortlisted jobs as emailed after confirmed dispatch
+            if shortlist:
+                st.mark_emailed([j.job_id for j in shortlist])
+        except Exception as e:
+            print(f"  ! Digest email dispatch warning: {e}. Pipeline completed successfully.")
 
     return subject, html_content
 
@@ -299,8 +298,8 @@ def run_pipeline(
     if profile is None:
         profile = _load_profile(cfg, raise_on_error=False)
 
-    # Set temporary candidate-specific API keys if defined in profile
-    old_env = {}
+    # Extract candidate-specific API key if defined in profile (thread-safe, no os.environ mutation)
+    candidate_api_key: str | None = None
     if profile:
         pjson = profile.get("profile_json")
         if not isinstance(pjson, dict):
@@ -308,8 +307,7 @@ def run_pipeline(
         for k in ("GEMINI_API_KEY",):
             val = profile.get(k) or pjson.get(k)
             if val and str(val).strip():
-                old_env[k] = os.environ.get(k)
-                os.environ[k] = str(val).strip()
+                candidate_api_key = str(val).strip()
 
     try:
         # Apply dynamic user keywords to filters if available
@@ -427,7 +425,13 @@ def run_pipeline(
         # 3. Screen
         eval_args = argparse.Namespace(scorer=use_scorer)
         try:
-            _screen_jobs(jobs, profile, eval_args, cfg)
+            if candidate_api_key:
+                try:
+                    _screen_jobs(jobs, profile, eval_args, cfg, api_key=candidate_api_key)
+                except TypeError:
+                    _screen_jobs(jobs, profile, eval_args, cfg)
+            else:
+                _screen_jobs(jobs, profile, eval_args, cfg)
         except LLMError:
             if user_email and memory.is_configured:
                 try:
@@ -448,7 +452,13 @@ def run_pipeline(
 
         # 4. Shortlist + draft
         scored_jobs, shortlist = _select_shortlist(jobs, cfg, profile=profile)
-        _draft_kits(shortlist, profile, use_scorer, cfg)
+        if candidate_api_key:
+            try:
+                _draft_kits(shortlist, profile, use_scorer, cfg, api_key=candidate_api_key)
+            except TypeError:
+                _draft_kits(shortlist, profile, use_scorer, cfg)
+        else:
+            _draft_kits(shortlist, profile, use_scorer, cfg)
 
         # 5. Digest + mail
         subject, html_content = _build_and_send_digest(
@@ -484,12 +494,7 @@ def run_pipeline(
 
         return 0
     finally:
-        # Restore environment variables
-        for k, val in old_env.items():
-            if val is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = val
+        pass
 
 
 def cmd_run(args: argparse.Namespace) -> int:

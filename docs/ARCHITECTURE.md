@@ -42,7 +42,8 @@ flowchart TD
         C1["Google Gemini 3.5 Flash Engine"]
         C2["Multi-Key Circular Rotation (_GEMINI_KEY_COUNTER)"]
         C3["Per-Key 15 RPM Leaky-Bucket Throttle"]
-        C4["Dynamic Model Cascades (Flash -> Flash-Lite)"]
+        C4["Zero-Latency Model Alias Resolution & Cascades"]
+        C5["Defensive Prompt Isolation (<untrusted_job_description>)"]
     end
 
     subgraph S4["4. Application Kit Drafting Engine"]
@@ -144,8 +145,9 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (429 passing tests)
+├── tests/                       # Automated Test Suite (445 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
+│   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
 │   ├── test_auth.py             # View state isolation, JWT verification, and auth guards

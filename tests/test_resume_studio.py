@@ -321,3 +321,60 @@ def test_profile_preferences_notice_and_ctc(client, mock_supabase_env):
         assert saved["expected_ctc_lpa"] == 25
         assert saved["location_preference"] == "all_india"
 
+
+def test_profile_settings_full_roundtrip_persistence(client, mock_supabase_env):
+    """Verify POST /api/profile retains notice_period, CTCs, education, and job_types in profile_json."""
+    from jobhunt.memory import SupabaseMemory
+
+    posted_payload = {}
+
+    def mock_post(url, headers=None, params=None, json=None, timeout=None):
+        nonlocal posted_payload
+        posted_payload = json
+        return MagicMock(status_code=201)
+
+    mem = SupabaseMemory()
+    with patch("jobhunt.memory._get_session") as mock_sess:
+        mock_sess.return_value.post.side_effect = mock_post
+        ok = mem.upsert_user_profile(
+            "candidate@test.com",
+            {
+                "name": "Jane Doe",
+                "education": "B.Tech Computer Science",
+                "notice_period": "60_days",
+                "current_ctc_lpa": 14.5,
+                "expected_ctc_lpa": 22.0,
+                "job_types": ["fulltime", "remote"],
+                "preferred_locations": ["Bengaluru", "Pune"],
+            },
+        )
+        assert ok is True
+        assert posted_payload["profile_json"]["notice_period"] == "60_days"
+        assert posted_payload["profile_json"]["current_ctc_lpa"] == 14.5
+        assert posted_payload["profile_json"]["expected_ctc_lpa"] == 22.0
+        assert posted_payload["profile_json"]["education"] == "B.Tech Computer Science"
+        assert posted_payload["profile_json"]["job_types"] == ["fulltime", "remote"]
+
+    # Now verify get_user_profile reconstructs them cleanly from row + profile_json
+    mock_db_row = [
+        {
+            "email": "candidate@test.com",
+            "name": "Jane Doe",
+            "education": "B.Tech Computer Science",
+            "profile_json": posted_payload["profile_json"],
+            "preferred_locations": ["Bengaluru", "Pune"],
+            "job_types": ["fulltime", "remote"],
+        }
+    ]
+    with patch("jobhunt.memory._get_session") as mock_sess:
+        mock_sess.return_value.get.return_value = MagicMock(status_code=200, json=lambda: mock_db_row)
+        prof = mem.get_user_profile("candidate@test.com")
+        assert prof is not None
+        assert prof["notice_period"] == "60_days"
+        assert prof["current_ctc_lpa"] == 14.5
+        assert prof["expected_ctc_lpa"] == 22.0
+        assert prof["education"] == "B.Tech Computer Science"
+        assert prof["job_types"] == ["fulltime", "remote"]
+        assert prof["min_score_notification"] == 7.5
+
+

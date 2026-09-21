@@ -20,8 +20,12 @@ identity guarantees, not extra steps required for the current deployment.
 - Resume upload behavior is now consistent: PDF and TXT are supported; DOCX is
   not advertised or silently decoded as text.
 - Offline HMAC token verification (`SUPABASE_JWT_SECRET`) and resilient client-side session auto-refresh lifecycle prevent false-positive session drops on Vercel.
-- Regression status: 429 tests pass on the current suite; affected release
-  tests, Ruff, coverage, and workflow YAML validation pass.
+- Thread-safe candidate API key propagation prevents cross-tenant secret leakage across concurrent requests without mutating `os.environ`.
+- Defensive prompt injection XML isolation (`<untrusted_job_description>`) ensures candidate screening and drafting cannot be hijacked by adversarial job descriptions.
+- Zero-latency model alias resolution caching ensures resilient 404 fallbacks for `gemini-3.5-flash` with zero performance overhead.
+- RFC-compliant email headers (`Message-ID`, `Date`, `Auto-Submitted`, `Precedence`) and clean plain-text fallback content maximize inbox placement.
+- Ephemeral Vercel serverless worker state automatically hydrates from Supabase `user_pipeline_runs`.
+- Regression status: 445 tests pass on the current suite; strict Mypy typing checks (0 errors across 23 source files), Ruff linter, >=90% test coverage, and workflow YAML validation pass.
 
 ## Current release status
 

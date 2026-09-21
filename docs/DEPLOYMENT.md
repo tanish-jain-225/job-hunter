@@ -160,6 +160,9 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
 * **Row-Level Security (RLS)**: PostgreSQL enforces that users can only view and update their own tracked jobs, application kits, and profiles.
 * **No File Persistence**: Uploaded resumes are decoded in-memory for one-time text extraction; no candidate PDFs or binary documents are stored on disk or cloud buckets.
 * **Service Role Access**: Automated GitHub Actions cron uses the Service Role key exclusively to query active profiles and deliver candidate-tailored briefings.
+* **Defensive Prompt Injection Mitigation**: External job descriptions are defensively encapsulated in `<untrusted_job_description>` XML boundaries with explicit system isolation instructions, preventing adversarial prompt injections from altering scoring or drafting instructions.
+* **Thread-Safe Candidate Key Isolation**: Candidate-provided API keys propagate cleanly through function parameters without mutating process-level environment variables (`os.environ["GEMINI_API_KEY"]`), guaranteeing complete concurrency safety.
+* **RFC-Compliant Email Deliverability**: Outbound career digests include standard RFC headers (`Message-ID`, `Date`, `Auto-Submitted: auto-generated`, `Precedence: bulk`, `X-Auto-Response-Suppress: All`) and automatic multipart plain-text fallbacks to prevent spam false-positives.
 
 ---
 

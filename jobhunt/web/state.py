@@ -125,6 +125,7 @@ def get_user_pipeline_state(email: str | None) -> dict:
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
         if key not in _USER_PIPELINE_STATES:
+            _prune_pipeline_states_locked()
             _USER_PIPELINE_STATES[key] = {
                 "running": False,
                 "step": "idle",
@@ -132,7 +133,28 @@ def get_user_pipeline_state(email: str | None) -> dict:
                 "last_run": None,
                 "exit_code": 0,
             }
-        return dict(_USER_PIPELINE_STATES[key])
+        state = dict(_USER_PIPELINE_STATES[key])
+
+    # If idle and last_run is not yet populated, check persistent Supabase history
+    # for seamless multi-worker / serverless instance state synchronization.
+    if not state.get("running") and state.get("last_run") is None and email and email != "anonymous":
+        try:
+            memory = SupabaseMemory()
+            if memory.is_configured:
+                history = memory.get_pipeline_history(email, limit=1)
+                if history and isinstance(history, list) and len(history) > 0:
+                    latest = history[0]
+                    with _PIPELINE_LOCK:
+                        cur = _USER_PIPELINE_STATES.get(key)
+                        if cur and not cur.get("running") and cur.get("last_run") is None:
+                            cur["last_run"] = latest.get("run_timestamp")
+                            if latest.get("logs"):
+                                cur["message"] = latest.get("logs")
+                            state = dict(cur)
+        except Exception:
+            pass
+
+    return state
 
 
 def set_user_pipeline_state(email: str | None, **kwargs) -> dict:

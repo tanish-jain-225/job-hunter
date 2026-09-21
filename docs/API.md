@@ -33,9 +33,10 @@ Returns client initialization configuration including whether authentication is 
 ```
 
 ### GET /api/health
-Service health check endpoint for monitoring, uptime verification, and Vercel serverless deployment checks.
+Service health check endpoint for monitoring, uptime verification, and Vercel serverless deployment checks. Supports optional deep database reachability probing via `?deep=1`.
 
 **Auth:** Public  
+**Query params:** `?deep=1` (optional, performs an active REST reachability probe to Supabase)  
 **Response:**
 ```json
 {
@@ -45,6 +46,8 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
   "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,
+  "database_status": "connected",
+  "llm_default_model": "gemini-3.5-flash",
   "timestamp": 1725450000.0,
   "utc_time": "2026-09-04 13:00:00Z"
 }
@@ -52,7 +55,7 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 
 In a Vercel deployment missing `SUPABASE_URL` or `SUPABASE_ANON_KEY`, this
 endpoint returns HTTP `503` with `{"status":"misconfigured"}`. Local
-development reports `"environment":"local"`.
+development reports `"environment":"local"`. The `database_status` field returns `"connected"`, `"unconfigured"`, or `"unreachable"` (during deep probing).
 
 ### GET /logo.png & GET /favicon.ico
 Serves the official brand logo (`image/png`) and multi-resolution binary favicon (`image/x-icon`).
