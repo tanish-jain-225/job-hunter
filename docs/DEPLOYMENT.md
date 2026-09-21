@@ -40,7 +40,7 @@ limits and pricing with each provider before launch.
 | :--- | :--- | :--- | :---: | :--- |
 | **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.5-flash) | Candidate batch fit screening & tailored application kit drafting | **300 Users / Key** | **$0 / mo** |
 | **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **500 Users** | **$0 / mo** |
-| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs (300-job rolling cap) | **1,040 Users** | **$0 / mo** |
+| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs (1,000-job rolling cap) | **330 Users** (up to 1,040 at 300 jobs) | **$0 / mo** |
 | **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar (25 min timeout) | **1,500 Users** | **$0 / mo** |
 | **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **6,600 Users** | **$0 / mo** |
 
@@ -114,6 +114,9 @@ GITHUB_REPOSITORY=your-username/job-hunter
 
 # Optional: Static Flask secret key for serverless session stability
 FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
+
+# Optional: Storage & Database Sliding Window Limits (default: 1000 unapplied jobs)
+MAX_TRACKED_JOBS_COUNT=1000
 ```
 
 5. Click **Deploy**. Vercel will build and deploy your live dashboard at `https://your-project.vercel.app`!

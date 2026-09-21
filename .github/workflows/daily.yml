@@ -80,6 +80,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AUTH_REQUIRED: "false"
           CI: "true"
+          MAX_TRACKED_JOBS_COUNT: "1000"
           TARGET_USER_EMAIL: ${{ github.event.inputs.user_email }}
         run: |
           if [ "${{ github.event.inputs.mode }}" = "mock" ]; then

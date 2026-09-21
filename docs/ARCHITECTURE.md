@@ -104,7 +104,7 @@ job-hunter/
 │   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.0")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
-│   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, verify, stats)
+│   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, applied, stats, profile, web, verify, clean)
 │   ├── digest.py                # Responsive HTML email digest builder with inline CSS and logo guard
 │   ├── fetch.py                 # Job dataclass, @register_ats decorator, and 9 ATS board crawlers
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
@@ -114,7 +114,7 @@ job-hunter/
 │   ├── multi.py                 # Single-pass multi-tenant batch crawler and dispatcher
 │   ├── prefilter.py             # Deterministic regex title, location, and date prefiltering
 │   ├── providers.py             # Strategy pattern LLM clients (Gemini, Claude, Groq, Ollama)
-│   ├── store.py                 # Local JSON state store with file locks and CSV export
+│   ├── store.py                 # Local JSON state store with sliding window pruning (MAX_TRACKED_JOBS_COUNT), file locks & CSV export
 │   ├── verify.py                # Live ATS endpoint auditor CLI tool
 │   └── web/                     # Modular Flask Web Dashboard Backend
 │       ├── __init__.py          # Application Factory (create_app), error handlers, and security headers

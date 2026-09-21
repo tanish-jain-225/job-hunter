@@ -572,7 +572,7 @@ class Store:
         if not is_prod and not has_env_limit:
             return
 
-        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 300)
+        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 1000)
 
         if len(self.data) <= max_count:
             return

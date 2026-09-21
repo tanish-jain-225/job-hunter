@@ -336,6 +336,9 @@ GITHUB_REPOSITORY=your-github-username/job-hunter
 # 5. Session Security
 # Generate key via: python -c "import secrets; print(secrets.token_hex(32))"
 FLASK_SECRET_KEY=generate_any_random_32_character_string_here
+
+# 6. Storage & Sliding Window Limits (Optional, default: 1000 unapplied jobs)
+MAX_TRACKED_JOBS_COUNT=1000
 ```
 
 ---
@@ -358,6 +361,7 @@ FLASK_SECRET_KEY=generate_any_random_32_character_string_here
 | `GH_TOKEN` | Cloud Radar | GitHub PAT for dispatching workflow runs. | `github_pat_...` |
 | `GITHUB_REPOSITORY` | Cloud Radar | Your GitHub repository path `owner/repo`. | `octocat/job-hunter` |
 | `FLASK_SECRET_KEY` | All Modes | Secret string used to sign session cookies. | 32-character hex string |
+| `MAX_TRACKED_JOBS_COUNT` | Optional | Rolling retention cap for unapplied jobs in store/database (pruned FIFO). | `1000` |
 | `LLM_PROVIDER` | Optional | Primary AI provider override (`gemini`, `anthropic`, `groq`). | `gemini` |
 
 ---

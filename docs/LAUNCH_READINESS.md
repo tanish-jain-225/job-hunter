@@ -126,7 +126,7 @@ external workflow availability must be monitored by the operator.
 
 ## Commercial SaaS Business Model & Monetization Roadmap
 
-Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for up to 500–1,040 users. To transition from an open-source public beta to a commercial B2C/B2B SaaS product, follow this commercial blueprint:
+Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for 300–330 users with default 1,000-job retention (and up to 500–1,040 users with multi-key CSV rotation and 300-job retention). To transition from an open-source public beta to a commercial B2C/B2B SaaS product, follow this commercial blueprint:
 
 ### 1. Market Positioning & Disruptive Pricing
 

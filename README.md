@@ -51,7 +51,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.0+).
 5. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
 6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links.
-7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions—supporting **300 Daily Active Users out-of-the-box** (and up to **500–1,040 users** with multi-key CSV rotation) at **$0.00/month** total operating cost.
+7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions—supporting **300 Daily Active Users out-of-the-box** (~330 users on the 500 MB database free tier with default 1,000-job retention, and up to **500–1,040 users** with multi-key CSV rotation and 300-job retention) at **$0.00/month** total operating cost.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never automatically submits applications. It scouts, filters, scores, and drafts—leaving final application review and submission strictly under human control.
@@ -281,7 +281,7 @@ screen_jd_chars: 1000     # Description character limit for fit evaluation
 draft_jd_chars: 6000      # Full context for tailored kit drafting
 score_threshold: 7.0      # Minimum score (0.0 to 10.0) for application kit generation
 max_per_digest: 7         # Maximum job kits included in morning briefing
-max_jobs_to_screen: 40    # Rate-limit ceiling for unseen jobs per batch
+max_jobs_to_screen: 30    # Rate-limit ceiling for unseen jobs per batch
 fetch_max_workers: 16     # Concurrency for ATS network requests
 llm_delay_seconds: 6.0    # 6.0s spacing = 10 RPM (strictly within 15 RPM ceiling)
 ```
@@ -325,6 +325,9 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 AUTH_REQUIRED=true          # Mandatory registration (set to false for local dev without Supabase)
+
+# Storage & Database Sliding Window Limits (default: 1000 unapplied jobs)
+MAX_TRACKED_JOBS_COUNT=1000
 
 # Flask Web Server Configuration
 FLASK_SECRET_KEY=jobhunter-secure-random-key-32-chars

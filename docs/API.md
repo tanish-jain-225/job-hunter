@@ -248,7 +248,7 @@ Download tracked jobs as a CSV file attachment.
 Returns a summary of job tracking stats.
 
 **Auth:** Required  
-**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115, "version": "a1b2c3d4e5f60718"}`
+**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115, "user_threshold": 7.5, "version": "a1b2c3d4e5f60718"}`
 
 ### GET /api/config
 Returns active configuration summary (company count, filters, score threshold).
