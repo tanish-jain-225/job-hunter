@@ -27,7 +27,7 @@ identity guarantees, not extra steps required for the current deployment.
 - Multi-currency salary regex extraction (`₹X-Y LPA`, `₹Xk/mo`, USD/EUR) and enterprise ATS pagination (SmartRecruiters offset up to 500, Workable cursor up to 500) ensure rich compensation data and complete listing coverage.
 - Dynamic asset hashing (`asset_hash`) ensures instant cache-busting of CSS and JS on production deployments.
 - Ephemeral Vercel serverless worker state automatically hydrates from Supabase `user_pipeline_runs`.
-- Regression status: 450 tests pass on the current suite with zero warnings; strict Mypy typing checks (0 errors across 23 source files), Ruff linter, >=90% test coverage, and workflow YAML validation pass.
+- Regression status: 488 tests pass on the current suite with zero warnings; strict Mypy typing checks (0 errors across 23 source files), Ruff linter, >=90% test coverage (93%+ achieved), and workflow YAML validation pass.
 
 ## Current release status
 

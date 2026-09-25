@@ -98,7 +98,7 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **450 automated tests** passing with 100% success rate (`pytest -q`).
+* **488 automated tests** passing with 100% success rate (`pytest -q`).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
