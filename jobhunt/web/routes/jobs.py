@@ -306,6 +306,13 @@ def api_stats():
         "applied": applied_count,
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
+        "stages": {
+            "to_apply": sum(1 for v in st.data.values() if (v.get("stage") == "to_apply") or (not v.get("applied") and not v.get("stage"))),
+            "applied": applied_count,
+            "interviewing": sum(1 for v in st.data.values() if v.get("stage") == "interviewing"),
+            "offer": sum(1 for v in st.data.values() if v.get("stage") == "offer"),
+            "rejected": sum(1 for v in st.data.values() if v.get("stage") == "rejected"),
+        },
         "user_threshold": user_threshold,
         "version": get_store_version(st),
     }
@@ -384,10 +391,14 @@ def api_jobs():
         # Filter status
         if status == "shortlisted" and float(item.get("score") or 0.0) < shortlist_threshold:
             continue
-        elif status == "applied" and not item.get("applied"):
+        elif status == "applied" and not item.get("applied") and item.get("stage") != "applied":
             continue
-        elif status == "unapplied" and item.get("applied"):
+        elif status == "unapplied" and (item.get("applied") or item.get("stage") in ("applied", "interviewing", "offer")):
             continue
+        elif status in VALID_APPLICATION_STAGES:
+            curr_stage = item.get("stage") or ("applied" if item.get("applied") else "to_apply")
+            if curr_stage != status:
+                continue
 
         # Filter ATS provider
         if ats_filter != "all" and job_ats != ats_filter:

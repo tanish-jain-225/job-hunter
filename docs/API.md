@@ -164,7 +164,7 @@ Returns all tracked jobs with filtering and sorting.
 **Query params:**
 | Param | Values | Default |
 |-------|--------|---------|
-| `status` | `all` / `shortlisted` / `applied` / `unapplied` | `all` |
+| `status` | `all` / `shortlisted` / `applied` / `unapplied` / `to_apply` / `interviewing` / `offer` / `rejected` | `all` |
 | `ats` | `greenhouse` / `lever` / `ashby` / `workable` / `smartrecruiters` / `bamboohr` / `recruitee` / `breezy` / `pinpoint` / `all` | `all` |
 | `search` | free text | — |
 | `min_score` | float | — |
@@ -251,7 +251,7 @@ Download tracked jobs as a CSV file attachment.
 Returns a summary of job tracking stats.
 
 **Auth:** Required  
-**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115, "user_threshold": 7.5, "version": "a1b2c3d4e5f60718"}`
+**Response:** `{"tracked": 120, "applied": 5, "shortlisted": 18, "emailed": 12, "unapplied": 115, "stages": {"to_apply": 115, "applied": 5, "interviewing": 2, "offer": 1, "rejected": 0}, "user_threshold": 7.5, "version": "a1b2c3d4e5f60718"}`
 
 ### GET /api/config
 Returns active configuration summary (company count, filters, score threshold).

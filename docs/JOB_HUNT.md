@@ -32,8 +32,8 @@ One daily run performs the following automated funnel:
 - **Greenhouse**: `GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true`
 - **Lever**: `GET https://api.lever.co/v0/postings/{slug}?mode=json`
 - **Ashby**: `GET https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
-- **Workable**: `GET https://apply.workable.com/api/v1/widget/accounts/{slug}`
-- **SmartRecruiters**: `GET https://api.smartrecruiters.com/v1/companies/{slug}/postings`
+- **Workable**: `GET https://apply.workable.com/api/v1/widget/accounts/{slug}` (supports `nextPage` cursor pagination up to 500 postings)
+- **SmartRecruiters**: `GET https://api.smartrecruiters.com/v1/companies/{slug}/postings` (supports `offset` pagination up to 500 postings)
 - **BambooHR**: `GET https://{slug}.bamboohr.com/careers/list`
 - **Recruitee**: `GET https://{slug}.recruitee.com/api/offers/`
 - **Breezy HR**: `GET https://{slug}.breezy.hr/json`
@@ -50,7 +50,7 @@ One daily run performs the following automated funnel:
 - **Breezy HR** $\rightarrow$ top-level array with `id`, `name`, `location.name`, `url`, `description`.
 - **Pinpoint** $\rightarrow$ `data[]` with `id`, `title`, `location.city`, `url`, `description`.
 
-Normalize all ATS boards into one dataclass with a globally unique `job_id = "{ats}:{slug}:{id}"` for deduplication.
+Normalize all ATS boards into one dataclass with a globally unique `job_id = "{ats}:{slug}:{id}"` for deduplication, with deterministic regex compensation extraction for multi-currency salary ranges (`₹X-Y LPA`, `₹Xk/mo`, USD/EUR).
 
 ---
 

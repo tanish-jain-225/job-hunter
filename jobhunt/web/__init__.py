@@ -125,6 +125,20 @@ def create_app(
     except ImportError:
         logger.debug("flask-limiter not installed — rate limiting disabled. Install with: pip install flask-limiter")
 
+    # Dynamic asset versioning helper for zero-stale client caching
+    @app.context_processor
+    def inject_asset_hash():
+        def asset_hash(filename: str) -> str:
+            try:
+                filepath = Path(app.static_folder or "") / filename
+                if filepath.is_file():
+                    return str(int(filepath.stat().st_mtime))
+            except Exception:
+                pass
+            return "103"
+
+        return {"asset_hash": asset_hash}
+
     # Register global hooks & error handlers
     app.after_request(add_cache_headers)
     app.errorhandler(Exception)(handle_exception)

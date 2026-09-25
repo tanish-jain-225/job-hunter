@@ -203,7 +203,7 @@ def fetch_greenhouse(slug: str, session: requests.Session) -> list[Job]:
     resp = session.get(url, timeout=15)
     ...
 ```
-The registry prevents duplicate registrations with warnings and handles URL auto-detection via `detect_ats_from_url()`.
+The registry prevents duplicate registrations with warnings, handles URL auto-detection via `detect_ats_from_url()`, and includes built-in pagination support for high-volume enterprise platforms (SmartRecruiters offset pagination, Workable nextPage token cursor) alongside multi-currency salary regex extraction (`extract_salary_hint`).
 
 ---
 

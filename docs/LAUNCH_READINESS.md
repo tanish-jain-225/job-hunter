@@ -21,11 +21,13 @@ identity guarantees, not extra steps required for the current deployment.
   not advertised or silently decoded as text.
 - Offline HMAC token verification (`SUPABASE_JWT_SECRET`) and resilient client-side session auto-refresh lifecycle prevent false-positive session drops on Vercel.
 - Thread-safe candidate API key propagation prevents cross-tenant secret leakage across concurrent requests without mutating `os.environ`.
-- Defensive prompt injection XML isolation (`<untrusted_job_description>`) ensures candidate screening and drafting cannot be hijacked by adversarial job descriptions.
+- Defensive prompt injection XML isolation (`<untrusted_job_description>`) with active closing tag stripping ensures candidate screening and drafting cannot be hijacked by adversarial job descriptions.
 - Zero-latency model alias resolution caching ensures resilient 404 fallbacks for `gemini-3.5-flash` with zero performance overhead.
-- RFC-compliant email headers (`Message-ID`, `Date`, `Auto-Submitted`, `Precedence`) and clean plain-text fallback content maximize inbox placement.
+- RFC 8058 compliant email headers (`List-Unsubscribe`, `List-Unsubscribe-Post`, `Message-ID`, `Date`, `Auto-Submitted`, `Precedence`) and clean plain-text fallback content maximize inbox placement.
+- Multi-currency salary regex extraction (`₹X-Y LPA`, `₹Xk/mo`, USD/EUR) and enterprise ATS pagination (SmartRecruiters offset up to 500, Workable cursor up to 500) ensure rich compensation data and complete listing coverage.
+- Dynamic asset hashing (`asset_hash`) ensures instant cache-busting of CSS and JS on production deployments.
 - Ephemeral Vercel serverless worker state automatically hydrates from Supabase `user_pipeline_runs`.
-- Regression status: 445 tests pass on the current suite; strict Mypy typing checks (0 errors across 23 source files), Ruff linter, >=90% test coverage, and workflow YAML validation pass.
+- Regression status: 445 tests pass on the current suite with zero warnings; strict Mypy typing checks (0 errors across 23 source files), Ruff linter, >=90% test coverage, and workflow YAML validation pass.
 
 ## Current release status
 

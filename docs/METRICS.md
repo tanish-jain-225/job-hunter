@@ -143,7 +143,7 @@ timeline
 |---|---|---|
 | **AI Provider Free Tier Changes / Rate Limits (TPM/429)** | Provider reduces limits or hits 429 quota spikes | Multi-key CSV key rotation (`GEMINI_API_KEY=key1,key2`) + 4.0s–6.0s leaky bucket throttle + automatic fallback to deterministic keyword scorer. |
 | **ATS Anti-Scraping Policies** | ATS adds bot challenge on public endpoints | All 9 supported ATS engines use standard public JSON career APIs that have remained open for over a decade. Proxy rotation can be enabled if needed. |
-| **Email Deliverability (Spam Filter)** | High-volume emails from `@gmail.com` land in spam | For >300 users, connect a custom domain with verified SPF, DKIM, and DMARC DNS records via Amazon SES or Resend. |
+| **Email Deliverability (Spam Filter)** | High-volume emails from `@gmail.com` land in spam | Outbound briefings inject RFC 8058 one-click unsubscribe headers (`List-Unsubscribe`, `List-Unsubscribe-Post: List-Unsubscribe=One-Click`) and `Auto-Submitted`/`Precedence` tags to maximize inbox placement. For >300 users, connect a custom domain with verified SPF, DKIM, and DMARC DNS records via Amazon SES or Resend. |
 | **GitHub Access Token Expiration** | Workflow dispatch fails to trigger | Set GitHub Personal Access Tokens (`GH_TOKEN`) with "No Expiration" or rotate annually. |
 
 ---

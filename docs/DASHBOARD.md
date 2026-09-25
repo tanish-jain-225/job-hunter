@@ -72,7 +72,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 4.  Executive Metrics Panel
 * Real-time metric pills summarize your tracking status: **Tracked** (total database size), **Emailed** (matches dispatched), and **Applied** (jobs marked as submitted).
-* Filter pills provide one-click status switching between *All Jobs*, *Shortlisted (7.0+)*, *Applied*, and *Unapplied* with live counts.
+* Filter pills provide one-click status switching between *All Jobs*, *Shortlisted (7.0+)*, *Applied*, *Interviewing*, *Offers*, and *Unapplied* with live counts.
 
 ### 5.  Search, Sort, and Status Filters
 * **Interactive Search Bar:** Query by company name, job title, locations, or specific technologies. Press `/` anywhere on the page to focus the search bar, with instant clearing via `Esc`.

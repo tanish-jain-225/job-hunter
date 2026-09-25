@@ -367,7 +367,7 @@ Job Hunter standardizes on **Google Gemini 3.5 Flash (`gemini-3.5-flash`)** as i
 
 The web dashboard is an interactive single-page application built with modern vanilla CSS and Flask Blueprints:
 
-* **Interactive Kanban & Table List**: View opportunities with responsive client-side pagination (10, 25, or 50 items per page), dynamic page indicator ellipses, and `localStorage` state persistence.
+* **Executive High-Density Card & Table View**: View opportunities with responsive client-side pagination (10, 25, or 50 items per page), dynamic page indicator ellipses, and 1-click stage filtering (`All`, `Shortlisted`, `To Apply`, `Applied`, `Interviewing`, `Offers`).
 * **5-Stage Pipeline Selector**: Organize opportunities directly inside each job card across:
   * 📥 **To Apply** (`to_apply`): Newly discovered high-relevance role.
   * 📨 **Applied** (`applied`): Application submitted; activates the 4-day follow-up nudge timer.

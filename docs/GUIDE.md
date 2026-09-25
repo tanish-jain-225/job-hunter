@@ -251,7 +251,7 @@ Each opportunity card provides instant visual context:
 ### Instant Search, ATS Filters & Sorting
 * **Instant Search (`/` key)**: Press `/` on your keyboard to instantly focus the search input. Search by company (e.g. `Swiggy`), title (e.g. `Full Stack`), or city (e.g. `Pune`).
 * **Filter by ATS Engine**: View jobs specifically from `Greenhouse`, `Lever`, `Ashby`, `Workable`, `SmartRecruiters`, etc.
-* **Status Filter Tabs**: Switch between **All Opportunities**, **Applied**, **To Apply**, **Internships**, or **Remote**.
+* **Status Filter Pills**: Switch with 1 click between **All Jobs**, **Shortlisted (7.0+)**, **Applied**, **Interviewing**, **Offers**, and **Unapplied** with live opportunity counts.
 * **Sorting**: Sort by **Match Score** (highest fit first), **Date** (newest first), or **Company Name**.
 
 ---

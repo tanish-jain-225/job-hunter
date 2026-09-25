@@ -778,11 +778,15 @@ function renderMetrics(stats) {
   const countAll = document.getElementById('count-all');
   const countShortlisted = document.getElementById('count-shortlisted');
   const countApplied = document.getElementById('count-applied');
+  const countInterviewing = document.getElementById('count-interviewing');
+  const countOffer = document.getElementById('count-offer');
   const countUnapplied = document.getElementById('count-unapplied');
 
   if (countAll) countAll.innerText = stats.tracked ?? 0;
   if (countShortlisted) countShortlisted.innerText = stats.shortlisted ?? 0;
   if (countApplied) countApplied.innerText = stats.applied ?? 0;
+  if (countInterviewing) countInterviewing.innerText = stats.stages?.interviewing ?? 0;
+  if (countOffer) countOffer.innerText = stats.stages?.offer ?? 0;
   if (countUnapplied) countUnapplied.innerText = stats.unapplied ?? 0;
 
   Storage.set(localStorage, STORAGE_KEYS.CACHED_STATS, {
@@ -1368,6 +1372,8 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
     } else if (appState.filter === 'remote') {
       const kw = ['remote', 'wfh', 'hybrid'];
       filteredJobs = filteredJobs.filter(j => kw.some(k => (j.title || '').toLowerCase().includes(k) || (j.location || '').toLowerCase().includes(k)));
+    } else if (['interviewing', 'offer'].includes(appState.filter)) {
+      filteredJobs = filteredJobs.filter(j => (j.stage || '') === appState.filter);
     }
 
     if (appState.locationFilter === 'india') {

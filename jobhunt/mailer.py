@@ -31,6 +31,8 @@ def send(subject: str, html_body: str, to_email: str | None = None) -> None:
     msg["Auto-Submitted"] = "auto-generated"
     msg["Precedence"] = "bulk"
     msg["X-Auto-Response-Suppress"] = "All"
+    msg["List-Unsubscribe"] = f"<mailto:{user}?subject=Unsubscribe>"
+    msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 
     # Provide clean plain-text fallback to maximize inbox deliverability and lower spam scoring
     plain_text = re.sub(r"<[^>]+>", " ", html_body)

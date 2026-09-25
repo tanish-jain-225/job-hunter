@@ -50,15 +50,15 @@ def parse_json(raw: str) -> Any:
     cleaned = re.sub(r"<think>.*?</think>", "", str(raw), flags=re.DOTALL)
     cleaned = _FENCE_CLOSE.sub("", _FENCE_OPEN.sub("", cleaned)).strip()
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
+        return json.loads(cleaned, strict=False)
+    except (json.JSONDecodeError, TypeError):
         pass
 
     # Sanitize trailing commas before closing braces/brackets e.g. {"a": 1,} -> {"a": 1}
     sanitized = re.sub(r",\s*([\]}])", r"\1", cleaned)
     try:
-        return json.loads(sanitized)
-    except json.JSONDecodeError:
+        return json.loads(sanitized, strict=False)
+    except (json.JSONDecodeError, TypeError):
         pass
 
     candidates = []
@@ -68,8 +68,8 @@ def parse_json(raw: str) -> Any:
             candidates.append((i, sanitized[i : k + 1]))
     for _, blob in sorted(candidates):
         try:
-            return json.loads(blob)
-        except json.JSONDecodeError:
+            return json.loads(blob, strict=False)
+        except (json.JSONDecodeError, TypeError):
             continue
     raise ValueError(f"could not parse JSON from model reply: {cleaned[:300]!r}")
 
@@ -375,20 +375,22 @@ def screen(
         suffix = "</untrusted_job_description>"
         tag_len = len(prefix) + len(suffix)
         content_limit = max(0, jd_chars - tag_len) if jd_chars >= tag_len else jd_chars
-        payload = [
-            {
-                "job_id": j.job_id,
-                "company": j.company,
-                "title": j.title,
-                "location": j.location,
-                "description": (
-                    f"{prefix}{j.description[:content_limit]}{suffix}"
-                    if jd_chars >= tag_len
-                    else j.description[:jd_chars]
-                ),
-            }
-            for j in batch
-        ]
+        payload = []
+        for j in batch:
+            clean_desc = j.description.replace("</untrusted_job_description>", "")
+            payload.append(
+                {
+                    "job_id": j.job_id,
+                    "company": j.company,
+                    "title": j.title,
+                    "location": j.location,
+                    "description": (
+                        f"{prefix}{clean_desc[:content_limit]}{suffix}"
+                        if jd_chars >= tag_len
+                        else clean_desc[:jd_chars]
+                    ),
+                }
+            )
         results: dict[str, dict[str, Any]] = {}
         if provider is None or model is None:
             return results
@@ -433,8 +435,16 @@ def screen(
                     SCREEN_MAX_TOKENS,
                     json_mode=True,
                 )
-            for r in _as_list(parse_json(raw)):
+            for idx_r, r in enumerate(_as_list(parse_json(raw))):
                 jid = r.get("job_id")
+                if not jid and "id" in r:
+                    raw_id = r["id"]
+                    if isinstance(raw_id, int) and 1 <= raw_id <= len(batch):
+                        jid = batch[raw_id - 1].job_id
+                    elif str(raw_id) in [b.job_id for b in batch]:
+                        jid = str(raw_id)
+                    elif idx_r < len(batch):
+                        jid = batch[idx_r].job_id
                 if jid:
                     results[str(jid)] = r
 
@@ -602,10 +612,11 @@ def draft(
 
     for i, j in enumerate(jobs):
         try:
+            clean_desc = j.description.replace("</untrusted_job_description>", "")
             user_msg = (
                 f"CANDIDATE PROFILE:\n{profile_blob}\n\n"
                 f"JOB: {j.title} at {j.company} ({j.location or 'location not stated'})\n"
-                f"URL: {j.url}\n\n<untrusted_job_description>{j.description[:jd_chars]}</untrusted_job_description>"
+                f"URL: {j.url}\n\n<untrusted_job_description>{clean_desc[:jd_chars]}</untrusted_job_description>"
             )
             if api_key:
                 try:

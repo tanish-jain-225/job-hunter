@@ -28,6 +28,14 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 * **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`. Supports `all_india` preference with automatic tech hub matching and non-India exclusion heuristics.
 * **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
 * **Date Freshness:** Discards jobs published longer than `max_age_days` (default `21` days) ago.
+* **Deterministic Multi-Currency Salary Extraction:** Scans raw job text with `extract_salary_hint` (`_SALARY_PATTERNS`) to extract structured compensation without consuming LLM tokens:
+  - Indian Rupee Full-Time: `₹X-Y LPA`, `12-18 LPA`, `10-15 Lacs`, `₹X Lakhs/yr`
+  - Monthly Internship Stipends: `₹X,XXX-₹Y,YYY/month`, `₹Xk/mo`, `stipend: ₹25,000/mo`
+  - USD / EUR Rates: `$X-Yk`, `$X,XXX-$Y,YYY/yr`, `€X-Y`
+* **Enterprise ATS Pagination & Fault Tolerance:**
+  - **SmartRecruiters**: Automatic offset pagination (`offset += 100`, up to 500 postings per company).
+  - **Workable**: Automatic cursor pagination (`nextPage` tokens, up to 500 postings per company).
+  - **Per-Job Fault Isolation**: Parsing loops wrap each posting in isolated exception handlers so single malformed jobs in public feeds never crash board fetching.
 
 The reduction depends on the configured companies, filters, and current postings; the percentages below are illustrative rather than guarantees.
 
@@ -125,13 +133,13 @@ If your LLM provider is down, hits rate limits, or is not configured, the engine
 * This allows the digest to still build and send with basic relevance matching, entirely offline!
 
 ### 2. Forgiving JSON Parser (`llm.parse_json`)
-LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles. Job Hunter strips fences, removes trailing commas, and extracts a bounded JSON substring. Arbitrarily malformed JSON can still fail and is handled by the surrounding provider fallback logic.
+LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or include conversational preambles. Job Hunter strips markdown fences, eliminates trailing commas before closing braces/brackets (`re.sub(r",\s*([\]}])", r"\1", ...)`), extracts bounded JSON substrings, parses with `strict=False` in `json.loads` to tolerate unescaped control characters, and automatically normalizes candidate job ID fields (`id` $\rightarrow$ `job_id`). Arbitrarily malformed JSON can still fail and is handled by the surrounding provider fallback logic.
 
 ### 3. Multi-Key Round-Robin & Model Cascading
 * **Strict Primary Model**: Screening and drafting stages default strictly to **Google Gemini (`gemini-3.5-flash`)**.
 * **Zero-Latency Model Alias Caching**: Any initial 404 response on any model permanently caches the working fallback model in `_MODEL_ALIAS_MAP`, ensuring subsequent pipeline requests route to the fallback instantly without repeating failed requests or incurring latency.
 * **Thread-Safe Key Alternation & Parameter Passing**: In multi-tenant environments, candidate API keys are passed directly through function parameters rather than mutating process-level `os.environ["GEMINI_API_KEY"]`. Global requests alternate across configured keys via `_GEMINI_KEY_COUNTER`.
-* **Defensive Prompt Injection Mitigation**: All candidate screening and drafting job text is wrapped inside `<untrusted_job_description>` XML tags, paired with explicit system-level instructions commanding the LLM to treat content within tags purely as evaluation data and ignore any embedded prompt overrides.
+* **Defensive Prompt Injection Mitigation**: All candidate screening and drafting job text has any raw closing `</untrusted_job_description>` XML tags cleanly stripped before being wrapped inside `<untrusted_job_description>` XML tags, neutralizing breakout escape attacks. This is paired with explicit system-level instructions commanding the LLM to treat content within tags purely as evaluation data and ignore any embedded prompt overrides.
 * **Per-Key Independent 15 RPM Throttling**: Rather than stalling all keys under a shared timer, each key tracks its own last invocation timestamp (`_enforce_key_throttle(key, min_interval=4.0)`). During automated test execution (`PYTEST_CURRENT_TEST`), physical sleeps are cleanly bypassed, accelerating test suite execution by >80% while keeping production throttling 100% intact.
 * **Extended 60s Generation Timeout**: Generous 60s read timeout (`TIMEOUT = 60`) prevents premature cutoffs on long JSON kits during upstream latency.
 * **Automatic Model Cascading**: When `gemini-3.5-flash` hits Google AI Studio project limits (`HTTP 429: Resource Exhausted`) or transient high demand (`HTTP 503`), the engine automatically cascades the active payload through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`), with temporary cooldown tracking (`_MODEL_COOLDOWN_MAP`) ensuring continuous real-time execution without dropping candidates.

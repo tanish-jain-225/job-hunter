@@ -7,7 +7,8 @@ import re
 import threading
 import time
 from dataclasses import dataclass, asdict, field
-from typing import Any, Callable, Iterable
+from pathlib import Path
+from typing import Any, Callable, Iterable, Sequence
 
 import requests
 
@@ -33,6 +34,27 @@ def strip_html(raw: str | Any | None) -> str:
     return text.strip()
 
 
+_SALARY_PATTERNS = [
+    re.compile(r"(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)", re.I),
+    re.compile(r"(₹\s*[\d,]+(?:\s*-\s*₹?\s*[\d,]+)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)", re.I),
+    re.compile(r"(\$\s*[\d,]+(?:\s*-\s*\$?\s*[\d,]+)?(?:\s*(?:k|K))?(?:\s*\/\s*(?:yr|year|hr|hour))?)", re.I),
+    re.compile(r"(\b\d{2,3}k\s*-\s*\d{2,3}k\b)", re.I),
+]
+
+
+def extract_salary_hint(title: str = "", description: str = "") -> str | None:
+    """Extract salary or compensation string from job title or description preview."""
+    for text in (title, description[:600] if description else ""):
+        if not text:
+            continue
+        for pat in _SALARY_PATTERNS:
+            m = pat.search(text)
+            if m:
+                return m.group(1).strip()
+    return None
+
+
+
 @dataclass
 class Job:
     job_id: str  # stable global id for dedupe: "<ats>:<slug>:<id>"
@@ -53,7 +75,7 @@ class Job:
     def score_100(self) -> int:
         if self.score is None:
             return 0
-        return int(round(max(0.0, min(10.0, float(self.score))) * 10))
+        return round(max(0.0, min(10.0, float(self.score))) * 10)
 
     @property
     def queue_category(self) -> str:
@@ -119,27 +141,34 @@ def parse_greenhouse(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        loc = j.get("location") or {}
-        loc_name = loc.get("name") if isinstance(loc, dict) else str(loc or "")
-        jid = j.get("id")
-        raw_url = j.get("absolute_url")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://boards.greenhouse.io/{slug}/jobs/{jid}"
-        )
-        out.append(
-            Job(
-                job_id=f"greenhouse:{slug}:{jid}",
-                ats="greenhouse",
-                company=company,
-                title=(j.get("title") or "").strip(),
-                location=str(loc_name or "").strip(),
-                url=url,
-                description=strip_html(j.get("content")),
-                posted_at=j.get("updated_at") or j.get("first_published"),
+        try:
+            loc = j.get("location") or {}
+            loc_name = loc.get("name") if isinstance(loc, dict) else str(loc or "")
+            jid = j.get("id")
+            raw_url = j.get("absolute_url")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://boards.greenhouse.io/{slug}/jobs/{jid}"
             )
-        )
+            title = (j.get("title") or "").strip()
+            desc = strip_html(j.get("content"))
+            salary = extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"greenhouse:{slug}:{jid}",
+                    ats="greenhouse",
+                    company=company,
+                    title=title,
+                    location=str(loc_name or "").strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("updated_at") or j.get("first_published"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -150,42 +179,48 @@ def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        cats = j.get("categories") or {}
-        chunks = [j.get("descriptionPlain") or strip_html(j.get("description"))]
-        for lst in j.get("lists") or []:
-            if isinstance(lst, dict):
-                chunks.append(str(lst.get("text") or ""))
-                chunks.append(strip_html(lst.get("content")))
-        chunks.append(j.get("additionalPlain") or strip_html(j.get("additional")))
-        ts = j.get("createdAt")
-        posted = None
-        if isinstance(ts, (int, float)):
-            try:
-                if ts > 0:
-                    posted = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
-            except (ValueError, OSError, OverflowError):
-                posted = None
-        jid = j.get("id")
-        raw_url = j.get("hostedUrl") or j.get("applyUrl")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://jobs.lever.co/{slug}/{jid}"
-        )
-        loc_val = cats.get("location") if isinstance(cats, dict) else str(cats or "")
-        out.append(
-            Job(
-                job_id=f"lever:{slug}:{jid}",
-                ats="lever",
-                company=company,
-                title=(j.get("text") or "").strip(),
-                location=str(loc_val or "").strip(),
-                url=url,
-                description="\n\n".join(c for c in chunks if c).strip(),
-                posted_at=posted,
-                salary=None,
+        try:
+            cats = j.get("categories") or {}
+            chunks = [j.get("descriptionPlain") or strip_html(j.get("description"))]
+            for lst in j.get("lists") or []:
+                if isinstance(lst, dict):
+                    chunks.append(str(lst.get("text") or ""))
+                    chunks.append(strip_html(lst.get("content")))
+            chunks.append(j.get("additionalPlain") or strip_html(j.get("additional")))
+            ts = j.get("createdAt")
+            posted = None
+            if isinstance(ts, (int, float)):
+                try:
+                    if ts > 0:
+                        posted = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
+                except (ValueError, OSError, OverflowError):
+                    posted = None
+            jid = j.get("id")
+            raw_url = j.get("hostedUrl") or j.get("applyUrl")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://jobs.lever.co/{slug}/{jid}"
             )
-        )
+            loc_val = cats.get("location") if isinstance(cats, dict) else str(cats or "")
+            title = (j.get("text") or "").strip()
+            desc = "\n\n".join(c for c in chunks if c).strip()
+            salary = extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"lever:{slug}:{jid}",
+                    ats="lever",
+                    company=company,
+                    title=title,
+                    location=str(loc_val or "").strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=posted,
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -200,37 +235,43 @@ def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        if j.get("isListed") is False:
-            continue
-        comp = j.get("compensation") or {}
-        salary = None
-        if isinstance(comp, dict):
-            summary = comp.get("compensationTierSummary") or comp.get("summaryComponents")
-            if isinstance(summary, str):
-                salary = summary
-        jid = j.get("id")
-        raw_url = j.get("jobUrl") or j.get("applyUrl")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://jobs.ashbyhq.com/{slug}/{jid}"
-        )
-        loc_val = j.get("location")
-        if isinstance(loc_val, dict):
-            loc_val = loc_val.get("name") or loc_val.get("location") or ""
-        out.append(
-            Job(
-                job_id=f"ashby:{slug}:{jid}",
-                ats="ashby",
-                company=company,
-                title=(j.get("title") or "").strip(),
-                location=str(loc_val or "").strip(),
-                url=url,
-                description=(j.get("descriptionPlain") or strip_html(j.get("descriptionHtml")) or "").strip(),
-                posted_at=j.get("publishedAt") or j.get("publishedDate"),
-                salary=salary,
+        try:
+            if j.get("isListed") is False:
+                continue
+            comp = j.get("compensation") or {}
+            salary = None
+            if isinstance(comp, dict):
+                summary = comp.get("compensationTierSummary") or comp.get("summaryComponents")
+                if isinstance(summary, str):
+                    salary = summary
+            jid = j.get("id")
+            raw_url = j.get("jobUrl") or j.get("applyUrl")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://jobs.ashbyhq.com/{slug}/{jid}"
             )
-        )
+            loc_val = j.get("location")
+            if isinstance(loc_val, dict):
+                loc_val = loc_val.get("name") or loc_val.get("location") or ""
+            title = (j.get("title") or "").strip()
+            desc = (j.get("descriptionPlain") or strip_html(j.get("descriptionHtml")) or "").strip()
+            salary = salary or extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"ashby:{slug}:{jid}",
+                    ats="ashby",
+                    company=company,
+                    title=title,
+                    location=str(loc_val or "").strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("publishedAt") or j.get("publishedDate"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -245,31 +286,38 @@ def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        loc = j.get("location") or {}
-        loc_str = (
-            loc.get("city") or loc.get("country") or j.get("location_str") or ""
-            if isinstance(loc, dict)
-            else str(loc or "")
-        )
-        shortcode = j.get("shortcode") or j.get("id")
-        raw_url = j.get("url") or j.get("application_url")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://apply.workable.com/{slug}/j/{shortcode}/"
-        )
-        out.append(
-            Job(
-                job_id=f"workable:{slug}:{shortcode}",
-                ats="workable",
-                company=company,
-                title=(j.get("title") or "").strip(),
-                location=str(loc_str).strip(),
-                url=url,
-                description=strip_html(j.get("description")),
-                posted_at=j.get("published") or j.get("created_at") or j.get("published_on"),
+        try:
+            loc = j.get("location") or {}
+            loc_str = (
+                loc.get("city") or loc.get("country") or j.get("location_str") or ""
+                if isinstance(loc, dict)
+                else str(loc or "")
             )
-        )
+            shortcode = j.get("shortcode") or j.get("id")
+            raw_url = j.get("url") or j.get("application_url")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://apply.workable.com/{slug}/j/{shortcode}/"
+            )
+            title = (j.get("title") or "").strip()
+            desc = strip_html(j.get("description"))
+            salary = extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"workable:{slug}:{shortcode}",
+                    ats="workable",
+                    company=company,
+                    title=title,
+                    location=str(loc_str).strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("published") or j.get("created_at") or j.get("published_on"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -284,35 +332,42 @@ def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        loc = j.get("location") or {}
-        loc_str = loc.get("city") or loc.get("country") or "" if isinstance(loc, dict) else str(loc or "")
-        jid = j.get("id")
-        ad = j.get("jobAd") or {}
-        raw_url = (j.get("applyUrl") or ad.get("applyUrl")) if isinstance(ad, dict) else j.get("applyUrl")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://jobs.smartrecruiters.com/{slug}/{jid}"
-        )
-        desc = None
-        if isinstance(ad, dict):
-            sections = ad.get("sections")
-            if isinstance(sections, dict):
-                jd_sec = sections.get("jobDescription")
-                if isinstance(jd_sec, dict):
-                    desc = jd_sec.get("text")
-        out.append(
-            Job(
-                job_id=f"smartrecruiters:{slug}:{jid}",
-                ats="smartrecruiters",
-                company=company,
-                title=(j.get("name") or j.get("title") or "").strip(),
-                location=str(loc_str).strip(),
-                url=url,
-                description=strip_html(desc),
-                posted_at=j.get("releasedDate") or j.get("createdOn"),
+        try:
+            loc = j.get("location") or {}
+            loc_str = loc.get("city") or loc.get("country") or "" if isinstance(loc, dict) else str(loc or "")
+            jid = j.get("id")
+            ad = j.get("jobAd") or {}
+            raw_url = (j.get("applyUrl") or ad.get("applyUrl")) if isinstance(ad, dict) else j.get("applyUrl")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://jobs.smartrecruiters.com/{slug}/{jid}"
             )
-        )
+            desc_raw = None
+            if isinstance(ad, dict):
+                sections = ad.get("sections")
+                if isinstance(sections, dict):
+                    jd_sec = sections.get("jobDescription")
+                    if isinstance(jd_sec, dict):
+                        desc_raw = jd_sec.get("text")
+            title = (j.get("name") or j.get("title") or "").strip()
+            desc = strip_html(desc_raw)
+            salary = extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"smartrecruiters:{slug}:{jid}",
+                    ats="smartrecruiters",
+                    company=company,
+                    title=title,
+                    location=str(loc_str).strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("releasedDate") or j.get("createdOn"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -327,26 +382,33 @@ def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
     for j in jobs_list:
         if not isinstance(j, dict):
             continue
-        jid = j.get("id") or j.get("jobOpeningId")
-        loc = j.get("location") or {}
-        if isinstance(loc, dict):
-            loc_parts = [loc.get("city"), loc.get("state")]
-            loc_str = ", ".join(p for p in loc_parts if p) or "Remote/Unspecified"
-        else:
-            loc_str = str(loc or "Remote/Unspecified")
-        url = f"https://{slug}.bamboohr.com/careers/{jid}"
-        out.append(
-            Job(
-                job_id=f"bamboohr:{slug}:{jid}",
-                ats="bamboohr",
-                company=company,
-                title=(j.get("jobOpeningName") or j.get("title") or "").strip(),
-                location=str(loc_str).strip(),
-                url=url,
-                description=strip_html(j.get("description") or j.get("jobDescription")),
-                posted_at=j.get("datePosted") or j.get("postedDate"),
+        try:
+            jid = j.get("id") or j.get("jobOpeningId")
+            loc = j.get("location") or {}
+            if isinstance(loc, dict):
+                loc_parts = [loc.get("city"), loc.get("state")]
+                loc_str = ", ".join(p for p in loc_parts if p) or "Remote/Unspecified"
+            else:
+                loc_str = str(loc or "Remote/Unspecified")
+            url = f"https://{slug}.bamboohr.com/careers/{jid}"
+            title = (j.get("jobOpeningName") or j.get("title") or "").strip()
+            desc = strip_html(j.get("description") or j.get("jobDescription"))
+            salary = extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"bamboohr:{slug}:{jid}",
+                    ats="bamboohr",
+                    company=company,
+                    title=title,
+                    location=str(loc_str).strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("datePosted") or j.get("postedDate"),
+                    salary=salary,
+                )
             )
-        )
+        except Exception:
+            continue
     return out
 
 
@@ -357,29 +419,35 @@ def parse_recruitee(slug: str, company: str, body: Any) -> list[Job]:
     for j in offers:
         if not isinstance(j, dict):
             continue
-        jid = j.get("id")
-        loc_str = (
-            j.get("location") or j.get("city") or j.get("country") or ("Remote" if j.get("remote") else "Unspecified")
-        )
-        raw_url = j.get("careers_url") or j.get("url")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://{slug}.recruitee.com/o/{jid}"
-        )
-        out.append(
-            Job(
-                job_id=f"recruitee:{slug}:{jid}",
-                ats="recruitee",
-                company=company,
-                title=(j.get("title") or "").strip(),
-                location=str(loc_str).strip(),
-                url=url,
-                description=strip_html(j.get("description") or j.get("requirements")),
-                posted_at=j.get("created_at") or j.get("published_at"),
-                salary=j.get("salary_range") or j.get("compensation"),
+        try:
+            jid = j.get("id")
+            loc_str = (
+                j.get("location") or j.get("city") or j.get("country") or ("Remote" if j.get("remote") else "Unspecified")
             )
-        )
+            raw_url = j.get("careers_url") or j.get("url")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://{slug}.recruitee.com/o/{jid}"
+            )
+            title = (j.get("title") or "").strip()
+            desc = strip_html(j.get("description") or j.get("requirements"))
+            salary = j.get("salary_range") or j.get("compensation") or extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"recruitee:{slug}:{jid}",
+                    ats="recruitee",
+                    company=company,
+                    title=title,
+                    location=str(loc_str).strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("created_at") or j.get("published_at"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -391,30 +459,36 @@ def parse_breezy(slug: str, company: str, body: Any) -> list[Job]:
     for j in positions:
         if not isinstance(j, dict):
             continue
-        jid = j.get("id") or j.get("friendly_id")
-        loc = j.get("location") or {}
-        loc_name = loc.get("name") if isinstance(loc, dict) else str(loc)
-        if isinstance(loc, dict) and loc.get("is_remote"):
-            loc_name = f"{loc_name} (Remote)" if loc_name else "Remote"
-        raw_url = j.get("url")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://{slug}.breezy.hr/p/{jid}"
-        )
-        out.append(
-            Job(
-                job_id=f"breezy:{slug}:{jid}",
-                ats="breezy",
-                company=company,
-                title=(j.get("name") or j.get("title") or "").strip(),
-                location=str(loc_name or "Remote/Unspecified").strip(),
-                url=url,
-                description=strip_html(j.get("description") or j.get("summary")),
-                posted_at=j.get("published_date") or j.get("updated_at"),
-                salary=j.get("type", {}).get("name") if isinstance(j.get("type"), dict) else None,
+        try:
+            jid = j.get("id") or j.get("friendly_id")
+            loc = j.get("location") or {}
+            loc_name = loc.get("name") if isinstance(loc, dict) else str(loc)
+            if isinstance(loc, dict) and loc.get("is_remote"):
+                loc_name = f"{loc_name} (Remote)" if loc_name else "Remote"
+            raw_url = j.get("url")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://{slug}.breezy.hr/p/{jid}"
             )
-        )
+            title = (j.get("name") or j.get("title") or "").strip()
+            desc = strip_html(j.get("description") or j.get("summary"))
+            salary = (j.get("type", {}).get("name") if isinstance(j.get("type"), dict) else None) or extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"breezy:{slug}:{jid}",
+                    ats="breezy",
+                    company=company,
+                    title=title,
+                    location=str(loc_name or "Remote/Unspecified").strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("published_date") or j.get("updated_at"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -429,32 +503,38 @@ def parse_pinpoint(slug: str, company: str, body: Any) -> list[Job]:
     for j in data_list:
         if not isinstance(j, dict):
             continue
-        jid = j.get("id")
-        loc = j.get("location") or {}
-        loc_str = (
-            loc.get("city") or loc.get("country") or j.get("location_name") if isinstance(loc, dict) else str(loc or "")
-        )
-        if not loc_str:
-            loc_str = "Remote" if j.get("workplace_type") == "remote" else "Unspecified"
-        raw_url = j.get("url")
-        url = (
-            raw_url
-            if raw_url and str(raw_url).startswith(("http://", "https://"))
-            else f"https://{slug}.pinpoint.work/en/postings/{jid}"
-        )
-        out.append(
-            Job(
-                job_id=f"pinpoint:{slug}:{jid}",
-                ats="pinpoint",
-                company=company,
-                title=(j.get("title") or "").strip(),
-                location=str(loc_str).strip(),
-                url=url,
-                description=strip_html(j.get("description") or j.get("summary") or j.get("body")),
-                posted_at=j.get("published_at") or j.get("created_at"),
-                salary=j.get("salary_range") or j.get("compensation"),
+        try:
+            jid = j.get("id")
+            loc = j.get("location") or {}
+            loc_str = (
+                loc.get("city") or loc.get("country") or j.get("location_name") if isinstance(loc, dict) else str(loc or "")
             )
-        )
+            if not loc_str:
+                loc_str = "Remote" if j.get("workplace_type") == "remote" else "Unspecified"
+            raw_url = j.get("url")
+            url = (
+                raw_url
+                if raw_url and str(raw_url).startswith(("http://", "https://"))
+                else f"https://{slug}.pinpoint.work/en/postings/{jid}"
+            )
+            title = (j.get("title") or "").strip()
+            desc = strip_html(j.get("description") or j.get("summary") or j.get("body"))
+            salary = j.get("salary_range") or j.get("compensation") or extract_salary_hint(title, desc)
+            out.append(
+                Job(
+                    job_id=f"pinpoint:{slug}:{jid}",
+                    ats="pinpoint",
+                    company=company,
+                    title=title,
+                    location=str(loc_str).strip(),
+                    url=url,
+                    description=desc,
+                    posted_at=j.get("published_at") or j.get("created_at"),
+                    salary=salary,
+                )
+            )
+        except Exception:
+            continue
     return out
 
 
@@ -527,6 +607,45 @@ def fetch_board(
                     print(f"  ! {ats}/{slug} -> response too large ({content_len // 1024} KB), skipping")
                     return []
                 jobs = parser(slug, company or slug, r.json())
+
+                # Automatic pagination support for high-volume enterprise boards (capped at 500 jobs max)
+                if ats_lower == "smartrecruiters" and len(jobs) == 100:
+                    offset = 100
+                    while offset < 500:
+                        try:
+                            next_url = f"https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100&offset={offset}"
+                            r_next = sess.get(next_url, headers=UA, timeout=TIMEOUT)
+                            if r_next.status_code == 200:
+                                more_jobs = parser(slug, company or slug, r_next.json())
+                                if not more_jobs:
+                                    break
+                                jobs.extend(more_jobs)
+                                if len(more_jobs) < 100:
+                                    break
+                                offset += 100
+                            else:
+                                break
+                        except Exception:
+                            break
+
+                elif ats_lower == "workable" and isinstance(r.json(), dict) and r.json().get("nextPage"):
+                    next_token = r.json().get("nextPage")
+                    while next_token and len(jobs) < 500:
+                        try:
+                            next_url = f"https://apply.workable.com/api/v1/widget/accounts/{slug}?token={next_token}"
+                            r_next = sess.get(next_url, headers=UA, timeout=TIMEOUT)
+                            if r_next.status_code == 200:
+                                next_data = r_next.json()
+                                more_jobs = parser(slug, company or slug, next_data)
+                                if not more_jobs:
+                                    break
+                                jobs.extend(more_jobs)
+                                next_token = next_data.get("nextPage") if isinstance(next_data, dict) else None
+                            else:
+                                break
+                        except Exception:
+                            break
+
                 # Thread-safe cache write
                 with _ATS_CACHE_LOCK:
                     if use_cache:
@@ -669,14 +788,13 @@ def detect_ats_from_url(url: str) -> dict[str, str] | None:
 
 
 def fetch_all(
-    companies: Iterable[dict] | str | Any,
+    companies: Sequence[dict[str, Any]] | dict[str, Any] | str | Path | Any,
     sleep: float = 0.25,
     max_workers: int = 8,
     use_cache: bool = True,
     custom_companies: Iterable[dict] | None = None,
 ) -> list[Job]:
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from pathlib import Path
     import yaml
 
     company_list: list[dict] = []
@@ -688,7 +806,8 @@ def fetch_all(
                 data.get("companies", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
             )
     elif isinstance(companies, dict):
-        company_list = companies.get("companies", [])
+        comps = companies.get("companies")
+        company_list = [c for c in comps if isinstance(c, dict)] if isinstance(comps, list) else []
     elif isinstance(companies, Iterable):
         company_list = [c for c in companies if isinstance(c, dict)]
 
