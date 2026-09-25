@@ -2941,7 +2941,7 @@ async function runPipeline() {
       showToast('Opening GitHub Actions to run the live radar in the cloud... Loader will monitor until results arrive.', 'info', 5000);
       fetchAndRenderJobs(false);
       if (data.actions_url) {
-        window.open(data.actions_url, '_blank');
+        window.open(data.actions_url, '_blank', 'noopener,noreferrer');
       }
       startCloudPoller(Date.now() / 1000);
 

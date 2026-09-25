@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import time
 
-from flask import Blueprint, g, jsonify, render_template, request, send_file
+from flask import Blueprint, g, jsonify, make_response, render_template, request, send_file
 
 from ...auth import get_supabase_config, require_auth
 from ..state import ROOT
@@ -17,7 +17,12 @@ views_bp = Blueprint("views", __name__)
 @views_bp.route("/api/index.py")
 def index():
     """Render main Light Mode dashboard with digest & job tracker."""
-    return render_template("index.html")
+    resp = make_response(render_template("index.html"))
+    # Prevent Chrome from treating this SPA shell as a skippable intermediate page
+    # in the session history chain (bfcache eligibility). The SPA re-initialises
+    # auth state on every page load, so stale cached copies are undesirable.
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @views_bp.route("/api/health")
