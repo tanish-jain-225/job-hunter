@@ -36,8 +36,8 @@ def strip_html(raw: str | Any | None) -> str:
 
 _SALARY_PATTERNS = [
     re.compile(r"(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)", re.I),
-    re.compile(r"(₹\s*[\d,]+(?:\s*-\s*₹?\s*[\d,]+)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)", re.I),
-    re.compile(r"(\$\s*[\d,]+(?:\s*-\s*\$?\s*[\d,]+)?(?:\s*(?:k|K))?(?:\s*\/\s*(?:yr|year|hr|hour))?)", re.I),
+    re.compile(r"(₹\s*[\d,]+(?:\s*(?:k|K))?(?:\s*-\s*₹?\s*[\d,]+(?:\s*(?:k|K))?)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)", re.I),
+    re.compile(r"([€$]\s*[\d,]+(?:\s*[kK])?(?:\s*-\s*[€$]?\s*[\d,]+(?:\s*[kK])?)?(?:\s*\/\s*(?:yr|year|hr|hour))?)", re.I),
     re.compile(r"(\b\d{2,3}k\s*-\s*\d{2,3}k\b)", re.I),
 ]
 

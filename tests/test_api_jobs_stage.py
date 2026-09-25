@@ -104,3 +104,55 @@ def test_api_add_job_score_clamping(client):
     data = resp.get_json()
     assert data["job"]["score"] == 10.0
 
+
+def test_api_jobs_stages_and_stats(client):
+    """Verify /api/jobs supports filtering across stages and /api/stats includes stage counts."""
+    from unittest.mock import MagicMock, patch
+
+    mock_st = MagicMock()
+    mock_st.data = {
+        "j1": {"title": "Job 1", "company": "A", "score": 8.5, "stage": "to_apply", "applied": False},
+        "j2": {"title": "Job 2", "company": "B", "score": 9.0, "stage": "applied", "applied": True},
+        "j3": {"title": "Job 3", "company": "C", "score": 7.5, "stage": "interviewing", "applied": True},
+        "j4": {"title": "Job 4", "company": "D", "score": 9.5, "stage": "offer", "applied": True},
+        "j5": {"title": "Job 5", "company": "E", "score": 5.0, "stage": "rejected", "applied": False},
+    }
+    with patch("jobhunt.web.routes.jobs.Store", return_value=mock_st):
+        for stage in ("to_apply", "applied", "interviewing", "offer", "rejected", "unapplied"):
+            r = client.get(f"/api/jobs?status={stage}")
+            assert r.status_code == 200
+            data = r.get_json()
+            assert "jobs" in data
+
+        r_stats = client.get("/api/stats")
+        assert r_stats.status_code == 200
+        stats = r_stats.get_json()
+        assert "stages" in stats
+        stages = stats["stages"]
+        assert stages["to_apply"] == 1
+        assert stages["applied"] == 3
+        assert stages["interviewing"] == 1
+        assert stages["offer"] == 1
+        assert stages["rejected"] == 1
+
+
+def test_asset_hash_context_processor():
+    """Verify asset_hash template context processor generates mtime hash or fallback."""
+    from jobhunt.web import create_app
+    test_app = create_app()
+    test_app.config["TESTING"] = True
+    with test_app.test_request_context():
+        for func in test_app.template_context_processors[None]:
+            res = func()
+            if isinstance(res, dict) and "asset_hash" in res:
+                fn = res["asset_hash"]
+                h1 = fn("css/style.css")
+                assert len(h1) > 0
+                h2 = fn("css/non_existent.css")
+                assert h2 == "103"
+                return
+        assert False, "asset_hash context processor not found"
+
+
+
+

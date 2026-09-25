@@ -241,3 +241,69 @@ def test_fetch_all_session_retry_setup(monkeypatch):
     assert adapter.max_retries.total == 3
     assert adapter.max_retries.backoff_factor == 0.3
     assert 502 in adapter.max_retries.status_forcelist
+
+
+def test_extract_salary_hint_all_patterns():
+    """Verify compensation extraction regex across INR LPA, Lacs, stipends, and USD/EUR."""
+    assert fetch.extract_salary_hint("Salary: ₹12-18 LPA plus bonus") == "12-18 LPA"
+    assert fetch.extract_salary_hint("Offering 15-20 LPA for senior role") == "15-20 LPA"
+    assert fetch.extract_salary_hint("Compensation: 10 - 14 Lacs per annum") == "10 - 14 Lacs"
+    assert fetch.extract_salary_hint("CTC: ₹25 Lakhs / yr") == "25 Lakhs"
+    assert fetch.extract_salary_hint("Internship stipend: ₹25k/mo remote") == "₹25k/mo"
+    assert fetch.extract_salary_hint("Stipend: ₹15,000 / month") == "₹15,000 / mo"
+    assert fetch.extract_salary_hint("Salary: $120k-$150k based on experience") == "$120k-$150k"
+    assert fetch.extract_salary_hint("Pay: $80,000 - $100,000 /yr") == "$80,000 - $100,000 /yr"
+    assert fetch.extract_salary_hint("Compensation: €60k-€80k in Berlin") == "€60k-€80k"
+    assert fetch.extract_salary_hint("") is None
+    assert fetch.extract_salary_hint("No salary mentioned") is None
+
+
+def test_fetch_board_pagination_and_size(monkeypatch):
+    """Verify response size guard and pagination loops in fetch_board."""
+    from unittest.mock import MagicMock
+
+    # Size guard
+    sess = requests.Session()
+    r_big = MagicMock()
+    r_big.status_code = 200
+    r_big.content = b"X" * (fetch._MAX_RESPONSE_BYTES + 100)
+    monkeypatch.setattr(sess, "get", lambda *a, **kw: r_big)
+    assert fetch.fetch_board("greenhouse", "big", session=sess, use_cache=False) == []
+
+    # SmartRecruiters pagination
+    r_sr1 = MagicMock()
+    r_sr1.status_code = 200
+    r_sr1.content = b'{"content": []}'
+    r_sr1.json.return_value = {
+        "content": [
+            {"id": f"s{i}", "name": f"Job {i}", "location": {}, "refNumber": "1", "jobAd": {"sections": {}}}
+            for i in range(100)
+        ]
+    }
+    r_sr2 = MagicMock()
+    r_sr2.status_code = 200
+    r_sr2.content = b'{"content": []}'
+    r_sr2.json.return_value = {
+        "content": [
+            {"id": f"s{i}", "name": f"Job {i}", "location": {}, "refNumber": "1", "jobAd": {"sections": {}}}
+            for i in range(100, 120)
+        ]
+    }
+    monkeypatch.setattr(sess, "get", MagicMock(side_effect=[r_sr1, r_sr2]))
+    sr_jobs = fetch.fetch_board("smartrecruiters", "slug", session=sess, use_cache=False)
+    assert len(sr_jobs) == 120
+
+    # Workable pagination
+    r_w1 = MagicMock()
+    r_w1.status_code = 200
+    r_w1.content = b'{"results": []}'
+    r_w1.json.return_value = {"nextPage": "tok2", "results": [{"shortcode": "w1", "title": "Dev", "location": {}}]}
+    r_w2 = MagicMock()
+    r_w2.status_code = 200
+    r_w2.content = b'{"results": []}'
+    r_w2.json.return_value = {"nextPage": None, "results": [{"shortcode": "w2", "title": "Dev2", "location": {}}]}
+    monkeypatch.setattr(sess, "get", MagicMock(side_effect=[r_w1, r_w2]))
+    w_jobs = fetch.fetch_board("workable", "slug", session=sess, use_cache=False)
+    assert len(w_jobs) == 2
+
+
