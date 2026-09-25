@@ -519,6 +519,7 @@ def test_verify_token_missing_sub(monkeypatch):
 
 def test_require_auth_csrf_rejected_for_cookie(monkeypatch):
     """Test require_auth blocks state-changing POST requests using cookie auth without valid Origin."""
+    monkeypatch.setattr(auth, "is_auth_required", lambda: True)
     test_app = Flask(__name__)
     test_app.config["SECRET_KEY"] = "test"
 
@@ -541,6 +542,7 @@ def test_require_auth_csrf_rejected_for_cookie(monkeypatch):
 
 def test_require_auth_invalid_token(monkeypatch):
     """Test require_auth returns 401 INVALID_TOKEN when verify_token fails."""
+    monkeypatch.setattr(auth, "is_auth_required", lambda: True)
     test_app = Flask(__name__)
 
     @test_app.route("/api/test-invalid", methods=["GET"])
