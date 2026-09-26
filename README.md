@@ -207,7 +207,7 @@ pip install -e ".[dev,anthropic]"
 Verify the installation:
 ```bash
 jobhunt --version
-# Output: jobhunt 1.0.0
+# Output: jobhunt 1.0.3
 ```
 
 ---
@@ -480,7 +480,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package
-│   ├── __init__.py           # Package version (1.0.0) & public exports
+│   ├── __init__.py           # Package version (1.0.3) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)

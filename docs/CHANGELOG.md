@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.0.3] — 2026-09-26
 
 ### Removed
 - **Initial Setup Wizard & Presets Completely Removed**: Removed the intrusive first-time onboarding modal and multi-preset setup wizard (`onboarding.html`). Candidate configuration is now unified exclusively into the 3-step Profile & Search Settings Studio modal (`profile_settings.html`), accessible on-demand with zero interrupting popups on sign-in or session sync. Maintained a hidden backwards-compatible DOM stub to preserve DOM contracts.
@@ -141,5 +141,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
-[Unreleased]: https://github.com/tanish-jain-225/job-hunter/compare/v1.0.0...HEAD
+[1.0.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.3
 [1.0.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.0
