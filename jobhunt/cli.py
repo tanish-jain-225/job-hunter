@@ -112,7 +112,7 @@ def _load_profile(cfg: dict, raise_on_error: bool = True) -> dict:
 
 def _fetch_jobs(args: argparse.Namespace, cfg: dict) -> tuple[list, list]:
     """Stage 1-2: Fetch raw jobs and apply prefilter + dedupe."""
-    fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
+    fetch_max_workers = int(cfg.get("fetch_max_workers", 16))
     filters = cfg.get("filters", {})
 
     print("[1/5] fetching boards")
@@ -133,7 +133,7 @@ def _screen_jobs(
     """Stage 3: Score jobs via LLM or keyword matcher."""
     scorer = getattr(args, "scorer", "llm")
     llm_max_workers = int(cfg.get("llm_max_workers", 1))
-    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 1.5))
+    llm_delay_seconds = float(cfg.get("llm_delay_seconds", 6.0))
 
     if scorer == "keyword":
         print("\n[3/5] screening via keyword matcher (DEV ONLY)")
@@ -148,8 +148,8 @@ def _screen_jobs(
         llm.screen(
             jobs,
             profile,
-            batch_size=int(cfg.get("screen_batch_size", 10)),
-            jd_chars=int(cfg.get("screen_jd_chars", 1400)),
+            batch_size=int(cfg.get("screen_batch_size", 8)),
+            jd_chars=int(cfg.get("screen_jd_chars", 1000)),
             provider=provider,
             model=model,
             delay_seconds=llm_delay_seconds,
@@ -201,7 +201,7 @@ def _draft_kits(
             llm.draft(
                 shortlist,
                 profile,
-                jd_chars=int(cfg.get("draft_jd_chars", 7000)),
+                jd_chars=int(cfg.get("draft_jd_chars", 6000)),
                 provider=d_provider,
                 model=d_model,
                 delay_seconds=llm_delay_seconds,
@@ -355,7 +355,7 @@ def run_pipeline(
                 active_custom_comps = [c for c in raw_custom if isinstance(c, dict)]
 
         # 1. Fetch
-        fetch_max_workers = int(cfg.get("fetch_max_workers", 8))
+        fetch_max_workers = int(cfg.get("fetch_max_workers", 16))
         _log("[1/5] fetching boards")
         if use_mock:
             raw_jobs = fetch_all_mock()
@@ -376,7 +376,7 @@ def run_pipeline(
         seen_file = cfg.get("seen_file", "state/seen.json")
         st = store or Store(seen_file, user_email=user_email, token=token)
         jobs = st.unseen(candidates)
-        max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 40))
+        max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 30))
         if len(jobs) > max_jobs_to_screen:
             # Pass 1: Instant keyword pre-ranking across ALL unseen jobs (0.01s)
             llm.keyword_screen(jobs, profile or {})

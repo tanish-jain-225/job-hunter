@@ -102,7 +102,7 @@ job-hunter/
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package
-│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.0")
+│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.3")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, applied, stats, profile, web, verify, clean)

@@ -1,5 +1,9 @@
 # jobhunt configuration example. Everything tunable lives here — no editing Python.
 #
+# NOTE: This example demonstrates an opinionated junior engineer preset targeting
+# Indian tech hubs and excluding senior roles. For the default open-platform base
+# (accepting all worldwide roles and letting user web profiles filter), see `config.yaml`.
+#
 # Tune `filters` first. It is deterministic, free, and it is what keeps the
 # LLM bill small: roughly 2000 raw postings -> 40 candidates before a single
 # token is spent.

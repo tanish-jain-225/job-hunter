@@ -60,7 +60,7 @@ def api_health():
         {
             "status": "misconfigured" if production_misconfigured else "healthy",
             "service": "job-hunter",
-            "version": "1.0.0",
+            "version": "1.0.3",
             "environment": "vercel" if is_vercel else "local",
             "auth_required": supabase_cfg.get("auth_required", False),
             "memory_connected": memory_configured,

@@ -14,7 +14,7 @@ from .auth import _load_env_if_needed
 
 _load_env_if_needed()
 
-__version__ = "1.0.0"
+__version__ = "1.0.3"
 __all__ = [
     "Job",
     "Store",
