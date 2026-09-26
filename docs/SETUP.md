@@ -639,8 +639,10 @@ Job Hunter automatically alternates keys round-robin and cascades to fallback mo
 
 ## Related Documentation
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
 - **[GUIDE.md](GUIDE.md)** — Complete candidate user manual, feature tour, and job search playbook.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — In-depth architectural designs, state machines, and data flow.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard features and REST API documentation.
 - **[ENGINE.md](ENGINE.md)** — Technical details on regex prefiltering and Gemini scoring.
 - **[MULTI_USER.md](MULTI_USER.md)** — Multi-tenant batch execution and RLS data governance.

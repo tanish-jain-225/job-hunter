@@ -168,6 +168,8 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
 
 ## Related Documentation
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API reference.

@@ -150,6 +150,8 @@ LLMs often wrap JSON outputs in Markdown code blocks (````json ... ````) or incl
 
 ## Documentation Links
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
 - **[SETUP.md](SETUP.md)** — Complete step-by-step setup guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.

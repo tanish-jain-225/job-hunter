@@ -96,8 +96,10 @@ job-hunter/
 │   ├── ENGINE.md                # Prefilter, screening, and drafting pipeline details
 │   ├── GUIDE.md                 # User workflows, daily automation, and CLI usage
 │   ├── JOB_HUNT.md              # Search strategies and ATS ecosystem breakdown
-│   ├── MULTI_USER.md            # Multi-tenant batch execution architecture
+│   ├── LAUNCH_READINESS.md      # Launch audit and production readiness checklist
 │   ├── METRICS.md               # Capacity, cost, and operational metrics
+│   ├── MULTI_USER.md            # Multi-tenant batch execution architecture
+│   ├── PRODUCT_ANALYSIS_WALKTHROUGH.md # Definitive India-first product audit, 2026 research & SaaS valuation
 │   ├── SECURITY.md              # Vulnerability reporting and security controls
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
@@ -276,3 +278,16 @@ ruff check .
 2. **Service Role Isolation**: Administrative batch execution (`jobhunt multi-run`) uses the Supabase service role key strictly during cron runs; web requests strictly pass user JWT tokens.
 3. **No PDF Persistence**: Resumes uploaded to Resume Studio are parsed in-memory and discarded. Raw PDFs are never stored on disk or cloud buckets.
 4. **Token Security**: Query-string tokens are blocked. Requests use Bearer headers or supported Supabase cookies; the browser client currently persists its Supabase session in browser storage.
+
+---
+
+## Related Documentation
+
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[README.md](../README.md)** — Project homepage, architecture diagrams & live links.
+- **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
+- **[SETUP.md](SETUP.md)** — Step-by-step local and production setup.
+- **[API.md](API.md)** — Complete REST API reference.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Production deployment on Vercel & Supabase.
+- **[METRICS.md](METRICS.md)** — Operational capacity, storage equilibrium, and cost economics.
+- **[LAUNCH_READINESS.md](LAUNCH_READINESS.md)** — Launch audit and production readiness checklist.

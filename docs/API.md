@@ -390,3 +390,16 @@ All errors follow this shape:
 | 429 | Rate limit exceeded |
 | 503 | Required cloud persistence or production configuration is unavailable |
 | 500 | Internal server error |
+
+---
+
+## Related Documentation
+
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
+- **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard features and interactive UI guide.
+- **[SETUP.md](SETUP.md)** — Local development and cloud configuration guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
+- **[SECURITY.md](SECURITY.md)** — Security architecture, authentication, and compliance.
+- **[README.md](../README.md)** — Project homepage.
+

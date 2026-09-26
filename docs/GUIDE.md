@@ -483,6 +483,7 @@ jobhunt multi-run --user-email candidate@example.com --send
 
 ## Related Documentation
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
 - **[SETUP.md](SETUP.md)** — Step-by-step installation, credential acquisition, and cloud deployment guide.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard and REST API endpoints.

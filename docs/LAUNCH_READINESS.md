@@ -147,3 +147,16 @@ Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for 
 2. **Immutable User ID Tenancy**: Migrate Supabase RLS from email claims to `auth.users.id` UUIDs.
 3. **Dedicated Transactional Email Domain**: Connect Amazon SES or Resend with verified SPF, DKIM, and DMARC DNS records to eliminate personal Gmail 500-email ceilings.
 4. **Dedicated Async Execution Queue**: Replace GitHub Actions on-demand workflow dispatch with an in-cluster Celery/Redis or AWS SQS + Lambda worker for instant sub-second radar crawls.
+
+---
+
+## Related Documentation
+
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
+- **[METRICS.md](METRICS.md)** — Operational capacity, storage equilibrium, and cost economics.
+- **[SECURITY.md](SECURITY.md)** — Security architecture, authentication, and compliance.
+- **[README.md](../README.md)** — Project homepage.
+

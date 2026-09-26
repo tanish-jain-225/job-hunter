@@ -202,3 +202,17 @@ Should Job Hunter transition from a free self-hosted/community tool to a commerc
 2. **Immutable User ID Tenancy**: Migrate Supabase RLS from email claims to `auth.users.id` UUIDs.
 3. **Dedicated Transactional Email**: Provision a custom domain on Amazon SES or Postmark with authenticated SPF, DKIM, and DMARC.
 4. **Async Task Queue**: Deploy Celery/Redis or AWS SQS + Lambda for sub-second on-demand scan dispatches without GitHub queue delays.
+
+---
+
+## Related Documentation
+
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
+- **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.
+- **[ENGINE.md](ENGINE.md)** — Scoring and matching engine specifications.
+- **[MULTI_USER.md](MULTI_USER.md)** — Multi-tenant batch execution and RLS data governance.
+- **[LAUNCH_READINESS.md](LAUNCH_READINESS.md)** — Launch audit and production readiness checklist.
+- **[README.md](../README.md)** — Project homepage.
+

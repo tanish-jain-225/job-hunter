@@ -259,6 +259,8 @@ Removes a job entry completely from the tracking store.
 
 ## Related Documentation
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation workflows.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.

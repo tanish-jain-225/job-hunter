@@ -23,6 +23,7 @@
 
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
+  <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
   <a href="docs/GUIDE.md">User Guide</a> &bull;
   <a href="docs/SETUP.md">Setup Guide</a> &bull;
   <a href="docs/ARCHITECTURE.md">System Architecture</a> &bull;
@@ -91,6 +92,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 - [ATS Quirks &amp; Edge Case Handling](#ats-quirks--edge-case-handling)
 - [Security, Privacy &amp; Compliance](#security-privacy--compliance)
 - [Automated Test Suite &amp; Quality Verification](#automated-test-suite--quality-verification)
+- [Product Audit &amp; Valuation Walkthrough (India-First &amp; Global)](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md)
 - [Documentation Index](#documentation-index)
 - [Contributing &amp; License](#contributing--license)
 
@@ -593,8 +595,9 @@ ruff check .
 
 ## Documentation Index
 
-The repository includes a comprehensive 16-document technical suite:
+The repository includes a comprehensive 17-document technical suite:
 
+* **[Product Audit & Valuation Walkthrough](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md)**: Definitive India-first product analysis, 2026 hiring research, hackathon defense scripts, capstone blueprints, and SaaS valuation.
 * **[Setup Guide](docs/SETUP.md)**: Detailed step-by-step local installation and cloud setup instructions.
 * **[Deployment Guide](docs/DEPLOYMENT.md)**: 100% Free Production Cloud Deployment on Vercel and Supabase.
 * **[User Guide](docs/GUIDE.md)**: Personal utility workflows, daily routines, and configuration recipes.

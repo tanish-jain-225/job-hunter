@@ -2,6 +2,7 @@
 
 This document contains the foundational specification prompt for **Job Hunter**, detailing the system requirements, ATS endpoints, prefiltering logic, LLM stages, data schemas, and design constraints.
 
+>  *For product analysis & valuation, see [PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md).*  
 >  *For user setup instructions, see [SETUP.md](SETUP.md).*  
 >  *For the personal utility usage guide, see [GUIDE.md](GUIDE.md).*  
 >  *For the web dashboard details, see [DASHBOARD.md](DASHBOARD.md).*  
@@ -110,6 +111,8 @@ Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVID
 
 ## Documentation Links
 
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
 - **[SETUP.md](SETUP.md)** — Beginner installation guide.
 - **[GUIDE.md](GUIDE.md)** — Personal utility & cloud automation guide.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment guide.

@@ -66,3 +66,16 @@ Include: affected component, steps to reproduce, potential impact, suggested fix
 - **Upload validation**: Production PDF uploads must begin with the `%PDF-` signature and remain bounded by Flask's 16 MB request limit.
 - **XSS protection**: Digest content escaped via `html.escape()`. Jinja2 auto-escaping enabled.
 - **Content-Security-Policy** headers applied to all responses.
+
+---
+
+## Related Documentation
+
+- **[PRODUCT_ANALYSIS_WALKTHROUGH.md](PRODUCT_ANALYSIS_WALKTHROUGH.md)** — Definitive India-first product audit, 2026 hiring research, hackathon evaluation & SaaS valuation.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture, module breakdown, and data pipelines.
+- **[SETUP.md](SETUP.md)** — Step-by-step local and production setup.
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
+- **[LAUNCH_READINESS.md](LAUNCH_READINESS.md)** — Launch audit and production readiness checklist.
+- **[API.md](API.md)** — Complete REST API reference.
+- **[README.md](../README.md)** — Project homepage.
+
