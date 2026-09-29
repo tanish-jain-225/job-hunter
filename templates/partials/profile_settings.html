@@ -5,22 +5,22 @@
         <div class="modal-title">Profile &amp; Search Settings</div>
         <div class="modal-subtitle" id="profile-wizard-subtitle">Step 1 of 3 — Resume &amp; Text Context</div>
       </div>
-      <button class="modal-close" onclick="closeProfileModal()" aria-label="Close modal">×</button>
+      <button class="modal-close" data-action="close-profile-modal" aria-label="Close modal">×</button>
     </div>
 
     <!-- Step Progress Bar -->
     <div class="wizard-progress-bar">
-      <div class="wizard-step-node active" id="pws-node-1" onclick="profileWizardGoTo(1)" role="button" tabindex="0" title="Go to Step 1: Resume Context">
+      <div class="wizard-step-node active" id="pws-node-1" data-action="wizard-goto" data-step="1" role="button" tabindex="0" title="Go to Step 1: Resume Context">
         <div class="wizard-step-circle">1</div>
         <div class="wizard-step-label">Resume</div>
       </div>
       <div class="wizard-step-connector" id="pws-conn-1"></div>
-      <div class="wizard-step-node" id="pws-node-2" onclick="profileWizardGoTo(2)" role="button" tabindex="0" title="Go to Step 2: Profile & Criteria">
+      <div class="wizard-step-node" id="pws-node-2" data-action="wizard-goto" data-step="2" role="button" tabindex="0" title="Go to Step 2: Profile & Criteria">
         <div class="wizard-step-circle">2</div>
         <div class="wizard-step-label">Criteria</div>
       </div>
       <div class="wizard-step-connector" id="pws-conn-2"></div>
-      <div class="wizard-step-node" id="pws-node-3" onclick="profileWizardGoTo(3)" role="button" tabindex="0" title="Go to Step 3: Alert Settings">
+      <div class="wizard-step-node" id="pws-node-3" data-action="wizard-goto" data-step="3" role="button" tabindex="0" title="Go to Step 3: Alert Settings">
         <div class="wizard-step-circle">3</div>
         <div class="wizard-step-label">Alerts</div>
       </div>
@@ -34,9 +34,9 @@
           Upload your resume (PDF/TXT) for automated text extraction, or paste and edit your raw resume text context directly below.
         </div>
 
-        <div class="resume-dropzone" id="resume-dropzone" onclick="document.getElementById('resume-file-input').click()">
+        <div class="resume-dropzone" id="resume-dropzone" data-action="trigger-resume-input">
           <label for="resume-file-input" class="sr-only">Upload Resume File</label>
-          <input type="file" id="resume-file-input" accept=".pdf,.txt" style="display:none;" onchange="handleResumeFileSelectedAndParse(event)" aria-label="Upload resume file (.pdf, .txt)">
+          <input type="file" id="resume-file-input" accept=".pdf,.txt" style="display:none;" aria-label="Upload resume file (.pdf, .txt)">
           <div class="dropzone-icon">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
           </div>
@@ -57,15 +57,15 @@
         <div class="studio-alert" id="resume-status-alert" style="display:none;"></div>
 
         <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:20px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" onclick="flushUserProfileData()" title="Reset all profile details and start fresh">
+          <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" data-action="flush-profile-data" title="Reset all profile details and start fresh">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             <span>Reset Profile</span>
           </button>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+            <button type="button" class="btn btn-secondary btn-sm" data-action="close-profile-modal">
               <span>Cancel</span>
             </button>
-            <button type="button" class="btn btn-primary" id="profile-next-1" onclick="profileWizardNext(1)">
+            <button type="button" class="btn btn-primary" id="profile-next-1" data-action="wizard-next" data-step="1">
               <span>Next: Profile &amp; Search Criteria &rarr;</span>
             </button>
           </div>
@@ -80,7 +80,7 @@
 
         <!-- Auto-Fill from Resume Context Button at the Top -->
         <div style="margin-top:14px; margin-bottom:18px;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" onclick="autoFillRolesFromResume()" style="width:100%; justify-content:center; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" data-action="autofill-roles" style="width:100%; justify-content:center; gap:8px;">
             <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
             <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
@@ -189,13 +189,13 @@
               Quick-add Indian Tech Hubs:
             </div>
             <div class="tech-hub-chips" id="prof-tech-hub-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Bengaluru')">+ Bengaluru</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Hyderabad')">+ Hyderabad</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Pune')">+ Pune</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Delhi-NCR')">+ Delhi-NCR</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Mumbai')">+ Mumbai</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Chennai')">+ Chennai</button>
-              <button type="button" class="hub-chip" onclick="toggleCityPreset('Remote')">+ Remote (India)</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Bengaluru">+ Bengaluru</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Hyderabad">+ Hyderabad</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Pune">+ Pune</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Delhi-NCR">+ Delhi-NCR</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Mumbai">+ Mumbai</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Chennai">+ Chennai</button>
+              <button type="button" class="hub-chip" data-action="toggle-city" data-city="Remote">+ Remote (India)</button>
             </div>
             <input type="text" class="form-input" id="prof-specific-cities"
                    placeholder="e.g. Bengaluru, Hyderabad, Pune, Mumbai, Remote" autocomplete="off" spellcheck="false">
@@ -203,15 +203,15 @@
         </div>
 
         <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="close-profile-modal">
             <span>Cancel</span>
           </button>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-secondary" onclick="profileWizardBack(2)">
+            <button class="btn btn-secondary" data-action="wizard-back" data-step="2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
               <span>Previous</span>
             </button>
-            <button class="btn btn-primary" onclick="profileWizardNext(2)">
+            <button class="btn btn-primary" data-action="wizard-next" data-step="2">
               <span>Next: Alert Settings &rarr;</span>
             </button>
           </div>
@@ -237,14 +237,14 @@
           
           <div class="mail-mode-selector" role="radiogroup" aria-labelledby="label-email-briefing-mode">
             <!-- Daily Mode -->
-            <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" onclick="selectMailMode('daily')">
+            <label class="mail-mode-card" id="settings-mode-card-daily" for="radio-mode-daily" data-action="select-mail-mode" data-mode="daily">
               <input type="radio" name="email_briefing_mode" id="radio-mode-daily" value="daily" aria-label="Daily Mail Mode">
               <div class="mail-mode-title">Daily Briefing</div>
               <div class="mail-mode-desc">Automated daily morning briefings sent when new matching roles are discovered.</div>
             </label>
 
             <!-- On-Demand Mode -->
-            <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" onclick="selectMailMode('onetime')">
+            <label class="mail-mode-card" id="mode-card-onetime" for="radio-mode-onetime" data-action="select-mail-mode" data-mode="onetime">
               <input type="radio" name="email_briefing_mode" id="radio-mode-onetime" value="onetime" aria-label="One-Time Mail Mode">
               <div class="mail-mode-title">On-Demand Only</div>
               <div class="mail-mode-desc">No recurring emails. Only send an email when you manually click Run Job Hunt.</div>
@@ -259,15 +259,15 @@
 
         <!-- Save Button -->
         <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; margin-top:24px;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closeProfileModal()">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="close-profile-modal">
             <span>Cancel</span>
           </button>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-secondary" onclick="profileWizardBack(3)">
+            <button class="btn btn-secondary" data-action="wizard-back" data-step="3">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
               <span>Previous</span>
             </button>
-            <button class="btn btn-primary" id="btn-profile-save" onclick="saveProfilePreferences()">
+            <button class="btn btn-primary" id="btn-profile-save" data-action="save-profile-preferences">
               <span class="spinner" id="profile-save-spinner" style="display:none;"></span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
               <span id="profile-save-btn-text">Save Profile</span>

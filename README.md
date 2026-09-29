@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-488%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-499%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -390,6 +390,7 @@ The web dashboard is an interactive single-page application built with modern va
 |---|---|---|
 | `jobhunt run` | `-c, --config <path>`<br>`--mock`<br>`--send`<br>`--strict-llm`<br>`--scorer {llm, keyword}` | Run single-user search, filter, score, and draft pipeline. |
 | `jobhunt multi-run` | `-c, --config <path>`<br>`--mock`<br>`--send`<br>`--strict-llm`<br>`--user-email <email>`<br>`--scorer {llm, keyword}` | **Single-Pass Multi-Tenant Engine**: Crawls all ATS boards once, screens per-candidate profiles, and dispatches individual email briefings. |
+| `jobhunt check` | `-c, --config <path>`<br>`--companies <path>` | Run preflight diagnostic self-checks on environment, configs, directories, and dependencies. |
 | `jobhunt verify` | `--companies <path>`<br>`--workers <count>` | Audit target company career boards live against public ATS APIs. |
 | `jobhunt profile` | `--resume <path>`<br>`--yaml` | Extract candidate profile from PDF, TXT, or MD resume into `profile.json`. |
 | `jobhunt applied` | `<job_id>` | Mark a job ID (`ats:slug:id`) as applied in `seen.json` and Supabase. |
@@ -479,21 +480,42 @@ job-hunter/
 ├── assets/                   # Vector architecture diagrams, pipeline infographics & branding
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
-├── jobhunt/                  # Core Python Package
+├── jobhunt/                  # Core Python Package (43 source files, 0 Mypy errors)
 │   ├── __init__.py           # Package version (1.0.3) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
+│   ├── cli_args.py           # Reusable CLI argument parser builders
 │   ├── digest.py             # Responsive HTML email digest generator with XSS escaping
-│   ├── fetch.py              # Job dataclass & 9 ATS API parsers (Greenhouse, Lever, Ashby, Workable, etc.)
+│   ├── fetch.py              # Job dataclass & unified ATS scraping orchestrator
 │   ├── llm.py                # Screening, drafting, profile extraction & tolerant JSON parser
+│   ├── llm_utils.py          # Shared LLM serialization and sanitized formatting helpers
 │   ├── mailer.py             # SMTP email dispatcher
 │   ├── memory.py             # Supabase PostgreSQL client with Row-Level Security (RLS)
+│   ├── memory_codec.py       # Candidate profile schema encoding & validation
 │   ├── mock.py               # Native ATS JSON fixtures for offline testing
 │   ├── multi.py              # Single-pass multi-tenant batch execution engine
+│   ├── parsers/              # Dedicated modular ATS parser implementations
+│   │   ├── __init__.py       # Central parser registry & auto-discovery
+│   │   ├── ashby.py          # Ashby JSON API parser
+│   │   ├── bamboohr.py       # BambooHR JSON API parser
+│   │   ├── breezy.py         # Breezy HR JSON API parser
+│   │   ├── detector.py       # Dynamic ATS endpoint sniffing & board auto-detection
+│   │   ├── greenhouse.py     # Greenhouse JSON API parser with entity decoding
+│   │   ├── lever.py          # Lever JSON API parser with epoch timestamp normalization
+│   │   ├── models.py         # Parser interface contracts & data models
+│   │   ├── pinpoint.py       # Pinpoint JSON API parser
+│   │   ├── recruitee.py      # Recruitee JSON API parser
+│   │   ├── registry.py       # Factory registration pattern
+│   │   ├── smartrecruiters.py# SmartRecruiters JSON API parser
+│   │   ├── utils.py          # HTML stripping & resilient date conversion utilities
+│   │   └── workable.py       # Workable JSON API parser
 │   ├── prefilter.py          # Safe regex title, location, employment type, and freshness filtering
+│   ├── preflight.py          # Diagnostic preflight self-checks (`jobhunt check`)
 │   ├── providers.py          # Multi-provider AI clients (Gemini, Claude, Groq, Ollama, OpenAI)
+│   ├── providers_throttle.py # Adaptive token pacing & circular multi-key rate limiters
 │   ├── store.py              # seen.json persistence, deduplication, atomic writes & CSV export
+│   ├── store_paths.py        # Cross-platform state store path resolvers & atomic swap helpers
 │   ├── verify.py             # Live ATS career board auditor
 │   └── web/                  # Modular Flask Web Dashboard & REST API
 │       ├── __init__.py       # Application Factory (create_app), error handlers & security headers
@@ -512,7 +534,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 488 automated test cases with 93%+ line coverage
+├── tests/                    # 499 automated test cases with 93%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -563,7 +585,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**488 unit & integration tests**):
+Run the full automated test suite locally (**499 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -587,7 +609,7 @@ ruff check .
 | **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | Verified |
 | **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | Verified |
 | **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **488 passed tests** with 100% success rate | Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **499 passed tests** with 100% success rate | Verified |
 | **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across all source files | Verified |
 | **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | Verified |
 

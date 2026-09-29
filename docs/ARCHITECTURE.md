@@ -103,21 +103,42 @@ job-hunter/
 │   ├── SECURITY.md              # Vulnerability reporting and security controls
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
-├── jobhunt/                     # Core Python Package
+├── jobhunt/                     # Core Python Package (43 source files, 0 Mypy errors)
 │   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.3")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
-│   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, applied, stats, profile, web, verify, clean)
+│   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, check, applied, stats, profile, web, verify, clean)
+│   ├── cli_args.py              # CLI argument parser builder utilities
 │   ├── digest.py                # Responsive HTML email digest builder with inline CSS and logo guard
-│   ├── fetch.py                 # Job dataclass, @register_ats decorator, and 9 ATS board crawlers
+│   ├── fetch.py                 # Job dataclass and unified ATS scraping orchestrator
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
+│   ├── llm_utils.py             # Shared LLM serialization and prompt formatting helpers
 │   ├── mailer.py                # SMTP client with TLS encryption and failure recovery
 │   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security
+│   ├── memory_codec.py          # Candidate profile schema encoding & validation
 │   ├── mock.py                  # Offline mock ATS fixtures for zero-network testing
 │   ├── multi.py                 # Single-pass multi-tenant batch crawler and dispatcher
+│   ├── parsers/                 # Dedicated modular ATS parser implementations (9 ATS engines)
+│   │   ├── __init__.py          # Central parser registry & discovery
+│   │   ├── ashby.py             # Ashby JSON API parser
+│   │   ├── bamboohr.py          # BambooHR JSON API parser
+│   │   ├── breezy.py            # Breezy HR JSON API parser
+│   │   ├── detector.py          # Dynamic ATS endpoint sniffing & board auto-detection
+│   │   ├── greenhouse.py        # Greenhouse JSON API parser with entity decoding
+│   │   ├── lever.py             # Lever JSON API parser with epoch timestamp normalization
+│   │   ├── models.py            # Parser interface contracts & data models
+│   │   ├── pinpoint.py          # Pinpoint JSON API parser
+│   │   ├── recruitee.py         # Recruitee JSON API parser
+│   │   ├── registry.py          # Factory registration pattern
+│   │   ├── smartrecruiters.py   # SmartRecruiters JSON API parser
+│   │   ├── utils.py             # HTML stripping & resilient date conversion utilities
+│   │   └── workable.py          # Workable JSON API parser
 │   ├── prefilter.py             # Deterministic regex title, location, and date prefiltering
+│   ├── preflight.py             # Diagnostic preflight self-checks (`jobhunt check`)
 │   ├── providers.py             # Strategy pattern LLM clients (Gemini, Claude, Groq, Ollama)
-│   ├── store.py                 # Local JSON state store with sliding window pruning (MAX_TRACKED_JOBS_COUNT), file locks & CSV export
+│   ├── providers_throttle.py    # Adaptive token pacing & circular multi-key rate limiters
+│   ├── store.py                 # Local JSON state store with sliding window pruning, file locks & CSV export
+│   ├── store_paths.py           # Cross-platform state store path resolvers & atomic swap helpers
 │   ├── verify.py                # Live ATS endpoint auditor CLI tool
 │   └── web/                     # Modular Flask Web Dashboard Backend
 │       ├── __init__.py          # Application Factory (create_app), error handlers, and security headers
@@ -147,7 +168,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (488 passing tests)
+├── tests/                       # Automated Test Suite (499 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

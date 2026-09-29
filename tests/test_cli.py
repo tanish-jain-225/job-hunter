@@ -270,7 +270,7 @@ def test_cmd_profile_llm_resolve_error(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_main_cli_routing_all(monkeypatch: pytest.MonkeyPatch):
-    for cmd in ["run", "applied", "stats", "profile"]:
+    for cmd in ["run", "applied", "stats", "profile", "check"]:
         called: list[str] = []
 
         def _mock_cmd(args, c=cmd):

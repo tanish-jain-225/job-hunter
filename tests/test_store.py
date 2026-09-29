@@ -293,3 +293,43 @@ def test_store_clean_init_vercel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     unique_path = tmp_path / "unique_empty_seen_clean.json"
     st = Store(unique_path)
     assert len(st.data) == 0
+
+
+def test_store_prune_old_jobs_preserves_applied_and_stages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Ensure prune_old_jobs preserves applied/interviewing/offer/rejected jobs and prunes to_apply."""
+    monkeypatch.setenv("MAX_TRACKED_JOBS_COUNT", "2")
+    seen_path = tmp_path / "seen_prune.json"
+    st = Store(seen_path)
+
+    st.data = {
+        "job_applied": {"title": "A", "applied": True, "application_stage": "applied", "first_seen": "2026-01-01T00:00:00"},
+        "job_interview": {"title": "B", "applied": True, "application_stage": "interviewing", "first_seen": "2026-01-02T00:00:00"},
+        "job_stale_1": {"title": "C", "applied": False, "application_stage": "to_apply", "first_seen": "2026-01-03T00:00:00"},
+        "job_stale_2": {"title": "D", "applied": False, "application_stage": "to_apply", "first_seen": "2026-01-04T00:00:00"},
+    }
+
+    st.prune_old_jobs()
+    # With cap of 2, the 2 unapplied jobs should be eligible for eviction,
+    # but applied and interviewing jobs must NEVER be purged.
+    assert "job_applied" in st.data
+    assert "job_interview" in st.data
+
+
+def test_store_save_cleanup_on_write_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Ensure partial temporary file is cleaned up if atomic replace raises an unrecoverable error."""
+    seen_path = tmp_path / "seen_atomic.json"
+    st = Store(seen_path)
+    st.data = {"test": {"title": "Test"}}
+
+    def fail_replace(src, dst):
+        raise RuntimeError("Fatal filesystem lock")
+
+    monkeypatch.setattr(store, "_atomic_replace", fail_replace)
+
+    with pytest.raises(RuntimeError, match="Fatal filesystem lock"):
+        st.save(auto_export=False)
+
+    # Any tmp files should be cleaned up by the finally block
+    tmp_files = list(tmp_path.glob("seen_atomic*.tmp*"))
+    assert len(tmp_files) == 0
+

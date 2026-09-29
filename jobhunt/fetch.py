@@ -1,551 +1,50 @@
-"""Fetch jobs from public ATS APIs. No auth, no scraping, no ToS risk."""
+"""Fetch jobs from public ATS APIs with concurrency, caching, and SSRF defenses."""
 
 from __future__ import annotations
 
-import html
-import re
+import os
 import threading
 import time
-from dataclasses import dataclass, asdict, field
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 import requests
+import yaml
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+
+from .parsers import (
+    Job,
+    ParserFunc,
+    REGISTERED_ATS,
+    register_ats,
+    strip_html,
+    extract_salary_hint,
+    is_safe_url,
+    detect_ats_from_url,
+    parse_greenhouse,
+    parse_lever,
+    parse_ashby,
+    parse_workable,
+    parse_smartrecruiters,
+    parse_bamboohr,
+    parse_recruitee,
+    parse_breezy,
+    parse_pinpoint,
+)
 
 UA = {"User-Agent": "jobhunt/1.0 (personal job search agent)"}
 TIMEOUT = 20
-
-_TAG = re.compile(r"<[^>]+>")
-_WS = re.compile(r"[ \t\r\f\v]+")
-_NL = re.compile(r"\n{3,}")
-
-
-def strip_html(raw: str | Any | None) -> str:
-    if not raw:
-        return ""
-    if not isinstance(raw, str):
-        raw = str(raw)
-    text = html.unescape(raw)
-    text = re.sub(r"<\s*(br|/p|/div|/li|/h[1-6])\s*/?>", "\n", text, flags=re.I)
-    text = _TAG.sub(" ", text)
-    text = html.unescape(text)
-    text = _WS.sub(" ", text)
-    text = _NL.sub("\n\n", text)
-    return text.strip()
-
-
-_SALARY_PATTERNS = [
-    re.compile(r"(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)", re.I),
-    re.compile(r"(₹\s*[\d,]+(?:\s*(?:k|K))?(?:\s*-\s*₹?\s*[\d,]+(?:\s*(?:k|K))?)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)", re.I),
-    re.compile(r"([€$]\s*[\d,]+(?:\s*[kK])?(?:\s*-\s*[€$]?\s*[\d,]+(?:\s*[kK])?)?(?:\s*\/\s*(?:yr|year|hr|hour))?)", re.I),
-    re.compile(r"(\b\d{2,3}k\s*-\s*\d{2,3}k\b)", re.I),
-]
-
-
-def extract_salary_hint(title: str = "", description: str = "") -> str | None:
-    """Extract salary or compensation string from job title or description preview."""
-    for text in (title, description[:600] if description else ""):
-        if not text:
-            continue
-        for pat in _SALARY_PATTERNS:
-            m = pat.search(text)
-            if m:
-                return m.group(1).strip()
-    return None
-
-
-
-@dataclass
-class Job:
-    job_id: str  # stable global id for dedupe: "<ats>:<slug>:<id>"
-    ats: str
-    company: str
-    title: str
-    location: str
-    url: str
-    description: str
-    posted_at: str | None = None
-    salary: str | None = None
-    # filled in later by the pipeline
-    score: float | None = None
-    reason: str | None = None
-    draft: dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def score_100(self) -> int:
-        if self.score is None:
-            return 0
-        return round(max(0.0, min(10.0, float(self.score))) * 10)
-
-    @property
-    def queue_category(self) -> str:
-        s = self.score_100
-        if s >= 90:
-            return "Exceptional"
-        elif s >= 80:
-            return "Strong Apply"
-        elif s >= 70:
-            return "Apply"
-        elif s >= 60:
-            return "Consider"
-        else:
-            return "Skip"
-
-    def to_dict(self) -> dict[str, Any]:
-        d = asdict(self)
-        d["score_100"] = self.score_100
-        d["queue_category"] = self.queue_category
-        return d
-
-
-# --------------------------------------------------------------------------
-# Adapters & ATS Registry. Each takes raw JSON body and returns list[Job].
-# Keeping parse separate from HTTP is what makes offline testing possible.
-# --------------------------------------------------------------------------
-
-ParserFunc = Callable[[str, str, Any], list[Job]]
-REGISTERED_ATS: dict[str, tuple[str, ParserFunc]] = {}
-
-
-def register_ats(name: str, url_template: str) -> Callable[[ParserFunc], ParserFunc]:
-    """Decorator to register a new ATS board parser.
-
-    Emits a warning when the same ATS name is registered by a *different* function —
-    this catches accidental overwrites from typos while still allowing intentional
-    aliases (e.g., 'breezy' and 'breezyhr' both pointing to the same function).
-    """
-
-    def decorator(func: ParserFunc) -> ParserFunc:
-        lower = name.lower()
-        if lower in REGISTERED_ATS:
-            existing_fn = REGISTERED_ATS[lower][1]
-            if existing_fn is not func:
-                import warnings
-
-                warnings.warn(
-                    f"ATS '{lower}' already registered by {existing_fn.__name__!r}; "
-                    f"overwriting with {func.__name__!r}. "
-                    f"Use an intentional alias if this is expected.",
-                    stacklevel=2,
-                )
-        REGISTERED_ATS[lower] = (url_template, func)
-        return func
-
-    return decorator
-
-
-@register_ats("greenhouse", "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true")
-def parse_greenhouse(slug: str, company: str, body: Any) -> list[Job]:
-    out = []
-    jobs_list = (body.get("jobs") or []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            loc = j.get("location") or {}
-            loc_name = loc.get("name") if isinstance(loc, dict) else str(loc or "")
-            jid = j.get("id")
-            raw_url = j.get("absolute_url")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://boards.greenhouse.io/{slug}/jobs/{jid}"
-            )
-            title = (j.get("title") or "").strip()
-            desc = strip_html(j.get("content"))
-            salary = extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"greenhouse:{slug}:{jid}",
-                    ats="greenhouse",
-                    company=company,
-                    title=title,
-                    location=str(loc_name or "").strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("updated_at") or j.get("first_published"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("lever", "https://api.lever.co/v0/postings/{slug}?mode=json")
-def parse_lever(slug: str, company: str, body: Any) -> list[Job]:
-    out = []
-    jobs_list = body if isinstance(body, list) else (body.get("data") or [] if isinstance(body, dict) else [])
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            cats = j.get("categories") or {}
-            chunks = [j.get("descriptionPlain") or strip_html(j.get("description"))]
-            for lst in j.get("lists") or []:
-                if isinstance(lst, dict):
-                    chunks.append(str(lst.get("text") or ""))
-                    chunks.append(strip_html(lst.get("content")))
-            chunks.append(j.get("additionalPlain") or strip_html(j.get("additional")))
-            ts = j.get("createdAt")
-            posted = None
-            if isinstance(ts, (int, float)):
-                try:
-                    if ts > 0:
-                        posted = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
-                except (ValueError, OSError, OverflowError):
-                    posted = None
-            jid = j.get("id")
-            raw_url = j.get("hostedUrl") or j.get("applyUrl")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://jobs.lever.co/{slug}/{jid}"
-            )
-            loc_val = cats.get("location") if isinstance(cats, dict) else str(cats or "")
-            title = (j.get("text") or "").strip()
-            desc = "\n\n".join(c for c in chunks if c).strip()
-            salary = extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"lever:{slug}:{jid}",
-                    ats="lever",
-                    company=company,
-                    title=title,
-                    location=str(loc_val or "").strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=posted,
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("ashby", "https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true")
-def parse_ashby(slug: str, company: str, body: Any) -> list[Job]:
-    out = []
-    jobs_list = (
-        (body.get("jobPostings") or body.get("jobs") or [])
-        if isinstance(body, dict)
-        else (body if isinstance(body, list) else [])
-    )
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            if j.get("isListed") is False:
-                continue
-            comp = j.get("compensation") or {}
-            salary = None
-            if isinstance(comp, dict):
-                summary = comp.get("compensationTierSummary") or comp.get("summaryComponents")
-                if isinstance(summary, str):
-                    salary = summary
-            jid = j.get("id")
-            raw_url = j.get("jobUrl") or j.get("applyUrl")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://jobs.ashbyhq.com/{slug}/{jid}"
-            )
-            loc_val = j.get("location")
-            if isinstance(loc_val, dict):
-                loc_val = loc_val.get("name") or loc_val.get("location") or ""
-            title = (j.get("title") or "").strip()
-            desc = (j.get("descriptionPlain") or strip_html(j.get("descriptionHtml")) or "").strip()
-            salary = salary or extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"ashby:{slug}:{jid}",
-                    ats="ashby",
-                    company=company,
-                    title=title,
-                    location=str(loc_val or "").strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("publishedAt") or j.get("publishedDate"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("workable", "https://apply.workable.com/api/v1/widget/accounts/{slug}")
-def parse_workable(slug: str, company: str, body: Any) -> list[Job]:
-    out = []
-    jobs_list = (
-        (body.get("results") or body.get("jobs") or [])
-        if isinstance(body, dict)
-        else (body if isinstance(body, list) else [])
-    )
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            loc = j.get("location") or {}
-            loc_str = (
-                loc.get("city") or loc.get("country") or j.get("location_str") or ""
-                if isinstance(loc, dict)
-                else str(loc or "")
-            )
-            shortcode = j.get("shortcode") or j.get("id")
-            raw_url = j.get("url") or j.get("application_url")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://apply.workable.com/{slug}/j/{shortcode}/"
-            )
-            title = (j.get("title") or "").strip()
-            desc = strip_html(j.get("description"))
-            salary = extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"workable:{slug}:{shortcode}",
-                    ats="workable",
-                    company=company,
-                    title=title,
-                    location=str(loc_str).strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("published") or j.get("created_at") or j.get("published_on"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("smartrecruiters", "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100")
-def parse_smartrecruiters(slug: str, company: str, body: Any) -> list[Job]:
-    out: list[Job] = []
-    jobs_list: list[Any] = []
-    if isinstance(body, dict) and isinstance(body.get("content"), list):
-        jobs_list = body["content"]
-    elif isinstance(body, list):
-        jobs_list = body
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            loc = j.get("location") or {}
-            loc_str = loc.get("city") or loc.get("country") or "" if isinstance(loc, dict) else str(loc or "")
-            jid = j.get("id")
-            ad = j.get("jobAd") or {}
-            raw_url = (j.get("applyUrl") or ad.get("applyUrl")) if isinstance(ad, dict) else j.get("applyUrl")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://jobs.smartrecruiters.com/{slug}/{jid}"
-            )
-            desc_raw = None
-            if isinstance(ad, dict):
-                sections = ad.get("sections")
-                if isinstance(sections, dict):
-                    jd_sec = sections.get("jobDescription")
-                    if isinstance(jd_sec, dict):
-                        desc_raw = jd_sec.get("text")
-            title = (j.get("name") or j.get("title") or "").strip()
-            desc = strip_html(desc_raw)
-            salary = extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"smartrecruiters:{slug}:{jid}",
-                    ats="smartrecruiters",
-                    company=company,
-                    title=title,
-                    location=str(loc_str).strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("releasedDate") or j.get("createdOn"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("bamboohr", "https://{slug}.bamboohr.com/careers/list")
-def parse_bamboohr(slug: str, company: str, body: Any) -> list[Job]:
-    out: list[Job] = []
-    jobs_list = (
-        (body.get("result") or body.get("jobs") or [])
-        if isinstance(body, dict)
-        else (body if isinstance(body, list) else [])
-    )
-    for j in jobs_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            jid = j.get("id") or j.get("jobOpeningId")
-            loc = j.get("location") or {}
-            if isinstance(loc, dict):
-                loc_parts = [loc.get("city"), loc.get("state")]
-                loc_str = ", ".join(p for p in loc_parts if p) or "Remote/Unspecified"
-            else:
-                loc_str = str(loc or "Remote/Unspecified")
-            url = f"https://{slug}.bamboohr.com/careers/{jid}"
-            title = (j.get("jobOpeningName") or j.get("title") or "").strip()
-            desc = strip_html(j.get("description") or j.get("jobDescription"))
-            salary = extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"bamboohr:{slug}:{jid}",
-                    ats="bamboohr",
-                    company=company,
-                    title=title,
-                    location=str(loc_str).strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("datePosted") or j.get("postedDate"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("recruitee", "https://{slug}.recruitee.com/api/offers/")
-def parse_recruitee(slug: str, company: str, body: Any) -> list[Job]:
-    out: list[Job] = []
-    offers = (body.get("offers") or []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
-    for j in offers:
-        if not isinstance(j, dict):
-            continue
-        try:
-            jid = j.get("id")
-            loc_str = (
-                j.get("location") or j.get("city") or j.get("country") or ("Remote" if j.get("remote") else "Unspecified")
-            )
-            raw_url = j.get("careers_url") or j.get("url")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://{slug}.recruitee.com/o/{jid}"
-            )
-            title = (j.get("title") or "").strip()
-            desc = strip_html(j.get("description") or j.get("requirements"))
-            salary = j.get("salary_range") or j.get("compensation") or extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"recruitee:{slug}:{jid}",
-                    ats="recruitee",
-                    company=company,
-                    title=title,
-                    location=str(loc_str).strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("created_at") or j.get("published_at"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("breezy", "https://{slug}.breezy.hr/json")
-@register_ats("breezyhr", "https://{slug}.breezy.hr/json")
-def parse_breezy(slug: str, company: str, body: Any) -> list[Job]:
-    out: list[Job] = []
-    positions = (body.get("positions") or []) if isinstance(body, dict) else (body if isinstance(body, list) else [])
-    for j in positions:
-        if not isinstance(j, dict):
-            continue
-        try:
-            jid = j.get("id") or j.get("friendly_id")
-            loc = j.get("location") or {}
-            loc_name = loc.get("name") if isinstance(loc, dict) else str(loc)
-            if isinstance(loc, dict) and loc.get("is_remote"):
-                loc_name = f"{loc_name} (Remote)" if loc_name else "Remote"
-            raw_url = j.get("url")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://{slug}.breezy.hr/p/{jid}"
-            )
-            title = (j.get("name") or j.get("title") or "").strip()
-            desc = strip_html(j.get("description") or j.get("summary"))
-            salary = (j.get("type", {}).get("name") if isinstance(j.get("type"), dict) else None) or extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"breezy:{slug}:{jid}",
-                    ats="breezy",
-                    company=company,
-                    title=title,
-                    location=str(loc_name or "Remote/Unspecified").strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("published_date") or j.get("updated_at"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
-
-@register_ats("pinpoint", "https://{slug}.pinpoint.work/en/postings.json")
-def parse_pinpoint(slug: str, company: str, body: Any) -> list[Job]:
-    out: list[Job] = []
-    data_list = (
-        (body.get("data") or body.get("jobs") or [])
-        if isinstance(body, dict)
-        else (body if isinstance(body, list) else [])
-    )
-    for j in data_list:
-        if not isinstance(j, dict):
-            continue
-        try:
-            jid = j.get("id")
-            loc = j.get("location") or {}
-            loc_str = (
-                loc.get("city") or loc.get("country") or j.get("location_name") if isinstance(loc, dict) else str(loc or "")
-            )
-            if not loc_str:
-                loc_str = "Remote" if j.get("workplace_type") == "remote" else "Unspecified"
-            raw_url = j.get("url")
-            url = (
-                raw_url
-                if raw_url and str(raw_url).startswith(("http://", "https://"))
-                else f"https://{slug}.pinpoint.work/en/postings/{jid}"
-            )
-            title = (j.get("title") or "").strip()
-            desc = strip_html(j.get("description") or j.get("summary") or j.get("body"))
-            salary = j.get("salary_range") or j.get("compensation") or extract_salary_hint(title, desc)
-            out.append(
-                Job(
-                    job_id=f"pinpoint:{slug}:{jid}",
-                    ats="pinpoint",
-                    company=company,
-                    title=title,
-                    location=str(loc_str).strip(),
-                    url=url,
-                    description=desc,
-                    posted_at=j.get("published_at") or j.get("created_at"),
-                    salary=salary,
-                )
-            )
-        except Exception:
-            continue
-    return out
-
 
 # Dict compatibility wrapper pointing to the registry
 ENDPOINTS = REGISTERED_ATS
 
 # Global in-memory cache for high-throughput ATS job pooling (TTL: 30 minutes)
 _GLOBAL_ATS_CACHE: dict[str, tuple[float, list[Job]]] = {}
-_ATS_CACHE_LOCK = threading.Lock()  # Fix 11: protect concurrent reads/writes
+_ATS_CACHE_LOCK = threading.Lock()
 _MAX_ATS_CACHE_SIZE = 500
-_MAX_RESPONSE_BYTES = 30 * 1024 * 1024  # 30 MB hard cap per ATS response (accommodates large boards like Ashby OpenAI)
+_MAX_RESPONSE_BYTES = 30 * 1024 * 1024  # 30 MB hard cap per ATS response
 
 
 def _prune_ats_cache(now: float, ttl: float = 1800.0) -> None:
@@ -573,7 +72,7 @@ def fetch_board(
     use_cache: bool = True,
     cache_ttl: float = 1800.0,
 ) -> list[Job]:
-    """Hit one company's public board with caching and retries. Returns [] on failure."""
+    """Hit one company's public board with caching, retries, and SSRF validation. Returns [] on failure."""
     ats_lower = ats.lower()
     if ats_lower not in REGISTERED_ATS:
         raise ValueError(f"unknown ATS: {ats}")
@@ -591,11 +90,18 @@ def fetch_board(
                 _GLOBAL_ATS_CACHE.pop(cache_key, None)
 
     url_tpl, parser = REGISTERED_ATS[ats_lower]
+    target_url = url_tpl.format(slug=slug)
+
+    # SSRF Defense: Validate URL destination before requesting
+    if not is_safe_url(target_url):
+        print(f"  ! {ats}/{slug} -> blocked unsafe destination URL: {target_url}")
+        return []
+
     sess = session or requests
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            r = sess.get(url_tpl.format(slug=slug), headers=UA, timeout=TIMEOUT)
+            r = sess.get(target_url, headers=UA, timeout=TIMEOUT)
             if r.status_code == 200:
                 # Guard against oversized responses (e.g., broken or malicious ATS)
                 raw_bytes = getattr(r, "content", None)
@@ -614,6 +120,8 @@ def fetch_board(
                     while offset < 500:
                         try:
                             next_url = f"https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100&offset={offset}"
+                            if not is_safe_url(next_url):
+                                break
                             r_next = sess.get(next_url, headers=UA, timeout=TIMEOUT)
                             if r_next.status_code == 200:
                                 more_jobs = parser(slug, company or slug, r_next.json())
@@ -633,6 +141,8 @@ def fetch_board(
                     while next_token and len(jobs) < 500:
                         try:
                             next_url = f"https://apply.workable.com/api/v1/widget/accounts/{slug}?token={next_token}"
+                            if not is_safe_url(next_url):
+                                break
                             r_next = sess.get(next_url, headers=UA, timeout=TIMEOUT)
                             if r_next.status_code == 200:
                                 next_data = r_next.json()
@@ -668,125 +178,6 @@ def fetch_board(
     return []
 
 
-def detect_ats_from_url(url: str) -> dict[str, str] | None:
-    """Auto-detect ATS engine and extract slug/name from an arbitrary career board URL.
-
-    Supported engines:
-    - Greenhouse: boards.greenhouse.io/{slug}, boards-api.greenhouse.io/v1/boards/{slug}, job-boards.greenhouse.io/{slug}
-    - Lever: jobs.lever.co/{slug}, api.lever.co/v0/postings/{slug}
-    - Ashby: jobs.ashbyhq.com/{slug}, api.ashbyhq.com/posting-api/job-board/{slug}
-    - Workable: apply.workable.com/{slug}, {slug}.workable.com
-    - SmartRecruiters: jobs.smartrecruiters.com/{slug}, careers.smartrecruiters.com/{slug}
-    - BambooHR: {slug}.bamboohr.com
-    - Recruitee: {slug}.recruitee.com, careers.recruitee.com/{slug}
-    - Breezy HR: {slug}.breezy.hr
-    - Pinpoint: {slug}.pinpoint.work, {slug}.pinpointhq.com
-    """
-    from urllib.parse import urlparse
-
-    if not url or not isinstance(url, str):
-        return None
-
-    raw = url.strip()
-    if not raw.startswith(("http://", "https://")):
-        raw = "https://" + raw
-
-    parsed = urlparse(raw)
-    hostname = (parsed.hostname or "").lower()
-    path = parsed.path.strip("/")
-    path_segments = [p for p in path.split("/") if p]
-
-    # 1. Greenhouse
-    if "greenhouse.io" in hostname:
-        slug = ""
-        if path_segments:
-            if path_segments[0] == "v1" and len(path_segments) >= 3 and path_segments[1] == "boards":
-                slug = path_segments[2]
-            elif path_segments[0] in ("boards", "job-boards") and len(path_segments) >= 2:
-                slug = path_segments[1]
-            else:
-                slug = path_segments[0]
-        if slug:
-            return {"ats": "greenhouse", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 2. Lever
-    if "lever.co" in hostname:
-        slug = ""
-        if path_segments:
-            if path_segments[0] == "v0" and len(path_segments) >= 3 and path_segments[1] == "postings":
-                slug = path_segments[2]
-            else:
-                slug = path_segments[0]
-        if slug:
-            return {"ats": "lever", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 3. Ashby
-    if "ashbyhq.com" in hostname:
-        slug = ""
-        if path_segments:
-            if path_segments[0] == "posting-api" and len(path_segments) >= 3 and path_segments[1] == "job-board":
-                slug = path_segments[2]
-            else:
-                slug = path_segments[0]
-        if slug:
-            return {"ats": "ashby", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 4. Workable
-    if "workable.com" in hostname:
-        slug = ""
-        if hostname.startswith("apply.workable.com") and path_segments:
-            slug = path_segments[0]
-        else:
-            subdomain = hostname.split(".")[0]
-            if subdomain and subdomain != "apply" and subdomain != "www":
-                slug = subdomain
-        if slug:
-            return {"ats": "workable", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 5. SmartRecruiters
-    if "smartrecruiters.com" in hostname:
-        slug = ""
-        if path_segments:
-            if path_segments[0] == "v1" and len(path_segments) >= 3 and path_segments[1] == "companies":
-                slug = path_segments[2]
-            else:
-                slug = path_segments[0]
-        if slug:
-            return {"ats": "smartrecruiters", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 6. BambooHR
-    if "bamboohr.com" in hostname:
-        slug = hostname.split(".")[0]
-        if slug and slug != "www":
-            return {"ats": "bamboohr", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 7. Recruitee
-    if "recruitee.com" in hostname:
-        slug = ""
-        if hostname.startswith("careers.recruitee.com") and path_segments:
-            slug = path_segments[0]
-        else:
-            subdomain = hostname.split(".")[0]
-            if subdomain and subdomain != "careers" and subdomain != "www":
-                slug = subdomain
-        if slug:
-            return {"ats": "recruitee", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 8. Breezy HR
-    if "breezy.hr" in hostname:
-        slug = hostname.split(".")[0]
-        if slug and slug != "www":
-            return {"ats": "breezy", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    # 9. Pinpoint
-    if "pinpoint.work" in hostname or "pinpointhq.com" in hostname:
-        slug = hostname.split(".")[0]
-        if slug and slug != "www":
-            return {"ats": "pinpoint", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
-
-    return None
-
-
 def fetch_all(
     companies: Sequence[dict[str, Any]] | dict[str, Any] | str | Path | Any,
     sleep: float = 0.25,
@@ -794,9 +185,7 @@ def fetch_all(
     use_cache: bool = True,
     custom_companies: Iterable[dict] | None = None,
 ) -> list[Job]:
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    import yaml
-
+    """Fetch all postings across configured ATS boards concurrently."""
     company_list: list[dict] = []
     if isinstance(companies, (str, Path)):
         p = Path(companies)
@@ -824,8 +213,6 @@ def fetch_all(
     if not company_list:
         return []
 
-    import os
-
     if os.environ.get("VERCEL") == "1":
         company_list = company_list[:10]
         print(
@@ -833,8 +220,6 @@ def fetch_all(
         )
 
     jobs: list[Job] = []
-    from urllib3.util import Retry
-    from requests.adapters import HTTPAdapter
 
     with requests.Session() as session:
         retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[502, 503, 504], raise_on_status=False)
@@ -876,3 +261,30 @@ def fetch_all(
                     time.sleep(sleep)
 
     return jobs
+
+
+__all__ = [
+    "Job",
+    "ParserFunc",
+    "REGISTERED_ATS",
+    "ENDPOINTS",
+    "UA",
+    "TIMEOUT",
+    "register_ats",
+    "strip_html",
+    "extract_salary_hint",
+    "is_safe_url",
+    "detect_ats_from_url",
+    "clear_ats_cache",
+    "fetch_board",
+    "fetch_all",
+    "parse_greenhouse",
+    "parse_lever",
+    "parse_ashby",
+    "parse_workable",
+    "parse_smartrecruiters",
+    "parse_bamboohr",
+    "parse_recruitee",
+    "parse_breezy",
+    "parse_pinpoint",
+]

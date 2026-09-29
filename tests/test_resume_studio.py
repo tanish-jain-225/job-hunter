@@ -378,3 +378,45 @@ def test_profile_settings_full_roundtrip_persistence(client, mock_supabase_env):
         assert prof["min_score_notification"] == 7.5
 
 
+def test_resume_upload_size_limit_rejection(client, mock_supabase_env):
+    """Verify POST /api/resume/upload rejects files exceeding 5MB."""
+    import io
+
+    huge_file = io.BytesIO(b"A" * (6 * 1024 * 1024))
+    res = client.post(
+        "/api/resume/upload",
+        data={"file": (huge_file, "large_resume.txt")},
+        content_type="multipart/form-data",
+        headers={"Authorization": "Bearer mock-token"},
+    )
+    assert res.status_code == 400
+    assert "5MB" in res.get_json()["message"]
+
+
+def test_resume_upload_text_length_limit_rejection(client, mock_supabase_env):
+    """Verify POST /api/resume/upload rejects text exceeding 100k characters."""
+    res = client.post(
+        "/api/resume/upload",
+        json={"resume_text": "A" * 100_001, "filename": "huge.txt"},
+        headers={"Authorization": "Bearer mock-token"},
+    )
+    assert res.status_code == 400
+    assert "maximum allowed length" in res.get_json()["message"]
+
+
+def test_resume_upload_unsupported_extension_rejection(client, mock_supabase_env):
+    """Verify POST /api/resume/upload rejects non-PDF and non-TXT extensions."""
+    import io
+
+    doc_file = io.BytesIO(b"binary document content")
+    res = client.post(
+        "/api/resume/upload",
+        data={"file": (doc_file, "resume.docx")},
+        content_type="multipart/form-data",
+        headers={"Authorization": "Bearer mock-token"},
+    )
+    assert res.status_code == 400
+    assert "Only PDF and TXT" in res.get_json()["message"]
+
+
+

@@ -47,7 +47,7 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full test suite without any network requests or API keys (488 tests with 93%+ coverage):
+Run the full test suite without any network requests or API keys (499 tests with 93%+ coverage):
 ```bash
 pytest
 ```
@@ -82,16 +82,23 @@ jobhunt/
   ├── auth.py           # Supabase Auth, JWT verification & @require_auth decorator
   ├── clean.py          # Temporary file and test store cleanup utility
   ├── cli.py            # CLI argument parsing and subcommand dispatcher
+  ├── cli_args.py       # Reusable CLI argument parser builders
   ├── digest.py         # Responsive HTML email digest generator
-  ├── fetch.py          # Job dataclass & 9 ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)
+  ├── fetch.py          # Job dataclass & unified ATS scraping orchestrator
   ├── llm.py            # Screening, drafting, profile generation & forgiving JSON parser
+  ├── llm_utils.py      # Shared LLM serialization and prompt formatting helpers
   ├── mailer.py         # SMTP email delivery client
   ├── memory.py         # Supabase PostgreSQL client with strict tenant isolation (RLS)
+  ├── memory_codec.py   # Candidate profile schema encoding & validation
   ├── mock.py           # Native ATS fixtures for testing & offline dry runs
   ├── multi.py          # Single-pass multi-tenant batch execution engine
+  ├── parsers/          # Modular ATS parsers (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy, Pinpoint)
   ├── prefilter.py      # Pre-LLM deterministic title/location/age filtering
+  ├── preflight.py      # Diagnostic self-checks (`jobhunt check`)
   ├── providers.py      # Swappable LLM clients (Gemini, Anthropic, Groq, OpenAI-compat, Ollama)
+  ├── providers_throttle.py # Multi-key circular rate limiters & pacing
   ├── store.py          # seen.json state management & CSV exporter
+  ├── store_paths.py    # Path resolution and atomic write helpers
   ├── verify.py         # Live ATS career board auditor
   └── web/              # Modular Flask Web Dashboard & REST API
       ├── __init__.py   # Application Factory (create_app), error handlers & security headers

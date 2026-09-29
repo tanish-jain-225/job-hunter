@@ -42,63 +42,12 @@ DRAFT_MAX_TOKENS = 8000
 PROFILE_MAX_TOKENS = 4000
 
 
-def parse_json(raw: str) -> Any:
-    """Parse a model reply that is *supposed* to be JSON."""
-    if raw is None:
-        raise ValueError("empty model reply")
-    # Strip <think>...</think> reasoning blocks from thinking models
-    cleaned = re.sub(r"<think>.*?</think>", "", str(raw), flags=re.DOTALL)
-    cleaned = _FENCE_CLOSE.sub("", _FENCE_OPEN.sub("", cleaned)).strip()
-    try:
-        return json.loads(cleaned, strict=False)
-    except (json.JSONDecodeError, TypeError):
-        pass
-
-    # Sanitize trailing commas before closing braces/brackets e.g. {"a": 1,} -> {"a": 1}
-    sanitized = re.sub(r",\s*([\]}])", r"\1", cleaned)
-    try:
-        return json.loads(sanitized, strict=False)
-    except (json.JSONDecodeError, TypeError):
-        pass
-
-    candidates = []
-    for opener, closer in (("[", "]"), ("{", "}")):
-        i, k = sanitized.find(opener), sanitized.rfind(closer)
-        if i != -1 and k > i:
-            candidates.append((i, sanitized[i : k + 1]))
-    for _, blob in sorted(candidates):
-        try:
-            return json.loads(blob, strict=False)
-        except (json.JSONDecodeError, TypeError):
-            continue
-    raise ValueError(f"could not parse JSON from model reply: {cleaned[:300]!r}")
-
-
-def _ensure_list(val: Any) -> list[str]:
-    """Safely convert list or newline-separated string into a list of non-empty strings."""
-    if isinstance(val, list):
-        return [str(x).strip() for x in val if str(x).strip()]
-    if isinstance(val, str):
-        lines = [line.strip().lstrip("-*•1234567890. ") for line in val.split("\n") if line.strip()]
-        return [l for l in lines if l]
-    return []
-
-
-def _as_list(payload: Any) -> list[dict]:
-    """Accept [ {...} ], { "jobs": [...] }, or a bare { ... }."""
-    if isinstance(payload, list):
-        return [p for p in payload if isinstance(p, dict)]
-    if isinstance(payload, dict):
-        for key in ("jobs", "results", "scores", "items"):
-            inner = payload.get(key)
-            if isinstance(inner, list):
-                return [p for p in inner if isinstance(p, dict)]
-        list_vals = [v for v in payload.values() if isinstance(v, list)]
-        if len(list_vals) == 1:
-            return [p for p in list_vals[0] if isinstance(p, dict)]
-        return [payload]
-    raise ValueError(f"expected a JSON array of results, got {type(payload).__name__}")
-
+from .llm_utils import (
+    parse_json,
+    _ensure_list,
+    _as_list,
+    extract_text_from_pdf,
+)
 
 # ---------------------------------------------------------------- profile ---
 
@@ -120,37 +69,6 @@ Return ONLY a JSON object, no prose, no markdown fences:
   "job_types": [str],          // e.g. ["fulltime", "internship", "remote"]
   "location_preference": str   // all_india | remote_only | specific_cities | global
 }"""
-
-
-def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
-    """Extract plain text from PDF bytes locally using pypdf if available."""
-    if not pdf_bytes:
-        return ""
-    try:
-        import io
-        import pypdf
-
-        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
-        pages_text = []
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                pages_text.append(text.strip())
-        res = "\n\n".join(pages_text).strip()
-        if res:
-            return res
-    except Exception:
-        pass
-    # Fallback decode as text if parsing fails (useful for mock/corrupted PDF bytes in testing)
-    try:
-        decoded = pdf_bytes.decode("utf-8", errors="ignore").strip()
-        if len(decoded) > 20 and any(
-            kw in decoded for kw in ("Resume", "skills", "Python", "experience", "education", "projects")
-        ):
-            return decoded
-    except Exception:
-        pass
-    return ""
 
 
 def build_profile(

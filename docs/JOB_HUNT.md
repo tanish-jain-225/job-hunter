@@ -75,7 +75,9 @@ jobhunt/
   ├── mock.py        # Native ATS fixtures for testing
   ├── clean.py       # Temporary file and test store cleanup utility
   ├── verify.py      # Live ATS career board auditor
-  ├── cli.py         # argparse: profile / run / multi-run / applied / stats / verify / clean / web
+  ├── preflight.py   # Diagnostic self-checks (`jobhunt check`)
+  ├── parsers/       # Modular ATS parser implementations (9 ATS engines)
+  ├── cli.py         # argparse: profile / run / multi-run / check / applied / stats / verify / clean / web
   └── web/           # Modular Flask Web Dashboard & REST API
       ├── __init__.py # create_app Application Factory & global hooks
       ├── state.py   # Thread-safe pipeline state & context resolution
@@ -105,7 +107,7 @@ Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVID
 
 - `--mock` flag runs fixtures through real parsers with zero network requests.
 - `--scorer keyword` provides offline dev scoring without API keys.
-- Comprehensive test suite in `tests/` (**488 unit & integration tests**) covering batching, parsing, store persistence, prompt injection defense, thread safety, and mock funnel assertions.
+- Comprehensive test suite in `tests/` (**499 unit & integration tests**) covering batching, parsing, store persistence, prompt injection defense, thread safety, and mock funnel assertions.
 
 ---
 

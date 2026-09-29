@@ -307,3 +307,28 @@ def test_fetch_board_pagination_and_size(monkeypatch):
     assert len(w_jobs) == 2
 
 
+def test_is_safe_url_ssrf_rejections():
+    from jobhunt.fetch import is_safe_url
+
+    # Safe external URLs
+    assert is_safe_url("https://boards-api.greenhouse.io/v1/boards/stripe/jobs") is True
+    assert is_safe_url("https://api.lever.co/v0/postings/meesho") is True
+    assert is_safe_url("https://apply.workable.com/api/v1/widget/accounts/test") is True
+
+    # Reject private/internal IPv4
+    assert is_safe_url("http://127.0.0.1/admin") is False
+    assert is_safe_url("http://localhost:8080/metrics") is False
+    assert is_safe_url("http://10.0.0.1/secret") is False
+    assert is_safe_url("http://192.168.1.1/router") is False
+    assert is_safe_url("http://172.16.0.1/internal") is False
+    assert is_safe_url("http://169.254.169.254/latest/meta-data/") is False
+
+    # Reject non-http protocols
+    assert is_safe_url("file:///etc/passwd") is False
+    assert is_safe_url("gopher://evil.com") is False
+    assert is_safe_url("ftp://server/file") is False
+    assert is_safe_url("") is False
+    assert is_safe_url(None) is False  # type: ignore[arg-type]
+
+
+

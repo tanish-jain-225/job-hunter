@@ -249,3 +249,34 @@ def test_companies_yaml_integrity():
         assert len(str(c["slug"]).strip()) > 0
         assert len(str(c["name"]).strip()) > 0
 
+
+def test_preflight_checks_execution(tmp_path: Path):
+    from jobhunt.preflight import run_preflight_checks
+
+    # Create dummy config and companies
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("seen_file: seen.json\n", encoding="utf-8")
+    comp = tmp_path / "companies.yaml"
+    comp.write_text("companies:\n  - name: Test\n    ats: greenhouse\n    slug: test\n", encoding="utf-8")
+
+    res = run_preflight_checks(config_path=cfg, companies_path=comp)
+    assert isinstance(res, dict)
+    assert "all_ok" in res
+    assert "checks" in res
+    assert "remediations" in res
+    assert res["all_ok"] is True
+    check_names = [c["name"] for c in res["checks"]]
+    assert any("Python Runtime" in n for n in check_names)
+    assert any("config.yaml" in n for n in check_names)
+
+
+def test_cmd_check_cli(capsys: pytest.CaptureFixture):
+    with patch("sys.argv", ["jobhunt", "check"]):
+        with pytest.raises(SystemExit) as exc:
+            cli.main()
+        assert exc.value.code == 0
+        out = capsys.readouterr().out
+        assert "Job Hunter Preflight Diagnostic Verification" in out
+        assert "[OK]" in out
+
+

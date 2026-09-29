@@ -23,8 +23,7 @@ htmlcov/
 # Local configuration / environment secrets
 .env
 .env.*
-config.yaml
-!config.example.yaml
+.env.local
 
 # Local data & caches
 state/

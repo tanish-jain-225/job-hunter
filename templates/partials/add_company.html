@@ -1,14 +1,14 @@
-<div class="modal-overlay" id="add-company-modal" onclick="if(event.target===this) closeAddCompanyModal();">
+<div class="modal-overlay" id="add-company-modal" data-backdrop="add-company">
   <div class="modal-content modal-content-medium">
     <div class="modal-header">
       <div class="modal-header-info">
         <div class="modal-title">Track Target Company Board</div>
         <div class="modal-subtitle">Add any Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or custom ATS portal</div>
       </div>
-      <button class="modal-close" onclick="closeAddCompanyModal()" aria-label="Close modal">×</button>
+      <button class="modal-close" data-action="close-add-company-modal" aria-label="Close modal">×</button>
     </div>
 
-    <form id="form-add-company" onsubmit="handleAddCompanySubmit(event)">
+    <form id="form-add-company">
       <div class="form-group">
         <label class="form-label" for="add-company-url">
           <span>Company Career Board URL</span>
@@ -16,7 +16,7 @@
         </label>
         <input type="url" class="form-input" id="add-company-url" 
                placeholder="e.g. https://boards.greenhouse.io/stripe or https://jobs.lever.co/meesho" 
-               oninput="handleCompanyUrlInput(this.value)" required>
+               required>
         <span class="form-hint">Paste any career portal link — ATS platform and company slug are auto-detected instantly.</span>
       </div>
 
@@ -51,7 +51,7 @@
       <div class="studio-alert" id="add-company-status-alert" style="display:none; margin-bottom:12px;"></div>
 
       <div class="modal-actions-row">
-        <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-action="close-add-company-modal">Cancel</button>
         <button type="submit" class="btn btn-primary" id="btn-save-company">
           <span class="spinner" id="save-company-spinner" style="display:none;"></span>
           <span>Verify &amp; Add Board</span>

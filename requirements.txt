@@ -1,14 +1,11 @@
-# Core — needed for `run --mock --scorer keyword` (no API key required).
-requests>=2.31
+# Core dependencies — needed for CLI, Web, and Mock pipeline execution.
+requests>=2.31.0
 PyYAML>=6.0
 flask>=3.0.0
 flask-limiter>=3.5.0
-PyJWT>=2.8.0
 pypdf>=4.0.0
+PyJWT>=2.8.0
 
-# Optional: Only needed if you point a stage at Anthropic.
-# Gemini, Groq, OpenAI-compatible and Ollama all go over plain `requests`.
-# anthropic>=0.40
+# Development and testing (installable via: pip install ".[dev]")
+pytest>=8.0.0
 
-# Tests
-pytest>=8.0

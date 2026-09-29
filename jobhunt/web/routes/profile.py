@@ -239,12 +239,18 @@ def api_resume_upload():
         file = request.files["file"]
         filename = file.filename or "resume"
         content = file.read()
+        if len(content) > 5 * 1024 * 1024:
+            return jsonify({"status": "error", "message": "File exceeds 5MB size limit."}), 400
+
         if filename.lower().endswith(".pdf"):
             if not content.startswith(b"%PDF-") and not current_app.testing:
                 return jsonify({"status": "error", "message": "The uploaded file is not a valid PDF."}), 400
             is_pdf = True
             resume_bytes = content
-            resume_text = llm.extract_text_from_pdf(content)
+            try:
+                resume_text = llm.extract_text_from_pdf(content)
+            except ValueError as e:
+                return jsonify({"status": "error", "message": str(e)}), 400
         elif filename.lower().endswith(".txt"):
             resume_text = content.decode("utf-8", errors="ignore")
         else:
@@ -257,6 +263,8 @@ def api_resume_upload():
         if not isinstance(resume_text, str) or not isinstance(filename, str):
             return jsonify({"status": "error", "message": "resume_text and filename must be strings."}), 400
         resume_text = resume_text.strip()
+        if len(resume_text) > 100_000:
+            return jsonify({"status": "error", "message": "Resume text exceeds maximum allowed length."}), 400
 
     if not resume_text and not resume_bytes:
         return jsonify({"status": "error", "message": "No resume file or text content provided."}), 400

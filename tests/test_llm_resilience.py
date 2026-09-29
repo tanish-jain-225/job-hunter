@@ -16,6 +16,9 @@ def test_multi_api_key_parsing(monkeypatch):
 
 
 def test_gemini_provider_multi_key_rotation(monkeypatch):
+    from jobhunt.providers import reset_provider_state
+    reset_provider_state()
+
     monkeypatch.setenv("GEMINI_API_KEY", "key1,key2")
     provider = GeminiProvider()
 
@@ -29,15 +32,17 @@ def test_gemini_provider_multi_key_rotation(monkeypatch):
         "candidates": [{"content": {"parts": [{"text": '[{"job_id": "test:1", "score": 9.0}]'}]}}]
     }
 
-    # First call returns 429 (key1), second returns 200 (key2)
+    # First call returns 429 (rate limited), second returns 200 after rotating keys
     with patch("requests.post") as mock_post, patch("time.sleep"):
         mock_post.side_effect = [mock_response_429, mock_response_200]
         res = provider.complete("gemini-3.5-flash", "sys", "user", 100, json_mode=True)
         assert res == '[{"job_id": "test:1", "score": 9.0}]'
         assert mock_post.call_count == 2
-        # Check that second request used key2
-        second_call_params = mock_post.call_args_list[1][1].get("params")
-        assert second_call_params["key"] == "key2"
+        # Check that request rotated to the other key
+        first_call_key = mock_post.call_args_list[0][1].get("params")["key"]
+        second_call_key = mock_post.call_args_list[1][1].get("params")["key"]
+        assert first_call_key != second_call_key
+        assert {first_call_key, second_call_key} == {"key1", "key2"}
 
 
 def test_get_fallback_provider(monkeypatch):

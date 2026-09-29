@@ -81,6 +81,26 @@ class TestSecurityHeaders:
         safe = sanitize_profile_for_response(profile)
         assert safe == {"name": "Candidate", "profile_json": {"latest_digest_html": "<p>ok</p>"}}
 
+    def test_csp_script_src_disallows_unsafe_inline(self, client):
+        resp = client.get("/")
+        csp = resp.headers.get("Content-Security-Policy", "")
+        parts = {p.strip().split()[0]: p.strip() for p in csp.split(";") if p.strip()}
+        script_src = parts.get("script-src", "")
+        assert "'unsafe-inline'" not in script_src, "script-src in CSP must not permit 'unsafe-inline'"
+
+    def test_no_inline_event_handlers_in_templates(self):
+        import re
+        from pathlib import Path
+        root = Path(__file__).resolve().parent.parent / "templates"
+        pattern = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+        offenders = []
+        for html_file in root.rglob("*.html"):
+            content = html_file.read_text(encoding="utf-8")
+            matches = pattern.findall(content)
+            if matches:
+                offenders.append(f"{html_file.name}: {matches}")
+        assert not offenders, f"Inline event handlers found in templates: {offenders}"
+
 
 # ---------------------------------------------------------------------------
 # Authentication security tests
@@ -125,8 +145,18 @@ class TestErrorResponses:
 
     def test_404_returns_json_error(self, client):
         resp = client.get("/api/nonexistent_endpoint_xyz")
-        # Flask may return 404 as HTML or JSON depending on Accept header
         assert resp.status_code == 404
+        data = resp.get_json()
+        assert data is not None
+        assert data["status"] == "error"
+        assert "not found" in data["message"].lower()
+
+    def test_405_method_not_allowed_returns_json(self, client):
+        resp = client.post("/api/digest")  # /api/digest is GET only
+        assert resp.status_code == 405
+        data = resp.get_json()
+        assert data is not None
+        assert data["status"] == "error"
 
     def test_error_response_has_status_field(self, client):
         """All API error responses must have a 'status' field."""

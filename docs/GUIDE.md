@@ -413,6 +413,9 @@ Your data is always portable:
 If you prefer terminal commands or want to automate scans on your local workstation:
 
 ```bash
+# 0. Preflight diagnostic self-check (environment, packages, keys, targets)
+jobhunt check
+
 # 1. Quick dry-run without API keys using mock data
 jobhunt run --mock --scorer keyword
 

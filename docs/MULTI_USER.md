@@ -64,7 +64,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 | Service | Free Tier Allocation | Per-User Consumption | Hard Free User Limit | Role in Job Hunter |
 | :--- | :--- | :--- | :---: | :--- |
-| **Google Gemini AI** | 1,500 RPD, 1M tokens/day per key | ~4.5 requests/day | **300 Users / Key** | Primary screening & tailored kit drafting |
+| **Google Gemini AI** | 10–15 RPM, 250k–1M TPM, 250–1,500 RPD (per project) | ~4.5 requests/day | **300 Users / Key** | Primary screening & tailored kit drafting |
 | **Gmail SMTP** | 500 emails / 24 hours | 1 email digest / day | **500 Users** | Daily morning HTML career intelligence briefing |
 | **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | ~1.5 MB (1,000-job rolling window) | **330 Users** (up to 1,040 at 300 jobs) | Tenant-isolated profiles, tracking stores, and audit history |
 | **GitHub Actions** | 2,000 free runner mins / month | ~1.0s / user in batch mode | **1,500 Users** | Automated scheduled morning radar execution (25m job timeout) |

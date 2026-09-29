@@ -237,7 +237,7 @@ function renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages) {
   const pageButtons = pages.map(p => {
     if (p === '...') return `<span class="pagination-ellipsis" aria-hidden="true">…</span>`;
     const isActive = p === currentPage;
-    return `<button type="button" class="pagination-btn ${isActive ? 'active' : ''}" onclick="setPage(${p})" ${isActive ? 'aria-current="page"' : ''} title="Go to page ${p}">${p}</button>`;
+    return `<button type="button" class="pagination-btn ${isActive ? 'active' : ''}" data-action="set-page" data-page="${p}" ${isActive ? 'aria-current="page"' : ''} title="Go to page ${p}">${p}</button>`;
   }).join('');
 
   return `
@@ -246,21 +246,21 @@ function renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages) {
         Showing <strong>${totalJobs > 0 ? startIdx + 1 : 0}–${endIdx}</strong> of <strong>${totalJobs}</strong> ${totalJobs === 1 ? 'opportunity' : 'opportunities'}
       </div>
       <div class="pagination-controls">
-        <button type="button" class="pagination-btn pagination-nav-btn" onclick="setPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''} aria-label="Previous Page" title="Previous Page">
+        <button type="button" class="pagination-btn pagination-nav-btn" data-action="set-page" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} aria-label="Previous Page" title="Previous Page">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           <span>Prev</span>
         </button>
         <div class="pagination-pages-group">
           ${pageButtons}
         </div>
-        <button type="button" class="pagination-btn pagination-nav-btn" onclick="setPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="Next Page" title="Next Page">
+        <button type="button" class="pagination-btn pagination-nav-btn" data-action="set-page" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="Next Page" title="Next Page">
           <span>Next</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
       </div>
       <div class="pagination-size-wrapper">
         <label for="pagination-page-size" class="pagination-size-label">Per Page:</label>
-        <select id="pagination-page-size" class="pagination-size-select" onchange="setPageSize(this.value)" aria-label="Opportunities per page">
+        <select id="pagination-page-size" class="pagination-size-select" aria-label="Opportunities per page">
           <option value="10" ${currentSize === 10 ? 'selected' : ''}>10</option>
           <option value="25" ${currentSize === 25 ? 'selected' : ''}>25</option>
           <option value="50" ${currentSize === 50 ? 'selected' : ''}>50</option>
@@ -357,7 +357,7 @@ function renderJobsListHtml(jobs) {
           <div class="empty-state-desc">
             No opportunities matched your search "<strong>${escapeHtml(search)}</strong>".
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="clearSearch()" style="margin-top:8px;">
+          <button class="btn btn-secondary btn-sm" data-action="clear-search" style="margin-top:8px;">
             Clear Search
           </button>
         </div>
@@ -373,7 +373,7 @@ function renderJobsListHtml(jobs) {
           <div class="empty-state-desc">
             When you apply for roles, mark them as <strong>Applied</strong> using the stage selector on each job card. Job Hunter will automatically track your follow-up timeline and trigger smart outreach alerts!
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="setFilter('all')" style="margin-top:8px;">
+          <button class="btn btn-secondary btn-sm" data-action="set-filter" data-filter="all" style="margin-top:8px;">
             View All Opportunities
           </button>
         </div>
@@ -388,7 +388,7 @@ function renderJobsListHtml(jobs) {
         <div class="empty-state-desc">
           No jobs currently match this view filter.
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="resetFiltersAndSearch()" style="margin-top:8px;">
+        <button class="btn btn-secondary btn-sm" data-action="reset-filters-and-search" style="margin-top:8px;">
           Reset Filters &amp; Search
         </button>
       </div>
@@ -1197,7 +1197,7 @@ function renderJobCardHtml(j, isNew = false) {
           <span class="job-title">${highlightText(j.title, searchQuery)}</span>
           <span class="ats-tag" title="Hosted on ${escapeHtml(j.ats || 'ATS')} public career API">${escapeHtml(j.ats || 'ats')}</span>
           ${isNew ? '<span class="badge-live-sync">New Discovery</span>' : ''}
-              ${followupInfo ? `<button type="button" class="btn-followup-badge" onclick="event.stopPropagation(); openFollowupModal(${escapeJsLiteral(j.job_id)})" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
+              ${followupInfo ? `<button type="button" class="btn-followup-badge" data-action="open-followup-modal" data-job-id="${escapeHtml(j.job_id)}" title="Generate tailored follow-up note">${escapeHtml(followupInfo.badgeText)}</button>` : ''}
         </div>
         <div class="job-sub">
           <span class="job-sub-company"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>${highlightText(j.company, searchQuery)}</span>
@@ -1211,7 +1211,7 @@ function renderJobCardHtml(j, isNew = false) {
       <div class="job-actions">
         <div class="job-score-row">
           <span class="score-badge ${scoreClass}" title="AI Candidate Match Score (${score}/10) — 8.5+ High Fit, 7.0–8.4 Moderate, <7.0 Low">${score}</span>
-          <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" onchange="updateJobStageDirect(${escapeJsLiteral(j.job_id)}, this.value)" onclick="event.stopPropagation()">
+          <select class="job-stage-select" aria-label="Application Stage" title="Update application stage (To Apply, Applied, Interviewing, Offer, Archived)" data-change-action="update-job-stage" data-job-id="${escapeHtml(j.job_id)}">
             <option value="to_apply" ${stage === 'to_apply' ? 'selected' : ''}>To Apply</option>
             <option value="applied" ${stage === 'applied' ? 'selected' : ''}>Applied</option>
             <option value="interviewing" ${stage === 'interviewing' ? 'selected' : ''}>Interviewing</option>
@@ -1221,13 +1221,13 @@ function renderJobCardHtml(j, isNew = false) {
         </div>
         <div class="job-action-btn-row">
           ${isApplied
-            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Application submitted — click to unmark" onclick="toggleAppliedDirect(${escapeJsLiteral(j.job_id)}, 'unmark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
-            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" title="Mark as applied to activate follow-up tracking" onclick="toggleAppliedDirect(${escapeJsLiteral(j.job_id)}, 'mark')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
+            ? `<button class="btn btn-secondary btn-sm btn-applied" id="btn-app-${escapeHtml(j.job_id)}" title="Application submitted — click to unmark" data-action="toggle-applied" data-job-id="${escapeHtml(j.job_id)}" data-mode="unmark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Applied</span></button>`
+            : `<button class="btn btn-secondary btn-sm" id="btn-app-${escapeHtml(j.job_id)}" title="Mark as applied to activate follow-up tracking" data-action="toggle-applied" data-job-id="${escapeHtml(j.job_id)}" data-mode="mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Mark Applied</span></button>`
           }
-          <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" onclick="deleteJobDirect(${escapeJsLiteral(j.job_id)})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
+          <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" data-action="delete-job" data-job-id="${escapeHtml(j.job_id)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
         </div>
         <div class="job-action-btn-row">
-          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" onclick="openKitModal(${escapeJsLiteral(j.job_id)})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
+          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" data-action="open-kit-modal" data-job-id="${escapeHtml(j.job_id)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
           <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open original job posting directly on company career portal" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Link</span></a>
         </div>
       </div>
@@ -1266,12 +1266,11 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
     if (container) {
       container.innerHTML = `
         <div class="auth-required-placeholder">
-          <div class="auth-lock-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
           <h3>Authentication Required</h3>
           <p>Sign in with your Supabase account to access your personal AI job match radar and pipeline controls.</p>
-          <button class="btn btn-primary" onclick="openAuthModal('signin')" style="margin-top: 14px;" type="button">
+          <button class="btn btn-primary" data-action="open-auth-modal" data-mode="signin" style="margin-top: 14px;" type="button">
             <span>Sign In to Unlock Board</span>
           </button>
         </div>
@@ -1313,13 +1312,13 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
               container.innerHTML = `
                 <div class="empty-state">
                   <div class="empty-state-icon" style="background:#fff1f2; color:#e11d48;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                   </div>
                   <div class="empty-state-title">Candidate Profile Required</div>
                   <div class="empty-state-desc">
                     Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 94+ company boards.
                   </div>
-                  <button class="btn btn-primary" onclick="openProfileModal()" style="margin-top:10px; gap:8px;">
+                  <button class="btn btn-primary" data-action="open-profile-modal" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     <span>Fill Profile Info &amp; Setup Radar</span>
                   </button>
@@ -1335,7 +1334,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   <div class="empty-state-desc">
                     No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 94+ company boards!
                   </div>
-                  <button class="btn btn-primary" onclick="runPipeline()" style="margin-top:10px; gap:8px;">
+                  <button class="btn btn-primary" data-action="run-pipeline" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     <span>Run First Job Hunt Now</span>
                   </button>
@@ -1353,10 +1352,13 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
               <div class="empty-state-desc">
                 ${appState.search ? `No jobs matched the query "<strong>${escapeHtml(appState.search)}</strong>".` : `No jobs currently meet the selected filter criteria.`}
               </div>
-              <button class="btn btn-secondary btn-sm" onclick="resetFiltersAndSearch()" style="margin-top:6px;">
+              <button class="btn btn-secondary btn-sm" data-action="reset-filters-and-search" style="margin-top:6px;">
                 Reset Filters & Search
               </button>
             </div>
+          `;
+        }
+      }   </div>
           `;
         }
       }
@@ -1630,7 +1632,7 @@ function openKitModal(jobId) {
       <div class="kit-section">
         <div class="kit-label">
           <span>LinkedIn Referral Request (&lt;60 words)</span>
-          <button class="copy-btn" id="btn-copy-referral" data-original="referral" onclick="copySectionText('referral-text', 'btn-copy-referral')">${referralLabelSvg}</button>
+          <button class="copy-btn" id="btn-copy-referral" data-original="referral" data-action="copy-section" data-target="referral-text" data-btn="btn-copy-referral">${referralLabelSvg}</button>
         </div>
         <div class="cover-box" id="referral-text" style="background:#f0fdf4; color:#166534; border-color:#bbf7d0; font-family:var(--font-mono, monospace); font-size:12.5px;">${escapeHtml(d.referral_request)}</div>
       </div>`;
@@ -1641,7 +1643,7 @@ function openKitModal(jobId) {
       <div class="kit-section">
         <div class="kit-label">
           <span>Smart Follow-Up Email Outreach</span>
-          <button class="copy-btn" id="btn-copy-followup" data-original="followup" onclick="copySectionText('followup-text', 'btn-copy-followup')">${followupLabelSvg}</button>
+          <button class="copy-btn" id="btn-copy-followup" data-original="followup" data-action="copy-section" data-target="followup-text" data-btn="btn-copy-followup">${followupLabelSvg}</button>
         </div>
         <div class="cover-box" id="followup-text" style="background:var(--accent-light, #f0f9ff); border-color:var(--accent, #0284c7);">${escapeHtml(d.followup.email_body)}</div>
       </div>`;
@@ -1652,7 +1654,7 @@ function openKitModal(jobId) {
       <div class="kit-section">
         <div class="kit-label">
           <span>Cold Outreach (&lt;80 words)</span>
-          <button class="copy-btn" id="btn-copy-outreach" data-original="outreach" onclick="copySectionText('outreach-text', 'btn-copy-outreach')">${outreachLabelSvg}</button>
+          <button class="copy-btn" id="btn-copy-outreach" data-original="outreach" data-action="copy-section" data-target="outreach-text" data-btn="btn-copy-outreach">${outreachLabelSvg}</button>
         </div>
         <div class="cover-box" id="outreach-text" style="background:var(--success-bg); color:var(--success-hover); border-color:var(--success-border); font-family:var(--font-mono, monospace);">${escapeHtml(d.cold_outreach)}</div>
       </div>`;
@@ -1663,7 +1665,7 @@ function openKitModal(jobId) {
       <div class="kit-section">
         <div class="kit-label">
           <span>Tailored Cover Note</span>
-          <button class="copy-btn" id="btn-copy-cover" data-original="cover" onclick="copySectionText('cover-text', 'btn-copy-cover')">${coverLabelSvg}</button>
+          <button class="copy-btn" id="btn-copy-cover" data-original="cover" data-action="copy-section" data-target="cover-text" data-btn="btn-copy-cover">${coverLabelSvg}</button>
         </div>
         <div class="cover-box" id="cover-text">${escapeHtml(d.cover_note)}</div>
       </div>`;
@@ -3319,8 +3321,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Click outside modal to close
+// ==============================================================================
+// CSP-Compliant Event Delegation (Click, Submit, Change, Input)
+// ==============================================================================
+
 document.addEventListener('click', (e) => {
+  // 1. Click outside modal to close
   const addJobModal = document.getElementById('add-job-modal');
   if (addJobModal && e.target === addJobModal) {
     closeAddJobModal();
@@ -3340,6 +3346,202 @@ document.addEventListener('click', (e) => {
   const onboardingModal = document.getElementById('onboarding-modal');
   if (onboardingModal && e.target === onboardingModal) {
     closeOnboardingModal(true);
+  }
+
+  // 2. Declarative Action Delegation
+  const actionTarget = e.target.closest('[data-action]');
+  if (!actionTarget) return;
+
+  const action = actionTarget.getAttribute('data-action');
+  switch (action) {
+    case 'manual-sync':
+      manualSync();
+      break;
+    case 'scroll-to-auth': {
+      const mode = actionTarget.getAttribute('data-auth-mode') || 'signin';
+      scrollToAuth(mode);
+      break;
+    }
+    case 'open-profile-modal':
+      openProfileModal();
+      break;
+    case 'close-profile-modal':
+      closeProfileModal();
+      break;
+    case 'sign-out':
+      handleSignOut();
+      break;
+    case 'switch-auth-tab': {
+      const tab = actionTarget.getAttribute('data-tab') || 'signin';
+      switchAuthTab(tab);
+      break;
+    }
+    case 'forgot-password':
+      handleForgotPassword();
+      break;
+    case 'google-sign-in':
+      handleGoogleSignIn();
+      break;
+    case 'toggle-modal-applied':
+      toggleModalAppliedDirect();
+      break;
+    case 'close-kit-modal':
+      closeKitModal();
+      break;
+    case 'open-add-job-modal':
+      openAddJobModal();
+      break;
+    case 'close-add-job-modal':
+      closeAddJobModal();
+      break;
+    case 'open-add-company-modal':
+      openAddCompanyModal();
+      break;
+    case 'close-add-company-modal':
+      closeAddCompanyModal();
+      break;
+    case 'run-pipeline':
+      runPipeline();
+      break;
+    case 'switch-tab': {
+      const tab = actionTarget.getAttribute('data-tab') || 'digest';
+      switchTab(tab);
+      break;
+    }
+    case 'refresh-digest':
+      refreshDigest(true);
+      break;
+    case 'dismiss-guide':
+      dismissWorkflowGuide();
+      break;
+    case 'toggle-guide':
+      toggleWorkflowGuide();
+      break;
+    case 'clear-search':
+      clearSearch();
+      break;
+    case 'set-filter': {
+      const filter = actionTarget.getAttribute('data-filter') || 'all';
+      setFilter(filter);
+      break;
+    }
+    case 'wizard-goto': {
+      const step = parseInt(actionTarget.getAttribute('data-step') || '1', 10);
+      profileWizardGoTo(step);
+      break;
+    }
+    case 'wizard-next': {
+      const step = parseInt(actionTarget.getAttribute('data-step') || '1', 10);
+      profileWizardNext(step);
+      break;
+    }
+    case 'wizard-back': {
+      const step = parseInt(actionTarget.getAttribute('data-step') || '1', 10);
+      profileWizardBack(step);
+      break;
+    }
+    case 'trigger-resume-input': {
+      const fileInput = document.getElementById('resume-file-input');
+      if (fileInput) fileInput.click();
+      break;
+    }
+    case 'flush-profile-data':
+      flushUserProfileData();
+      break;
+    case 'autofill-roles':
+      autoFillRolesFromResume();
+      break;
+    case 'toggle-city': {
+      const city = actionTarget.getAttribute('data-city');
+      if (city) toggleCityPreset(city);
+      break;
+    }
+    case 'select-mail-mode': {
+      const mode = actionTarget.getAttribute('data-mode') || 'daily';
+      selectMailMode(mode);
+      break;
+    }
+    case 'save-profile-preferences':
+      saveProfilePreferences();
+      break;
+    case 'set-page': {
+      const page = parseInt(actionTarget.getAttribute('data-page') || '1', 10);
+      setPage(page);
+      break;
+    }
+    case 'reset-filters-and-search':
+      resetFiltersAndSearch();
+      break;
+    case 'open-followup-modal': {
+      e.stopPropagation();
+      const jobId = actionTarget.getAttribute('data-job-id');
+      if (jobId) openFollowupModal(jobId);
+      break;
+    }
+    case 'toggle-applied': {
+      e.stopPropagation();
+      const jobId = actionTarget.getAttribute('data-job-id');
+      const mode = actionTarget.getAttribute('data-mode') || 'mark';
+      if (jobId) toggleAppliedDirect(jobId, mode);
+      break;
+    }
+    case 'delete-job': {
+      e.stopPropagation();
+      const jobId = actionTarget.getAttribute('data-job-id');
+      if (jobId) deleteJobDirect(jobId);
+      break;
+    }
+    case 'open-kit-modal': {
+      e.stopPropagation();
+      const jobId = actionTarget.getAttribute('data-job-id');
+      if (jobId) openKitModal(jobId);
+      break;
+    }
+    case 'open-auth-modal': {
+      const mode = actionTarget.getAttribute('data-mode') || 'signin';
+      openAuthModal(mode);
+      break;
+    }
+    case 'copy-section': {
+      const targetId = actionTarget.getAttribute('data-target');
+      const btnId = actionTarget.getAttribute('data-btn');
+      if (targetId && btnId) copySectionText(targetId, btnId);
+      break;
+    }
+    case 'delete-custom-company': {
+      const ats = actionTarget.getAttribute('data-ats');
+      const slug = actionTarget.getAttribute('data-slug');
+      if (ats && slug) deleteCustomCompany(ats, slug);
+      break;
+    }
+    default:
+      break;
+  }
+});
+
+// Central Form Submission Delegation
+document.addEventListener('submit', (e) => {
+  if (e.target && e.target.id === 'form-signin') {
+    handleSignInSubmit(e);
+  } else if (e.target && e.target.id === 'form-signup') {
+    handleSignUpSubmit(e);
+  } else if (e.target && e.target.id === 'form-add-job') {
+    handleAddJobSubmit(e);
+  } else if (e.target && e.target.id === 'form-add-company') {
+    handleAddCompanySubmit(e);
+  }
+});
+
+// Central Input Event Delegation
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'tracker-search-input') {
+    handleSearchInput();
+  } else if (e.target && e.target.id === 'add-company-url') {
+    handleCompanyUrlInput(e.target.value);
+  } else if (e.target && e.target.id === 'signup-password') {
+    if (typeof validateSignupPassword === 'function') {
+      validateSignupPassword(e.target);
+    }
   }
 });
 
@@ -3867,6 +4069,16 @@ document.addEventListener('DOMContentLoaded', () => {
       startCloudPoller(savedRun.dispatched_at);
     }
   } catch (_) {}
+
+  // Brand logo error fallback handler
+  const brandLogo = document.getElementById('brand-logo-img');
+  if (brandLogo) {
+    brandLogo.addEventListener('error', () => {
+      brandLogo.style.display = 'none';
+      const fallback = document.getElementById('brand-fallback');
+      if (fallback) fallback.style.display = 'flex';
+    });
+  }
 });
 
 // Job Type & Location Preference Extraction Helpers
@@ -3898,7 +4110,7 @@ function getLocationPreference(radioName, specificInputId) {
   return { type, locations };
 }
 
-// Global UI listeners for chips and radios
+// Global UI listeners for chips, radios, select filters, and dynamic stages
 document.addEventListener('change', (e) => {
   if (e.target.matches('input[type="checkbox"]') && e.target.closest('.chip-toggle')) {
     e.target.closest('.chip-toggle').classList.toggle('active', e.target.checked);
@@ -3921,6 +4133,22 @@ document.addEventListener('change', (e) => {
     if (inputContainer) {
       inputContainer.style.display = isSpecific ? 'block' : 'none';
     }
+  }
+
+  // Declarative Change Handlers
+  if (e.target && e.target.id === 'tracker-ats-select') {
+    fetchAndRenderJobs();
+  } else if (e.target && (e.target.id === 'tracker-location-filter' || e.target.id === 'tracker-location-select')) {
+    handleLocationFilterChange(e.target.value);
+  } else if (e.target && e.target.id === 'tracker-sort-select') {
+    fetchAndRenderJobs();
+  } else if (e.target && e.target.id === 'resume-file-input') {
+    handleResumeFileSelectedAndParse(e);
+  } else if (e.target && e.target.id === 'pagination-page-size') {
+    setPageSize(e.target.value);
+  } else if (e.target && e.target.getAttribute('data-change-action') === 'update-job-stage') {
+    const jobId = e.target.getAttribute('data-job-id');
+    if (jobId) updateJobStageDirect(jobId, e.target.value);
   }
 });
 
@@ -4227,7 +4455,7 @@ async function fetchAndRenderCustomCompanies() {
         <div class="custom-company-chip" style="display:inline-flex; align-items:center; gap:6px; background:var(--card-bg, #fff); border:1px solid var(--border, #e2e8f0); padding:4px 10px; border-radius:20px; font-size:12px;">
           <span style="font-weight:600; color:var(--text);">${escapeHtml(c.name || c.slug)}</span>
           <span style="font-size:10px; text-transform:uppercase; color:var(--muted); background:var(--bg, #f8fafc); padding:1px 5px; border-radius:4px;">${escapeHtml(c.ats)}</span>
-          <button type="button" onclick="deleteCustomCompany(${escapeJsLiteral(c.ats)}, ${escapeJsLiteral(c.slug)})" style="background:none; border:none; cursor:pointer; color:var(--danger, #ef4444); font-size:13px; margin-left:2px;" title="Remove company board">×</button>
+          <button type="button" data-action="delete-custom-company" data-ats="${escapeHtml(c.ats)}" data-slug="${escapeHtml(c.slug)}" style="background:none; border:none; cursor:pointer; color:var(--danger, #ef4444); font-size:13px; margin-left:2px;" title="Remove company board">×</button>
         </div>
       `).join('');
     } else {
@@ -4256,6 +4484,57 @@ async function deleteCustomCompany(ats, slug) {
   } catch (err) {
     showToast('Failed to remove: ' + err.message, 'error');
   }
+}
+
+// ==============================================================================
+// Window Global Exports (Zero-Regression Backwards Compatibility)
+// ==============================================================================
+if (typeof window !== 'undefined') {
+  window.manualSync = manualSync;
+  window.scrollToAuth = scrollToAuth;
+  window.openProfileModal = openProfileModal;
+  window.closeProfileModal = closeProfileModal;
+  window.handleSignOut = handleSignOut;
+  window.switchAuthTab = switchAuthTab;
+  window.handleForgotPassword = handleForgotPassword;
+  window.handleGoogleSignIn = handleGoogleSignIn;
+  window.toggleModalAppliedDirect = toggleModalAppliedDirect;
+  window.closeKitModal = closeKitModal;
+  window.openAddJobModal = openAddJobModal;
+  window.closeAddJobModal = closeAddJobModal;
+  window.openAddCompanyModal = openAddCompanyModal;
+  window.closeAddCompanyModal = closeAddCompanyModal;
+  window.runPipeline = runPipeline;
+  window.switchTab = switchTab;
+  window.refreshDigest = refreshDigest;
+  window.dismissWorkflowGuide = dismissWorkflowGuide;
+  window.toggleWorkflowGuide = toggleWorkflowGuide;
+  window.clearSearch = clearSearch;
+  window.setFilter = setFilter;
+  window.profileWizardGoTo = profileWizardGoTo;
+  window.profileWizardNext = profileWizardNext;
+  window.profileWizardBack = profileWizardBack;
+  window.flushUserProfileData = flushUserProfileData;
+  window.autoFillRolesFromResume = autoFillRolesFromResume;
+  window.toggleCityPreset = toggleCityPreset;
+  window.selectMailMode = selectMailMode;
+  window.saveProfilePreferences = saveProfilePreferences;
+  window.setPage = setPage;
+  window.resetFiltersAndSearch = resetFiltersAndSearch;
+  window.openFollowupModal = openFollowupModal;
+  window.toggleAppliedDirect = toggleAppliedDirect;
+  window.deleteJobDirect = deleteJobDirect;
+  window.openKitModal = openKitModal;
+  window.copySectionText = copySectionText;
+  window.deleteCustomCompany = deleteCustomCompany;
+  window.updateJobStageDirect = updateJobStageDirect;
+  window.handleResumeFileSelectedAndParse = handleResumeFileSelectedAndParse;
+  window.setPageSize = setPageSize;
+  window.handleSearchInput = handleSearchInput;
+  window.handleLocationFilterChange = handleLocationFilterChange;
+  window.handleCompanyUrlInput = handleCompanyUrlInput;
+  window.fetchAndRenderJobs = fetchAndRenderJobs;
+  window.appState = appState;
 }
 
 

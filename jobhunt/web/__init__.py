@@ -53,7 +53,7 @@ def add_cache_headers(response):
     # Content-Security-Policy: restricts resource origins to prevent XSS/injection attacks
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdn.supabase.co; "
+        "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.supabase.co; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob:; "

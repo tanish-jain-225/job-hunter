@@ -1,14 +1,14 @@
-<div class="modal-overlay" id="add-job-modal" onclick="if(event.target===this) closeAddJobModal();">
+<div class="modal-overlay" id="add-job-modal" data-backdrop="add-job">
   <div class="modal-content modal-content-medium">
     <div class="modal-header">
       <div class="modal-header-info">
         <div class="modal-title">Track Custom Opportunity</div>
         <div class="modal-subtitle">Add a role from LinkedIn, referral, or company career portal</div>
       </div>
-      <button class="modal-close" onclick="closeAddJobModal()" aria-label="Close modal">×</button>
+      <button class="modal-close" data-action="close-add-job-modal" aria-label="Close modal">×</button>
     </div>
 
-    <form id="form-add-job" onsubmit="handleAddJobSubmit(event)">
+    <form id="form-add-job">
       <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label" for="add-job-company">Company Name <span style="color:var(--danger)">*</span></label>
@@ -60,7 +60,7 @@
       </div>
 
       <div class="modal-footer" style="margin-top:18px; display:flex; justify-content:flex-end; gap:10px;">
-        <button type="button" class="btn btn-secondary" onclick="closeAddJobModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-action="close-add-job-modal">Cancel</button>
         <button type="submit" class="btn btn-primary" id="btn-submit-add-job">
           <span class="spinner" id="add-job-spinner" style="display:none;"></span>
           <span id="add-job-submit-text">Track Opportunity</span>

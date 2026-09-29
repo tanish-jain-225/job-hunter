@@ -11,143 +11,41 @@ import hashlib
 import json
 import logging
 import os
-import tempfile
-import time
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-import urllib.parse
-
-import threading
 from .fetch import Job
 from .memory import SupabaseMemory
+from .store_paths import (
+    sanitize_job_url,
+    get_writable_path,
+    get_user_profile_path,
+    _atomic_replace,
+    _WRITABLE_DIR_CACHE,
+)
 
 logger = logging.getLogger(__name__)
 
 _CSV_EXPORT_LOCK = threading.Lock()
 
-
-def sanitize_job_url(
-    url: str | None,
-    ats: str = "",
-    job_id: str = "",
-    company: str = "",
-    title: str = "",
-) -> str:
-    """Ensure every job has a valid, working HTTP/HTTPS apply URL.
-
-    - If the URL is already a valid http/https link, preserves it.
-    - If the URL is a domain without scheme (e.g. 'stripe.com/jobs'), prepends 'https://'.
-    - If the URL is empty, '#', or broken, automatically constructs the canonical ATS apply URL.
-    - If custom or unknown ATS, constructs a direct search/careers URL.
-    """
-    clean = (url or "").strip()
-    if clean and clean != "#":
-        if clean.startswith(("http://", "https://")):
-            return clean
-        if "." in clean and not clean.startswith(("/", "#", "javascript:")):
-            return f"https://{clean}"
-
-    effective_id = job_id or ""
-    if ":" in effective_id:
-        parts = effective_id.split(":", 2)
-        ats_name = (ats or parts[0]).lower()
-        slug = parts[1] if len(parts) > 1 else ""
-        raw_id = parts[2] if len(parts) > 2 else ""
-
-        if ats_name == "greenhouse" and slug and raw_id:
-            return f"https://boards.greenhouse.io/{slug}/jobs/{raw_id}"
-        elif ats_name == "lever" and slug and raw_id:
-            return f"https://jobs.lever.co/{slug}/{raw_id}"
-        elif ats_name == "ashby" and slug and raw_id:
-            return f"https://jobs.ashbyhq.com/{slug}/{raw_id}"
-        elif ats_name == "workable" and slug and raw_id:
-            return f"https://apply.workable.com/{slug}/j/{raw_id}/"
-        elif ats_name == "smartrecruiters" and slug and raw_id:
-            return f"https://jobs.smartrecruiters.com/{slug}/{raw_id}"
-        elif ats_name == "bamboohr" and slug and raw_id:
-            return f"https://{slug}.bamboohr.com/careers/{raw_id}"
-        elif ats_name == "recruitee" and slug and raw_id:
-            return f"https://{slug}.recruitee.com/o/{raw_id}"
-        elif ats_name in ("breezy", "breezyhr") and slug and raw_id:
-            return f"https://{slug}.breezy.hr/p/{raw_id}"
-        elif ats_name == "pinpoint" and slug and raw_id:
-            return f"https://{slug}.pinpoint.work/en/postings/{raw_id}"
-
-    query = f"{company} {title}".strip()
-    if not query:
-        query = "software engineering"
-    full_query = f"{query} jobs apply"
-    return f"https://www.google.com/search?q={urllib.parse.quote_plus(full_query)}"
-
-
-_WRITABLE_DIR_CACHE: set[Path] = set()
-
-
-def get_writable_path(path: str | Path) -> Path:
-    """Resolve a path that is writable in read-only environments (like Vercel serverless).
-
-    If target directory is not writable or VERCEL environment variable is present,
-    returns a path in temp directory while allowing initial reads from the target path.
-    """
-    target = Path(path)
-    is_vercel = os.environ.get("VERCEL") == "1"
-
-    if is_vercel:
-        tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
-        tmp_dir.mkdir(parents=True, exist_ok=True)
-        return tmp_dir / target.name
-
-    parent = target.parent if target.parent != Path(".") else Path.cwd()
-
-    if parent in _WRITABLE_DIR_CACHE:
-        return target
-
-    parent_writable = True
-    try:
-        parent.mkdir(parents=True, exist_ok=True)
-        test_file = parent / ".writable_test"
-        test_file.touch()
-        test_file.unlink()
-        parent_writable = True
-    except (PermissionError, OSError):
-        parent_writable = False
-
-    if parent_writable:
-        _WRITABLE_DIR_CACHE.add(parent)
-        return target
-    else:
-        tmp_dir = Path(tempfile.gettempdir()) / "jobhunt"
-        tmp_dir.mkdir(parents=True, exist_ok=True)
-        return tmp_dir / target.name
-
-
-def get_user_profile_path(path: str | Path, user_email: str | None) -> Path:
-    """Return a profile cache path isolated to one authenticated user."""
-    target = Path(path)
-    if not user_email:
-        return get_writable_path(target)
-    user_hash = hashlib.md5(user_email.strip().lower().encode("utf-8")).hexdigest()[:12]
-    scoped_name = f"{target.stem}_{user_hash}{target.suffix}"
-    return get_writable_path(target.with_name(scoped_name))
-
-
-def _atomic_replace(src: Path, dst: Path, retries: int = 4, delay: float = 0.05) -> None:
-    """Safely replace dst with src, retrying transient Windows file locks."""
-    for attempt in range(retries):
-        try:
-            os.replace(src, dst)
-            return
-        except OSError:
-            if attempt < retries - 1:
-                time.sleep(delay)
-            else:
-                try:
-                    dst.write_bytes(src.read_bytes())
-                    src.unlink(missing_ok=True)
-                except Exception:
-                    os.replace(src, dst)
+__all__ = [
+    "Store",
+    "sanitize_job_url",
+    "get_writable_path",
+    "get_user_profile_path",
+    "_atomic_replace",
+    "_WRITABLE_DIR_CACHE",
+    "init",
+    "unseen",
+    "record",
+    "mark_applied",
+    "unmark_applied",
+    "delete_job",
+    "add_job",
+    "export_csv",
+]
 
 
 class Store:
@@ -530,34 +428,41 @@ class Store:
             ]
             unique_tmp_suffix = f".tmp.{os.getpid()}_{threading.get_ident()}"
             tmp_csv = target_path.with_suffix(unique_tmp_suffix)
-            with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
-                w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
-                w.writeheader()
-                for jid, row in sorted(self.data.items(), key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
-                    score_val = row.get("score")
-                    try:
-                        score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
-                    except (ValueError, TypeError):
-                        score_100 = 0
-                    if score_100 >= 90:
-                        cat = "Exceptional"
-                    elif score_100 >= 80:
-                        cat = "Strong Apply"
-                    elif score_100 >= 70:
-                        cat = "Apply"
-                    elif score_100 >= 60:
-                        cat = "Consider"
-                    else:
-                        cat = "Skip"
+            try:
+                with tmp_csv.open("w", newline="", encoding="utf-8") as fh:
+                    w = csv.DictWriter(fh, fieldnames=["job_id"] + cols, extrasaction="ignore")
+                    w.writeheader()
+                    for jid, row in sorted(self.data.items(), key=lambda kv: kv[1].get("first_seen", ""), reverse=True):
+                        score_val = row.get("score")
+                        try:
+                            score_100 = int(round(max(0.0, min(10.0, float(score_val))) * 10)) if score_val is not None else 0
+                        except (ValueError, TypeError):
+                            score_100 = 0
+                        if score_100 >= 90:
+                            cat = "Exceptional"
+                        elif score_100 >= 80:
+                            cat = "Strong Apply"
+                        elif score_100 >= 70:
+                            cat = "Apply"
+                        elif score_100 >= 60:
+                            cat = "Consider"
+                        else:
+                            cat = "Skip"
 
-                    draft = row.get("draft") or {}
-                    row_copy = dict(row)
-                    row_copy["score_100"] = score_100
-                    row_copy["queue_category"] = cat
-                    row_copy["india_eligibility"] = draft.get("india_eligibility") or "Verified India-Friendly"
-                    row_copy["best_project"] = draft.get("best_project") or "Project Match"
-                    w.writerow({"job_id": jid, **row_copy})
-            _atomic_replace(tmp_csv, target_path)
+                        draft = row.get("draft") or {}
+                        row_copy = dict(row)
+                        row_copy["score_100"] = score_100
+                        row_copy["queue_category"] = cat
+                        row_copy["india_eligibility"] = draft.get("india_eligibility") or "Verified India-Friendly"
+                        row_copy["best_project"] = draft.get("best_project") or "Project Match"
+                        w.writerow({"job_id": jid, **row_copy})
+                _atomic_replace(tmp_csv, target_path)
+            finally:
+                if tmp_csv.exists():
+                    try:
+                        tmp_csv.unlink()
+                    except OSError:
+                        pass
             return target_path
 
     def prune_old_jobs(self) -> None:
@@ -621,13 +526,20 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         unique_tmp_suffix = f".tmp.{os.getpid()}_{threading.get_ident()}"
         tmp = self.path.with_suffix(unique_tmp_suffix)
-        tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
-        _atomic_replace(tmp, self.path)
+        try:
+            tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
+            _atomic_replace(tmp, self.path)
+        finally:
+            if tmp.exists():
+                try:
+                    tmp.unlink()
+                except OSError:
+                    pass
         if auto_export:
             try:
                 self.export_csv()
             except Exception as e:
-                print(f"  ! Store auto-export CSV warning: {e}")
+                logger.warning("Store auto-export CSV warning: %s", e)
 
 
 def init(

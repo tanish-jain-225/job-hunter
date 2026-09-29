@@ -38,7 +38,7 @@ limits and pricing with each provider before launch.
 
 | Service | Free Plan Quotas | What Job Hunter Uses | Capacity Limit | Cost |
 | :--- | :--- | :--- | :---: | :--- |
-| **Google Gemini API** | 15 RPM, 1,000,000 TPM, 1,500 Requests/Day (gemini-3.5-flash) | Candidate batch fit screening & tailored application kit drafting | **300 Users / Key** | **$0 / mo** |
+| **Google Gemini API** | 10–15 RPM, 250k–1M TPM, 250–1,500 RPD (AI Studio Free Tier per project) | Candidate batch fit screening & tailored application kit drafting | **300 Users / Key** | **$0 / mo** |
 | **Gmail SMTP / Resend** | 500 emails/day (Gmail) or 3,000 emails/mo (Resend) | Personalized daily career intelligence briefings | **500 Users** | **$0 / mo** |
 | **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs (1,000-job rolling cap) | **330 Users** (up to 1,040 at 300 jobs) | **$0 / mo** |
 | **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar (25 min timeout) | **1,500 Users** | **$0 / mo** |
@@ -137,6 +137,7 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
    * `SMTP_PORT`: `587`
    * `SMTP_USER`: Your Gmail address
    * `SMTP_PASS`: Your 16-character Gmail App Password
+   * `MAIL_TO`: *(Optional)* Fallback digest recipient email (defaults to `SMTP_USER` if not set)
 3. Go to the **Actions** tab in your repo:
    * Enable workflows if prompted.
    * Click **Daily Career Intelligence Digest** > **Run workflow** to test it immediately.

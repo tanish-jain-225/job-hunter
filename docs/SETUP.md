@@ -511,6 +511,7 @@ python auto.py --send
 
 | Command | What It Does | Common Flags |
 |---|---|---|
+| `jobhunt check` | Runs diagnostic preflight self-checks on environment, keys, and configs. | None |
 | `jobhunt run` | Executes scouting, filtering, AI scoring, and kit drafting. | `--mock`, `--send`, `--scorer keyword` |
 | `jobhunt profile` | Extracts candidate profile from resume file. | `--resume path/to/resume.pdf` |
 | `jobhunt verify` | Verifies live HTTP 200 reachability of all company boards. | `--workers 10`, `--ats greenhouse` |
@@ -518,6 +519,7 @@ python auto.py --send
 | `jobhunt stats` | Displays pipeline statistics and updates `out/tracker.csv`. | None |
 | `jobhunt clean` | Cleans temporary cache files, test outputs, and state. | None |
 | `jobhunt multi-run` | Runs batch crawl across all registered Supabase users. | `--send`, `--user-email user@test.com` |
+| `jobhunt web` | Launches the local Flask Web Dashboard & REST API. | `--port 5000`, `--host 127.0.0.1` |
 
 ---
 
@@ -600,11 +602,12 @@ Run this diagnostic checklist to verify every subsystem:
 
 | Subsystem | Command | Expected Output | Status |
 |---|---|---|:---:|
+| **0. Preflight Diagnostics** | `jobhunt check` | All packages, configurations, and keys verified | ✅ Passed |
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
 | **2. Board Reachability** | `jobhunt verify --workers 10` | 94/94 boards verified reachable (HTTP 200) | ✅ Passed |
-| **3. Automated Test Suite** | `python -m pytest tests/` | **488 passed tests** in ~55s | ✅ Passed |
+| **3. Automated Test Suite** | `python -m pytest tests/` | **499 passed tests** in ~100s | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
-| **5. Type Checking** | `mypy jobhunt` | Success: no issues found | ✅ Passed |
+| **5. Type Checking** | `mypy jobhunt` | Success: no issues found in 43 source files | ✅ Passed |
 | **6. Code Linting** | `ruff check .` | All checks passed (0 errors) | ✅ Passed |
 
 ---
