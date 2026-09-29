@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import json
 import logging
 import os
 import threading
 import time
+import urllib.parse
 from urllib.parse import urlsplit
 from typing import Any, Callable, Dict, Optional
 
@@ -99,6 +101,25 @@ def is_auth_required() -> bool:
     return bool(cfg["auth_required"])
 
 
+def _parse_supabase_cookie_val(val: str) -> Optional[str]:
+    """Parse Supabase session cookie payload (handles JSON, arrays, and URL-encoding)."""
+    if not val:
+        return None
+    try:
+        raw_val = urllib.parse.unquote(val.strip())
+        if raw_val.startswith('"') and raw_val.endswith('"') and len(raw_val) >= 2:
+            raw_val = raw_val[1:-1]
+            raw_val = urllib.parse.unquote(raw_val)
+        c_data = json.loads(raw_val)
+        if isinstance(c_data, dict) and c_data.get("access_token"):
+            return str(c_data["access_token"])
+        elif isinstance(c_data, list) and len(c_data) > 0 and isinstance(c_data[0], str):
+            return str(c_data[0])
+    except Exception:
+        pass
+    return None
+
+
 def extract_bearer_token() -> Optional[str]:
     """Extract Bearer access token from Authorization header or HttpOnly cookie."""
     # 1. Authorization header: "Bearer <token>" (case-insensitive, preferred)
@@ -114,20 +135,30 @@ def extract_bearer_token() -> Optional[str]:
         if cookie_token and cookie_token.strip():
             return cookie_token.strip()
 
+    # 3. Check parsed request.cookies for Supabase session cookies (sb-*-auth-token)
     for k, v in request.cookies.items():
         if k.startswith("sb-") and k.endswith("-auth-token"):
-            try:
-                import json
-                import urllib.parse
+            parsed_token = _parse_supabase_cookie_val(v)
+            if parsed_token:
+                return parsed_token
 
-                raw_val = urllib.parse.unquote(v)
-                c_data = json.loads(raw_val)
-                if isinstance(c_data, dict) and c_data.get("access_token"):
-                    return c_data["access_token"]
-                elif isinstance(c_data, list) and len(c_data) > 0 and isinstance(c_data[0], str):
-                    return c_data[0]
-            except Exception:
-                pass
+    # 4. Fallback: Parse raw Cookie header directly in case HTTP server / RFC 6265 parser
+    # dropped unencoded JSON cookie values (e.g. Werkzeug 3.1.9+ strict parser)
+    raw_cookie_header = request.headers.get("Cookie", "")
+    if "sb-" in raw_cookie_header or "supabase_" in raw_cookie_header:
+        for part in raw_cookie_header.split(";"):
+            part = part.strip()
+            if not part or "=" not in part:
+                continue
+            k, v = part.split("=", 1)
+            k = k.strip()
+            v = v.strip()
+            if k in ("sb_access_token", "supabase_token") and v:
+                return v
+            if k.startswith("sb-") and k.endswith("-auth-token"):
+                raw_token = _parse_supabase_cookie_val(v)
+                if raw_token:
+                    return raw_token
 
     return None
 
