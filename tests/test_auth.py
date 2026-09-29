@@ -93,6 +93,22 @@ def test_extract_bearer_token():
     with test_app.test_request_context(headers={"Cookie": "sb_access_token=cookie-token-456"}):
         assert extract_bearer_token() == "cookie-token-456"
 
+    with test_app.test_request_context(headers={"Cookie": "supabase_token=cookie-token-789"}):
+        assert extract_bearer_token() == "cookie-token-789"
+
+    with test_app.test_request_context(
+        headers={"Cookie": 'sb-project-auth-token={"access_token":"json_cookie_token"}'}
+    ):
+        assert extract_bearer_token() == "json_cookie_token"
+
+    with test_app.test_request_context(
+        headers={"Cookie": "sb-project-auth-token=%5B%22array_cookie_token%22%5D"}
+    ):
+        assert extract_bearer_token() == "array_cookie_token"
+
+    with test_app.test_request_context(headers={"Cookie": "sb-project-auth-token=not-json"}):
+        assert extract_bearer_token() is None
+
     with test_app.test_request_context():
         assert extract_bearer_token() is None
 
