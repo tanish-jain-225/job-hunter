@@ -29,6 +29,7 @@ def index():
 def api_health():
     """Service health check endpoint for monitoring, Vercel status, and uptime verification."""
     import requests
+    from ... import __version__
 
     is_vercel = os.environ.get("VERCEL") == "1"
     supabase_cfg = get_supabase_config()
@@ -60,7 +61,7 @@ def api_health():
         {
             "status": "misconfigured" if production_misconfigured else "healthy",
             "service": "job-hunter",
-            "version": "1.0.3",
+            "version": __version__,
             "environment": "vercel" if is_vercel else "local",
             "auth_required": supabase_cfg.get("auth_required", False),
             "memory_connected": memory_configured,

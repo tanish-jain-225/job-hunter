@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from jobhunt.web import create_app
-from jobhunt import llm
+from jobhunt import __version__ as PKG_VERSION, llm
 
 SAMPLE_RESUME_TEXT = """ALEX DOE
 San Francisco, CA | +1-555-0199 | alex.doe@example.com
@@ -167,15 +167,15 @@ class TestE2ELiveSuite:
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
         assert "Job Hunter" in html
-        assert "style.css?v=1.0.3" in html
-        assert "app.js?v=1.0.3" in html
+        assert f"style.css?v={PKG_VERSION}" in html
+        assert f"app.js?v={PKG_VERSION}" in html
         assert 'id="onboarding-modal"' in html
         assert 'id="profile-modal"' in html
         assert 'id="kit-modal"' in html
         assert 'id="add-company-modal"' in html
         assert 'id="add-job-modal"' in html
         assert 'id="toast-container"' in html
-        print(" [OK] 1.3 Main HTML dashboard rendered with all modals & v1.0.3 assets")
+        print(f" [OK] 1.3 Main HTML dashboard rendered with all modals & v{PKG_VERSION} assets")
 
     def test_04_security_headers(self, client):
         resp = client.get("/")

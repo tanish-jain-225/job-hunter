@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.4] — 2026-09-29
+
+### Fixed
+- **Werkzeug 3.1.9+ Strict Cookie Parsing Compatibility**: Hardened `extract_bearer_token` in `jobhunt/auth.py` with `_parse_supabase_cookie_val()` and direct HTTP `Cookie` header inspection. Under Werkzeug 3.1.9's strict RFC 6265 cookie parser, raw unescaped JSON strings in cookies were dropped by `request.cookies`; the fallback extracts and decodes Supabase session tokens seamlessly from JSON, URL-encoded strings, or array formats.
+- **Python 3.12 CI Mypy Syntax Compatibility**: Removed hardcoded `python_version = "3.10"` from `[tool.mypy]` in `pyproject.toml` and added `follow_imports = "silent"`. This enables Mypy to dynamically track the active CI runner's Python interpreter (3.9–3.12) without failing on Python 3.12 PEP 695 `type` syntax inside third-party dependencies (such as `deprecated-3.0.0`).
+- **Dynamic Asset & Health Check Version Binding**: Coupled `/api/health` in `jobhunt/web/routes/views.py` directly to `jobhunt.__version__`, and updated `tests/test_e2e_live_comprehensive.py` to assert asset query hashes dynamically against package versioning, preventing test drift across releases.
+
+### Added
+- **Exhaustive Auth & Cookie Test Coverage**: Expanded `tests/test_auth.py` and `tests/test_full_suite_perfection.py` with comprehensive assertions covering standard Bearer tokens, query param rejection (CWE-598), standard Supabase cookies (`sb_access_token`, `supabase_token`), and JSON/array session cookies (`sb-*-auth-token`). Raised security coverage gate to **87%** (exceeding the strict 75% gate).
+
+### Maintenance
+- **Full End-to-End Test Suite Green**: Verified 499 / 499 automated tests passing with 92.65% total code coverage.
+- **Static Analysis & Linting Perfection**: 0 Mypy errors across all 43 source files and 0 Ruff linter violations.
+
 ## [1.0.3] — 2026-09-26
 
 ### Removed
@@ -141,5 +155,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.0.4]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.4
 [1.0.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.3
 [1.0.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.0

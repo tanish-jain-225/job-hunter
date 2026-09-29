@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__version__ = "1.0.4"
+
 from . import digest, llm, memory, providers, store
 from .fetch import Job, fetch_all, fetch_board
 from .memory import SupabaseMemory
@@ -13,8 +15,6 @@ from .web import create_app
 from .auth import _load_env_if_needed
 
 _load_env_if_needed()
-
-__version__ = "1.0.3"
 __all__ = [
     "Job",
     "Store",

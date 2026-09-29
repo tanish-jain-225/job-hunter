@@ -127,7 +127,7 @@ On September 26, 2026, an autonomous, end-to-end verification audit was executed
 | **5. Multi-Key Failover** | Gemini Quota Management Pool | Induced simulated quota exhaustion (`HTTP 429`) across multi-key pool in `GEMINI_API_KEY` | Auto-rotated to backup fresh keys without pipeline failure | **PASS** |
 | **6. Email Relay** | Production SMTP Relay | Connected to `SMTP_HOST:587`, issued `STARTTLS`, and authenticated credentials | TLS session established and authenticated | **PASS** |
 | **7. Cloud Dispatch** | GitHub Actions REST API | Authenticated with `GH_TOKEN` for `tanish-jain-225/job-hunter` | HTTP 200; workflow scopes confirmed for `.github/workflows/daily.yml` | **PASS** |
-| **8. Live Web Board** | Vercel Serverless Deployment | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.0.3"}` | **PASS** |
+| **8. Live Web Board** | Vercel Serverless Deployment | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.0.4"}` | **PASS** |
 | **9. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules | **499 passed / 0 failures in 118s (100% pass rate)** | **PASS** |
 | **10. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across 43 source files** | **PASS** |
 
