@@ -1358,9 +1358,6 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
             </div>
           `;
         }
-      }   </div>
-          `;
-        }
       }
       appState.jobsMap = {};
       appState.jobsList = [];
