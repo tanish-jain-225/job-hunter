@@ -139,7 +139,7 @@ Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for 
 | Plan Tier | Target Segment | Proposed Retail Price | Competitor Benchmark | Margin Profile |
 |---|---|:---:|:---:|:---:|
 | **Community** | Students, open-source | **$0.00 / mo** | Teal Free (heavily locked) | Cost: ~$0.00 (Free tier stack) |
-| **Pro Accelerator** | Active engineers & designers | **$9 – $15 / mo** | Teal+ ($29–$40/mo), Huntr ($40/mo), Jobscan ($50/mo) | **>98% Gross Margin** (~$0.01 infra cost) |
+| **Pro Accelerator** | Active engineers & designers | **$9 – $15 / mo** | Teal+ ($29/mo), Huntr Pro ($40/mo), Jobscan ($49.95/mo) | **>98% Gross Margin** (~$0.01 infra cost) |
 | **Bootcamp / College** | Career placement cohorts | **$199 – $499 / mo** | Handshake / Symplicity ($$$$) | **>95% Gross Margin** |
 
 ### 2. Commercial Technical Prerequisites (The 4 Milestones)

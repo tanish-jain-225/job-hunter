@@ -118,7 +118,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 | Dimension | Commercial SaaS (Teal, Huntr, Jobscan) | Job Hunter (Autonomous Agent) |
 |---|---|---|
-| **Monthly Cost** | **$30 – $50 / month** ($360 – $600 / year) | **$0.00 / month forever** (100% Free Stack) |
+| **Monthly Cost** | **$29 – $50 / month** ($316 – $600 / year) | **$0.00 / month forever** (100% Free Stack) |
 | **Sourcing Method** | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (94+ curated boards, 9 engines) |
 | **AI Intelligence** | Generic GPT-4o-mini wrappers | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
 | **Automation** | Manual tracking logins | **Automated Daily Morning Digest** (05:00 AM in your inbox) |

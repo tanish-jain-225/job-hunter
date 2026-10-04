@@ -157,11 +157,11 @@ Commercial job search platforms charge substantial recurring subscription fees w
 | Platform | Model / Category | User Pricing | Annual Cost / User | Sourcing Method | Application Safety | AI Intelligence |
 |---|---|:---:|:---:|---|---|---|
 | **Job Hunter** | **Autonomous Career Intelligence** | **$0.00 / mo** | **$0.00** | **Direct Public ATS APIs** (94+ boards across 9 engines) | **The Golden Rule** (Scout & Draft; Human Submits) | **Google Gemini 3.5 Flash** (1M context, multi-key rotation, 0% fallback) |
-| **Teal (`tealhq.com`)** | Manual Tracker & Resume Builder | $29 – $40 / mo ($9/wk) | $348 – $480 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
-| **Huntr (`huntr.co`)** | Kanban Board & AI Tailor | $30 – $40 / mo | $360 – $480 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
+| **Teal (`tealhq.com`)** | Manual Tracker & Resume Builder | $29 / mo ($13/wk, $79/qtr) | $316 – $348 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
+| **Huntr (`huntr.co`)** | Kanban Board & AI Tailor | $40 / mo ($90/qtr, $160/6mo) | $320 – $480 | ❌ None (Manual Chrome extension bookmarking) | Human Submits | Standard GPT-4o-mini |
 | **LoopCV (`loopcv.pro`)** | Auto-Apply Bot | €10 – €40 / mo | ~$130 – $500 | ⚠️ Aggregator scraping (LinkedIn, Indeed) | ⚠️ Spray-and-Pray Bot (High ATS blacklist risk) | Heuristic template filler |
 | **LazyApply (`lazyapply.com`)** | Chrome Auto-Apply Bot | $19 – $39 / mo or $249 life | ~$230 – $470 | ⚠️ Aggregator scraping (LinkedIn, Indeed) | ⚠️ Bot auto-submit (LinkedIn ban risk) | Simple form filler |
-| **Jobscan (`jobscan.co`)** | ATS Keyword Scanner | $49.95 / mo ($90/qtr) | $360 – $600 | ❌ None (Manual copy-paste JD) | Manual only | Legacy keyword frequency counter |
+| **Jobscan (`jobscan.co`)** | ATS Keyword Scanner | $49.95 / mo ($89.95/qtr) | $360 – $600 | ❌ None (Manual copy-paste JD) | Manual only | Legacy keyword frequency counter |
 
 ---
 
