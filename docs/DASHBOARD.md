@@ -139,7 +139,7 @@ Authorization: Bearer <supabase_access_token>
   {
     "status": "healthy",
     "service": "job-hunter",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "environment": "local",
     "auth_required": false,
     "memory_connected": true,

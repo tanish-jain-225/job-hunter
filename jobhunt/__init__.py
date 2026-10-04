@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 from . import digest, llm, memory, providers, store
 from .fetch import Job, fetch_all, fetch_board

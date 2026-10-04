@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jobhunt"
-version = "1.0.4"
+version = "1.0.5"
 description = "A personal job-search agent that finds, filters, ranks, and drafts application kits from public ATS boards."
 readme = "README.md"
 authors = [

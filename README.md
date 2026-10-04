@@ -1,20 +1,43 @@
-# 🎯 JOB HUNTER 🚀
-### Autonomous AI Career Intelligence Engine & Real-Time Job Discovery Platform
-**Continuous Job Scouting • $0 Deterministic Prefilter • Gemini 3.5 Flash Fit Scoring • Tailored Application Kits • Morning Executive Briefing**
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app">
+    <img src="assets/logo.png" alt="Job Hunter Official Brand Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+  </a>
+</p>
+
+<h1 align="center">🎯 Job Hunter</h1>
+
+<p align="center">
+  <strong>Autonomous AI Career Intelligence Engine &amp; Real-Time Job Discovery Platform</strong><br>
+  <em>Continuous multi-ATS radar scouting, deterministic $0 prefiltering, Google Gemini 3.5 Flash candidate fit scoring, tailored application kit drafting, and daily morning executive briefings.</em>
+</p>
+
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-503%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
+  <a href="https://mypy-lang.org"><img src="https://img.shields.io/badge/type%20checked-mypy-blue?style=for-the-badge" alt="Type Checked: Mypy"></a>
+</p>
+
+<p align="center">
+  <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
+  <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
+  <a href="docs/GUIDE.md">Candidate Playbook</a> &bull;
+  <a href="docs/SETUP.md">Setup Guide</a> &bull;
+  <a href="docs/ARCHITECTURE.md">System Architecture</a> &bull;
+  <a href="docs/API.md">REST API</a> &bull;
+  <a href="docs/DEPLOYMENT.md">Cloud Deployment</a> &bull;
+  <a href="docs/METRICS.md">Scaling &amp; Metrics</a>
+</p>
 
 ---
 
-### 🌐 System Status & Engineering Standards
+### 🎨 Brand Identity & Logo Concept
 
-| 🚀 Live Platform | 🧪 Automated Tests | 📊 Code Coverage | 🐍 Python Support | ⚖️ Open Source | ⚡ Linter & Style | 🔷 Static Typing |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| [**`🌐 Live Web Dashboard`**](https://job-hunter-web-board.vercel.app) | [**`✅ 503 Passed (100%)`**](tests/) | [**`📈 93% Line Coverage`**](tests/) | [**`🐍 3.9 • 3.10 • 3.11 • 3.12`**](https://python.org) | [**`⚖️ MIT License ($0.00)`**](LICENSE) | [**`⚡ Ruff Clean (0 err)`**](https://github.com/astral-sh/ruff) | [**`🔷 Mypy Strict (0 err)`**](https://mypy-lang.org) |
-
----
-
-### 🧭 Quick Navigation
-
-[🌐 **Explore Web Board »**](https://job-hunter-web-board.vercel.app) • [📊 **Product Audit & Valuation**](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) • [📖 **Candidate Playbook**](docs/GUIDE.md) • [⚡ **Setup Guide**](docs/SETUP.md) • [🏛️ **System Architecture**](docs/ARCHITECTURE.md) • [🔌 **REST API**](docs/API.md) • [☁️ **Cloud Deployment**](docs/DEPLOYMENT.md) • [📈 **Scaling & Metrics**](docs/METRICS.md)
+> **The Job Hunter Reticle (🎯)**: The official brand mark portrays an autonomous targeting reticle and precision radar scanner. Rather than passively waiting for third-party recruiters to repost jobs, the reticle symbolizes **direct, active discovery**—probing company ATS backends at sub-second speeds, cutting through aggregate noise, and scoring candidate-role fit with cryptographic accuracy.
 
 ---
 
@@ -106,6 +129,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 ## Table of Contents
 
+- [Brand Identity & Logo Concept](#-brand-identity--logo-concept)
 - [The 5-Stage Autonomous Execution Funnel](#-the-5-stage-autonomous-execution-funnel)
 - [The Narrative: Why Job Hunter?](#the-narrative-why-job-hunter)
 - [Commercial Alternatives vs. Job Hunter](#commercial-alternatives-vs-job-hunter)
@@ -245,7 +269,7 @@ pip install -e ".[dev,anthropic]"
 Verify the installation:
 ```bash
 jobhunt --version
-# Output: jobhunt 1.0.4
+# Output: jobhunt 1.0.5
 ```
 
 ---
@@ -550,7 +574,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (43 source files, 0 Mypy errors)
-│   ├── __init__.py           # Package version (1.0.4) & public exports
+│   ├── __init__.py           # Package version (1.0.5) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
