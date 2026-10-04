@@ -103,7 +103,7 @@ job-hunter/
 │   ├── SECURITY.md              # Vulnerability reporting and security controls
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
-├── jobhunt/                     # Core Python Package (43 source files, 0 Mypy errors)
+├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
 │   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.5")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores

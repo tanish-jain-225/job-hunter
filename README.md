@@ -573,7 +573,7 @@ job-hunter/
 ├── assets/                   # Vector architecture diagrams, pipeline infographics & branding
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
-├── jobhunt/                  # Core Python Package (43 source files, 0 Mypy errors)
+├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
 │   ├── __init__.py           # Package version (1.0.5) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility

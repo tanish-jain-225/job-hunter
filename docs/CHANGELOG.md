@@ -35,7 +35,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Maintenance
 - **Full End-to-End Test Suite Green**: Verified 499 / 499 automated tests passing with 92.65% total code coverage.
-- **Static Analysis & Linting Perfection**: 0 Mypy errors across all 43 source files and 0 Ruff linter violations.
+- **Static Analysis & Linting Perfection**: 0 Mypy errors across all source files and 0 Ruff linter violations.
 
 ## [1.0.3] — 2026-09-26
 
@@ -62,7 +62,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Zero-Latency Model Alias Resolution Caching**: Added `_MODEL_ALIAS_MAP` in `jobhunt/providers.py` so that any initial 404 on `gemini-3.5-flash` or custom models permanently caches the working fallback model for the worker lifetime, preventing repeated failed calls.
 - **Enriched Health Check Endpoint**: Updated `/api/health` in `jobhunt/web/routes/views.py` to report `database_status` and default model, with optional deep database probing via `?deep=1`.
 - **Expanded Test Suite to 499 Passed Tests (93%+ Line Coverage)**: Hardened test suites with `tests/test_coverage_90_perfection.py` covering fallback providers, malformed payloads, rate limiting, and edge cases across `jobhunt` modules, achieving **499 passed tests** with **93.17%** line coverage (well exceeding the strict $\ge 90\%$ CI threshold).
-- **Strict Static Typing Compliance (0 Mypy Errors)**: Refactored `jobhunt/cli.py` (`llm.screen` and `llm.draft` typed argument passing) and `jobhunt/multi.py` (`candidate_api_key` dictionary guards), achieving 0 type errors across all 43 source files under strict `mypy jobhunt`.
+- **Strict Static Typing Compliance (0 Mypy Errors)**: Refactored `jobhunt/cli.py` (`llm.screen` and `llm.draft` typed argument passing) and `jobhunt/multi.py` (`candidate_api_key` dictionary guards), achieving 0 type errors across all source files under strict `mypy jobhunt`.
 - **Expanded Sliding Window Job Retention to 1,000 Jobs (`MAX_TRACKED_JOBS_COUNT`)**: Raised the default rolling unapplied job retention limit from 300 to 1,000 postings in `jobhunt/store.py` (`prune_old_jobs`), `.env.example`, `.github/workflows/daily.yml`, and documentation. Updated capacity, storage equilibrium, and multi-tenant scaling models to reflect ~1.5 MB per user (~330 users on the 500 MB Supabase free tier at 1,000 jobs, or up to 1,040 users at 300 jobs).
 - **Pure Flexbox & Spacing Consistency (Mail & UI)**: Standardized both the daily HTML digest mailer (`jobhunt/digest.py`) and executive web dashboard (`static/css/style.css`) to use pure Flexbox architecture (`display: flex` / `display: inline-flex`). Enforced uniform, proportional margin, padding, and gap hierarchy across all components (navbar, hero cards, search toolbar, filter pills, job cards, modals, wizard stepper, preferences, email cards, and briefing status bars). Added responsive media queries scaling gracefully down to 300px ultra-narrow screens without clipping or horizontal overflow.
 - **DevOps CI/CD Action Version Alignment**: Standardized `.github/workflows/ci.yml` and `.github/workflows/daily.yml` to official marketplace stable action versions `actions/checkout@v4` and `actions/setup-python@v5`.
