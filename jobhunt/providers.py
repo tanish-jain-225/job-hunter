@@ -298,7 +298,7 @@ class GeminiProvider(Provider):
                 key = active_keys[req_idx % len(active_keys)]
             else:
                 key = active_keys[0]
-            _enforce_key_throttle(key, min_interval=4.0)
+            _enforce_key_throttle(key, min_interval=5.0)
             try:
                 r = requests.post(
                     url,

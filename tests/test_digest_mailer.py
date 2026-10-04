@@ -267,4 +267,45 @@ def test_digest_flexbox_and_spacing_consistency():
     assert "@media only screen and (max-width: 340px)" in html_doc
 
 
+def test_smtp_session_reuse(monkeypatch: pytest.MonkeyPatch):
+    """Verify SMTPSession maintains a single persistent connection across multiple dispatches."""
+    mailer.reset_sent_count()
+    monkeypatch.setenv("SMTP_USER", "user@example.com")
+    monkeypatch.setenv("SMTP_PASS", "app_password_secret")
+
+    with patch("smtplib.SMTP") as mock_smtp_cls:
+        mock_server = MagicMock()
+        mock_server.noop.return_value = (250, b"OK")
+        mock_smtp_cls.return_value = mock_server
+
+        with mailer.SMTPSession() as session:
+            mailer.send("Subject 1", "<p>Digest 1</p>", to_email="user1@domain.com", session=session)
+            mailer.send("Subject 2", "<p>Digest 2</p>", to_email="user2@domain.com", session=session)
+
+        # Connection should only be initiated once
+        assert mock_smtp_cls.call_count == 1
+        assert mock_server.starttls.call_count == 1
+        assert mock_server.login.call_count == 1
+        assert mock_server.send_message.call_count == 2
+        mock_server.quit.assert_called_once()
+    mailer.reset_sent_count()
+
+
+def test_mailer_circuit_breaker_max_daily_send(monkeypatch: pytest.MonkeyPatch):
+    """Verify circuit breaker prevents sending more than MAX_DAILY_SEND emails."""
+    mailer.reset_sent_count()
+    monkeypatch.setenv("SMTP_USER", "user@example.com")
+    monkeypatch.setenv("SMTP_PASS", "app_password_secret")
+
+    # Artificially set sent counter to MAX_DAILY_SEND
+    monkeypatch.setattr(mailer, "_sent_counter", mailer.MAX_DAILY_SEND)
+
+    with patch("smtplib.SMTP") as mock_smtp_cls:
+        mailer.send("Subject", "<p>Body</p>", to_email="candidate@domain.com")
+        # Should not attempt SMTP connection or dispatch
+        assert mock_smtp_cls.call_count == 0
+
+    mailer.reset_sent_count()
+
+
 

@@ -16,7 +16,7 @@ _GEMINI_KEY_COUNTER: int = 0
 _GEMINI_COUNTER_LOCK = threading.Lock()
 
 MIN_CALL_INTERVALS: dict[str, float] = {
-    "gemini": 4.0,  # 15 RPM free tier ceiling per Google AI Studio project key
+    "gemini": 5.0,  # 12 RPM (multiple of 5; safe 20% margin below 15 RPM ceiling)
     "groq": 2.0,  # 30 RPM (exact 30 RPM ceiling per Groq project)
     "anthropic": 1.2,
     "openai-compatible": 0.5,
@@ -93,8 +93,8 @@ def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
         _LAST_CALL_MAP[provider_name.lower()] = time.time()
 
 
-def _enforce_key_throttle(key: str, min_interval: float = 4.0) -> None:
-    """Ensure an individual API key is never invoked faster than min_interval (15 RPM)."""
+def _enforce_key_throttle(key: str, min_interval: float = 5.0) -> None:
+    """Ensure an individual API key is never invoked faster than min_interval (12 RPM safe pacing)."""
     if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
         return
     with _RATE_LOCK:

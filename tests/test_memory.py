@@ -219,3 +219,29 @@ def test_supabase_memory_session_retry_setup(monkeypatch):
     assert adapter.max_retries.total == 3
     assert adapter.max_retries.backoff_factor == 0.5
     assert 502 in adapter.max_retries.status_forcelist
+
+
+def test_prune_pipeline_runs(mock_supabase_env):
+    mem = SupabaseMemory()
+    mock_del_resp = MagicMock()
+    mock_del_resp.status_code = 204
+
+    with patch("requests.delete", return_value=mock_del_resp) as mock_delete:
+        ok = mem.prune_pipeline_runs("candidate@test.com", keep_days=30, use_service_key=True)
+        assert ok is True
+        mock_delete.assert_called_once()
+        args, kwargs = mock_delete.call_args
+        assert "/rest/v1/user_pipeline_runs" in args[0]
+        assert kwargs["params"]["user_email"] == "eq.candidate@test.com"
+        assert kwargs["params"]["run_timestamp"].startswith("lt.")
+
+
+def test_prune_pipeline_runs_unconfigured(monkeypatch):
+    import jobhunt.auth as auth_mod
+
+    monkeypatch.setattr(auth_mod, "_ENV_LOADED", True)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    mem = SupabaseMemory()
+    assert mem.prune_pipeline_runs("user@domain.com") is False

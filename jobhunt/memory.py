@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -995,6 +995,39 @@ class SupabaseMemory:
         except Exception as e:
             print(f"[SupabaseMemory] get_pipeline_history error for {clean_email}: {e}")
             return []
+
+    def prune_pipeline_runs(
+        self,
+        email: str,
+        keep_days: int = 30,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> bool:
+        """Prune pipeline execution run logs older than keep_days for user email."""
+        if not self.is_configured or not email:
+            return False
+
+        clean_email = email.lower().strip()
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=keep_days)).isoformat()
+            endpoint = f"{self.url}/rest/v1/user_pipeline_runs"
+            headers = self._headers(token, use_service_key=use_service_key)
+            params = {
+                "user_email": f"eq.{clean_email}",
+                "run_timestamp": f"lt.{cutoff}",
+            }
+            resp = _get_session().delete(endpoint, headers=headers, params=params, timeout=self.timeout)
+            if resp.status_code not in (200, 204) and token and self.service_key:
+                resp = _get_session().delete(
+                    endpoint,
+                    headers=self._headers(use_service_key=True),
+                    params=params,
+                    timeout=self.timeout,
+                )
+            return resp.status_code in (200, 204)
+        except Exception as e:
+            print(f"[SupabaseMemory] prune_pipeline_runs error for {clean_email}: {e}")
+            return False
 
     # --------------------------------------------------------------------------
     # 4. Internal Helpers

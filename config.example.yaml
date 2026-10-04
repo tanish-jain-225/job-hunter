@@ -86,21 +86,21 @@ filters:
   # If true, anything reading as remote passes the location gate.
   allow_remote: true
 
-  # Drop postings older than this. Set to 21 days for fresh weekly/daily runs.
-  max_age_days: 21
+  # Drop postings older than this. Set to 20 days for fresh runs.
+  max_age_days: 20
 
 # --- LLM stages & concurrency -----------------------------------------------
-screen_batch_size: 8        # 8 jobs/call — optimal batch payload for Gemini Flash
+screen_batch_size: 10       # 10 jobs/call — optimal batch payload for Gemini Flash
 screen_jd_chars: 1000       # Precise context truncation for evaluation
 draft_jd_chars: 6000        # Full context for kit drafting
 score_threshold: 7.0        # High bar: 7.0 drafts kits only for strong matches
-max_per_digest: 7           # Hard cap on drafted kits per run
-max_jobs_to_screen: 30      # Max unseen jobs evaluated per run to protect rate limits
+max_per_digest: 5           # Clean 5-job executive summary per digest
+max_jobs_to_screen: 10      # Top 10 unseen roles evaluated in 1 single Gemini batch
 
 # Concurrency & rate-limit tuning
-fetch_max_workers: 16     # Parallel HTTP requests across ATS boards
-llm_max_workers: 1        # Sequential processing to strictly prevent rate limit bursts
-llm_delay_seconds: 6.0    # Exactly 6.0s delay = 10 RPM (matches Gemini 10 RPM free tier ceiling)
+fetch_max_workers: 20       # Parallel HTTP requests across ATS boards (5.0s crawl)
+llm_max_workers: 1          # Sequential processing
+llm_delay_seconds: 0.0      # Zero intra-batch delay (single-batch architecture)
 
 # --- paths ------------------------------------------------------------------
 companies_file: companies.yaml

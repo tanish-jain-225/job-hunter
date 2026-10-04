@@ -34,7 +34,7 @@ jobs:
   hunt:
     name: Execute Job Hunter Radar
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
 
     steps:
       - name: Checkout Repository
