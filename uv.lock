@@ -1009,6 +1009,8 @@ version = "1.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },
+    { name = "flask-limiter", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "flask-limiter", version = "4.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pyjwt" },
     { name = "pypdf" },
     { name = "pyyaml" },
@@ -1043,6 +1045,7 @@ web = [
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.40.0" },
     { name = "flask", specifier = ">=3.0.0" },
+    { name = "flask-limiter", specifier = ">=3.5.0" },
     { name = "flask-limiter", marker = "extra == 'web'", specifier = ">=3.5.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8.0" },

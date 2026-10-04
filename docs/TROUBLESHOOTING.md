@@ -71,10 +71,14 @@ This guide covers solutions to common errors, configurations, and questions enco
 ### Error: `429 Too Many Requests` or Gemini Quota Limit Exceeded
 * **Why it happens:** You are screening jobs on the Google Gemini free tier API (15 RPM ceiling per key, or the daily free limit for Google AI Studio projects).
 * **The Solution:** 
-  * **Multi-Key Acceleration (Recommended):** Pass multiple free Gemini keys as CSV in `GEMINI_API_KEY` (`AIzaSy1,AIzaSy2,AIzaSy3`). For maximum quota scaling, generate each key in a **distinct Google Cloud project** so each key benefits from an independent project quota bucket! Job Hunter automatically alternates requests round-robin and paces each key independently at 15 RPM.
+  * **Multi-Key Acceleration (Recommended):** Pass multiple free Gemini keys as CSV in `GEMINI_API_KEY` (`AIzaSy1,AIzaSy2,AIzaSy3`). For maximum quota scaling, generate each key in a **distinct Google Cloud project** so each key benefits from an independent project quota bucket! Job Hunter automatically alternates requests round-robin and paces each key independently at 12 RPM (5.0s interval).
   * **Automatic Resilience Cascading & Zero-Latency Alias Caching:** If your `gemini-3.5-flash` primary model encounters rate limits or high demand, Job Hunter's built-in cascade layer automatically routes active requests through Google's production Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`). Furthermore, any 404 or unsupported alias is dynamically mapped to a working production endpoint on its first call and cached permanently in-memory (`_MODEL_ALIAS_MAP`), ensuring subsequent requests complete with zero fallback latency.
   * **Pay-As-You-Go ($0.15/1M tokens):** Attaching a billing method in Google Cloud unlocks 1,000 RPM on `gemini-3.5-flash` with virtually unlimited daily volume.
-  * In `config.yaml`, set `llm_max_workers: 1` for free-tier keys and keep `screen_batch_size: 8` for optimal batch throughput.
+  * In `config.yaml`, set `llm_max_workers: 1` for free-tier keys and keep `screen_batch_size: 10` for harmonic single-batch throughput.
+
+### Notice: Gmail SMTP Connection Reconnects & Circuit Breaker (`MAX_DAILY_SEND = 450`)
+* **How it works:** To prevent Google bot blocks (`421 4.7.0`) caused by rapid sequential TLS handshakes, Job Hunter uses a persistent `SMTPSession` context manager that maintains a single authenticated connection with automatic reconnect on socket drop.
+* **Circuit Breaker:** Job Hunter enforces `MAX_DAILY_SEND = 450` to guarantee your pipeline never breaches Gmail's 500-email/day rolling quota, keeping a 50-email safety buffer. Daily empty 0-match emails are automatically suppressed to conserve quota.
 
 ### Notice: Gemini HTTP 503 (High Demand), Timeouts, or Resume Upload Latency
 * **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`, or take >25s to generate long JSON application kits.

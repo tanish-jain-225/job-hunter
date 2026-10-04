@@ -41,7 +41,7 @@ flowchart TD
     subgraph S3["3. AI Screening & Intelligence Layer"]
         C1["Google Gemini 3.5 Flash Engine"]
         C2["Multi-Key Circular Rotation (_GEMINI_KEY_COUNTER)"]
-        C3["Per-Key 15 RPM Leaky-Bucket Throttle"]
+        C3["Per-Key 12 RPM Leaky-Bucket Throttle (5.0s interval)"]
         C4["Zero-Latency Model Alias Resolution & Cascades"]
         C5["Defensive Prompt Isolation (<untrusted_job_description>)"]
     end
@@ -113,8 +113,8 @@ job-hunter/
 │   ├── fetch.py                 # Job dataclass and unified ATS scraping orchestrator
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
 │   ├── llm_utils.py             # Shared LLM serialization and prompt formatting helpers
-│   ├── mailer.py                # SMTP client with TLS encryption and failure recovery
-│   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security
+│   ├── mailer.py                # SMTP client with SMTPSession connection reuse, auto-reconnect, and MAX_DAILY_SEND = 450 circuit breaker
+│   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security & automated 30-day log pruning (prune_pipeline_runs)
 │   ├── memory_codec.py          # Candidate profile schema encoding & validation
 │   ├── mock.py                  # Offline mock ATS fixtures for zero-network testing
 │   ├── multi.py                 # Single-pass multi-tenant batch crawler and dispatcher
@@ -168,7 +168,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (499 passing tests)
+├── tests/                       # Automated Test Suite (503 passing tests)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

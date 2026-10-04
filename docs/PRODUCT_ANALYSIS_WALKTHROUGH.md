@@ -6,7 +6,7 @@
 * **Audited Codebase Size**: **96 files | 36,000+ lines of code**  
 * **Curated Company Targets**: **94 top tech unicorns** across 9 major ATS platforms (Ashby, Greenhouse, Lever, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint)  
 * **Candidate Profiling Model**: Native Indian CTC (LPA) & Notice Period schema + Global Remote preferences  
-* **Automated Test Suite**: **499 passed / 0 failures** in 118s (100% pass rate)  
+* **Automated Test Suite**: **503 passed / 0 failures** in 99s (100% pass rate)  
 * **Static Analysis & Type Safety**: **0 Ruff violations / 0 Mypy errors** across 43 source files  
 * **Live Production URL**: [https://job-hunter-web-board.vercel.app](https://job-hunter-web-board.vercel.app)  
 * **Final Composite Rating**: **9.7 / 10 (S-Tier / Enterprise-Grade Production MVP)**  
@@ -25,7 +25,7 @@ An exhaustive, end-to-end audit was conducted directly against the active reposi
 | :--- | :---: | :---: | :--- |
 | **`jobhunt/`** | 35 | ~10,500 | **Core Application Engine**: Modular ATS parsers (`jobhunt/parsers/` covering Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint), heuristic regex pre-filtering (`prefilter.py`), Gemini 3.5 LLM scoring engine (`llm.py`), circular multi-key rate-limit failover (`providers.py`), Supabase RLS database client (`memory.py`), atomic deduplication store (`store.py`), and SMTP StartTLS briefing generator (`digest.py`). |
 | **`jobhunt/web/`** | 8 | 1,842 | **Modular Web Gateway (Flask Blueprints)**: Clean separation into `routes/jobs.py` (job CRUD, stages, followups, notes), `routes/pipeline.py` (SSE live stream `/api/pipeline/stream`, cloud triggers, history), `routes/profile.py` (resume PDF parsing via PyPDF, preferences), `routes/views.py` (dashboard views, health check, Supabase auth), and `state.py`. |
-| **`tests/`** | 31 | 10,400+ | **Automated Test Suite**: 499 comprehensive test cases spanning unit, integration, memory cache lifecycle, live endpoint contracts, security headers, rate limiting, and failure fallbacks. **Test-to-code ratio exceeds 1.07:1.** |
+| **`tests/`** | 31 | 10,400+ | **Automated Test Suite**: 503 comprehensive test cases spanning unit, integration, memory cache lifecycle, live endpoint contracts, security headers, rate limiting, and failure fallbacks. **Test-to-code ratio exceeds 1.07:1.** |
 | **`static/`** | 2 | 9,728 | **Frontend Assets**: Client-side single-page dashboard application, responsive theme stylesheets, and interaction handlers. |
 | **`docs/`** | 17 | 3,986 | **Technical Documentation**: Comprehensive architecture blueprints, multi-tenant setup guides, security configurations, API references, and product valuation walkthrough. |
 | **`templates/`** | 9 | 1,095 | **HTML Layouts & Email Briefings**: Dashboard templates, job card modals, and responsive HTML email digest templates. |
@@ -128,7 +128,7 @@ On September 26, 2026, an autonomous, end-to-end verification audit was executed
 | **6. Email Relay** | Production SMTP Relay | Connected to `SMTP_HOST:587`, issued `STARTTLS`, and authenticated credentials | TLS session established and authenticated | **PASS** |
 | **7. Cloud Dispatch** | GitHub Actions REST API | Authenticated with `GH_TOKEN` for `tanish-jain-225/job-hunter` | HTTP 200; workflow scopes confirmed for `.github/workflows/daily.yml` | **PASS** |
 | **8. Live Web Board** | Vercel Serverless Deployment | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.0.4"}` | **PASS** |
-| **9. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules | **499 passed / 0 failures in 118s (100% pass rate)** | **PASS** |
+| **9. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules | **503 passed / 0 failures in 99s (100% pass rate)** | **PASS** |
 | **10. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across 43 source files** | **PASS** |
 
 ---
@@ -138,7 +138,7 @@ On September 26, 2026, an autonomous, end-to-end verification audit was executed
 | Competition / Platform | Evaluation Standards & Benchmarks | Score (Out of 10) | Competitive Advantage of Job Hunter |
 | :--- | :--- | :---: | :--- |
 | **Smart India Hackathon (SIH)** *(sih.gov.in)* | Evaluated on Problem Understanding, Technical Feasibility & Depth, Prototype Readiness, and Scalability. Prize: ₹1,00,000 per problem statement. | **9.5 / 10** | Directly solves national student employability with an end-to-end working system, multi-tenant database, and zero-cost serverless hosting. |
-| **Devfolio College Hackathons** *(ETHIndia, HackHeritage, WittyHacks, HackOut)* | Heavily prioritizes working software, live demos on domain/cloud, API integrations, and developer tooling. | **9.6 / 10** | Zero localhost dependency; live Vercel URL, 499 automated tests, and multi-key failover prevent demo crashes. |
+| **Devfolio College Hackathons** *(ETHIndia, HackHeritage, WittyHacks, HackOut)* | Heavily prioritizes working software, live demos on domain/cloud, API integrations, and developer tooling. | **9.6 / 10** | Zero localhost dependency; live Vercel URL, 503 automated tests, and multi-key failover prevent demo crashes. |
 | **Unstop Tech Challenges & Competitions** | National student hackathons and corporate innovation challenges (Tata, Reliance, Infosys challenges). | **9.3 / 10** | Ready for submission under "AI in Employment", "Productivity Tools", or "Future of Work" problem tracks. |
 | **Major League Hacking (MLH) & Devpost (Global)** | Premier global hackathons judging technical difficulty, working software, and UI polish. | **9.6 / 10** | Stands out against 95% of hackathon toy projects with production-grade CI/CD and multi-key rate-limit rotation. |
 | **University Incubator / E-Cell Challenges** *(E-Cell IIT Bombay Eureka, IIT Delhi, BITS Pilani Conquest)* | Evaluated on TAM/SAM/SOM, unit economics, prototype maturity, and founder execution capability. | **9.0 / 10** | High margin: serverless architecture and heuristic filtering keep operating costs under ₹2 per active user per month. |
@@ -152,7 +152,7 @@ On September 26, 2026, an autonomous, end-to-end verification audit was executed
    - Demonstrate live job cards aggregated from direct career pages and global remote boards.  
    - Highlight Gemini 3.5 AI analysis showing exact matching skills, missing skills, and interview prep suggestions.
 3. **Engineering Depth (40s):**  
-   - Show the 499 passed tests running via `pytest`.  
+   - Show the 503 passed tests running via `pytest`.  
    - Explain the two-tier cost optimization (heuristic regex filter discarding 85% of listings before spending API tokens).  
    - Explain dynamic multi-key rotation ensuring zero downtime on Gemini rate limits.
 4. **Impact & Scalability (20s):**  
@@ -165,7 +165,7 @@ On September 26, 2026, an autonomous, end-to-end verification audit was executed
 
 | Career / Academic Dimension | Rating (Out of 10) | Real-World Benchmark (India & Global) | How Job Hunter Fits This Benchmark |
 | :--- | :---: | :--- | :--- |
-| **College Final-Year Major Project / Capstone** | **10.0 / 10** | University criteria: System design, working deployment, documentation, and testing. | Far exceeds typical undergraduate capstones (which are often basic CRUD to-do apps or tutorial clones). Includes automated CI/CD and 499 tests. |
+| **College Final-Year Major Project / Capstone** | **10.0 / 10** | University criteria: System design, working deployment, documentation, and testing. | Far exceeds typical undergraduate capstones (which are often basic CRUD to-do apps or tutorial clones). Includes automated CI/CD and 503 tests. |
 | **Software Engineering Internship Application** | **10.0 / 10** | Resume screening for top product startups (Swiggy, Zomato, CRED, Razorpay) and MNCs. | Verifiable proof of skills in Python, PostgreSQL, Gemini LLMs, and cloud deployments. |
 | **Full-Time SDE Portfolio (Backend / AI Engineer)** | **9.7 / 10** | AmbitionBox & Glassdoor 2026 data: Fresher AI engineers average ₹5–10 LPA; experienced full-stack engineers average ₹12–25+ LPA. | Proves production-level understanding of rate limits, database RLS, and cost optimization. |
 | **Global Remote Contractor Roles (US/EU in USD)** | **9.8 / 10** | Remote platforms evaluate production hygiene, asynchronous communication, testing discipline, and clean git history. | Direct evidence of building production software adhering to strict Mypy and Ruff standards. |
@@ -189,11 +189,11 @@ Industry data from Indian software agencies (Clutch India, AmbitionBox) indicate
 | :--- | :--- | :---: | :---: |
 | **EdTech & Placement Training Institutes** *(Coding bootcamps, placement consultancies)* | Placement rates drive their enrollments. Offering enrolled students an exclusive *"AI Career Intelligence Portal"* justifies course fees. | **₹4,50,000 – ₹8,50,000** | $5,400 – $10,200 USD |
 | **Tech Recruitment & Staffing Consultancies** | Indian staffing agencies earn 8.33% to 15% of annual CTC per hire. Automated aggregation saves recruiters 3+ hours daily in sourcing. | **₹3,00,000 – ₹5,50,000** | $3,600 – $6,600 USD |
-| **Direct Freelance / Agency Replacement Value** | Cost for an Indian tech business to hire senior engineers to build, test (499 tests), and deploy this system from scratch. | **₹3,50,000 – ₹6,00,000** | $4,200 – $7,200 USD |
+| **Direct Freelance / Agency Replacement Value** | Cost for an Indian tech business to hire senior engineers to build, test (503 tests), and deploy this system from scratch. | **₹3,50,000 – ₹6,00,000** | $4,200 – $7,200 USD |
 | **Turnkey Codebase Transfer to Indie Founder** | Sale of intellectual property, documentation, Vercel/Supabase configs, and GitHub repository (Acquire.com / Microns.io). | **₹2,00,000 – ₹3,50,000** | $2,500 – $4,200 USD |
 
 > **Current Baseline Market Valuation: ₹3,00,000 – ₹5,50,000 INR (₹3 to ₹5.5 Lakhs)**  
-> *(Global Equivalent: $3,500 – $6,500 USD — based on developer replacement cost, 499 passing tests, live deployment, and zero monthly server hosting overhead)*
+> *(Global Equivalent: $3,500 – $6,500 USD — based on developer replacement cost, 503 passing tests, live deployment, and zero monthly server hosting overhead)*
 
 ---
 
@@ -245,7 +245,7 @@ As a working, deep-tech AI prototype addressing national employment efficiency, 
 | # | Dimensional Area | Score (Out of 10) | Verified Audit Evidence |
 | :---: | :--- | :---: | :--- |
 | **1** | **Software Architecture & Modularity** | **9.8 / 10** | Clean decoupled layers (Parsers, Heuristics, Gemini LLM, Supabase RLS, Vercel SPA, Blueprint routes). |
-| **2** | **Code Hygiene, Testing & CI/CD** | **10.0 / 10** | **499/499 tests passing (100%)**, 0 Ruff violations, 0 Mypy errors across 43 source files. |
+| **2** | **Code Hygiene, Testing & CI/CD** | **10.0 / 10** | **503/503 tests passing (100%)**, 0 Ruff violations, 0 Mypy errors across 43 source files. |
 | **3** | **Production Reliability & Resilience** | **9.8 / 10** | Dynamic multi-key rotation prevents quota crashes; heuristic filter saves 85% tokens. |
 | **4** | **Problem-Solution Fit (India & Global)** | **9.7 / 10** | Directly tackles India's 85% placement crisis and unlocks ₹20L–₹80L USD remote jobs. |
 | **5** | **Cloud Deployment & DevOps** | **9.6 / 10** | Live on Vercel (`/api/health` 200), Supabase PostgreSQL, GitHub Actions, and SMTP TLS. |
@@ -265,7 +265,7 @@ The repository demonstrates exceptional developer experience, ranking in the top
 | **Setup & Onboarding Speed** | **9.8 / 10** | Dual package setup: traditional `pip install -e ".[dev]"` or instantaneous `uv sync`. Environment defaults fully documented in `.env.example`. |
 | **Documentation Completeness** | **9.9 / 10** | **17 dedicated documents** in `docs/` covering setup, architecture, security, dashboard, and troubleshooting. |
 | **Code Hygiene & Typing** | **9.7 / 10** | **0 Ruff linter errors** and **0 Mypy strict type errors** across 43 source files. Type annotations provide full IDE autocompletion in VS Code, PyCharm, and Cursor. |
-| **Offline Testability & Safety Net** | **10.0 / 10** | **All 499 tests execute 100% offline** in under 120 seconds without requiring live Gemini API keys or external database credentials. |
+| **Offline Testability & Safety Net** | **10.0 / 10** | **All 503 tests execute 100% offline** in under 120 seconds without requiring live Gemini API keys or external database credentials. |
 | **Multi-Developer Parallelism** | **9.5 / 10** | Domain isolation: parsers, providers, persistence, and UI templates reside in independent modules. Multiple developers can contribute features simultaneously with zero merge conflicts. |
 | **CI/CD Quality Guardrails** | **9.4 / 10** | GitHub Actions (`ci.yml`) runs tests, linting, and type checking on every pull request, blocking regressions before merge. |
 
@@ -300,7 +300,7 @@ When presenting this project in software engineering interviews, candidates freq
 
 ### A. Overcoming "Is this just an AI API wrapper?"
 * **The Ground Truth:** AI logic accounts for **less than 2% of the codebase** (~300 lines out of 36,000 total lines). If Gemini is disabled entirely, the system continues operating using its built-in heuristic keyword matching engine.
-* **The Response:** The core engineering challenge lies in the **distributed backend systems**: building resilient ATS parsers, a deterministic pre-filtering pipeline saving 85% of token costs, hardware-isolated multi-tenant databases via PostgreSQL Row-Level Security, a circular failover pool surviving HTTP 429 quota exhaustion, and a 499-test offline test suite.
+* **The Response:** The core engineering challenge lies in the **distributed backend systems**: building resilient ATS parsers, a deterministic pre-filtering pipeline saving 85% of token costs, hardware-isolated multi-tenant databases via PostgreSQL Row-Level Security, a circular failover pool surviving HTTP 429 quota exhaustion, and a 503-test offline test suite.
 
 ### B. Overcoming "Did AI write this code for you?"
 * **The Response:** AI tools assist in routine syntax generation, but system architecture requires human engineering judgment. An LLM does not choose hardware-enforced Supabase RLS over client-side filters for tenant isolation, design atomic file replacement schemes (`tempfile.NamedTemporaryFile` + `os.replace`) to prevent state corruption, or engineer offline mocking harnesses to test rate-limit recovery.
@@ -314,7 +314,7 @@ When presenting this project in software engineering interviews, candidates freq
 3. **How is cross-tenant privacy guaranteed in a shared database?**  
    *PostgreSQL Row-Level Security (RLS):* Isolation is enforced by the database engine itself using cryptographically verified JWT bearer tokens. Anonymous or unauthorized queries return zero rows.
 4. **How do you test the system without burning API credits?**  
-   *Offline Mocking Harness:* All 499 tests run offline using fixture-based HTTP contract mocking and synthetic schemas, validating failure handling and migrations in under 120 seconds.
+   *Offline Mocking Harness:* All 503 tests run offline using fixture-based HTTP contract mocking and synthetic schemas, validating failure handling and migrations in under 120 seconds.
 5. **How does the app handle stateless Vercel Serverless hosting?**  
    *Cloud State Offloading:* Ephemeral local filesystems are used solely for offline fallback caching. In production on Vercel, persistent state is offloaded to Supabase PostgreSQL and cloud runs are dispatched via GitHub Actions.
 
@@ -327,7 +327,7 @@ As a Final-Year Engineering Major Capstone Project (B.Tech / B.E. / MCA / M.Tech
 * **Formal Academic Title:** *"Autonomous Multi-Tenant Career Intelligence and Match-Scoring Platform Using Serverless Distributed Architecture and Heuristic Pre-Filtering"*
 * **Academic Abstract:**  
   > *"The contemporary recruitment ecosystem is burdened by severe informational asymmetry, where over 85% of applicants are eliminated by automated Applicant Tracking Systems (ATS). This project presents Job Hunter, a scalable, multi-tenant distributed platform engineered to automate multi-source job ingestion, candidate-job alignment, and scheduled intelligence delivery.*  
-  > *The system introduces a two-tier cost-optimized filtration pipeline: Stage 1 utilizes a deterministic regular expression automata filter that eliminates 85–90% of irrelevant listings at zero token cost; Stage 2 applies semantic transformer inference (Google Gemini 3.5 Flash) for structured skill-gap analysis. Data persistence is decoupled across an ephemeral local cache and a multi-tenant cloud PostgreSQL database with hardware-enforced Row-Level Security (RLS). The system is deployed serverless on Vercel and validated with a comprehensive test harness of 499 unit and integration test cases."*
+  > *The system introduces a two-tier cost-optimized filtration pipeline: Stage 1 utilizes a deterministic regular expression automata filter that eliminates 85–90% of irrelevant listings at zero token cost; Stage 2 applies semantic transformer inference (Google Gemini 3.5 Flash) for structured skill-gap analysis. Data persistence is decoupled across an ephemeral local cache and a multi-tenant cloud PostgreSQL database with hardware-enforced Row-Level Security (RLS). The system is deployed serverless on Vercel and validated with a comprehensive test harness of 503 unit and integration test cases."*
 
 ---
 
@@ -341,7 +341,7 @@ The architecture and algorithms in Job Hunter provide substantial novel material
 | **2. Distributed Systems Fault Tolerance**<br/>*"Resilient Autonomous Agents: Dynamic Multi-Key Quota Mitigation and Circular Failover in Rate-Constrained LLM Pipelines"* | Cloud Computing & Systems<br/>*(IEEE CLOUD, ACM SoCC, IEEE Services)* | Cloud LLM APIs enforce strict rate quotas; autonomous headless agents crash on HTTP 429 quota exhaustion.<br/>**Method:** $O(1)$ circular multi-key failover state machine with state preservation. | **Graph:** Pipeline Completion Rate under 10–75% injected rate limits (Naive = 0% vs. Circular Failover = **100% completion**). |
 | **3. Zero-Trust Cloud Database Security**<br/>*"Hardware-Enforced Tenant Isolation in Ephemeral Serverless Web Applications: A PostgreSQL Row-Level Security Approach"* | Information Security & Cloud<br/>*(IEEE TDSC, ACM CODASPY)* | Ephemeral serverless functions with application-layer filtering (`WHERE user_id = X`) risk data leaks under developer error.<br/>**Method:** Database-kernel Row-Level Security (RLS) driven by JWT claims. | **Table:** 1,000 simulated cross-tenant breach attempts (0% leakage).<br/>**Benchmark:** RLS latency overhead (<1.5ms). |
 | **4. Ethical AI & Algorithmic Equity**<br/>*"Democratizing Career Discovery: Mitigating Algorithmic Gatekeeping and Ghost Jobs via Direct-to-Source Autonomous ATS Ingestion"* | Human-Computer Interaction<br/>*(ACM CHI, IEEE TCSS)* | Commercial portals feature 85% placement friction, ghost jobs, and opaque ATS parsers.<br/>**Method:** Candidate-aligned agent crawling direct enterprise ATS feeds with transparent skill-gap explainability. | **Dataset Study:** 5,000 postings comparing portal freshness vs. direct ATS freshness.<br/>**User Study:** 40hr/wk manual search reduced to a 3-min digest. |
-| **5. Deterministic AI Quality Assurance**<br/>*"Deterministic Testing Frameworks for Non-Deterministic Generative AI Pipelines: A 499-Case Empirical Study"* | Software Engineering & QA<br/>*(IEEE Software, ACM/IEEE ICSE)* | Testing generative AI systems is difficult due to non-deterministic outputs, API costs, and flaky network calls.<br/>**Method:** Fixture-based contract mocking, synthetic schema validation, and cache-lifecycle tests. | **Coverage Analysis:** 93%+ line coverage.<br/>**Reliability Benchmark:** 100 consecutive CI runs with 0% test flakiness in <120s. |
+| **5. Deterministic AI Quality Assurance**<br/>*"Deterministic Testing Frameworks for Non-Deterministic Generative AI Pipelines: A 503-Case Empirical Study"* | Software Engineering & QA<br/>*(IEEE Software, ACM/IEEE ICSE)* | Testing generative AI systems is difficult due to non-deterministic outputs, API costs, and flaky network calls.<br/>**Method:** Fixture-based contract mocking, synthetic schema validation, and cache-lifecycle tests. | **Coverage Analysis:** 93%+ line coverage.<br/>**Reliability Benchmark:** 100 consecutive CI runs with 0% test flakiness in <120s. |
 
 ---
 

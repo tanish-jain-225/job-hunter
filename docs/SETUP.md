@@ -431,12 +431,17 @@ filters:
   locations:
     - "all_india"
   allow_remote: true
-  max_age_days: 21
+  max_age_days: 20
 
-# Scoring & Batching Options
-screen_batch_size: 8      # Evaluates 8 jobs per LLM request (optimal for Gemini Flash)
-score_threshold: 7.0      # Minimum fit score (0.0 - 10.0) required to draft an Application Kit
-max_per_digest: 7         # Maximum top roles included in the morning email briefing
+# Harmonic Operational Parameters (Multiples of 5 & 10)
+screen_batch_size: 10     # Evaluates 10 jobs per LLM request (single-batch screening)
+screen_jd_chars: 800      # Description character limit for fit evaluation
+draft_jd_chars: 7000      # Full context for tailored kit drafting
+score_threshold: 7.0      # Minimum fit score (0.0 - 10.0) required for application kit generation
+max_per_digest: 5         # Maximum top roles included in the morning email briefing
+max_jobs_to_screen: 10    # Top roles screened per candidate batch
+fetch_max_workers: 20     # Concurrency for ATS network requests
+llm_delay_seconds: 0.0    # Leaky-bucket pacing enforced at 5.0s (12 RPM) via provider throttle
 ```
 
 ---
@@ -605,7 +610,7 @@ Run this diagnostic checklist to verify every subsystem:
 | **0. Preflight Diagnostics** | `jobhunt check` | All packages, configurations, and keys verified | ✅ Passed |
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
 | **2. Board Reachability** | `jobhunt verify --workers 10` | 94/94 boards verified reachable (HTTP 200) | ✅ Passed |
-| **3. Automated Test Suite** | `python -m pytest tests/` | **499 passed tests** in ~100s | ✅ Passed |
+| **3. Automated Test Suite** | `python -m pytest tests/` | **503 passed tests** in ~100s | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
 | **5. Type Checking** | `mypy jobhunt` | Success: no issues found in 43 source files | ✅ Passed |
 | **6. Code Linting** | `ruff check .` | All checks passed (0 errors) | ✅ Passed |

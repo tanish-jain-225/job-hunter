@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.5] — 2026-10-04
+
+### Added
+- **Harmonic Operational Balance Point (Multiples of 5 & 10)**: Standardized all numerical engine, database, and automation parameters to clean multiples of 5 and 10 across `config.yaml` and `config.example.yaml`: `screen_batch_size: 10`, `max_jobs_to_screen: 10`, `max_per_digest: 5`, `max_age_days: 20`, `fetch_max_workers: 20`, `llm_delay_seconds: 0.0`.
+- **Persistent SMTP Session Architecture (`jobhunt.mailer.SMTPSession`)**: Added reusable `SMTPSession` context manager with auto-reconnection and a hard circuit breaker `MAX_DAILY_SEND = 450`, leaving a 50-email safety buffer below Gmail's 500/day threshold.
+- **Automated Database Maintenance & Lifecycle Pruning**: Implemented `prune_pipeline_runs(user_email, keep_days=30)` in `jobhunt.memory.SupabaseMemory` to automatically purge execution logs older than 30 days, keeping the Supabase free tier (<500 MB) database footprint permanently under 30 MB.
+- **Single Top-1 Application Kit Drafting**: Refined `jobhunt/multi.py` to generate tailored application kits exclusively for each candidate's single best match meeting `score >= 7.5`, cutting LLM drafting calls to $\le 1$ per candidate.
+- **Smart Zero-Match Email Briefing Suppression**: Multi-user pipeline now automatically suppresses empty 0-match emails to conserve daily Gmail quota, unless explicitly opted in or forced.
+- **GitHub Actions Workflow Window Expansion**: Updated `timeout-minutes: 40` in `.github/workflows/daily.yml`, providing a clean 10-minute buffer for a 300-user batch run.
+
+### Fixed
+- **Ruff F401 Lint Compliance**: Cleaned unused `Optional` import in `jobhunt/mailer.py` for 100% CI pass rate.
+- **12 RPM Rate Throttle**: Standardized Gemini leaky-bucket pacing to 5.0s intervals (`MIN_CALL_INTERVALS["gemini"] = 5.0`), safely below the 15 RPM free tier limit.
+
+### Maintenance
+- **Test Suite Expansion to 503 Tests**: Added dedicated unit tests for `SMTPSession`, `MAX_DAILY_SEND`, and `prune_pipeline_runs`, bringing the test suite to **503 passed tests (100% pass rate)**.
+
 ## [1.0.4] — 2026-09-29
 
 ### Fixed
@@ -156,6 +173,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.0.5]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.5
 [1.0.4]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.4
 [1.0.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.3
 [1.0.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.0

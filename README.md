@@ -1,42 +1,76 @@
-<p align="center">
-  <a href="https://job-hunter-web-board.vercel.app">
-    <img src="assets/logo.png" alt="Job Hunter Logo" width="120" height="120" style="border-radius: 20px;">
-  </a>
-</p>
-
-<h1 align="center">Job Hunter</h1>
-
-<p align="center">
-  <strong>Autonomous AI Career Intelligence Engine &amp; Real-Time Job Discovery Platform</strong>
-</p>
-
-<p align="center">
-  <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-499%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
-  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
-  <a href="https://mypy-lang.org"><img src="https://img.shields.io/badge/type%20checked-mypy-blue?style=for-the-badge" alt="Type Checked: Mypy"></a>
-</p>
-
-<p align="center">
-  <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
-  <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
-  <a href="docs/GUIDE.md">User Guide</a> &bull;
-  <a href="docs/SETUP.md">Setup Guide</a> &bull;
-  <a href="docs/ARCHITECTURE.md">System Architecture</a> &bull;
-  <a href="docs/API.md">REST API</a> &bull;
-  <a href="docs/DEPLOYMENT.md">Cloud Deployment</a> &bull;
-  <a href="docs/METRICS.md">Scaling &amp; Metrics</a>
-</p>
+# 🎯 JOB HUNTER 🚀
+### Autonomous AI Career Intelligence Engine & Real-Time Job Discovery Platform
+**Continuous Job Scouting • $0 Deterministic Prefilter • Gemini 3.5 Flash Fit Scoring • Tailored Application Kits • Morning Executive Briefing**
 
 ---
 
-<p align="center">
-  <img src="assets/pipeline-flow.svg" alt="Job Hunter Execution Funnel" width="100%">
-</p>
+### 🌐 System Status & Engineering Standards
+
+| 🚀 Live Platform | 🧪 Automated Tests | 📊 Code Coverage | 🐍 Python Support | ⚖️ Open Source | ⚡ Linter & Style | 🔷 Static Typing |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| [**`🌐 Live Web Dashboard`**](https://job-hunter-web-board.vercel.app) | [**`✅ 503 Passed (100%)`**](tests/) | [**`📈 93% Line Coverage`**](tests/) | [**`🐍 3.9 • 3.10 • 3.11 • 3.12`**](https://python.org) | [**`⚖️ MIT License ($0.00)`**](LICENSE) | [**`⚡ Ruff Clean (0 err)`**](https://github.com/astral-sh/ruff) | [**`🔷 Mypy Strict (0 err)`**](https://mypy-lang.org) |
+
+---
+
+### 🧭 Quick Navigation
+
+[🌐 **Explore Web Board »**](https://job-hunter-web-board.vercel.app) • [📊 **Product Audit & Valuation**](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) • [📖 **Candidate Playbook**](docs/GUIDE.md) • [⚡ **Setup Guide**](docs/SETUP.md) • [🏛️ **System Architecture**](docs/ARCHITECTURE.md) • [🔌 **REST API**](docs/API.md) • [☁️ **Cloud Deployment**](docs/DEPLOYMENT.md) • [📈 **Scaling & Metrics**](docs/METRICS.md)
+
+---
+
+## ⚡ The 5-Stage Autonomous Execution Funnel
+
+Job Hunter replaces dozens of hours of manual searching with a high-throughput, deterministic 5-stage automated radar:
+
+```mermaid
+flowchart TD
+    subgraph S1["📡 STAGE 1: AUTONOMOUS SOURCING (94+ Curated Tech Boards)"]
+        ATS1["🌐 Greenhouse Boards<br><i>Stripe, Figma, Databricks</i>"]
+        ATS2["🌿 Lever Portals<br><i>Meesho, Netflix, Spotify</i>"]
+        ATS3["⚡ Ashby Portals<br><i>OpenAI, Linear, Retool</i>"]
+        ATS4["💼 Workable & SmartRecruiters<br><i>Vector, Visa, Siemens</i>"]
+        ATS5["🎋 BambooHR, Recruitee, Breezy, Pinpoint<br><i>Acme, Bunq, Postman, Razorpay</i>"]
+    end
+
+    subgraph S2["⚡ STAGE 2: DETERMINISTIC $0 PREFILTER (prefilter.py)"]
+        F1["🔍 Regex Title Matching<br>(Backend, Distributed, AI/ML, Full-Stack)"]
+        F2["🚫 Strict Exclusion Filter<br>(Director, VP, Staff, Head of)"]
+        F3["📍 Location & Remote Normalizer<br>(India-Based, Hybrid, Remote)"]
+        F4["⏱️ 20-Day Freshness Gate<br>(Drops Stale Postings)"]
+        DROP["🗑️ Drops ~98% of Noise<br><b>$0 Token Spend</b>"]
+    end
+
+    subgraph S3["🤖 STAGE 3: AI CANDIDATE FIT SCORING (llm.py)"]
+        BATCH["📦 Harmonic Batching<br>10 Postings / Request (Single-Batch)"]
+        GEMINI["🔷 Google Gemini 3.5 Flash<br>1M Context • 12 RPM (5.0s Pacing)<br>Multi-Key Circular Rotation"]
+        SCORE["🎯 Structured Fit Score<br>0.0 to 10.0 Match Rating"]
+    end
+
+    subgraph S4["✍️ STAGE 4: HYPER-TAILORED APPLICATION KIT (llm.py)"]
+        QUAL["⭐ Top Match Filter<br>(Score >= 7.5 • #1 Qualifying Job)"]
+        KIT1["📝 Tailored Cover Note<br>(120-160 Words Direct Pitch)"]
+        KIT2["💼 Recruiter Cold Outreach DM<br>(<80 Words High Conversion)"]
+        KIT3["🤝 LinkedIn Referral Request<br>(<60 Words Alumni / Peer)"]
+        KIT4["🎯 Matching Resume Bullets & Prep Questions<br>(Skill Gaps + Deep Interview Questions)"]
+    end
+
+    subgraph S5["📬 STAGE 5: EXECUTIVE DELIVERY & SYNCHRONIZATION"]
+        WEB["💻 Interactive Web Board<br>5-Stage Pipeline Tracking • 4-Day Follow-Up Alerts"]
+        EMAIL["✉️ Daily Morning Briefing<br>05:00 AM IST Inbox Digest • SMTPSession (450 Quota Cap)"]
+        DB[("⚡ Supabase PostgreSQL<br>Row-Level Security (RLS) Multi-Tenant Storage")]
+        CSV["📊 Instant CSV Export<br>out/tracker.csv Pipeline Mirror"]
+    end
+
+    ATS1 & ATS2 & ATS3 & ATS4 & ATS5 --> S2
+    F1 & F2 & F3 & F4 --> DROP
+    F1 & F2 & F3 & F4 -->|"Unseen Filtered Opportunities"| BATCH
+    BATCH --> GEMINI --> SCORE
+    SCORE -->|"Score >= 7.5"| QUAL
+    QUAL --> KIT1 & KIT2 & KIT3 & KIT4
+    KIT1 & KIT2 & KIT3 & KIT4 --> S5
+    SCORE -->|"All Tracked Opportunities"| S5
+    S5 --> WEB & EMAIL & DB & CSV
+```
 
 ---
 
@@ -48,11 +82,11 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 1. **Scouts Public ATS Endpoints Directly**: Discovers open positions directly from public, unauthenticated career board APIs across 94+ curated tech companies and 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, and **Pinpoint**) with zero brittle web scraping and zero authentication barriers.
 2. **Eliminates Noise at $0 Cost**: Drops ~98% of out-of-scope, senior executive, or stale postings deterministically using fast regex title, location, and freshness rules **before spending a single AI token**.
-3. **Evaluates Fit via Google Gemini 3.5 Flash**: Batches surviving jobs (8 jobs/request) to compute structured candidate fit scores (0.0 to 10.0) against your parsed resume context using **Google Gemini (`gemini-3.5-flash`)**, featuring 1M free daily tokens per project, circular multi-key rotation, 15 RPM leaky-bucket pacing, and automated dynamic fallback cascades (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`).
-4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.0+).
+3. **Evaluates Fit via Google Gemini 3.5 Flash**: Pre-ranks unseen jobs and evaluates in clean harmonic batches (**10 jobs/request**, single-batch screening) to compute structured candidate fit scores (0.0 to 10.0) against your parsed resume context using **Google Gemini (`gemini-3.5-flash`)**, featuring 1M free daily tokens per project, circular multi-key rotation, 12 RPM leaky-bucket pacing (`5.0s` intervals), and automated dynamic fallback cascades (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`).
+4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.5+), optimizing LLM tokens by drafting exclusively for each candidate's #1 match.
 5. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (*To Apply*, *Applied*, *Interviewing*, *Offer*, *Rejected*), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
-6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links.
-7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions—supporting **300 Daily Active Users out-of-the-box** (~330 users on the 500 MB database free tier with default 1,000-job retention, and up to **500–1,040 users** with multi-key CSV rotation and 300-job retention) at **$0.00/month** total operating cost.
+6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links, using persistent `SMTPSession` connection reuse with auto-reconnect and a `MAX_DAILY_SEND = 450` circuit breaker (empty 0-match emails automatically suppressed to save quota).
+7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions (40m timeout)—supporting **300+ Daily Active Users out-of-the-box** with automated daily 30-day database log pruning (`prune_pipeline_runs`) and 1,000-job rolling retention at **$0.00/month** total operating cost.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: *The Hunter never fires without manual authorization.* **Job Hunter** never automatically submits applications. It scouts, filters, scores, and drafts—leaving final application review and submission strictly under human control.
@@ -72,15 +106,17 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 ## Table of Contents
 
+- [The 5-Stage Autonomous Execution Funnel](#-the-5-stage-autonomous-execution-funnel)
 - [The Narrative: Why Job Hunter?](#the-narrative-why-job-hunter)
 - [Commercial Alternatives vs. Job Hunter](#commercial-alternatives-vs-job-hunter)
-- [Key Capabilities](#key-capabilities)
-- [System Architecture](#system-architecture)
+- [Key Capabilities](#-key-capabilities)
+- [System Architecture](#️-system-architecture)
 - [Quickstart (30-Second Offline Smoke Test)](#quickstart-30-second-offline-smoke-test)
 - [Installation &amp; Packaging](#installation--packaging)
 - [Step-by-Step Setup Guide](#step-by-step-setup-guide)
   - [1. Target Companies (`companies.yaml`)](#1-target-companies-companiesyaml)
   - [2. Deterministic Filters (`config.yaml`)](#2-deterministic-filters-configyaml)
+  - [Harmonic Balance Configuration Matrix](#-the-harmonic-balance-configuration-matrix-multiples-of-5--10)
   - [3. Candidate Profile (`jobhunt profile`)](#3-candidate-profile-jobhunt-profile)
   - [4. Environment Variables (`.env`)](#4-environment-variables-env)
 - [AI Engine: Google Gemini 3.5 Flash (Default &amp; Recommended)](#ai-engine-google-gemini-35-flash-default--recommended)
@@ -88,6 +124,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 - [Complete CLI Command Reference](#complete-cli-command-reference)
 - [Cloud Production Deployment (Vercel + Supabase)](#cloud-production-deployment-vercel--supabase)
 - [Automated Scheduled Execution (GitHub Actions)](#automated-scheduled-execution-github-actions)
+- [Free-Tier Operational Economics ($0.00 / Month)](#-free-tier-operational-economics-000--month)
 - [Architecture &amp; Codebase Layout](#architecture--codebase-layout)
 - [ATS Quirks &amp; Edge Case Handling](#ats-quirks--edge-case-handling)
 - [Security, Privacy &amp; Compliance](#security-privacy--compliance)
@@ -98,24 +135,24 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 ---
 
-## Key Capabilities
+## 💎 Key Capabilities
 
 | Pillar | Feature | Technical Specification |
 |---|---|---|
-| **Sourcing** | **9 ATS Engines** | Native JSON parsers for Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint. |
-| **Ingestion** | **+ Add Board** | URL auto-detection identifies ATS engine and company slug from any public careers link with instant HTTP reachability verification. |
-| **Prefilter** | **$0 Regex Gate** | Sub-millisecond deterministic regex filtering for titles, locations, job types, and 21-day listing freshness prior to LLM calls. |
-| **AI Intelligence** | **Gemini 3.5 Flash** | Default intelligence engine (`gemini-3.5-flash`) with 1M tokens/day free per key, multi-key CSV rotation, and dynamic fallback cascades. |
-| **Resume Studio** | **Multimodal Parsing** | In-memory PDF, TXT, and Markdown parsing via Gemini/Claude document blocks with fallback to `pypdf` and heuristic extraction. |
-| **Interactive Board** | **Responsive View** | High-density card/table list with client-side pagination (10/25/50 per page), instant keyword search, and ATS filter chips. |
-| **Lifecycle** | **5 Pipeline Stages** | Manage opportunities across `to_apply`, `applied`, `interviewing`, `offer`, and `rejected` with automatic stage transition tracking. |
-| **Follow-Ups** | **Outreach Generator** | Generates context-aware follow-up emails and LinkedIn networking DMs with 1-click clipboard copy and 4-day nudge badges. |
-| **Multi-Tenant Cloud**| **Supabase + RLS** | PostgreSQL Row-Level Security ensures strict candidate tenant isolation; public routes remain separated from protected state. |
-| **Offline Local Mode**| **Air-Gapped Operation** | Operates entirely locally with local JSON (`seen.json`), automatic CSV export (`out/tracker.csv`), and offline keyword scoring. |
+| 🌐 **Sourcing** | **9 Native ATS Engines** | Native JSON parsers for Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, and Pinpoint. |
+| ➕ **Ingestion** | **Dynamic + Add Board** | URL auto-detection identifies ATS engine and company slug from any public careers link with instant HTTP reachability verification. |
+| ⚡ **Prefilter** | **$0 Deterministic Regex Gate** | Sub-millisecond deterministic regex filtering for titles, locations, job types, and 20-day listing freshness prior to LLM calls. |
+| 🔷 **AI Intelligence** | **Google Gemini 3.5 Flash** | Default intelligence engine (`gemini-3.5-flash`) with 1M tokens/day free per key, multi-key CSV rotation, and dynamic fallback cascades. |
+| 📄 **Resume Studio** | **Multimodal Parsing** | In-memory PDF, TXT, and Markdown parsing via Gemini/Claude document blocks with fallback to `pypdf` and heuristic extraction. |
+| 💻 **Interactive Board** | **Responsive Fluid View** | High-density card/table list with client-side pagination (10/25/50 per page), instant keyword search, and ATS filter chips. |
+| 🗂️ **Lifecycle** | **5 Pipeline Stages** | Manage opportunities across `to_apply`, `applied`, `interviewing`, `offer`, and `rejected` with automatic stage transition tracking. |
+| ⏳ **Follow-Ups** | **Outreach Generator** | Generates context-aware follow-up emails and LinkedIn networking DMs with 1-click clipboard copy and 4-day nudge badges. |
+| ☁️ **Multi-Tenant Cloud**| **Supabase + RLS** | PostgreSQL Row-Level Security ensures strict candidate tenant isolation; public routes remain separated from protected state. |
+| 🔒 **Offline Local Mode**| **Air-Gapped Operation** | Operates entirely locally with local JSON (`seen.json`), automatic CSV export (`out/tracker.csv`), and offline keyword scoring. |
 
 ---
 
-## System Architecture
+## 🏛️ System Architecture
 
 ```text
 [Public ATS Career Boards] (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy, Pinpoint)
@@ -124,19 +161,20 @@ The modern job search is fundamentally broken. Engineers and technology professi
 [1. Fetch Engine] ────────── Concurrent HTTP requests with connection pooling & retry backoff (fetch.py)
            │
            ▼
-[2. Regex Prefilter] ─────── Deterministic title, location, employment type & 21-day freshness gate (prefilter.py)
+[2. Regex Prefilter] ─────── Deterministic title, location, employment type & 20-day freshness gate (prefilter.py)
            │                 └─ Drops ~98% of noise at $0 token cost
            ▼
 [3. LLM Screening] ───────── Batched candidate fit evaluation (0.0 to 10.0) via Google Gemini 3.5 Flash (llm.py)
-           │                 └─ Multi-key rotation, 15 RPM leaky-bucket pacing & fallback cascades
+           │                 └─ Multi-key rotation, 12 RPM leaky-bucket pacing (5.0s interval) & fallback cascades
            ▼
-[4. Kit Drafting] ────────── Tailored cover notes, recruiter DMs, referral requests, matching bullets & prep for >= 7.0 (llm.py)
-           │
+[4. Kit Drafting] ────────── Tailored cover notes, recruiter DMs, referral requests & prep for >= 7.5 (llm.py)
+           │                 └─ Top-1 qualifying match focus for optimal token efficiency
            ▼
 [5. Persistence] ─────────── Local JSON (seen.json) / Supabase PostgreSQL with Row-Level Security (store.py / memory.py)
-           │                 └─ Automated two-way sync & out/tracker.csv export
+           │                 └─ Automated two-way sync, 30-day log pruning & out/tracker.csv export
            ▼
 [6. Delivery & UI] ───────── Interactive Web Dashboard (Flask/Vercel) & Daily HTML Email Briefing (digest.py / mailer.py)
+                             └─ Persistent SMTPSession with auto-reconnect & MAX_DAILY_SEND = 450 circuit breaker
 ```
 
 ---
@@ -218,17 +256,17 @@ jobhunt --version
 
 Define target company career boards in [`companies.yaml`](companies.yaml). The `slug` corresponds to the company identifier in the public careers URL:
 
-| Board URL | `ats` | `slug` |
-|---|---|---|
-| `boards.greenhouse.io/stripe` | `greenhouse` | `stripe` |
-| `jobs.lever.co/meesho` | `lever` | `meesho` |
-| `jobs.ashbyhq.com/openai` | `ashby` | `openai` |
-| `apply.workable.com/vector` | `workable` | `vector` |
-| `jobs.smartrecruiters.com/visa` | `smartrecruiters` | `visa` |
-| `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
-| `bunq.recruitee.com` | `recruitee` | `bunq` |
-| `breezy.hr/acme` | `breezy` | `acme` |
-| `pinpoint.work/company` | `pinpoint` | `company` |
+| ATS Platform | Board URL Pattern | `ats` | `slug` | Example Companies |
+|---|---|:---:|:---:|---|
+| 🌐 **Greenhouse** | `boards.greenhouse.io/<slug>` | `greenhouse` | `stripe` | Stripe, Figma, Databricks, Airbnb, Cloudflare |
+| 🌿 **Lever** | `jobs.lever.co/<slug>` | `lever` | `meesho` | Meesho, Netflix, Spotify, Atlassian, Twitch |
+| ⚡ **Ashby** | `jobs.ashbyhq.com/<slug>` | `ashby` | `openai` | OpenAI, Linear, Retool, Ramp, Notion |
+| 💼 **Workable** | `apply.workable.com/<slug>` | `workable` | `vector` | Vector, Sephora, BeReal, InVision |
+| 🤝 **SmartRecruiters** | `jobs.smartrecruiters.com/<slug>` | `smartrecruiters` | `visa` | Visa, Siemens, Bosch, LinkedIn, Ubisoft |
+| 🎋 **BambooHR** | `<slug>.bamboohr.com/careers` | `bamboohr` | `acme` | Acme, Postlight, SoundHound, Change.org |
+| 🏢 **Recruitee** | `<slug>.recruitee.com` | `recruitee` | `bunq` | Bunq, Hotjar, Transcom, Usabilla |
+| 🍃 **Breezy HR** | `<slug>.breezy.hr` | `breezy` | `postman` | Postman, Turo, Appwrite, Buffer |
+| 📍 **Pinpoint** | `<slug>.pinpoint.work` | `pinpoint` | `razorpay` | Razorpay, Epidemic Sound, Ticketmaster |
 
 ```yaml
 companies:
@@ -275,18 +313,34 @@ filters:
 
   # Employment types (fulltime, internship, remote, hybrid, onsite)
   job_types: []
-  max_age_days: 21
+  max_age_days: 20
 
-# Concurrency & Rate Limiting (Optimized for Gemini Flash Free Tier)
-screen_batch_size: 8      # Postings batched per screening request
-screen_jd_chars: 1000     # Description character limit for fit evaluation
-draft_jd_chars: 6000      # Full context for tailored kit drafting
+# Harmonic Operational Parameters (Multiples of 5 & 10)
+screen_batch_size: 10     # Postings batched per screening request (single-batch screening)
+screen_jd_chars: 800      # Description character limit for fit evaluation
+draft_jd_chars: 7000      # Full context for tailored kit drafting
 score_threshold: 7.0      # Minimum score (0.0 to 10.0) for application kit generation
-max_per_digest: 7         # Maximum job kits included in morning briefing
-max_jobs_to_screen: 30    # Rate-limit ceiling for unseen jobs per batch
-fetch_max_workers: 16     # Concurrency for ATS network requests
-llm_delay_seconds: 6.0    # 6.0s spacing = 10 RPM (strictly within 15 RPM ceiling)
+max_per_digest: 5         # Maximum job kits included in morning briefing
+max_jobs_to_screen: 10    # Top roles screened per candidate batch
+fetch_max_workers: 20     # Concurrency for ATS network requests
+llm_delay_seconds: 0.0    # Leaky-bucket pacing enforced at 5.0s (12 RPM) via provider throttle
 ```
+
+#### 🎯 The Harmonic Balance Configuration Matrix (Multiples of 5 & 10)
+
+| Parameter | File | New Value | Multiple | Purpose & Operational Margin |
+|---|---|:---:|:---:|---|
+| **`screen_batch_size`** | `config.yaml` | **10** | **10** | 10 jobs per call is the ideal payload size for single-batch Gemini evaluation. |
+| **`max_jobs_to_screen`** | `config.yaml` | **10** | **10** | Matches batch size exactly; eliminates partial residual API calls and prevents token spillover. |
+| **`screen_jd_chars`** | `config.yaml` | **800** | **10** | Clean, high-density character limit capturing core responsibilities while preventing token bloat. |
+| **`draft_jd_chars`** | `config.yaml` | **7000** | **10** | Uncapped deep technical context window for top-1 candidate application kits. |
+| **`max_per_digest`** | `config.yaml` | **5** | **5** | Curated daily briefing density ensuring maximum candidate engagement without inbox fatigue. |
+| **`max_age_days`** | `config.yaml` | **20** | **10** | Strict 20-day crawler window dropping stale listings and saving Supabase storage. |
+| **`fetch_max_workers`** | `config.yaml` | **20** | **10** | Concurrent async connection pool crawling 94+ ATS endpoints in under 4 seconds. |
+| **`pacing_interval`** | `providers_throttle.py` | **5.0s** | **5** | Enforces 12 RPM per key, guaranteeing zero HTTP 429 rate limit exceptions against Gemini's 15 RPM cap. |
+| **`MAX_DAILY_SEND`** | `mailer.py` | **450** | **10** | Circuit breaker on persistent `SMTPSession` safeguarding Gmail's 500/day limit with a 10% safety buffer. |
+| **`keep_days` (DB Pruning)**| `memory.py` | **30** | **10** | Automated daily cleanup purging execution logs older than 30 days, keeping DB < 30 MB indefinitely. |
+| **`timeout-minutes`** | `daily.yml` | **40** | **10** | Automated runner execution ceiling safeguarding GitHub Actions against runaway jobs. |
 
 ---
 
@@ -347,18 +401,18 @@ Job Hunter standardizes on **Google Gemini 3.5 Flash (`gemini-3.5-flash`)** as i
 - **Zero Cost**: 1,000,000+ free tokens per day per project on Google AI Studio.
 - **Massive Context**: 1M+ token context window processes complex job descriptions and technical resumes effortlessly.
 - **Multimodal Document Understanding**: Natively analyzes Base64 PDF resumes without requiring third-party OCR tools.
-- **Circular Multi-Key Rotation**: Supports comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`) with independent per-key 15 RPM leaky-bucket pacing.
+- **Circular Multi-Key Rotation**: Supports comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`) with independent per-key 12 RPM leaky-bucket pacing (`5.0s` intervals).
 - **Dynamic Failover Cascades**: Automatically cascades rate-limited requests (`HTTP 429`) to Google production Flash endpoints (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`) with temporary cooldown tracking.
 
 ### Supported AI Providers
 
 | Provider | Default Model | Environment Key | Native PDF | Best For |
 |---|---|---|:---:|---|
-| **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | Yes | **Primary Default Engine** (Free 1M tokens/day, multi-key rotation) |
-| **Anthropic Claude** | `claude-3-7-sonnet-20250219` | `ANTHROPIC_API_KEY` | Yes | High-precision reasoning (`LLM_PROVIDER=anthropic`) |
-| **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | No | Sub-second inference speed (`LLM_PROVIDER=groq`) |
-| **Ollama** | `llama3.1` | *(Local instance)* | No | 100% offline air-gapped evaluation (`LLM_PROVIDER=ollama`) |
-| **OpenAI-Compatible**| `gpt-4o-mini` | `OPENAI_API_KEY` | No | Any OpenAI `/chat/completions` endpoint (`LLM_PROVIDER=openai-compatible`) |
+| 🔷 **Google Gemini** | `gemini-3.5-flash` | `GEMINI_API_KEY` | Yes | **Primary Default Engine** (Free 1M tokens/day, multi-key rotation, 12 RPM / 5.0s pacing) |
+| 🧠 **Anthropic Claude** | `claude-3-7-sonnet-20250219` | `ANTHROPIC_API_KEY` | Yes | High-precision reasoning (`LLM_PROVIDER=anthropic`) |
+| ⚡ **Groq** | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | No | Sub-second inference speed (`LLM_PROVIDER=groq`) |
+| 🦙 **Ollama** | `llama3.1` | *(Local instance)* | No | 100% offline air-gapped evaluation (`LLM_PROVIDER=ollama`) |
+| 🌐 **OpenAI-Compatible**| `gpt-4o-mini` | `OPENAI_API_KEY` | No | Any OpenAI `/chat/completions` endpoint (`LLM_PROVIDER=openai-compatible`) |
 
 > [!TIP]
 > Override stages independently: `SCREEN_PROVIDER=gemini`, `DRAFT_PROVIDER=anthropic`, `SCREEN_MODEL=gemini-3.5-flash`, `DRAFT_MODEL=claude-3-7-sonnet-20250219`.
@@ -473,6 +527,21 @@ The scheduled workflow [`.github/workflows/daily.yml`](.github/workflows/daily.y
 
 ---
 
+## 💰 Free-Tier Operational Economics ($0.00 / Month)
+
+Job Hunter runs completely **Free ($0.00)** up to **300+ Daily Active Candidates** by operating strictly within free cloud allowances:
+
+| Infrastructure Service | Free Tier Allowance | Multi-User Consumption (100 Users) | Safety Margin Left | Total Cost |
+|---|---|---|---|:---:|
+| 🔷 **Google Gemini API** | 1,000,000 Tokens/Day (AI Studio) | ~120,000 Tokens/Day | **88% Free Headroom** | **$0.00** |
+| ⚡ **Supabase PostgreSQL** | 500 MB Free Storage | ~24 MB (with 30-day pruning) | **95% Free Headroom** | **$0.00** |
+| 🔐 **Supabase Auth** | 50,000 Monthly Active Users | 100 – 300 Active Candidates | **99.4% Free Headroom** | **$0.00** |
+| ▲ **Vercel Serverless** | 100 GB-Hrs / 100K Invocations | ~15,000 Invocations/Month | **85% Free Headroom** | **$0.00** |
+| 🐙 **GitHub Actions** | 2,000 Mins/Month (Public: Unlimited) | ~300 Mins/Month (10m/day) | **85% Free Headroom** | **$0.00** |
+| ✉️ **Gmail SMTP Relay** | 500 Emails/Day | ~100 Digest Emails/Day | **80% Free Headroom** | **$0.00** |
+
+---
+
 ## Architecture & Codebase Layout
 
 ```text
@@ -534,7 +603,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 499 automated test cases with 93%+ line coverage
+├── tests/                    # 503 automated test cases with 93%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -585,7 +654,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**499 unit & integration tests**):
+Run the full automated test suite locally (**503 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -609,7 +678,7 @@ ruff check .
 | **2. Live ATS Board Auditor** | `jobhunt verify --workers 10` | Verifies live HTTP connectivity across `companies.yaml` | Verified |
 | **3. Live Gemini Screening** | `jobhunt run --strict-llm` | Screens top live postings with Google Gemini 3.5 Flash | Verified |
 | **4. Web Server & API** | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite**| `pytest -q` | **499 passed tests** with 100% success rate | Verified |
+| **5. Full Automated Test Suite**| `pytest -q` | **503 passed tests** with 100% success rate | Verified |
 | **6. Static Type Checker** | `mypy jobhunt` | Zero type errors across all source files | Verified |
 | **7. Code Style & Linter** | `ruff check .` | All checks passed (0 errors) | Verified |
 

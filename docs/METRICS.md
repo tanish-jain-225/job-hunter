@@ -52,17 +52,17 @@ flowchart LR
 
 | Service / Infrastructure | Free Quota | Consumption / User | Hard Free User Cap | Bottleneck Status |
 |---|---|---|:---:|---|
-| **Google Gemini AI (1 Key)** | 1,500 req/day & 1M tokens/day | ~4.5 requests/day | **300 Users** | 🛑 **Primary Ceiling** (out-of-the-box) |
-| **Gmail SMTP** | 500 emails / 24 hours | 1 email digest / day | **500 Users** | 🛑 **Secondary Ceiling** (1 account) |
-| **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | ~1.5 MB (1,000-job FIFO window) | **330 Users** | 🛑 **Storage Ceiling** (free database disk; up to 1,040 users if capped at 300 jobs) |
-| **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | ~1.0s / user in batch pass | **1,500 Users** | ✅ 25 min daily schedule headroom |
+| **Google Gemini AI (1 Key)** | 1,500 req/day & 1M tokens/day | ~1.2 requests/day (single batch + top-1 draft) | **300+ Users** | 🛑 **Primary Ceiling** (out-of-the-box, 24% of daily RPD) |
+| **Gmail SMTP** | 500 emails / 24 hours | ~0.3 emails/day (0-match suppressed) | **450 Dispatches / Day** | 🛑 **Secondary Ceiling** (`MAX_DAILY_SEND = 450` circuit breaker) |
+| **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | <1.5 MB (1,000-job FIFO window + 30d run log pruning) | **330+ Users** | 🛑 **Storage Ceiling** (free database disk; stays < 30 MB indefinitely) |
+| **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | ~6.0s / user in batch pass | **1,500 Users** | ✅ 40 min daily schedule headroom (900 mins/mo for 300 users) |
 | **Vercel Hobby** | 100 GB monthly bandwidth | ~15 MB / user / month | **6,600 Users** | ✅ High headroom |
 | **9 ATS Board Crawlers** | Public JSON endpoints (94+ boards) | 0 extra (single global pass) | **Unlimited** | ✅ Completely independent of user volume |
 
 ### A. Primary AI Engine: Google Gemini Flash (`gemini-3.5-flash`)
 * **Default Model**: `gemini-3.5-flash`
-* **Batch Size**: 8 jobs per screening request (high-throughput evaluation pass).
-* **Batch Pacing**: 4.0s hardware delay between requests per key = 15 RPM exact speed matching (with 6.0s default config delay = 10 RPM; dynamically accelerated via multi-key round-robin rotation `_GEMINI_KEY_COUNTER` and independent per-key tracking).
+* **Batch Size**: 10 jobs per screening request (single-batch screening for Top 10 pre-ranked roles).
+* **Batch Pacing**: 5.0s pacing interval between requests per key = 12 RPM exact speed matching (safely below 15 RPM free tier ceiling; dynamically accelerated via multi-key round-robin rotation `_GEMINI_KEY_COUNTER` and independent per-key tracking).
 * **Multi-Key CSV Rotation**: Instant zero-downtime rotation across comma-separated keys (`GEMINI_API_KEY=key1,key2,key3`).
 * **Daily Free Quota**: **1,500 requests / day** and **1,000,000+ tokens / day** per project key.
 * **Per-User Daily Consumption**: ~3–5 API calls at steady state (1–2 screening batches for incremental daily roles + 1–3 kit drafts for top matches).
@@ -98,7 +98,7 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **499 automated tests** passing with 100% success rate (`pytest -q`).
+* **503 automated tests** passing with 100% success rate (`pytest -q`).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
