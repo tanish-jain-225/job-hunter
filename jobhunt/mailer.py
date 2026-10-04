@@ -7,7 +7,6 @@ import os
 import re
 import smtplib
 from email.message import EmailMessage
-from typing import Optional
 
 # Harmonic operational limits (multiples of 5 & 10)
 MAX_DAILY_SEND: int = 450
