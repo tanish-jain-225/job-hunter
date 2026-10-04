@@ -15,7 +15,7 @@
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/tests-503%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
@@ -627,7 +627,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 503 automated test cases with 93%+ line coverage
+├── tests/                    # 503 automated test cases with 92%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -684,7 +684,7 @@ Run the full automated test suite locally (**503 unit & integration tests**):
 # Run full test suite
 pytest
 
-# Run tests with 90%+ terminal coverage report (93%+ achieved)
+# Run tests with 90%+ terminal coverage report (92%+ achieved)
 pytest --cov=jobhunt --cov-report=term-missing
 
 # Run static type checker
