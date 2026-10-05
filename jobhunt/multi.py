@@ -281,8 +281,12 @@ def run_multi_user_pipeline(
                         print("  All matching jobs were already evaluated in previous runs.")
 
                 # Stage E: Build digest (contains shortlisted jobs or clean zero-match briefing)
-                email_enabled = bool(user.get("email_notifications_enabled", False)) or force_send
-                target_email = user.get("notification_email") or user_email
+                user_mail_mode = str(user.get("mail_mode") or "").strip().lower()
+                is_daily_mode = (user_mail_mode == "daily") or (
+                    bool(user.get("email_notifications_enabled", False)) and user_mail_mode != "onetime"
+                )
+                email_enabled = is_daily_mode or bool(user.get("email_notifications_enabled", False)) or force_send
+                target_email = (user.get("notification_email") or user.get("email") or user_email).strip()
 
                 subject, html_content = digest.build(
                     shortlist,
@@ -306,12 +310,19 @@ def run_multi_user_pipeline(
                     except Exception as e:
                         print(f"  ! Failed to save latest digest HTML in Supabase: {e}")
 
-                # Stage F: Dispatch email briefing if notifications enabled and matches exist (or forced/opted-in)
+                # Stage F: Dispatch email briefing.
+                # All users who have selected daily mails mode get mails every single day,
+                # irrespective of whether 0 jobs were found or more.
                 dispatched = False
-                should_dispatch = email_enabled and (bool(shortlist) or bool(user.get("send_empty_digest")) or force_send)
+                should_dispatch = (
+                    is_daily_mode
+                    or force_send
+                    or bool(user.get("send_empty_digest"))
+                    or (email_enabled and bool(shortlist))
+                )
                 if should_dispatch and has_smtp and not os.environ.get("VERCEL"):
                     try:
-                        status_desc = f"{len(shortlist)} matches" if shortlist else "0 new matches briefing"
+                        status_desc = f"{len(shortlist)} matches" if shortlist else "0 new matches daily briefing"
                         print(f"  Dispatching briefing email ({status_desc}) to {target_email}...")
                         try:
                             mailer.send(

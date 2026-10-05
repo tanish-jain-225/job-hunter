@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Persistent SMTP Session Architecture (`jobhunt.mailer.SMTPSession`)**: Added reusable `SMTPSession` context manager with auto-reconnection and a hard circuit breaker `MAX_DAILY_SEND = 450`, leaving a 50-email safety buffer below Gmail's 500/day threshold.
 - **Automated Database Maintenance & Lifecycle Pruning**: Implemented `prune_pipeline_runs(user_email, keep_days=30)` in `jobhunt.memory.SupabaseMemory` to automatically purge execution logs older than 30 days, keeping the Supabase free tier (<500 MB) database footprint permanently under 30 MB.
 - **Single Top-1 Application Kit Drafting**: Refined `jobhunt/multi.py` to generate tailored application kits exclusively for each candidate's single best match meeting `score >= 7.5`, cutting LLM drafting calls to $\le 1$ per candidate.
-- **Smart Zero-Match Email Briefing Suppression**: Multi-user pipeline now automatically suppresses empty 0-match emails to conserve daily Gmail quota, unless explicitly opted in or forced.
+- **Daily Briefing Delivery Guarantee & Preference Isolation**: Multi-user batch engine (`jobhunt.multi`) now guarantees all active candidates who selected Daily Briefing mode receive their morning email briefing every single day—delivering either newly matched opportunities ($\ge 7.0+$) or a clean zero-match radar scan confirmation. Candidates on On-Demand mode remain cleanly suppressed during automated batch runs.
 - **GitHub Actions Workflow Window Expansion**: Updated `timeout-minutes: 40` in `.github/workflows/daily.yml`, providing a clean 10-minute buffer for a 300-user batch run.
 
 ### Fixed
@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **12 RPM Rate Throttle**: Standardized Gemini leaky-bucket pacing to 5.0s intervals (`MIN_CALL_INTERVALS["gemini"] = 5.0`), safely below the 15 RPM free tier limit.
 
 ### Maintenance
-- **Test Suite Expansion to 503 Tests**: Added dedicated unit tests for `SMTPSession`, `MAX_DAILY_SEND`, and `prune_pipeline_runs`, bringing the test suite to **503 passed tests (100% pass rate)**.
+- **Test Suite Expansion to 505 Tests**: Added dedicated unit tests for `SMTPSession`, `MAX_DAILY_SEND`, `prune_pipeline_runs`, and daily briefing delivery guarantee verification, bringing the test suite to **505 passed tests (100% pass rate)**.
 
 ## [1.0.4] — 2026-09-29
 

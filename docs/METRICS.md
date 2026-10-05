@@ -53,7 +53,7 @@ flowchart LR
 | Service / Infrastructure | Free Quota | Consumption / User | Hard Free User Cap | Bottleneck Status |
 |---|---|---|:---:|---|
 | **Google Gemini AI (1 Key)** | 1,500 req/day & 1M tokens/day | ~1.2 requests/day (single batch + top-1 draft) | **300+ Users** | 🛑 **Primary Ceiling** (out-of-the-box, 24% of daily RPD) |
-| **Gmail SMTP** | 500 emails / 24 hours | ~0.3 emails/day (0-match suppressed) | **450 Dispatches / Day** | 🛑 **Secondary Ceiling** (`MAX_DAILY_SEND = 450` circuit breaker) |
+| **Gmail SMTP** | 500 emails / 24 hours | 1.0 email/day (daily briefing or zero-match radar) | **450 Dispatches / Day** | 🛑 **Secondary Ceiling** (`MAX_DAILY_SEND = 450` circuit breaker) |
 | **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | <1.5 MB (1,000-job FIFO window + 30d run log pruning) | **330+ Users** | 🛑 **Storage Ceiling** (free database disk; stays < 30 MB indefinitely) |
 | **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | ~6.0s / user in batch pass | **1,500 Users** | ✅ 40 min daily schedule headroom (900 mins/mo for 300 users) |
 | **Vercel Hobby** | 100 GB monthly bandwidth | ~15 MB / user / month | **6,600 Users** | ✅ High headroom |
@@ -98,7 +98,7 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **503 automated tests** passing with 100% success rate (`pytest -q`).
+* **505 automated tests** passing with 100% success rate (`pytest -q`).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.

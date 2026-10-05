@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-503%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-505%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -108,7 +108,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 3. **Evaluates Fit via Google Gemini 3.5 Flash**: Pre-ranks unseen jobs and evaluates in clean harmonic batches (**10 jobs/request**, single-batch screening) to compute structured candidate fit scores (0.0 to 10.0) against your parsed resume context using **Google Gemini (`gemini-3.5-flash`)**, featuring 1M free daily tokens per project, circular multi-key rotation, 12 RPM leaky-bucket pacing (`5.0s` intervals), and automated dynamic fallback cascades (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`).
 4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.5+), optimizing LLM tokens by drafting exclusively for each candidate's #1 match.
 5. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (_To Apply_, _Applied_, _Interviewing_, _Offer_, _Rejected_), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
-6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links, using persistent `SMTPSession` connection reuse with auto-reconnect and a `MAX_DAILY_SEND = 450` circuit breaker (empty 0-match emails automatically suppressed to save quota).
+6. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links, using persistent `SMTPSession` connection reuse with auto-reconnect and a `MAX_DAILY_SEND = 450` circuit breaker (delivers daily matches or a clean zero-match radar scan status).
 7. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions (40m timeout)—supporting **300+ Daily Active Users out-of-the-box** with automated daily 30-day database log pruning (`prune_pipeline_runs`) and 1,000-job rolling retention at **$0.00/month** total operating cost.
 
 > [!IMPORTANT]
@@ -636,7 +636,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 503 automated test cases with 92%+ line coverage
+├── tests/                    # 505 automated test cases with 92%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -687,7 +687,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**503 unit & integration tests**):
+Run the full automated test suite locally (**505 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -711,7 +711,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **503 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest -q`                           | **505 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 

@@ -55,7 +55,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
     - Centralized fields for Candidate Name, Target Job Titles (Included), Core Skills, Years of Experience, Education, Notice Period (*Immediate, 15d, 30d, 60d, 90d*), Current & Expected CTC (*₹ LPA*), Excluded Title Keywords, Job Type Preferences (*Full-Time, Internship, Remote, Hybrid, On-Site, Contract, Part-Time*), and Location Preference (*All India, Remote Only, Specific Cities with quick-add Tech Hub presets for Bengaluru, Hyderabad, Pune, Delhi-NCR, Mumbai, Chennai, Remote*).
   * **Section 3: Alert Settings & Delivery Modes**:
     - Minimum AI match score threshold (1.0 to 10.0, default 7.5).
-    - Email Briefing Mode: *Daily Briefing* (automated morning emails sent when matching roles $\ge$ threshold are discovered; clean zero-match digest on 0-match days) vs. *On-Demand Only* (briefings dispatched only when manually clicking "Run Job Hunt Now").
+    - Email Briefing Mode: *Daily Briefing* (automated morning briefings delivered every single day with matched roles or clean zero-match radar scan status) vs. *On-Demand Only* (briefings dispatched only when manually clicking "Run Job Hunt Now").
     - Target notification email input.
 * **3-Tier Fallback Extraction Architecture**:
   * **Tier 1 (Multi-Provider AI Cascade)**: Server-side AI cascade (**Google Gemini** `gemini-3.5-flash` $\rightarrow$ **Groq** $\rightarrow$ **Anthropic Claude** $\rightarrow$ **OpenAI**) with circular multi-key rotation and a 30s timeout ceiling.
@@ -198,6 +198,7 @@ Get or update candidate search profile, target skills, and email notification to
     "target_keywords": ["Backend Engineer", "Infrastructure Engineer"],
     "exclude_keywords": ["Manager", "Director", "Sales"],
     "email_notifications_enabled": true,
+    "mail_mode": "daily",
     "notification_email": "sarah@cyberdyne.org",
     "min_score_notification": 7.5
   }

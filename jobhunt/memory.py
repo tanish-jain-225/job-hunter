@@ -257,6 +257,11 @@ class SupabaseMemory:
                         "email_notifications_enabled": bool(
                             row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False))
                         ),
+                        "mail_mode": str(
+                            pjson.get("mail_mode")
+                            or row.get("mail_mode")
+                            or ("daily" if row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False)) else "")
+                        ).strip().lower(),
                         "notification_email": row.get("notification_email")
                         or pjson.get("notification_email")
                         or clean_email,
@@ -870,7 +875,7 @@ class SupabaseMemory:
         clean_email = email.lower().strip()
         invalidate_user_cache(clean_email)
         payload = {
-            "notes": str(notes or ""),
+            "notes": notes or "",
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 

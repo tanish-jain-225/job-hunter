@@ -48,6 +48,11 @@ def merge_db_profile_row(row: Dict[str, Any]) -> Dict[str, Any]:
     res["email_notifications_enabled"] = bool(
         row.get("email_notifications_enabled", pjson.get("email_notifications_enabled", False))
     )
+    res["mail_mode"] = str(
+        pjson.get("mail_mode")
+        or row.get("mail_mode")
+        or ("daily" if res["email_notifications_enabled"] else "")
+    ).strip().lower()
     res["onboarding_completed"] = bool(row.get("onboarding_completed", pjson.get("onboarding_completed", False)))
     res["preferred_locations"] = (
         row.get("preferred_locations")

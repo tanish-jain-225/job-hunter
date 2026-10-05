@@ -65,7 +65,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 | Service | Free Tier Allocation | Per-User Consumption | Hard Free User Limit | Role in Job Hunter |
 | :--- | :--- | :--- | :---: | :--- |
 | **Google Gemini AI** | 15 RPM, 1M TPM, 1,500 RPD (per project) | ~1.2 calls/user/day (single batch + top-1 draft) | **300+ Users / Key** | 12 RPM leaky-bucket pacing (`5.0s`), single-batch screening of Top 10 jobs |
-| **Gmail SMTP** | 500 emails / 24 hours | ~0.3 emails/day (0-match suppressed) | **450 Dispatches / Day** | Daily briefing via persistent `SMTPSession` with `MAX_DAILY_SEND = 450` circuit breaker |
+| **Gmail SMTP** | 500 emails / 24 hours | 1.0 email/day (daily briefing or zero-match radar) | **450 Dispatches / Day** | Daily briefing via persistent `SMTPSession` with `MAX_DAILY_SEND = 450` circuit breaker |
 | **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | <1.5 MB (1,000-job rolling window) | **330+ Users** (indefinite lifecycle) | Tenant-isolated profiles, tracking stores, & automated 30-day log pruning (`prune_pipeline_runs`) |
 | **GitHub Actions** | 2,000 free runner mins / month | ~6.0s / user in batch mode | **1,500 Users** | Automated scheduled morning radar execution (40m job timeout, 900 mins/mo for 300 users) |
 | **Vercel** | 100GB bandwidth, serverless | ~15 MB / user / month | **6,600 Users** | Web Dashboard hosting and REST API |

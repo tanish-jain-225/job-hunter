@@ -78,7 +78,7 @@ This guide covers solutions to common errors, configurations, and questions enco
 
 ### Notice: Gmail SMTP Connection Reconnects & Circuit Breaker (`MAX_DAILY_SEND = 450`)
 * **How it works:** To prevent Google bot blocks (`421 4.7.0`) caused by rapid sequential TLS handshakes, Job Hunter uses a persistent `SMTPSession` context manager that maintains a single authenticated connection with automatic reconnect on socket drop.
-* **Circuit Breaker:** Job Hunter enforces `MAX_DAILY_SEND = 450` to guarantee your pipeline never breaches Gmail's 500-email/day rolling quota, keeping a 50-email safety buffer. Daily empty 0-match emails are automatically suppressed to conserve quota.
+* **Circuit Breaker:** Job Hunter enforces `MAX_DAILY_SEND = 450` to guarantee your pipeline never breaches Gmail's 500-email/day rolling quota, keeping a 50-email safety buffer while reliably delivering daily matched roles or clean zero-match status briefings.
 
 ### Notice: Gemini HTTP 503 (High Demand), Timeouts, or Resume Upload Latency
 * **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`, or take >25s to generate long JSON application kits.

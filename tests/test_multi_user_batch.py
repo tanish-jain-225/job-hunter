@@ -422,3 +422,114 @@ def test_multi_user_batch_strictly_zero_shortlisted_when_below_threshold(monkeyp
     assert recorded_runs[0][1]["shortlisted"] == 0
 
 
+def test_multi_user_batch_daily_mode_sends_even_with_zero_matches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Verify that users who selected daily mail mode get email briefings every single day even when 0 jobs match."""
+    from jobhunt import multi
+    from jobhunt.fetch import Job
+    from jobhunt.store import Store
+
+    user_email = f"daily_user_{tmp_path.name}@example.com"
+    mock_user = {
+        "email": user_email,
+        "name": "Daily Mail Candidate",
+        "min_score_notification": 8.0,
+        "email_notifications_enabled": True,
+        "mail_mode": "daily",
+        "notification_email": user_email,
+        "target_keywords": ["Python"],
+        "onboarding_completed": True,
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = [mock_user]
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
+
+    monkeypatch.setenv("SMTP_PASS", "valid-app-password")
+    monkeypatch.delenv("VERCEL", raising=False)
+
+    sent_emails: list[dict[str, str]] = []
+
+    def mock_send(subject, html_content, to_email=None, **kwargs):
+        sent_emails.append({"subject": subject or "", "to": to_email or "", "html": html_content or ""})
+
+    monkeypatch.setattr("jobhunt.mailer.send", mock_send)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.record_pipeline_run", lambda self, *a, **kw: True)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.update_user_profile_json", lambda self, *a, **kw: True)
+
+    # Job scores 5.0 (below 8.0 threshold -> 0 shortlisted)
+    test_job = Job("101", "gh", "TestCo", "Python Dev", "Remote", "http://x", "description", score=5.0)
+    monkeypatch.setattr("jobhunt.multi.fetch_all", lambda *a, **kw: [test_job])
+    monkeypatch.setattr("jobhunt.multi.prefilter", lambda raw, flt: raw)
+    monkeypatch.setattr("jobhunt.multi.llm.keyword_screen", lambda jobs, prof: None)
+    for j in [test_job]:
+        j.score = 5.0
+
+    st_file = tmp_path / "seen_daily.json"
+    multi_store = Store(str(st_file))
+    monkeypatch.setattr("jobhunt.multi.Store", lambda *a, **kw: multi_store)
+
+    res = multi.run_multi_user_pipeline(mock=False, scorer="keyword")
+
+    assert res["status"] == "success"
+    assert res["total_shortlisted"] == 0
+    assert res["dispatched_emails"] == 1
+    assert len(sent_emails) == 1
+    subj = sent_emails[0]["subject"]
+    assert "No new remote matches today" in subj
+    assert sent_emails[0]["to"] == user_email
+
+
+def test_multi_user_batch_onetime_mode_suppressed_with_zero_matches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Verify that users who selected onetime/on-demand mode do NOT get recurring daily emails when 0 jobs match."""
+    from jobhunt import multi
+    from jobhunt.fetch import Job
+    from jobhunt.store import Store
+
+    user_email = f"onetime_user_{tmp_path.name}@example.com"
+    mock_user = {
+        "email": user_email,
+        "name": "Onetime Candidate",
+        "min_score_notification": 8.0,
+        "email_notifications_enabled": False,
+        "mail_mode": "onetime",
+        "notification_email": user_email,
+        "target_keywords": ["Python"],
+        "onboarding_completed": True,
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = [mock_user]
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
+
+    monkeypatch.setenv("SMTP_PASS", "valid-app-password")
+    monkeypatch.delenv("VERCEL", raising=False)
+
+    sent_emails = []
+    monkeypatch.setattr("jobhunt.mailer.send", lambda *a, **kw: sent_emails.append(a))
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.record_pipeline_run", lambda self, *a, **kw: True)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.update_user_profile_json", lambda self, *a, **kw: True)
+
+    test_job = Job("102", "gh", "TestCo", "Python Dev", "Remote", "http://x", "description", score=5.0)
+    monkeypatch.setattr("jobhunt.multi.fetch_all", lambda *a, **kw: [test_job])
+    monkeypatch.setattr("jobhunt.multi.prefilter", lambda raw, flt: raw)
+    monkeypatch.setattr("jobhunt.multi.llm.keyword_screen", lambda jobs, prof: None)
+    for j in [test_job]:
+        j.score = 5.0
+
+    st_file = tmp_path / "seen_onetime.json"
+    multi_store = Store(str(st_file))
+    monkeypatch.setattr("jobhunt.multi.Store", lambda *a, **kw: multi_store)
+
+    res = multi.run_multi_user_pipeline(mock=False, scorer="keyword")
+
+    assert res["status"] == "success"
+    assert res["total_shortlisted"] == 0
+    assert res["dispatched_emails"] == 0
+    assert len(sent_emails) == 0
+
+
+

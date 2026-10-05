@@ -298,7 +298,7 @@ Returns the authenticated user's candidate profile.
 Update candidate profile and search preferences.
 
 **Auth:** Required  
-**Body:** Partial or full profile JSON (merged with existing profile in Supabase). Supports `notice_period`, `current_ctc_lpa`, `expected_ctc_lpa`, `location_preference`, `preferred_locations`, `skills`, `target_keywords`, and `exclude_keywords`.  
+**Body:** Partial or full profile JSON (merged with existing profile in Supabase). Supports `notice_period`, `current_ctc_lpa`, `expected_ctc_lpa`, `location_preference`, `preferred_locations`, `skills`, `target_keywords`, `exclude_keywords`, and `mail_mode` (`"daily"` for guaranteed morning briefings or `"onetime"` / `"ondemand"` for manual on-demand alerts).  
 **Data isolation:** The submitted profile is stored against the authenticated user's identity.
 
 ### POST /api/profile/reset
@@ -351,6 +351,7 @@ Returns search preference settings (locations, job types, salary floor, notice p
     "current_ctc_lpa": 14,
     "expected_ctc_lpa": 22,
     "min_salary_lpa": 18,
+    "mail_mode": "daily",
     "preferred_sectors": []
   }
 }
@@ -368,7 +369,8 @@ Update search preference settings.
   "job_types": ["fulltime"],
   "notice_period": "15_days",
   "current_ctc_lpa": 12,
-  "expected_ctc_lpa": 20
+  "expected_ctc_lpa": 20,
+  "mail_mode": "daily"
 }
 ```
 **Response:** `{"status": "success", "message": "Search preferences updated successfully.", "preferences": {...}}`

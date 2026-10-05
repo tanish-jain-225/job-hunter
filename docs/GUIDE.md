@@ -198,8 +198,8 @@ Step 2 centralizes all your candidate parameters and search preferences:
 
 * **Minimum Match Score Threshold**: Choose a score between `1.0` and `10.0` (recommended: `7.5`). Only job opportunities meeting or exceeding this threshold appear on your primary board and in email digests.
 * **Email Briefing Mode**:
-  - **Daily Briefing (Recommended)**: Automated daily morning briefing sent when new matching roles are discovered.
-  - **On-Demand Only**: Emails are sent only when you manually run a scan.
+  - **Daily Briefing (Recommended)**: Guaranteed daily morning briefing delivered every single day—either presenting newly discovered high-match roles or a clean zero-match radar confirmation.
+  - **On-Demand Only**: Morning batch runs are suppressed; emails are sent only when you manually trigger a scan or test delivery.
 * **Notification Email**: The email address where your morning briefings should be sent.
 * Click **Save Profile** to persist your profile securely to your private account.
 
