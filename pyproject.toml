@@ -92,11 +92,9 @@ source = ["jobhunt"]
 omit = ["jobhunt/__pycache__/*"]
 
 [tool.coverage.report]
-# Global threshold: overall suite must stay >= 90%.
-# Security-critical modules (auth.py, web/__init__.py) are checked separately
-# via: coverage report --include="jobhunt/auth.py,jobhunt/web/__init__.py" --fail-under=75
-# in the CI "Security Coverage Gate" step.
-fail_under = 90
+# Global threshold is enforced in CI via: pytest --cov=jobhunt --cov-fail-under=90 tests/
+# Leaving fail_under unset here allows running targeted test files without failing on partial coverage.
+# fail_under = 90
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",
