@@ -64,6 +64,8 @@ def api_pipeline_stream():
                 idle_ticks = 0
             else:
                 idle_ticks += 1
+                if idle_ticks % 100 == 0:
+                    yield ": ping\n\n"
 
             if not st.get("running") and last_idx >= len(logs):
                 yield f"data: {json.dumps({'type': 'done', 'pipeline': st})}\n\n"

@@ -47,7 +47,7 @@ Job Hunter replaces dozens of hours of manual searching with a high-throughput, 
 
 ```mermaid
 flowchart TD
-    subgraph S1["📡 STAGE 1: AUTONOMOUS SOURCING (94+ Curated Tech Boards)"]
+    subgraph S1["📡 STAGE 1: AUTONOMOUS SOURCING (114+ Curated Tech Boards)"]
         ATS1["🌐 Greenhouse Boards<br><i>Stripe, Figma, Databricks</i>"]
         ATS2["🌿 Lever Portals<br><i>Meesho, Netflix, Spotify</i>"]
         ATS3["⚡ Ashby Portals<br><i>OpenAI, Linear, Retool</i>"]
@@ -103,7 +103,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 
 **Job Hunter (`job-hunter`)** flips the model completely. It is your private, autonomous career intelligence agent that runs continuously:
 
-1. **Scouts Public ATS Endpoints Directly**: Discovers open positions directly from public, unauthenticated career board APIs across 94+ curated tech companies and 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, and **Pinpoint**) with zero brittle web scraping and zero authentication barriers.
+1. **Scouts Public ATS Endpoints Directly**: Discovers open positions directly from public, unauthenticated career board APIs across 114+ curated tech companies and 9 major ATS platforms (**Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **BambooHR**, **Recruitee**, **Breezy HR**, and **Pinpoint**) with zero brittle web scraping and zero authentication barriers.
 2. **Eliminates Noise at $0 Cost**: Drops ~98% of out-of-scope, senior executive, or stale postings deterministically using fast regex title, location, and freshness rules **before spending a single AI token**.
 3. **Evaluates Fit via Google Gemini 3.5 Flash**: Pre-ranks unseen jobs and evaluates in clean harmonic batches (**10 jobs/request**, single-batch screening) to compute structured candidate fit scores (0.0 to 10.0) against your parsed resume context using **Google Gemini (`gemini-3.5-flash`)**, featuring 1M free daily tokens per project, circular multi-key rotation, 12 RPM leaky-bucket pacing (`5.0s` intervals), and automated dynamic fallback cascades (`gemini-flash-latest` &rarr; `gemini-flash-lite-latest`).
 4. **Drafts Tailored Application Kits**: Produces tailored cover notes, 80-word recruiter outreach messages, <60-word LinkedIn referral requests for peer/alumni outreach, matching resume alignment bullets, and interview prep questions for top-scoring roles (7.5+), optimizing LLM tokens by drafting exclusively for each candidate's #1 match.
@@ -119,7 +119,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 | Dimension              | Commercial SaaS (Teal, Huntr, Jobscan)       | Job Hunter (Autonomous Agent)                                      |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
 | **Monthly Cost**       | **$29 – $50 / month** ($316 – $600 / year)   | **$0.00 / month forever** (100% Free Stack)                        |
-| **Sourcing Method**    | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (94+ curated boards, 9 engines)         |
+| **Sourcing Method**    | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (114+ curated boards, 9 engines)        |
 | **AI Intelligence**    | Generic GPT-4o-mini wrappers                 | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
 | **Automation**         | Manual tracking logins                       | **Automated Daily Morning Digest** (05:00 AM in your inbox)        |
 | **Application Policy** | Risky auto-apply bots or manual entry        | **The Golden Rule**: Scout & Draft; Human Submits                  |
@@ -272,7 +272,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.0.5
+# Output: jobhunt 1.0.6
 ```
 
 ---
@@ -364,7 +364,7 @@ llm_delay_seconds: 0.0 # Leaky-bucket pacing enforced at 5.0s (12 RPM) via provi
 | **`draft_jd_chars`**         | `config.yaml`           | **7000**  |  **10**  | Uncapped deep technical context window for top-1 candidate application kits.                             |
 | **`max_per_digest`**         | `config.yaml`           |   **5**   |  **5**   | Curated daily briefing density ensuring maximum candidate engagement without inbox fatigue.              |
 | **`max_age_days`**           | `config.yaml`           |  **20**   |  **10**  | Strict 20-day crawler window dropping stale listings and saving Supabase storage.                        |
-| **`fetch_max_workers`**      | `config.yaml`           |  **20**   |  **10**  | Concurrent async connection pool crawling 94+ ATS endpoints in under 4 seconds.                          |
+| **`fetch_max_workers`**      | `config.yaml`           |  **20**   |  **10**  | Concurrent async connection pool crawling 114+ ATS endpoints in under 4 seconds.                          |
 | **`pacing_interval`**        | `providers_throttle.py` | **5.0s**  |  **5**   | Enforces 12 RPM per key, guaranteeing zero HTTP 429 rate limit exceptions against Gemini's 15 RPM cap.   |
 | **`MAX_DAILY_SEND`**         | `mailer.py`             |  **450**  |  **10**  | Circuit breaker on persistent `SMTPSession` safeguarding Gmail's 500/day limit with a 10% safety buffer. |
 | **`keep_days` (DB Pruning)** | `memory.py`             |  **30**   |  **10**  | Automated daily cleanup purging execution logs older than 30 days, keeping DB < 30 MB indefinitely.      |
@@ -583,7 +583,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.0.5) & public exports
+│   ├── __init__.py           # Package version (1.0.6) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
@@ -652,7 +652,7 @@ job-hunter/
 │   ├── ci.yml                # CI test matrix (Python 3.9-3.12), linting, typing & coverage gates
 │   └── daily.yml             # Scheduled daily morning batch crawler & email briefing
 ├── config.yaml               # Deterministic filter rules & LLM batch thresholds
-├── companies.yaml            # 94+ curated company boards across 9 ATS engines
+├── companies.yaml            # 114+ curated company boards across 9 ATS engines
 ├── app.py                    # Local WSGI development server
 └── auto.py                   # Master cross-platform pipeline launcher script
 ```

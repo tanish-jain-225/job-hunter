@@ -23,11 +23,11 @@ graph TD
 
 ### Phase 1: Deterministic Prefiltering (Deterministic & Free)
 Before any LLM token is spent, all fetched postings are run through quick regex and date matches defined in [config.yaml](../config.yaml):
-* **Include Titles:** Matches target roles (e.g., `software engineer`, `backend`, `intern`).
+* **Include Titles & Tech Role Abbreviations:** Matches target roles and industry acronyms (e.g., `software engineer`, `backend`, `intern`, `\b(se|sde|swe|mts|ase|get)\b`, `\bmts\s*-?\s*(i{1,3}|[123])\b`, `graduate engineer trainee`, `trainee software engineer`).
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
-* **Location Gate:** Checks if the posting matches target regions (e.g., `mumbai`, `bengaluru`) or allows `remote`. Supports `all_india` preference with automatic tech hub matching and non-India exclusion heuristics.
-* **Employment Type & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, and `internship` roles with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
-* **Date Freshness:** Discards jobs published longer than `max_age_days` (default `20` days) ago.
+* **India-First Location Gate & Tech Corridors:** Checks if the posting matches target regions or allows `remote`. Supports `all_india` preference with automatic matching of top Indian metro hubs (`Bengaluru`, `Hyderabad`, `Pune`, `Delhi-NCR`, `Mumbai`, `Chennai`, `Gurugram`, `Noida`) and prominent IT business districts / corridors (`Whitefield`, `Electronic City`, `Bellandur`, `Koramangala`, `HITEC City`, `Cyberabad`, `Gachibowli`, `Madhapur`, `Hinjewadi`, `Magarpatta`, `Manyata Tech Park`).
+* **Employment Type, Campus Trainee & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, `internship`, and campus entry points (`campus hire`, `campus intern`, `graduate trainee`, `engineering trainee`) with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
+* **Date Freshness & Epoch Timestamp Parsing:** Discards jobs published longer than `max_age_days` (default `20` days) ago, supporting ISO-8601 strings, human-readable dates, and millisecond/second numeric epoch timestamps.
 * **Deterministic Multi-Currency Salary Extraction:** Scans raw job text with `extract_salary_hint` (`_SALARY_PATTERNS`) to extract structured compensation without consuming LLM tokens:
   - Indian Rupee Full-Time: `₹X-Y LPA`, `12-18 LPA`, `10-15 Lacs`, `₹X Lakhs/yr`
   - Monthly Internship Stipends: `₹X,XXX-₹Y,YYY/month`, `₹Xk/mo`, `stipend: ₹25,000/mo`

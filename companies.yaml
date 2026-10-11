@@ -41,6 +41,17 @@ companies:
   - {ats: greenhouse, slug: upgrade, name: upGrad}
   - {ats: smartrecruiters, slug: HCL-Technologies, name: HCL Technologies}
   - {ats: lever, slug: plivo, name: Plivo}
+  - {ats: greenhouse, slug: druva, name: Druva}
+  - {ats: lever, slug: hevodata, name: Hevo Data}
+  - {ats: greenhouse, slug: deliveroo, name: Deliveroo India R&D}
+  - {ats: greenhouse, slug: pinterest, name: Pinterest India}
+  - {ats: greenhouse, slug: coupang, name: Coupang India}
+  - {ats: greenhouse, slug: abnormalsecurity, name: Abnormal AI}
+  - {ats: lever, slug: neuron7, name: Neuron7.ai}
+  - {ats: lever, slug: gushwork, name: Gushwork}
+  - {ats: greenhouse, slug: aviatrix, name: Aviatrix}
+  - {ats: greenhouse, slug: karat, name: Karat}
+  - {ats: greenhouse, slug: appsflyer, name: AppsFlyer}
 
   # --- Global Tech with India Engineering Hubs & Remote Boards ---
   - {ats: greenhouse, slug: stripe, name: Stripe}
@@ -109,3 +120,12 @@ companies:
   - {ats: ashby, slug: composio, name: Composio}
   - {ats: ashby, slug: browserbase, name: Browserbase}
   - {ats: ashby, slug: inngest, name: Inngest}
+  - {ats: ashby, slug: cartesia, name: Cartesia}
+  - {ats: ashby, slug: clickhouse, name: ClickHouse}
+  - {ats: ashby, slug: perplexity, name: Perplexity AI}
+  - {ats: ashby, slug: elevenlabs, name: ElevenLabs}
+  - {ats: ashby, slug: deepgram, name: Deepgram}
+  - {ats: ashby, slug: bland, name: Bland AI}
+  - {ats: ashby, slug: resend, name: Resend}
+  - {ats: ashby, slug: quora, name: Quora}
+  - {ats: lever, slug: moonpay, name: MoonPay}

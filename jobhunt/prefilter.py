@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from .fetch import Job
 
@@ -58,6 +59,10 @@ INTERNSHIP_HINTS = (
     "trainee engineer",
     "sde intern",
     "software intern",
+    "campus hire",
+    "campus intern",
+    "graduate trainee",
+    "engineering trainee",
 )
 
 # Contract / Freelance detection patterns
@@ -149,15 +154,62 @@ INDIA_LOCATIONS = [
     "uttar pradesh",
     "haryana",
     "kerala",
+    "whitefield",
+    "electronic city",
+    "bellandur",
+    "koramangala",
+    "hitec city",
+    "hiteccity",
+    "cyberabad",
+    "gachibowli",
+    "madhapur",
+    "hinjewadi",
+    "magarpatta",
+    "manyata",
+    "delhi ncr",
+    "delhi-ncr",
     "in",  # ISO country code
 ]
 
 
-def _parse_date(value: str | None) -> datetime | None:
-    if not value:
+def _parse_date(value: Any) -> datetime | None:
+    if value is None or value == "":
         return None
-    v = value.replace("Z", "+00:00")
-    for fmt in (None, "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
+    # Support numeric epoch timestamps (seconds or milliseconds)
+    if isinstance(value, (int, float)):
+        try:
+            ts = float(value)
+            if ts > 1e11:  # epoch in milliseconds
+                ts /= 1000.0
+            return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except (ValueError, OSError, OverflowError):
+            return None
+
+    raw_str = str(value).strip()
+    if not raw_str:
+        return None
+
+    # Handle numeric strings (e.g. "1728000000" or "1728000000000")
+    if raw_str.isdigit():
+        try:
+            ts = float(raw_str)
+            if ts > 1e11:
+                ts /= 1000.0
+            return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except (ValueError, OSError, OverflowError):
+            pass
+
+    v = raw_str.replace("Z", "+00:00")
+    for fmt in (
+        None,
+        "%Y-%m-%d",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y/%m/%d",
+        "%d-%m-%Y",
+        "%d/%m/%Y",
+        "%a, %d %b %Y %H:%M:%S %z",
+        "%Y-%m-%d %H:%M:%S",
+    ):
         try:
             dt = datetime.fromisoformat(v) if fmt is None else datetime.strptime(v, fmt)
             return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)

@@ -63,6 +63,20 @@ jobs:
             jobhunt-cache-${{ runner.os }}-
             jobhunt-cache-
 
+      - name: Keep-Alive Supabase Cloud Database & Preflight Audit
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo "Pinging Supabase PostgREST to prevent 7-day inactivity pause..."
+            curl -s -f "${SUPABASE_URL}/rest/v1/user_profiles?select=email&limit=1" \
+              -H "apikey: ${SUPABASE_ANON_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null || true
+          fi
+          echo "Running company board verification sanity check..."
+          python -m jobhunt verify || true
+
       - name: Execute Autonomous Job Hunter Radar
         env:
           PYTHONUNBUFFERED: "1"

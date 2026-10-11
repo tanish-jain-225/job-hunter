@@ -432,7 +432,11 @@ class GeminiProvider(Provider):
         pdf: bytes,
         max_tokens: int,
         api_key: str | None = None,
+        json_mode: bool = False,
     ) -> str:
+        gen: dict[str, Any] = {"maxOutputTokens": max_tokens, "temperature": 0.1}
+        if json_mode or "json" in prompt.lower():
+            gen["responseMimeType"] = "application/json"
         return self._post(
             model,
             {
@@ -445,7 +449,7 @@ class GeminiProvider(Provider):
                         ],
                     }
                 ],
-                "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.2},
+                "generationConfig": gen,
             },
             api_key=api_key,
         )

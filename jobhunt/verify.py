@@ -19,11 +19,14 @@ from .fetch import REGISTERED_ATS
 
 logger = logging.getLogger(__name__)
 
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) jobhunt-verifier/1.0"}
+UA = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+}
 
 
 def check_single_board(
-    company: dict, timeout: int = 7, session: requests.Session | None = None
+    company: dict, timeout: int = 10, session: requests.Session | None = None
 ) -> tuple[dict, bool, Any]:
     """Check a single company's ATS board endpoint."""
     ats = str(company.get("ats", "")).lower().strip()
@@ -39,13 +42,17 @@ def check_single_board(
     url = url_template.format(slug=slug)
     sess = session or requests
 
-    try:
-        r = sess.get(url, headers=UA, timeout=timeout)
-        if r.status_code == 200:
-            return company, True, 200
-        return company, False, r.status_code
-    except Exception as e:
-        return company, False, str(e)[:40]
+    for attempt in range(2):
+        try:
+            r = sess.get(url, headers=UA, timeout=timeout)
+            if r.status_code == 200:
+                return company, True, 200
+            if attempt == 1:
+                return company, False, r.status_code
+        except Exception as e:
+            if attempt == 1:
+                return company, False, str(e)[:40]
+    return company, False, "Failed after retries"
 
 
 def audit_company_boards(

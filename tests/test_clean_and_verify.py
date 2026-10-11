@@ -241,7 +241,7 @@ def test_companies_yaml_integrity():
     assert comp_file.is_file()
     data = yaml.safe_load(comp_file.read_text(encoding="utf-8"))
     companies = data.get("companies", [])
-    assert len(companies) == 94
+    assert len(companies) == 114
     valid_ats = {"greenhouse", "lever", "ashby", "workable", "smartrecruiters", "bamboohr", "recruitee", "breezy", "pinpoint"}
     for c in companies:
         assert "ats" in c and "slug" in c and "name" in c

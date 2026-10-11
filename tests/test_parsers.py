@@ -198,6 +198,11 @@ def test_prefilter_invalid_date_handling():
     assert _parse_date(None) is None
     assert _parse_date("") is None
     assert _parse_date("not-a-date") is None
+    assert _parse_date(1700000000) is not None
+    assert _parse_date(1700000000000) is not None
+    assert _parse_date("1700000000") is not None
+    assert _parse_date("2026/09/15") is not None
+    assert _parse_date("15-09-2026") is not None
     invalid_date_job = Job(
         job_id="test:1",
         ats="test",

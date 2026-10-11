@@ -5,6 +5,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.6] — 2026-10-11
+
+### Added
+- **114 Verified Live ATS Company Boards**: Expanded `companies.yaml` from 94 to **114 verified live company career boards** (100% HTTP 200 OK across public ATS APIs, 0 unreachable). Added high-growth Indian tech unicorns, global capability centers (GCCs), and AI infrastructure leaders: Druva, Hevo Data, Deliveroo India R&D, Pinterest India, Coupang India, Abnormal AI, Neuron7.ai, Gushwork, Aviatrix, Karat, AppsFlyer, ClickHouse, Perplexity AI, ElevenLabs, Deepgram, Cartesia, Bland AI, Resend, Quora, and MoonPay.
+- **Deepened India-First Context & Designations**:
+  - Expanded `config.yaml` and `config.example.yaml` regex patterns to natively capture Indian software engineering designations: `\b(se|sde|swe|mts|ase|get)\b`, `\bmts\s*-?\s*(i{1,3}|[123])\b` (Member of Technical Staff 1, 2, 3), `graduate engineer trainee` (GET), `associate software engineer` (ASE), and `trainee software engineer`.
+  - Added major Indian tech corridors and IT parks to `INDIA_LOCATIONS` in `jobhunt/prefilter.py` (`whitefield`, `electronic city`, `bellandur`, `koramangala`, `hitec city`, `cyberabad`, `gachibowli`, `madhapur`, `hinjewadi`, `magarpatta`, `manyata`, `delhi ncr`, `delhi-ncr`).
+  - Added campus and fresher trainee hints to `INTERNSHIP_HINTS` in `jobhunt/prefilter.py` (`campus hire`, `campus intern`, `graduate trainee`, `engineering trainee`).
+  - Added visual India flag (`🇮🇳 `) and emerald badge styling for verified Indian roles in daily HTML executive email digests (`jobhunt/digest.py`).
+  - Synchronized client-side `INDIA_CITIES` in `static/js/app.js` with all Indian tech corridors for instant one-click dashboard filtering (`🇮🇳 India-Based`).
+- **Resilience & Production Hardening**:
+  - **Google Gemini Native JSON Mode**: Enforced `responseMimeType="application/json"` in `complete_document` (`jobhunt/providers.py`).
+  - **Supabase 24h Keep-Alive Cron**: Added daily database keep-alive ping and preflight health check in `.github/workflows/daily.yml` to prevent free tier compute pauses.
+  - **Universal Browser Headers & Retry Logic**: Configured modern Chrome User-Agent and JSON headers in `jobhunt/fetch.py` and `jobhunt/verify.py` with transient connection retry logic.
+  - **SMTP Exponential Backoff**: Hardened `jobhunt/mailer.py` standalone email dispatch with 3-attempt exponential backoff.
+  - **SSE Heartbeat Keep-Alive**: Added `: ping\n\n` comments to server-sent events stream in `jobhunt/web/routes/pipeline.py` to prevent reverse-proxy timeouts.
+  - **Numeric Epoch Timestamp Parsing**: Enhanced `_parse_date` in `jobhunt/prefilter.py` to support numeric epoch timestamps in seconds and milliseconds.
+
+### Maintenance
+- **100% Test Suite Verification**: Maintained 505 / 505 tests passing (100% pass rate) with 0 Ruff violations and 0 Mypy errors across all 43 source files.
+
 ## [1.0.5] — 2026-10-04
 
 ### Added
@@ -173,6 +194,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.0.6]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.6
 [1.0.5]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.5
 [1.0.4]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.4
 [1.0.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.3

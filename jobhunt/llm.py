@@ -651,11 +651,19 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
         lead_skill_1 = hits[0] if len(hits) > 0 else (raw_skills[0] if raw_skills else "Core Technologies")
         lead_skill_2 = hits[1] if len(hits) > 1 else (raw_skills[1] if len(raw_skills) > 1 else "Software Engineering")
 
+        loc_lower = (j.location or "").lower()
+        is_ind = any(c in loc_lower or c in blob for c in ("india", "bengaluru", "bangalore", "pune", "hyderabad", "mumbai", "delhi", "gurgaon", "gurugram", "noida", "chennai"))
+        is_rem = any(h in loc_lower or h in blob for h in ("remote", "wfh", "work from home", "anywhere"))
+        india_elig = "India-Based Role" if is_ind else ("Remote-Friendly" if is_rem else "Global (Verify Location)")
+
+        sal_m = re.search(r"(\b\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:LPA|lpa|Lakh|lakhs|Lac|lacs)\b)", f"{j.title} {j.description}") or \
+                re.search(r"(₹\s*[\d,]+(?:\s*-\s*₹?\s*[\d,]+)?(?:\s*\/\s*(?:mo|month|yr|year|annum))?)", f"{j.title} {j.description}")
+        extracted_sal = sal_m.group(1).strip() if sal_m else getattr(j, "salary", "")
+
         j.draft = {
             "fit_summary": f"Strong alignment for {j.title} at {j.company} with matching background ({matched_str}).",
-            "india_eligibility": "Verified India-Friendly"
-            if "india" in blob or "remote" in blob
-            else "Remote Friendly",
+            "india_eligibility": india_elig,
+            "salary_range_inr": str(extracted_sal or ""),
             "best_project": project_highlight,
             "tailored_bullets": [
                 f"Engineered software solutions utilizing {lead_skill_1} and {lead_skill_2}.",

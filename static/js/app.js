@@ -65,7 +65,12 @@ const Storage = {
 // Indian Tech Hubs & Compensation Helpers
 const INDIA_CITIES = [
   'bengaluru', 'bangalore', 'hyderabad', 'pune', 'delhi', 'ncr', 'noida', 'gurugram', 'gurgaon',
-  'mumbai', 'chennai', 'kolkata', 'ahmedabad', 'india', 'ind'
+  'mumbai', 'chennai', 'kolkata', 'ahmedabad', 'surat', 'jaipur', 'lucknow', 'thane', 'navi mumbai',
+  'indore', 'bhopal', 'nagpur', 'coimbatore', 'kochi', 'cochin', 'chandigarh', 'bhubaneswar',
+  'visakhapatnam', 'vizag', 'vadodara', 'baroda', 'patna', 'mysore', 'mysuru', 'hubli', 'mangalore',
+  'thiruvananthapuram', 'trivandrum', 'mohali', 'whitefield', 'electronic city', 'bellandur',
+  'koramangala', 'hitec city', 'hiteccity', 'cyberabad', 'gachibowli', 'madhapur', 'hinjewadi',
+  'magarpatta', 'manyata', 'delhi ncr', 'delhi-ncr', 'india', 'ind'
 ];
 
 function isIndiaJob(j) {
@@ -415,7 +420,7 @@ function renderJobsListHtml(jobs) {
       </div>
       <div class="cloud-radar-info">
         <div class="cloud-radar-title">Autonomous Cloud Radar Active (GitHub Actions)</div>
-        <div class="cloud-radar-sub">Scouting 94+ ATS company boards across 10,000+ job listings in the cloud. New matching roles will automatically sync upon completion (~1–2 minutes).</div>
+        <div class="cloud-radar-sub">Scouting 114+ ATS company boards across 10,000+ job listings in the cloud. New matching roles will automatically sync upon completion (~1–2 minutes).</div>
       </div>
     </div>
   ` : '';
@@ -1301,7 +1306,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                 </div>
                 <div class="empty-state-title">Autonomous Cloud Radar in Progress (GitHub Actions)...</div>
                 <div class="empty-state-desc">
-                  Scanning 94+ ATS company boards across 10,000+ job listings in the cloud and matching roles to your candidate profile with Gemini 3.5 Flash. Please wait (~1–2 minutes)!
+                  Scanning 114+ ATS company boards across 10,000+ job listings in the cloud and matching roles to your candidate profile with Gemini 3.5 Flash. Please wait (~1–2 minutes)!
                 </div>
                 <div class="console" id="main-run-console" style="margin-top: 15px; width: 100%; text-align: left; max-height: 100px; overflow-y: auto; white-space: pre-wrap;">Autonomous cloud runner active... Dispatching worker nodes and querying company boards...</div>
               </div>
@@ -1316,7 +1321,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Candidate Profile Required</div>
                   <div class="empty-state-desc">
-                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 94+ company boards.
+                    Please fill out your candidate profile info (Name, Target Roles, and Skills) before running an autonomous job hunt scan across 114+ company boards.
                   </div>
                   <button class="btn btn-primary" data-action="open-profile-modal" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -1332,7 +1337,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
                   </div>
                   <div class="empty-state-title">Your Live Job Radar is Ready</div>
                   <div class="empty-state-desc">
-                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 94+ company boards!
+                    No opportunities have been scanned for your profile yet. Click below to launch your first autonomous job hunt scan across 114+ company boards!
                   </div>
                   <button class="btn btn-primary" data-action="run-pipeline" style="margin-top:10px; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -2931,7 +2936,7 @@ async function runPipeline() {
 
     if (data.status === 'dispatched') {
       showToast('Autonomous Radar dispatched to GitHub Actions in the cloud! Results will auto-sync.', 'success', 5000);
-      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 94+ company boards (~1-2 mins).';
+      if (consoleBox) consoleBox.innerText = 'Live radar running in GitHub Actions cloud... Crawling 114+ company boards (~1-2 mins).';
       fetchAndRenderJobs(false);
       startCloudPoller(data.dispatched_at || (Date.now() / 1000));
 

@@ -141,6 +141,12 @@ def _card(j: Job) -> str:
 
     questions_html = _section("Technical Questions to Ask", _bullets(d.get("questions_to_ask", [])))
 
+    badge_bg = "#ecfdf5" if "india" in (india_badge or "").lower() else "#eff6ff"
+    badge_color = "#047857" if "india" in (india_badge or "").lower() else "#1d4ed8"
+    badge_border = "#a7f3d0" if "india" in (india_badge or "").lower() else "#bfdbfe"
+    flag_prefix = "🇮🇳 " if "india" in (india_badge or "").lower() else ""
+    india_badge_html = f'<span style="background:{badge_bg};color:{badge_color};font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid {badge_border};display:inline-block;vertical-align:middle;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;margin:0 6px 6px 0;">{flag_prefix}{html.escape(india_badge)}</span>'
+
     return f"""
 <div class="digest-card" style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;width:100%;display:block;clear:both;">
   <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;width:100%;margin:0 0 10px 0;">
@@ -157,7 +163,7 @@ def _card(j: Job) -> str:
 
   <div class="card-badges-wrap" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px 0;">
     {_job_type_badge(j)}
-    <span style="background:#eff6ff;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #bfdbfe;display:inline-block;vertical-align:middle;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;box-sizing:border-box;margin:0 6px 6px 0;">{html.escape(india_badge)}</span>
+    {india_badge_html}
     {project_badge}
     {salary_html}
   </div>

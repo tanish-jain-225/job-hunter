@@ -6,6 +6,7 @@ import email.utils
 import os
 import re
 import smtplib
+import time
 from email.message import EmailMessage
 
 # Harmonic operational limits (multiples of 5 & 10)
@@ -180,18 +181,25 @@ def send(
     raw_port = (os.getenv("SMTP_PORT") or "587").strip()
     port = int(raw_port) if raw_port.isdigit() else 587
 
-    try:
-        with smtplib.SMTP(host, port, timeout=SMTP_TIMEOUT) as s:
-            s.starttls()
-            s.login(user, password)
-            s.send_message(msg)
-        _sent_counter += 1
-        print(f"  mailed -> {to_addr}")
-    except smtplib.SMTPAuthenticationError as e:
-        print(
-            f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password."
-        )
-        raise
-    except Exception as e:
-        print(f"::error::SMTP sending failed ({type(e).__name__}): {e}")
-        raise
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            with smtplib.SMTP(host, port, timeout=SMTP_TIMEOUT) as s:
+                s.starttls()
+                s.login(user, password)
+                s.send_message(msg)
+            _sent_counter += 1
+            print(f"  mailed -> {to_addr}")
+            return
+        except smtplib.SMTPAuthenticationError as e:
+            print(
+                f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password."
+            )
+            raise
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"  ! SMTP network notice ({e}) — retrying in 2.0s ({attempt + 1}/{max_retries})...")
+                time.sleep(2.0)
+                continue
+            print(f"::error::SMTP sending failed ({type(e).__name__}): {e}")
+            raise

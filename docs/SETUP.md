@@ -18,7 +18,7 @@ Job Hunter's modular architecture supports three distinct operating models:
 flowchart TD
     Start["Developer Setup"] --> Choice{"Choose Your Track"}
     Choice -->|"Track 1 (60 Seconds)"| Track1["Track 1: Zero-Key Smoke Test\n• No API keys required\n• No database needed\n• Instant offline mock run"]
-    Choice -->|"Track 2 (5 Minutes)"| Track2["Track 2: Local Web Dashboard\n• Free Gemini Flash API key\n• Runs on http://localhost:5000\n• 94+ live company boards\n• Local JSON storage (seen.json)"]
+    Choice -->|"Track 2 (5 Minutes)"| Track2["Track 2: Local Web Dashboard\n• Free Gemini Flash API key\n• Runs on http://localhost:5000\n• 114+ live company boards\n• Local JSON storage (seen.json)"]
     Choice -->|"Track 3 (15 Minutes)"| Track3["Track 3: Production Cloud SaaS\n• Vercel serverless web app\n• Supabase PostgreSQL + Auth RLS\n• GitHub Actions 05:00 AM Cron\n• Multi-user isolated pipelines"]
 ```
 
@@ -448,7 +448,7 @@ llm_delay_seconds: 0.0    # Leaky-bucket pacing enforced at 5.0s (12 RPM) via pr
 
 ### Step 4.3: Add or Customize Target Company Boards (`companies.yaml`)
 
-[`companies.yaml`](../companies.yaml) defines the target career portals scouted by Job Hunter. It comes pre-configured with **94 verified live company boards** across India and globally:
+[`companies.yaml`](../companies.yaml) defines the target career portals scouted by Job Hunter. It comes pre-configured with **114 verified live company boards** across India and globally:
 
 ```yaml
 companies:
@@ -470,7 +470,7 @@ companies:
 ```
 
 > [!TIP]
-> **Verify Live Reachability**: Run `jobhunt verify` anytime to test HTTP 200 connectivity across all 94 career boards in parallel.
+> **Verify Live Reachability**: Run `jobhunt verify` anytime to test HTTP 200 connectivity across all 114 career boards in parallel.
 
 ---
 
@@ -609,7 +609,7 @@ Run this diagnostic checklist to verify every subsystem:
 |---|---|---|:---:|
 | **0. Preflight Diagnostics** | `jobhunt check` | All packages, configurations, and keys verified | ✅ Passed |
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
-| **2. Board Reachability** | `jobhunt verify --workers 10` | 94/94 boards verified reachable (HTTP 200) | ✅ Passed |
+| **2. Board Reachability** | `jobhunt verify --workers 10` | 114/114 boards verified reachable (HTTP 200) | ✅ Passed |
 | **3. Automated Test Suite** | `python -m pytest tests/` | **505 passed tests (100% pass rate)** | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
 | **5. Type Checking** | `mypy jobhunt` | Success: no issues found across all source files | ✅ Passed |

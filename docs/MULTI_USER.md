@@ -69,7 +69,7 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 | **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | <1.5 MB (1,000-job rolling window) | **330+ Users** (indefinite lifecycle) | Tenant-isolated profiles, tracking stores, & automated 30-day log pruning (`prune_pipeline_runs`) |
 | **GitHub Actions** | 2,000 free runner mins / month | ~6.0s / user in batch mode | **1,500 Users** | Automated scheduled morning radar execution (40m job timeout, 900 mins/mo for 300 users) |
 | **Vercel** | 100GB bandwidth, serverless | ~15 MB / user / month | **6,600 Users** | Web Dashboard hosting and REST API |
-| **9 ATS Board Crawlers** | Public JSON APIs (94+ boards) | 0 extra (single global pass) | **Unlimited** | Scouts Greenhouse, Lever, Ashby, Workable, SmartRecruiters, etc. |
+| **9 ATS Board Crawlers** | Public JSON APIs (114+ boards) | 0 extra (single global pass) | **Unlimited** | Scouts Greenhouse, Lever, Ashby, Workable, SmartRecruiters, etc. |
 
 > **Bottom Line:** Operates with built-in safety margins running **100% Free ($0.00/month)** up to **300+ active candidates** with zero code changes or external infrastructure setup. All operational parameters follow a **Harmonic Balance Point (multiples of 5 & 10)**: 10 jobs/screen batch, 12 RPM pacing (5.0s), 450 max daily emails, 40m workflow timeout, and 30-day run log pruning.
 

@@ -34,7 +34,10 @@ from .parsers import (
     parse_pinpoint,
 )
 
-UA = {"User-Agent": "jobhunt/1.0 (personal job search agent)"}
+UA = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) jobhunt/1.0 (personal career intelligence agent)",
+    "Accept": "application/json, text/plain, */*",
+}
 TIMEOUT = 20
 
 # Dict compatibility wrapper pointing to the registry

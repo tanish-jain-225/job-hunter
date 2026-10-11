@@ -26,7 +26,7 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 
 ```mermaid
 flowchart TD
-    subgraph S1["1. Public ATS Scouting Engine (94+ Boards)"]
+    subgraph S1["1. Public ATS Scouting Engine (114+ Boards)"]
         A1["Greenhouse"] & A2["Lever"] & A3["Ashby"]
         A4["Workable"] & A5["SmartRecruiters"] & A6["BambooHR"]
         A7["Recruitee"] & A8["Breezy HR"] & A9["Pinpoint & Custom Boards"]
@@ -104,7 +104,7 @@ job-hunter/
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.5")
+│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.0.6")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, check, applied, stats, profile, web, verify, clean)

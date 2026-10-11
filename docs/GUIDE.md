@@ -36,7 +36,7 @@ flowchart LR
 1. **Open the Web App**: Go to your Job Hunter web URL (e.g., `http://localhost:5000` or your deployed Vercel URL).
 2. **Create Your Account**: Enter your email and password. Your personal profile and saved jobs are completely private.
 3. **Upload Your Resume**: Drop your PDF or text resume in **Settings** (or paste your skills and target titles).
-4. **Click "Run Job Hunt Now"**: The radar scans 94+ curated tech career boards across 10,000+ postings in seconds.
+4. **Click "Run Job Hunt Now"**: The radar scans 114+ curated tech career boards across 10,000+ postings in seconds.
 5. **Inspect Your Application Kit**: Click **Inspect Kit** on any high-scoring role, copy the tailored cover letter or LinkedIn referral request, click **Open Link**, and submit your application!
 
 ---
@@ -86,7 +86,7 @@ Most job seekers waste 10–15 hours every week browsing outdated aggregate job 
 
 ```mermaid
 flowchart TD
-    A["94+ Verified Company Career Portals\n(Swiggy, Razorpay, Meesho, Paytm, Stripe, Grab, etc.)"] --> B["Stage 1: Autonomous Scout\n(Fast parallel HTTP queries across official ATS APIs)"]
+    A["114+ Verified Company Career Portals\n(Swiggy, Razorpay, Meesho, Paytm, Stripe, Grab, etc.)"] --> B["Stage 1: Autonomous Scout\n(Fast parallel HTTP queries across official ATS APIs)"]
     B --> C["Stage 2: $0 Deterministic Prefilter\n(Eliminates 98% noise using title regex, locations & exclusions)"]
     C --> D["Stage 3: Gemini 3.5 Flash Fit Scoring\n(Computes technical match 0.0 to 10.0 against your profile)"]
     D --> E["Stage 4: Automated Application Kits\n(Tailored Cover Note, LinkedIn Referral, Cold DM, Bullets)"]
@@ -212,7 +212,7 @@ Once your profile is saved, launching a job scan is as simple as clicking a butt
 1. Look at the left sidebar or the top of the dashboard.
 2. Click **Run Job Hunt Now**.
 3. Watch the real-time execution log:
-   - **Phase 1: Scout**: Queries 94+ career boards in parallel (~10–15 seconds).
+   - **Phase 1: Scout**: Queries 114+ career boards in parallel (~10–15 seconds).
    - **Phase 2: Prefilter**: Fast regex rules drop ~98% of irrelevant roles (wrong titles, excluded keywords, mismatched locations).
    - **Phase 3: AI Screening**: High-potential candidates are evaluated by Google Gemini 3.5 Flash to compute fit scores (0.0 to 10.0).
    - **Phase 4: Kit Drafting**: Tailored cover notes, LinkedIn cold outreach messages, and LinkedIn referral requests are drafted for top-scoring roles.
