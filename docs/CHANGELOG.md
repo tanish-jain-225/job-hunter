@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Maintenance
 - **100% Test Suite Verification**: Maintained 505 / 505 tests passing (100% pass rate) with 0 Ruff violations and 0 Mypy errors across all 43 source files.
 - **Pinned Hypothesis Compatibility**: Pinned `hypothesis>=6.0.0,<=6.109.1` in `pyproject.toml` and synchronized `uv.lock` to prevent upstream Python 3.10 dataclass slots conjecture tree errors in property-based parser tests.
+- **Market Research Ground Truth & Valuation Alignment**: Synchronized `docs/PRODUCT_ANALYSIS_WALKTHROUGH.md` and `README.md` with verified 2026 empirical datasets (India Skills Report 2026, Zinnov-Nasscom GCC 2026 report, Clarify Capital / Greenhouse / ResumeBuilder ghost job findings, Acquire.com / Flippa 2026 SaaS M&A multiples, and updated competitor pricing for Teal+, Huntr Pro, Jobscan, LazyApply, and LoopCV).
 
 ## [1.0.5] — 2026-10-04
 

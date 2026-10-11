@@ -114,16 +114,18 @@ The modern job search is fundamentally broken. Engineers and technology professi
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: _The Hunter never fires without manual authorization._ **Job Hunter** never automatically submits applications. It scouts, filters, scores, and drafts—leaving final application review and submission strictly under human control.
 
-### Commercial Alternatives vs. Job Hunter
+### Commercial Alternatives vs. Job Hunter (2026 Market Ground-Truth)
 
-| Dimension              | Commercial SaaS (Teal, Huntr, Jobscan)       | Job Hunter (Autonomous Agent)                                      |
-| ---------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
-| **Monthly Cost**       | **$29 – $50 / month** ($316 – $600 / year)   | **$0.00 / month forever** (100% Free Stack)                        |
-| **Sourcing Method**    | Manual Chrome bookmarking or spammy scrapers | **Direct Public ATS APIs** (114+ curated boards, 9 engines)        |
-| **AI Intelligence**    | Generic GPT-4o-mini wrappers                 | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
-| **Automation**         | Manual tracking logins                       | **Automated Daily Morning Digest** (05:00 AM in your inbox)        |
-| **Application Policy** | Risky auto-apply bots or manual entry        | **The Golden Rule**: Scout & Draft; Human Submits                  |
-| **Data Privacy**       | Closed cloud databases                       | **100% Private**: Supabase PostgreSQL with Row-Level Security      |
+| Dimension | Manual Trackers (Teal+, Huntr Pro) | Auto-Apply Bots (LazyApply, LoopCV) | **Job Hunter (`job-hunter`)** |
+| :--- | :--- | :--- | :--- |
+| **Pricing** | **$29 – $40 / month** ($316 – $480 / year) | **$99 – $149 / year** or $20 – $60 / mo | **$0.00 / month forever** (100% Free Tier Stack) |
+| **Sourcing Method** | Manual Chrome bookmarking only | Portal scraping (LinkedIn/Indeed aggregators) | **Direct Public ATS APIs** (114+ curated boards across 9 engines) |
+| **Ghost Job Protection** | ❌ None (manual user bookmarking) | ❌ None (submits to inactive listings) | **✅ Deterministic 20-Day Gate** (drops stale ghost postings) |
+| **AI Scorer & Engine** | Generic GPT-4o-mini prompt wrappers | Basic template variable substitutions | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
+| **Application Kit Output** | Single basic cover letter | Generic auto-filled forms | **Full Kit**: Cover Note, Recruiter DM, LinkedIn Referral & Bullets |
+| **Account Safety** | Safe (manual) | ⚠️ High risk of LinkedIn account bans & ATS spam penalties | **The Golden Rule**: Scout & Draft; Human Submits (100% Safe) |
+| **Daily Delivery** | Manual dashboard login | Email blast spam | **Automated Daily Morning Digest** (05:00 AM IST in your inbox) |
+| **Data Privacy** | Closed proprietary cloud databases | Third-party bot servers | **100% Private**: Supabase PostgreSQL with Row-Level Security (RLS) |
 
 ---
 
