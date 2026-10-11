@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Maintenance
 - **100% Test Suite Verification**: Maintained 505 / 505 tests passing (100% pass rate) with 0 Ruff violations and 0 Mypy errors across all 43 source files.
+- **Pinned Hypothesis Compatibility**: Pinned `hypothesis>=6.0.0,<=6.109.1` in `pyproject.toml` and synchronized `uv.lock` to prevent upstream Python 3.10 dataclass slots conjecture tree errors in property-based parser tests.
 
 ## [1.0.5] — 2026-10-04
 

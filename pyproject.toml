@@ -43,7 +43,7 @@ dev = [
     "types-requests>=2.31.0",
     "types-PyYAML>=6.0.0",
     "ruff>=0.2.0",
-    "hypothesis>=6.0.0",
+    "hypothesis>=6.0.0,<=6.109.1",
 ]
 
 [project.scripts]
