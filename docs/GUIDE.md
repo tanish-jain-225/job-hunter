@@ -169,7 +169,7 @@ Step 2 centralizes all your candidate parameters and search preferences:
   - **Target Job Titles**
   - **Core Skills**
   - **Years of Experience** & **Education**
-* **3-Tier Fallback Protection**: If upstream AI services experience rate limits or network issues, Job Hunter's built-in local regex engine takes over instantly in $\le 15$ seconds, accurately extracting your details without external dependencies.
+* **3-Tier Fallback Protection**: If upstream AI services experience rate limits, high demand, or network timeouts, Job Hunter's adaptive timeout engine (`8.0s` on Vercel serverless to prevent 504s, `14.0s` on standard servers) seamlessly engages the built-in deterministic local regex parser, accurately extracting your details without external API dependencies.
 
 #### Tailoring Your Parameters:
 * **Candidate Name**: Your full name used in personalized Application Kits.

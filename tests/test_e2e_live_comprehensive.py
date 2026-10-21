@@ -81,6 +81,19 @@ class TestE2ELiveSuite:
         monkeypatch.setattr("jobhunt.web.routes.pipeline.get_current_user_context", lambda: (USER_EMAIL, "token"))
         monkeypatch.setattr("jobhunt.web.routes.profile.get_writable_path", lambda p: tmp_path / Path(p).name)
         monkeypatch.setattr("jobhunt.verify.check_single_board", lambda entry, timeout=5: (entry.get("ats"), True, 200))
+        monkeypatch.setattr(
+            "jobhunt.llm.build_profile",
+            lambda *args, **kwargs: {
+                "name": "Alex Doe",
+                "current_title": "Full-Stack Engineer",
+                "skills": ["Python", "React.js", "Node.js", "MongoDB"],
+                "core_skills": ["Python", "React.js", "Node.js", "MongoDB"],
+                "target_titles": ["Full Stack Developer", "Software Engineer"],
+                "exclude_keywords": ["Senior", "Manager"],
+                "years_experience": 2.0,
+                "resume_text": SAMPLE_RESUME_TEXT,
+            },
+        )
 
         def mock_get_profile(email, token=None):
             return self.mock_db.get(email, {})

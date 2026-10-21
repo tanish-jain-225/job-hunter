@@ -85,9 +85,9 @@ This guide covers solutions to common errors, configurations, and questions enco
 * **The Solution:**
   * Job Hunter includes built-in exponential backoff retries, a 60-second read timeout window (`TIMEOUT = 60`), and automatic key cooldown tracking.
   * If an endpoint remains unresponsive or in high demand across all keys, Job Hunter seamlessly cascades through available Flash endpoints (`gemini-flash-latest` → `gemini-flash-lite-latest`).
-  * In Profile & Search Settings, even if upstream AI servers take longer than 30s or fail completely, Job Hunter's **3-tier fallback engine** guarantees you are never blocked:
-    1. **Tier 1 (Multi-Provider AI Cascade)**: Automatically cascades across Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation.
-    2. **Tier 2 (Smart Local Regex Parser)**: If all AI providers fail or time out, a built-in deterministic parser extracts candidate name, title, education, and 100+ skills locally in $\le 15$ seconds without external dependencies.
+  * In Profile & Search Settings, even if upstream AI servers experience high demand or fail completely, Job Hunter's **3-tier fallback engine** guarantees you are never blocked:
+    1. **Tier 1 (Multi-Provider AI Cascade)**: Automatically cascades across Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation and an adaptive timeout ceiling (`8.0s` on Vercel serverless to prevent 504 Gateway Timeouts; `14.0s` on standard servers).
+    2. **Tier 2 (Smart Local Regex Parser)**: If upstream AI providers fail or exceed the adaptive timeout ceiling, a built-in deterministic parser extracts candidate name, title, education, and 100+ skills locally without external API dependencies.
     3. **Tier 3 (Client Defaults)**: The client UI seamlessly falls back to your authenticated account name and email.
     4. Furthermore, **Step 1 provides an interactive text editor** where you can freely review, edit, or adjust your resume context text before clicking **Auto-Fill from Resume Context**!
 

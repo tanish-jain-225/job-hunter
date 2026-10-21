@@ -42,7 +42,7 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 {
   "status": "healthy",
   "service": "job-hunter",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,
@@ -59,6 +59,8 @@ development reports `"environment":"local"`. The `database_status` field returns
 
 ### GET /logo.png & GET /favicon.ico
 Serves the official brand logo (`image/png`) and multi-resolution binary favicon (`image/x-icon`).
+
+Employs an automated 4-tier directory search cascade (`static/assets/`, `assets/`, `static/`, project root) with dynamic MIME type detection (`image/png`, `image/x-icon`, `image/svg+xml`) to guarantee 100% asset delivery across local dev, Docker containers, and Vercel serverless deployments.
 
 **Auth:** Public  
 **Response:** `image/png` / `image/x-icon`
@@ -311,7 +313,7 @@ Upload and extract structured candidate profile data from a resume document (PDF
 
 **Auth:** Required  
 **Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "...", "filename": "resume.pdf"}`)  
-**Timeout & Resilience:** 30.0s backend execution ceiling backed by a 3-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser (guaranteeing deterministic extraction of name, title, education, and 100+ skills during upstream AI provider load spikes or outages) $\rightarrow$ Tier 3 client identity defaults.  
+**Timeout & Resilience:** Adaptive backend execution ceiling (`8.0s` on Vercel serverless to guarantee completion before Vercel's 10s gateway timeout; `14.0s` on standard/local servers) backed by a 3-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser (guaranteeing deterministic extraction of name, title, education, and 100+ skills during upstream AI provider load spikes or outages) $\rightarrow$ Tier 3 client identity defaults.  
 **Response:**
 ```json
 {

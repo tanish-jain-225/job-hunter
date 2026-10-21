@@ -138,6 +138,11 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
    * `SMTP_USER`: Your Gmail address
    * `SMTP_PASS`: Your 16-character Gmail App Password
    * `MAIL_TO`: *(Optional)* Fallback digest recipient email (defaults to `SMTP_USER` if not set)
+   * `GROQ_API_KEY`: *(Optional)* Groq API key for ultra-fast Llama-3 inference
+   * `ANTHROPIC_API_KEY`: *(Optional)* Anthropic Claude API key
+   * `LLM_PROVIDER`: *(Optional)* Alternative provider override (`gemini`, `groq`, `claude`)
+   * `SCREEN_MODEL`: *(Optional)* Custom model override for screening
+   * `DRAFT_MODEL`: *(Optional)* Custom model override for kit drafting
 3. Go to the **Actions** tab in your repo:
    * Enable workflows if prompted.
    * Click **Daily Career Intelligence Digest** > **Run workflow** to test it immediately.

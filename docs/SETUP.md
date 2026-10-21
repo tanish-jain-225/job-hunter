@@ -581,6 +581,11 @@ The repository includes a ready-to-use GitHub Actions workflow in [`.github/work
    - `SMTP_USER`
    - `SMTP_PASS`
    - `MAIL_TO` (Required for single-user mode)
+   - `GROQ_API_KEY` *(Optional: Groq API key for Llama-3 inference)*
+   - `ANTHROPIC_API_KEY` *(Optional: Anthropic Claude API key)*
+   - `LLM_PROVIDER` *(Optional: Alternative provider, e.g. gemini, groq, claude)*
+   - `SCREEN_MODEL` *(Optional: Custom screening model)*
+   - `DRAFT_MODEL` *(Optional: Custom drafting model)*
 3. Navigate to the **Actions** tab in GitHub:
    - Click **"Daily Career Intelligence Digest"** in the left sidebar.
    - Click **"Run workflow"** to trigger a test execution immediately!

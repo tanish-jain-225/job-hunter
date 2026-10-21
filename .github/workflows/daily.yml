@@ -81,9 +81,11 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          LLM_PROVIDER: "gemini"
-          SCREEN_MODEL: "gemini-3.5-flash"
-          DRAFT_MODEL: "gemini-3.5-flash"
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER || 'gemini' }}
+          SCREEN_MODEL: ${{ secrets.SCREEN_MODEL || 'gemini-3.5-flash' }}
+          DRAFT_MODEL: ${{ secrets.DRAFT_MODEL || 'gemini-3.5-flash' }}
           SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
           SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

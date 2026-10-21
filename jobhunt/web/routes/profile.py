@@ -5,6 +5,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import os
 import re
 from typing import Any
 from flask import Blueprint, current_app, jsonify, request
@@ -271,8 +272,10 @@ def api_resume_upload():
 
     memory = SupabaseMemory(token=token)
 
-    # Perform AI Candidate Profile Extraction with 14s responsive safety timeout
+    # Perform AI Candidate Profile Extraction with responsive safety timeout (8s on Vercel to stay within 10s serverless limit, 14s standard)
     parsed_profile = None
+    is_vercel = os.environ.get("VERCEL") == "1"
+    extraction_timeout = 8.0 if is_vercel else 14.0
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
         provider, model = llm.resolve("draft")
@@ -284,7 +287,7 @@ def api_resume_upload():
             provider=provider,
             model=model,
         )
-        parsed_profile = future.result(timeout=30.0)
+        parsed_profile = future.result(timeout=extraction_timeout)
     except Exception as e:
         logger.warning("AI profile extraction notice (%s), using smart local parser.", e)
     finally:

@@ -274,7 +274,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.0.6
+# Output: jobhunt 1.0.7
 ```
 
 ---
@@ -462,7 +462,7 @@ The web dashboard is an interactive single-page application built with modern va
   - 🎙️ **Interviewing** (`interviewing`): Screening or technical interviews in progress.
   - 🎉 **Offer** (`offer`): Job offer received.
   - 📁 **Rejected / Archived** (`rejected`): Role archived or closed.
-- **Resume Studio**: Drag-and-drop resume upload with automated PDF text extraction, structured skill classification, and candidate profile setup.
+- **Resume Studio**: Drag-and-drop resume upload with automated PDF text extraction, structured skill classification, candidate profile setup, and an adaptive 3-tier fallback engine (8s Vercel / 14s standard timeout with deterministic local regex fallback).
 - **Smart Follow-Up Nudges**: Injects `⏳ Xd ago · Follow Up` badges on applied listings and generates context-aware follow-up notes with 1-click clipboard copy.
 - **Live SSE Pipeline Stream**: Streams real-time crawling and screening logs line-by-line via Server-Sent Events (`/api/pipeline/stream`).
 - **Real-Time Zero-Refresh Sync**: Synchronizes state cross-tab and cross-device via an adaptive 15-second heartbeat and version hashing (`/api/sync`), backed by proactive session token refresh and silent 401 retries.
@@ -585,7 +585,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.0.6) & public exports
+│   ├── __init__.py           # Package version (1.0.7) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)

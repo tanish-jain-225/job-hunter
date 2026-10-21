@@ -75,23 +75,34 @@ def api_health():
 
 @views_bp.route("/logo.png")
 def serve_logo():
-    """Serve brand logo PNG."""
-    logo_path = (ROOT / "static" / "assets" / "logo.png").resolve()
-    if logo_path.is_file():
-        return send_file(str(logo_path), mimetype="image/png")
+    """Serve brand logo PNG across multiple deployment root locations."""
+    candidates = [
+        ROOT / "static" / "assets" / "logo.png",
+        ROOT / "assets" / "logo.png",
+        ROOT / "static" / "logo.png",
+        ROOT / "logo.png",
+    ]
+    for p in candidates:
+        resolved = p.resolve()
+        if resolved.is_file():
+            return send_file(str(resolved), mimetype="image/png")
     return "", 204
 
 
 @views_bp.route("/favicon.ico")
 def serve_favicon():
     """Serve brand favicon (.ico preferred, falling back to logo.png)."""
-    fav_path = (ROOT / "static" / "assets" / "favicon.ico").resolve()
-    if fav_path.is_file():
-        return send_file(str(fav_path), mimetype="image/x-icon")
-    logo_path = (ROOT / "static" / "assets" / "logo.png").resolve()
-    if logo_path.is_file():
-        return send_file(str(logo_path), mimetype="image/png")
-    return "", 204
+    ico_candidates = [
+        ROOT / "static" / "assets" / "favicon.ico",
+        ROOT / "static" / "favicon.ico",
+        ROOT / "assets" / "favicon.ico",
+        ROOT / "favicon.ico",
+    ]
+    for p in ico_candidates:
+        resolved = p.resolve()
+        if resolved.is_file():
+            return send_file(str(resolved), mimetype="image/x-icon")
+    return serve_logo()
 
 
 @views_bp.route("/api/auth/config")
