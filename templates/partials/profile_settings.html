@@ -219,7 +219,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
               <span>Save Changes</span>
             </button>
-            <button class="btn btn-primary" data-action="wizard-next" data-step="2">
+            <button type="button" class="btn btn-primary" id="profile-next-2" data-action="wizard-next" data-step="2">
               <span>Next: Alert Settings &rarr;</span>
             </button>
           </div>
@@ -271,11 +271,11 @@
             <span>Cancel</span>
           </button>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-secondary" data-action="wizard-back" data-step="3">
+            <button type="button" class="btn btn-secondary" data-action="wizard-back" data-step="3">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
               <span>Previous</span>
             </button>
-            <button class="btn btn-primary" id="btn-profile-save" data-action="save-profile-preferences">
+            <button type="button" class="btn btn-primary" id="btn-profile-save" data-action="save-profile-preferences">
               <span class="spinner" id="profile-save-spinner" style="display:none;"></span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
               <span id="profile-save-btn-text">Save Profile</span>

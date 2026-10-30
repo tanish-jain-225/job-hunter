@@ -100,7 +100,7 @@ def get_writable_path(path: str | Path) -> Path:
 def get_user_profile_path(path: str | Path, user_email: str | None) -> Path:
     """Return a profile cache path isolated to one authenticated user."""
     target = Path(path)
-    if not user_email:
+    if not user_email or user_email == "developer@local":
         return get_writable_path(target)
     user_hash = hashlib.md5(user_email.strip().lower().encode("utf-8")).hexdigest()[:12]
     scoped_name = f"{target.stem}_{user_hash}{target.suffix}"

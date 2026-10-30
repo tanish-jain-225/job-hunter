@@ -2176,7 +2176,6 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   } else if (years === 0) {
     expKey = '0-1';
   }
-  }
 
   ['prof-exp', 'onboard-exp'].forEach(nameAttr => {
     document.querySelectorAll(`input[name="${nameAttr}"]`).forEach(radio => {

@@ -57,7 +57,7 @@ def add_cache_headers(response):
         "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.supabase.co; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: blob:; "
+        "img-src 'self' data: blob: https://job-hunter-web-board.vercel.app; "
         "connect-src 'self' https://*.supabase.co https://api.github.com https://api.groq.com "
         "https://generativelanguage.googleapis.com; "
         "frame-ancestors 'none';"
