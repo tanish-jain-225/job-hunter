@@ -1209,6 +1209,7 @@ function renderJobCardHtml(j, isNew = false) {
           <span class="job-sub-location"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>${highlightText(j.location || 'Remote/Unspecified', searchQuery)}</span>
           ${isIndia ? '<span class="badge-india-pill">🇮🇳 India</span>' : ''}
           ${salaryBadge}
+          ${j.notes ? `<span class="badge-notes-pill" title="Private notes: ${escapeHtml(j.notes)}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; flex-shrink: 0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Notes</span>` : ''}
           <span class="job-sub-id">(${escapeHtml(j.job_id)})</span>
         </div>
         ${j.reason ? `<div class="job-reason">${escapeHtml(j.reason)}</div>` : ''}
@@ -1232,7 +1233,7 @@ function renderJobCardHtml(j, isNew = false) {
           <button class="btn btn-secondary btn-sm btn-danger" title="Delete job entry" data-action="delete-job" data-job-id="${escapeHtml(j.job_id)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg><span>Delete</span></button>
         </div>
         <div class="job-action-btn-row">
-          ${hasDraft ? `<button class="btn btn-secondary btn-sm" title="View tailored cover note, cold outreach DM, matching bullets & questions" data-action="open-kit-modal" data-job-id="${escapeHtml(j.job_id)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Inspect Kit</span></button>` : ''}
+          <button class="btn btn-secondary btn-sm" title="${hasDraft ? 'View tailored cover note, cold outreach DM, matching bullets & questions' : 'View opportunity details and candidate notes'}" data-action="open-kit-modal" data-job-id="${escapeHtml(j.job_id)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>${hasDraft ? 'Inspect Kit' : 'Kit & Notes'}</span></button>
           <a href="${escapeHtml(applyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open original job posting directly on company career portal" style="text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Link</span></a>
         </div>
       </div>
@@ -1683,6 +1684,19 @@ function openKitModal(jobId) {
     html += `<div class="kit-section"><div class="kit-label">Questions To Ask Interviewers</div><ul style="padding-left:18px; font-size:13px; line-height:1.6; color:var(--text-body);">${d.questions_to_ask.map(q => `<li style="margin-bottom:4px;">${escapeHtml(q)}</li>`).join('')}</ul></div>`;
   }
 
+  const notesVal = j.notes || '';
+  html += `
+    <div class="kit-section" style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+      <div class="kit-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span>Private Candidate Notes</span>
+        <button class="btn btn-secondary btn-sm" id="btn-save-notes-${escapeHtml(j.job_id)}" data-action="save-job-notes" data-job-id="${escapeHtml(j.job_id)}" style="font-size:11px; padding:3px 10px; cursor:pointer;">
+          Save Notes
+        </button>
+      </div>
+      <textarea id="modal-candidate-notes-${escapeHtml(j.job_id)}" class="form-control" rows="3" placeholder="Add interview dates, recruiter contacts, salary discussions, or personal notes..." style="width:100%; box-sizing:border-box; font-size:12.5px; line-height:1.5; resize:vertical; border-radius:6px; border:1px solid var(--border); padding:8px 10px; background:var(--bg-subtle, #f8fafc); color:var(--text-body); font-family:inherit;">${escapeHtml(notesVal)}</textarea>
+    </div>
+  `;
+
   const modalApplyUrl = resolveJobUrl(j);
   html += `<div style="margin-top:16px; display:flex; justify-content:flex-end; width:100%;"><a href="${escapeHtml(modalApplyUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; flex-shrink: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg><span>Open Posting Page</span></a></div>`;
 
@@ -1701,6 +1715,60 @@ function closeKitModal() {
   appState.activeKitId = null;
   Storage.remove(sessionStorage, STORAGE_KEYS.ACTIVE_KIT);
   syncUrlState();
+}
+
+async function saveJobNotes(jobId) {
+  if (!checkAuthOrRedirect('save candidate notes')) return;
+  const textarea = document.getElementById(`modal-candidate-notes-${jobId}`);
+  if (!textarea) return;
+  const btn = document.getElementById(`btn-save-notes-${jobId}`);
+  const originalText = btn ? btn.innerText : 'Save Notes';
+  const notes = textarea.value.trim();
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Saving...';
+  }
+
+  try {
+    const res = await authFetch('/api/jobs/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId, notes })
+    });
+    const data = await parseJsonResponse(res);
+    if (res.ok && data.status === 'success') {
+      if (appState.jobsMap[jobId]) {
+        appState.jobsMap[jobId].notes = notes;
+      }
+      broadcastSync('STATE_MUTATED', { job_id: jobId, action: 'notes_updated' });
+      showToast('Notes saved successfully', 'success', 2500);
+      if (btn) btn.innerText = 'Saved!';
+
+      const card = document.getElementById(`job-card-${jobId}`);
+      if (card && appState.jobsList) {
+        const container = document.getElementById('job-list-container');
+        if (container) {
+          container.innerHTML = renderJobsListHtml(appState.jobsList);
+        }
+      }
+
+      setTimeout(() => {
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      }, 1500);
+    } else {
+      throw new Error(data.message || 'Failed to save notes');
+    }
+  } catch (err) {
+    showToast('Failed to save notes: ' + err.message, 'error', 4000);
+    if (btn) {
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
+  }
 }
 
 
@@ -3516,6 +3584,12 @@ document.addEventListener('click', (e) => {
       if (ats && slug) deleteCustomCompany(ats, slug);
       break;
     }
+    case 'save-job-notes': {
+      e.stopPropagation();
+      const jobId = actionTarget.getAttribute('data-job-id');
+      if (jobId) saveJobNotes(jobId);
+      break;
+    }
     default:
       break;
   }
@@ -4527,6 +4601,7 @@ if (typeof window !== 'undefined') {
   window.toggleAppliedDirect = toggleAppliedDirect;
   window.deleteJobDirect = deleteJobDirect;
   window.openKitModal = openKitModal;
+  window.saveJobNotes = saveJobNotes;
   window.copySectionText = copySectionText;
   window.deleteCustomCompany = deleteCustomCompany;
   window.updateJobStageDirect = updateJobStageDirect;

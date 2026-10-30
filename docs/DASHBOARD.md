@@ -82,7 +82,7 @@ The dashboard is designed as a single-page application with a premium Light Mode
 
 ### 6.  Briefing Digest Reader & Kit Inspector
 * View the compiled daily responsive HTML digest directly inside the dashboard preview frame, with quick links to open in a new tab or force a live rebuild.
-* Click **"Inspect Kit"** on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored recruiter outreach messages, <60-word LinkedIn referral requests (for peer/alumni outreach), custom cover notes, resume alignment bullets, and interview prep questions (with clean fallback to opportunity metadata if no AI draft is present).
+* Click **"Inspect Kit"** (or **"Kit & Notes"**) on any job card in the Interactive Job Board to open the **Application Kit Modal**, featuring 1-click copy buttons for tailored recruiter outreach messages, <60-word LinkedIn referral requests (for peer/alumni outreach), custom cover notes, resume alignment bullets, interview prep questions, and an interactive **Private Candidate Notes editor** with real-time persistence via `/api/jobs/notes` and amber card badge indicators.
 
 ### 7.  Live Pipeline Trigger
 * An **"On-Demand Pipeline Trigger"** button in the sidebar triggers a live crawl across all configured ATS job boards directly from the web UI. Real-time console logs display progress and stats.
@@ -139,7 +139,7 @@ Authorization: Bearer <supabase_access_token>
   {
     "status": "healthy",
     "service": "job-hunter",
-    "version": "1.0.7",
+    "version": "1.1.7",
     "environment": "local",
     "auth_required": false,
     "memory_connected": true,

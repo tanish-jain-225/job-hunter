@@ -723,10 +723,11 @@ def api_add():
         reason=reason,
         applied=applied,
         draft=draft,
+        stage=stage,
     )
     if not job_id:
         return jsonify({"status": "error", "message": "Job could not be persisted. Please try again."}), 503
-    if stage and stage != "to_apply":
+    if stage and stage != "to_apply" and st.data.get(job_id, {}).get("application_stage") != stage:
         if not st.update_stage(job_id, stage):
             return jsonify({"status": "error", "message": "Job stage could not be persisted. Please try again."}), 503
 

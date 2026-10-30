@@ -581,6 +581,8 @@ def test_api_jobs_add_validation_branches(monkeypatch):
     from app import app
 
     monkeypatch.setattr("jobhunt.auth.verify_token", lambda tok: {"email": "test@user.com"})
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", property(lambda self: False))
+    monkeypatch.setattr("jobhunt.store.SupabaseMemory.is_configured", property(lambda self: False))
 
     client = app.test_client()
 

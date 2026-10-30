@@ -175,8 +175,33 @@ def build_profile(
             )
 
     profile = parse_json(raw)
+    if isinstance(profile, list) and len(profile) == 1 and isinstance(profile[0], dict):
+        profile = profile[0]
     if not isinstance(profile, dict):
         raise ValueError("profile extraction did not return a JSON object")
+
+    # Normalize years_experience
+    yoe = profile.get("years_experience")
+    if isinstance(yoe, (int, float)):
+        profile["years_experience"] = float(yoe)
+    elif isinstance(yoe, str):
+        m = re.search(r"(\d+(?:\.\d+)?)", yoe)
+        profile["years_experience"] = float(m.group(1)) if m else 0.0
+    else:
+        profile["years_experience"] = 0.0
+
+    profile["core_skills"] = _ensure_list(profile.get("core_skills") or profile.get("skills"))
+    profile["domains"] = _ensure_list(profile.get("domains"))
+    profile["notable_projects"] = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
+    profile["target_titles"] = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
+    profile["exclude_keywords"] = _ensure_list(profile.get("exclude_keywords") or profile.get("avoid_roles"))
+    profile["job_types"] = _ensure_list(profile.get("job_types"))
+    profile["name"] = str(profile.get("name") or "").strip()
+    profile["current_title"] = str(profile.get("current_title") or profile.get("title") or "").strip()
+    profile["education"] = str(profile.get("education") or "").strip()
+    profile["seniority"] = str(profile.get("seniority") or "").strip()
+    profile["experience_level"] = str(profile.get("experience_level") or "").strip()
+    profile["location_preference"] = str(profile.get("location_preference") or "all_india").strip()
     return profile
 
 
@@ -257,6 +282,22 @@ Echo `job_id` back exactly as given. `reason` is one sentence, max 20 words, con
 
 
 SCREEN_SYSTEM = _build_screen_system()
+
+
+def _parse_score(val: Any) -> float:
+    """Robustly parse a score float from numeric or string LLM output (e.g. 8.5, '8/10', '8.5')."""
+    if val is None:
+        return 0.0
+    if isinstance(val, (int, float)):
+        return max(0.0, min(10.0, float(val)))
+    s = str(val).strip()
+    m = re.search(r"(\d+(?:\.\d+)?)", s)
+    if m:
+        try:
+            return max(0.0, min(10.0, float(m.group(1))))
+        except (ValueError, TypeError):
+            pass
+    return 0.0
 
 
 def screen(
@@ -354,7 +395,7 @@ def screen(
                     json_mode=True,
                 )
             for idx_r, r in enumerate(_as_list(parse_json(raw))):
-                jid = r.get("job_id")
+                jid = r.get("job_id") or r.get("jobId") or r.get("id") or r.get("job")
                 if not jid and "id" in r:
                     raw_id = r["id"]
                     if isinstance(raw_id, int) and 1 <= raw_id <= len(batch):
@@ -364,7 +405,7 @@ def screen(
                     elif idx_r < len(batch):
                         jid = batch[idx_r].job_id
                 if jid:
-                    results[str(jid)] = r
+                    results[str(jid).strip()] = r
 
         except Exception as e:
             if _is_too_large_error(e) and len(batch) > 1:
@@ -396,10 +437,7 @@ def screen(
                     rec = results.get(j.job_id)
                     if rec is None:
                         continue
-                    try:
-                        j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
-                    except (TypeError, ValueError):
-                        j.score = 0.0
+                    j.score = _parse_score(rec.get("score", 0))
                     j.reason = str(rec.get("reason", "")).strip()
                 print(f"  screened batch {n}/{len(batches)}")
     else:
@@ -442,10 +480,7 @@ def screen(
                     rec = results.get(j.job_id)
                     if rec is None:
                         continue
-                    try:
-                        j.score = max(0.0, min(10.0, float(rec.get("score", 0))))
-                    except (TypeError, ValueError):
-                        j.score = 0.0
+                    j.score = _parse_score(rec.get("score", 0))
                     j.reason = str(rec.get("reason", "")).strip()
 
             processed_count = min((idx + 1) * batch_size, len(jobs))
@@ -563,21 +598,23 @@ def draft(
                     json_mode=True,
                 )
             kit = parse_json(raw)
+            if isinstance(kit, list) and len(kit) == 1 and isinstance(kit[0], dict):
+                kit = kit[0]
             if not isinstance(kit, dict):
                 raise ValueError("draft did not return a JSON object")
             j.draft = {
-                "fit_summary": str(kit.get("fit_summary") or ""),
-                "india_eligibility": str(kit.get("india_eligibility") or "Verified India-Friendly"),
-                "job_type": str(kit.get("job_type") or "onsite"),
-                "salary_range_inr": str(kit.get("salary_range_inr") or ""),
-                "best_project": str(kit.get("best_project") or default_proj),
-                "tailored_bullets": _ensure_list(kit.get("tailored_bullets")),
-                "matching_skills": _ensure_list(kit.get("matching_skills")),
-                "gaps": _ensure_list(kit.get("gaps")),
-                "cover_note": str(kit.get("cover_note") or ""),
-                "cold_outreach": str(kit.get("cold_outreach") or ""),
-                "referral_request": str(kit.get("referral_request") or ""),
-                "questions_to_ask": _ensure_list(kit.get("questions_to_ask")),
+                "fit_summary": str(kit.get("fit_summary") or kit.get("summary") or kit.get("fit") or ""),
+                "india_eligibility": str(kit.get("india_eligibility") or kit.get("eligibility") or "Verified India-Friendly"),
+                "job_type": str(kit.get("job_type") or kit.get("type") or "onsite"),
+                "salary_range_inr": str(kit.get("salary_range_inr") or kit.get("salary_range") or kit.get("salary") or kit.get("compensation") or ""),
+                "best_project": str(kit.get("best_project") or kit.get("project") or default_proj),
+                "tailored_bullets": _ensure_list(kit.get("tailored_bullets") or kit.get("bullets") or kit.get("resume_bullets")),
+                "matching_skills": _ensure_list(kit.get("matching_skills") or kit.get("skills") or kit.get("matched_skills")),
+                "gaps": _ensure_list(kit.get("gaps") or kit.get("missing_skills") or kit.get("gap_analysis")),
+                "cover_note": str(kit.get("cover_note") or kit.get("cover_letter") or kit.get("note") or ""),
+                "cold_outreach": str(kit.get("cold_outreach") or kit.get("outreach") or kit.get("cold_message") or ""),
+                "referral_request": str(kit.get("referral_request") or kit.get("referral") or kit.get("referral_note") or ""),
+                "questions_to_ask": _ensure_list(kit.get("questions_to_ask") or kit.get("questions")),
             }
             print(f"  drafted {j.title} @ {j.company}")
         except (LLMError, ValueError, KeyError, TypeError, RuntimeError) as e:

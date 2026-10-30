@@ -42,7 +42,7 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 {
   "status": "healthy",
   "service": "job-hunter",
-  "version": "1.0.7",
+  "version": "1.1.7",
   "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,
@@ -214,7 +214,7 @@ Mark or unmark a job as applied.
 **Response:** `{"status": "success", "applied": true, "version": "a1b2c3d4e5f60718", "stats": {...}}`
 
 ### POST /api/jobs/add (alias: POST /api/add)
-Manually add a custom job entry with optional AI scoring.
+Manually add a custom job entry with optional AI scoring and initial pipeline stage.
 
 **Auth:** Required  
 **Body:**
@@ -224,6 +224,8 @@ Manually add a custom job entry with optional AI scoring.
   "company": "Acme Corp",
   "location": "Bangalore, India",
   "url": "https://acme.com/jobs/123",
+  "stage": "applied",
+  "score": 8.0,
   "description": "Full JD text...",
   "run_ai": true
 }

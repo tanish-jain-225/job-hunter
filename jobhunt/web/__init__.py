@@ -10,6 +10,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+from .. import __version__
 from .routes import views_bp, jobs_bp, profile_bp, pipeline_bp
 from .state import (
     ROOT,
@@ -137,7 +138,7 @@ def create_app(
                 pass
             return "103"
 
-        return {"asset_hash": asset_hash}
+        return {"asset_hash": asset_hash, "app_version": __version__}
 
     # Register global hooks & error handlers
     app.after_request(add_cache_headers)

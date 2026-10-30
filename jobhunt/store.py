@@ -341,6 +341,7 @@ class Store:
         applied: bool = False,
         draft: dict | None = None,
         job_id: str | None = None,
+        stage: str | None = None,
     ) -> str | None:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         if not job_id:
@@ -361,7 +362,13 @@ class Store:
             title=title,
         )
 
-        stage = "applied" if applied else "to_apply"
+        if stage:
+            clean_stage = stage.lower().strip()
+            is_applied = clean_stage in ("applied", "interviewing", "offer", "rejected")
+        else:
+            is_applied = bool(applied)
+            clean_stage = "applied" if is_applied else "to_apply"
+
         job_dict = {
             "job_id": job_id,
             "first_seen": now,
@@ -373,9 +380,9 @@ class Store:
             "score": clamped_score,
             "reason": reason,
             "emailed": False,
-            "applied": bool(applied),
-            "applied_on": now if applied else None,
-            "application_stage": stage,
+            "applied": is_applied,
+            "applied_on": now if is_applied else None,
+            "application_stage": clean_stage,
             "notes": "",
             "salary_range": "",
             "draft": draft or {},

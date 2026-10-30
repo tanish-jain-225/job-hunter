@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-505%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-522%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -274,7 +274,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.0.7
+# Output: jobhunt 1.1.7
 ```
 
 ---
@@ -585,7 +585,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.0.7) & public exports
+│   ├── __init__.py           # Package version (1.1.7) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
@@ -638,7 +638,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 505 automated test cases with 92%+ line coverage
+├── tests/                    # 522 automated test cases with 92%+ line coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -689,7 +689,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**505 unit & integration tests**):
+Run the full automated test suite locally (**522 unit & integration tests**):
 
 ```bash
 # Run full test suite
@@ -713,7 +713,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **505 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest -q`                           | **522 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 

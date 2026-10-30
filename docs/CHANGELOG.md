@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.7] — 2026-10-30
+
+### Added
+- **Resilient AI Output JSON Recovery**: Hardened `jobhunt/llm_utils.py` and `jobhunt/llm.py` with string-aware comment stripping (`//` and `/* */`), automated truncation repair for cutoff JSON arrays/objects, multi-format reasoning/thinking tag removal (`<think>`, `<thought>`, `<thinking>`), single-quote/Python literal recovery, and fuzzy numeric score parsing (`"8/10"`, `"Score: 9.5"`).
+- **Atomic Stage Persistence in Store**: Updated `Store.add_job` and `/api/jobs/add` to accept an explicit `stage` parameter (`to_apply`, `applied`, `interviewing`, `offer`, `rejected`), atomically synchronizing the `applied` boolean flag and `application_stage` in local storage and Supabase cloud memory upon job creation.
+- **Frontend Application Kit Notes & Details Integration**: Added a dedicated Private Candidate Notes editor within the Application Kit modal in `static/js/app.js`, supporting instant persistence via `/api/jobs/notes`, cross-tab broadcast synchronization, and visual notes badge pills (`.badge-notes-pill`) on tracker job cards.
+- **Comprehensive Test Suite Expansion**: Added `tests/test_ai_parsing_and_state_save.py` with 14 in-depth test scenarios, expanding the automated test suite to **522 passed tests (100% pass rate)** with 92% global coverage.
+
 ## [1.0.7] — 2026-10-21
 
 ### Added
@@ -14,7 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Deterministic Offline E2E Live Suite Acceleration**: Added mock fallback for `llm.build_profile` in `tests/test_e2e_live_comprehensive.py`, reducing test suite execution from 31.28s to ~1.16s with 100% deterministic, offline execution.
 
 ### Maintenance
-- **100% Verification Baseline Maintained**: 505 / 505 tests passing (100% pass rate), 92% global line coverage (exceeding strict 90% gate), 84%-96% auth/security coverage (exceeding strict 75% gate), 0 Ruff lint errors, and 0 Mypy errors across all 43 source files.
+- **100% Verification Baseline Maintained**: 505 / 522 tests passing (100% pass rate), 92% global line coverage (exceeding strict 90% gate), 84%-96% auth/security coverage (exceeding strict 75% gate), 0 Ruff lint errors, and 0 Mypy errors across all 43 source files.
 
 ## [1.0.6] — 2026-10-11
 
@@ -35,7 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **Numeric Epoch Timestamp Parsing**: Enhanced `_parse_date` in `jobhunt/prefilter.py` to support numeric epoch timestamps in seconds and milliseconds.
 
 ### Maintenance
-- **100% Test Suite Verification**: Maintained 505 / 505 tests passing (100% pass rate) with 0 Ruff violations and 0 Mypy errors across all 43 source files.
+- **100% Test Suite Verification**: Maintained 505 / 522 tests passing (100% pass rate) with 0 Ruff violations and 0 Mypy errors across all 43 source files.
 - **Pinned Hypothesis Compatibility**: Pinned `hypothesis>=6.0.0,<=6.109.1` in `pyproject.toml` and synchronized `uv.lock` to prevent upstream Python 3.10 dataclass slots conjecture tree errors in property-based parser tests.
 - **Market Research Ground Truth & Valuation Alignment**: Synchronized `docs/PRODUCT_ANALYSIS_WALKTHROUGH.md` and `README.md` with verified 2026 empirical datasets (India Skills Report 2026, Zinnov-Nasscom GCC 2026 report, Clarify Capital / Greenhouse / ResumeBuilder ghost job findings, Acquire.com / Flippa 2026 SaaS M&A multiples, and updated competitor pricing for Teal+, Huntr Pro, Jobscan, LazyApply, and LoopCV).
 
@@ -54,7 +62,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **12 RPM Rate Throttle**: Standardized Gemini leaky-bucket pacing to 5.0s intervals (`MIN_CALL_INTERVALS["gemini"] = 5.0`), safely below the 15 RPM free tier limit.
 
 ### Maintenance
-- **Test Suite Expansion to 505 Tests**: Added dedicated unit tests for `SMTPSession`, `MAX_DAILY_SEND`, `prune_pipeline_runs`, and daily briefing delivery guarantee verification, bringing the test suite to **505 passed tests (100% pass rate)**.
+- **Test Suite Expansion to 505 Tests**: Added dedicated unit tests for `SMTPSession`, `MAX_DAILY_SEND`, `prune_pipeline_runs`, and daily briefing delivery guarantee verification, bringing the test suite to **522 passed tests (100% pass rate)**.
 
 ## [1.0.4] — 2026-09-29
 
@@ -207,6 +215,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.1.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.7
 [1.0.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.7
 [1.0.6]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.6
 [1.0.5]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.5
