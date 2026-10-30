@@ -1255,7 +1255,7 @@ async function fetchAndRenderJobs(showLoadingIndicator = true) {
   appState.sort = sortSelect ? sortSelect.value : 'date';
   if (locFilterSelect) appState.locationFilter = locFilterSelect.value || 'all';
 
-  Storage.set(localStorage, STORAGE_KEYS.SEARCH_QUERY, appState.search);
+  Storage.set(sessionStorage, STORAGE_KEYS.SEARCH_QUERY, appState.search);
   Storage.set(localStorage, STORAGE_KEYS.ATS_FILTER, appState.ats);
   Storage.set(localStorage, STORAGE_KEYS.SORT_BY, appState.sort);
   Storage.set(localStorage, STORAGE_KEYS.LOCATION_FILTER, appState.locationFilter);
@@ -1468,6 +1468,23 @@ function clearSearch() {
     input.focus();
   }
   if (clearBtn) clearBtn.style.display = 'none';
+  appState.page = 1;
+  fetchAndRenderJobs(false);
+}
+
+function applySearchFilter(query) {
+  const cleanQuery = (query || '').trim();
+  switchTab('tracker');
+  const input = document.getElementById('tracker-search-input');
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (input) {
+    input.value = cleanQuery;
+    input.focus();
+  }
+  if (clearBtn) {
+    clearBtn.style.display = cleanQuery ? 'flex' : 'none';
+  }
+  appState.search = cleanQuery;
   appState.page = 1;
   fetchAndRenderJobs(false);
 }
@@ -1839,11 +1856,24 @@ function renderCandidateSummary(profile) {
   if (titleEl) {
     titleEl.innerText = savedTitle || (isFilled ? 'Candidate Profile' : 'Click to configure your profile');
     titleEl.classList.toggle('profile-incomplete-label', !savedTitle);
+    if (savedTitle) {
+      titleEl.setAttribute('data-action', 'search-tag');
+      titleEl.setAttribute('data-tag', savedTitle);
+      titleEl.setAttribute('title', `Filter jobs by ${savedTitle}`);
+      titleEl.style.cursor = 'pointer';
+    } else {
+      titleEl.setAttribute('data-action', 'open-profile-modal');
+      titleEl.removeAttribute('data-tag');
+      titleEl.removeAttribute('title');
+      titleEl.style.cursor = '';
+    }
   }
 
   if (skillsContainer) {
     if (skillsList.length > 0) {
-      skillsContainer.innerHTML = skillsList.slice(0, 8).map(s => `<span class="studio-skill-tag">${escapeHtml(s)}</span>`).join('');
+      skillsContainer.innerHTML = skillsList.slice(0, 10).map(s => 
+        `<button type="button" class="studio-skill-tag clickable-skill-chip" data-action="search-tag" data-tag="${escapeHtml(s)}" title="Filter job board by ${escapeHtml(s)}">${escapeHtml(s)}</button>`
+      ).join('');
     } else {
       skillsContainer.innerHTML = '<span class="studio-skill-tag studio-skill-placeholder">No skills added yet</span>';
     }
@@ -1979,10 +2009,12 @@ async function openProfileModal(tab = 'resume') {
       populateSection2FromProfile(p, false);
     } else {
       const nameInput  = document.getElementById('prof-name');
+      const titleInput = document.getElementById('prof-title');
       const notifEmail = document.getElementById('notif-target-email');
       const targetsInput = document.getElementById('prof-targets');
       const excludesInput= document.getElementById('prof-excludes');
       if (nameInput)  nameInput.value  = authName || '';
+      if (titleInput) titleInput.value = '';
       if (notifEmail && authEmail) notifEmail.value = authEmail;
       if (targetsInput)  targetsInput.value  = '';
       if (excludesInput) excludesInput.value = '';
@@ -1991,10 +2023,12 @@ async function openProfileModal(tab = 'resume') {
   } catch (err) {
     console.warn('Profile fetch notice:', err);
     const nameInput  = document.getElementById('prof-name');
+    const titleInput = document.getElementById('prof-title');
     const notifEmail = document.getElementById('notif-target-email');
     const targetsInput = document.getElementById('prof-targets');
     const excludesInput= document.getElementById('prof-excludes');
     if (nameInput)  nameInput.value  = authName || '';
+    if (titleInput) titleInput.value = '';
     if (notifEmail && authEmail) notifEmail.value = authEmail;
     if (targetsInput)  targetsInput.value  = '';
     if (excludesInput) excludesInput.value = '';
@@ -2035,15 +2069,19 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     currentAuthSession?.user?.user_metadata?.name ||
     ''
   ).trim();
-  const candidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
-  if (nameInput) {
-    if (candidateName) nameInput.value = candidateName;
-    else if (!nameInput.value.trim()) nameInput.value = authName || '';
+  const rawCandidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
+  const existingNameVal = nameInput ? nameInput.value.trim() : '';
+  const isExistingNameGood = existingNameVal && existingNameVal.includes(' ') && !/\d/.test(existingNameVal);
+
+  // If candidate already typed a clean full name (e.g. "Tanish Jain"), don't overwrite with single word or numeric username
+  let finalName = rawCandidateName;
+  if (isAutoFill && isExistingNameGood && (!rawCandidateName || !rawCandidateName.includes(' ') || /\d/.test(rawCandidateName))) {
+    finalName = existingNameVal;
   }
-  if (onbNameInput) {
-    if (candidateName) onbNameInput.value = candidateName;
-    else if (!onbNameInput.value.trim()) onbNameInput.value = authName || '';
-  }
+  if (!finalName) finalName = existingNameVal || authName || '';
+
+  if (nameInput) nameInput.value = finalName;
+  if (onbNameInput) onbNameInput.value = finalName;
 
   // 2. Core Skills
   const skillsInput = document.getElementById('prof-skills');
@@ -2069,36 +2107,19 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     eduInput.value = p.education.trim();
   }
 
-  // 4. Target Job Titles (Included)
+  // 4. Target Job Titles (Included) & Headline Title
   let targets = [];
-  if (!isAutoFill && Array.isArray(p.target_keywords) && p.target_keywords.length) {
-    targets = [...p.target_keywords];
-  } else if (!isAutoFill && Array.isArray(p.target_titles) && p.target_titles.length) {
-    targets = [...p.target_titles];
-  } else {
-    // When isAutoFill is true OR no explicit target_keywords exist, build a comprehensive list
-    if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
-      targets.push(...p.target_keywords);
-    } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
-      targets.push(...p.target_titles);
-    }
-    if (p.title || p.current_title) {
-      targets.push(p.title || p.current_title);
-    }
-    const rawSkills = Array.isArray(p.skills) ? p.skills : (Array.isArray(p.core_skills) ? p.core_skills : []);
-    const skillsLower = rawSkills.map(s => String(s).toLowerCase());
-    if (skillsLower.some(s => s.includes('react') || s.includes('vue') || s.includes('front') || s.includes('javascript') || s.includes('next') || s.includes('typescript') || s.includes('html') || s.includes('css'))) {
-      targets.push('Full Stack Developer', 'Frontend Engineer', 'Software Engineer');
-    }
-    if (skillsLower.some(s => s.includes('python') || s.includes('node') || s.includes('flask') || s.includes('fastapi') || s.includes('backend') || s.includes('django') || s.includes('sql') || s.includes('java') || s.includes('golang') || s.includes('c++') || s.includes('c#'))) {
-      targets.push('Backend Engineer', 'Software Engineer');
-    }
-    if (skillsLower.some(s => s.includes('machine learning') || s.includes('ai') || s.includes('deep learning') || s.includes('data science') || s.includes('pytorch') || s.includes('tensorflow') || s.includes('llm') || s.includes('nlp'))) {
-      targets.push('AI Engineer', 'Machine Learning Engineer', 'Data Scientist');
-    }
-    if (targets.length === 0) {
-      targets = ['Software Engineer', 'Full Stack Developer', 'Backend Engineer'];
-    }
+  if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
+    targets = p.target_keywords.map(s => String(s).trim()).filter(Boolean);
+  } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
+    targets = p.target_titles.map(s => String(s).trim()).filter(Boolean);
+  }
+  const mainTitle = (p.title || p.current_title || '').trim();
+  if (mainTitle && !targets.some(t => t.toLowerCase() === mainTitle.toLowerCase())) {
+    targets.unshift(mainTitle);
+  }
+  if (targets.length === 0) {
+    targets = ['Software Engineer'];
   }
   const targetsStr = Array.from(new Set(targets)).join(', ');
   const targetsInput = document.getElementById('prof-targets');
@@ -2108,7 +2129,12 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   const titleInput = document.getElementById('prof-title');
   if (titleInput) {
-    titleInput.value = (p.title || p.current_title || (targets.length > 0 ? targets[0] : '')).trim();
+    const existingTitle = titleInput.value.trim();
+    if (mainTitle) {
+      titleInput.value = mainTitle;
+    } else if (!existingTitle && targets.length > 0) {
+      titleInput.value = targets[0];
+    }
   }
 
   // 5. Excluded Title Keywords
@@ -2141,10 +2167,15 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     else if (years <= 3) expKey = '1-3';
     else if (years <= 5) expKey = '3-5';
     else expKey = '5+';
-  } else if (seniority.includes('senior') || seniority.includes('lead') || seniority.includes('staff')) {
+  } else if (seniority.includes('senior') || seniority.includes('lead') || seniority.includes('staff') || seniority.includes('principal')) {
     expKey = '5+';
-  } else if (seniority.includes('intern') || seniority.includes('fresher') || seniority.includes('new-grad') || isAutoFill) {
-    expKey = (years === 0 || seniority.includes('intern') || seniority.includes('fresher')) ? 'fresher' : '0-1';
+  } else if (seniority.includes('mid')) {
+    expKey = '1-3';
+  } else if (seniority.includes('intern') || seniority.includes('fresher') || seniority.includes('new-grad')) {
+    expKey = 'fresher';
+  } else if (years === 0) {
+    expKey = '0-1';
+  }
   }
 
   ['prof-exp', 'onboard-exp'].forEach(nameAttr => {
@@ -2293,12 +2324,11 @@ async function autoFillRolesFromResume() {
     return;
   }
 
-  // If parsedResumeData already exists in memory for this exact resume text, populate all Step 2 fields instantly
+  // If parsedResumeData already exists in memory for this exact resume text, populate Step 2 fields instantly
   if (parsedResumeData && lastParsedResumeText === resumeText && (parsedResumeData.target_keywords?.length || parsedResumeData.skills?.length || parsedResumeData.name || parsedResumeData.title)) {
-    activeProfileData = { ...activeProfileData, ...parsedResumeData, resume_text: resumeText };
+    // Populate form fields only — do NOT mutate activeProfileData or save until explicit save click
     populateSection2FromProfile(parsedResumeData, true);
-    renderCandidateSummary(activeProfileData);
-    showToast('All Step 2 criteria auto-filled from your resume!', 'success', 3500);
+    showToast('Criteria auto-filled from resume. Review and click "Save Profile" to apply.', 'success', 3500);
     return;
   }
 
@@ -2326,11 +2356,11 @@ async function autoFillRolesFromResume() {
       if (currentName) {
         p.name = currentName;
       }
-      activeProfileData = { ...activeProfileData, ...p, resume_text: resumeText };
-      renderCandidateSummary(activeProfileData);
 
+      // Populate form fields in modal. Do NOT mutate activeProfileData or renderCandidateSummary()
+      // until user explicitly clicks "Save Profile" or "Save Changes"!
       populateSection2FromProfile(p, true);
-      showToast('All Step 2 criteria auto-filled from your resume!', 'success', 3500);
+      showToast('Criteria auto-filled into form. Review and click "Save Profile" to apply.', 'success', 3500);
     } else {
       showToast('Auto-fill notice: ' + (data.message || 'could not parse criteria'), 'info');
     }
@@ -2360,6 +2390,11 @@ function closeProfileModal() {
   if (dropText) dropText.innerText = 'Click or drag & drop a new resume PDF / TXT file';
   const fileInput = document.getElementById('resume-file-input');
   if (fileInput) fileInput.value = '';
+
+  // If modal was closed without saving, re-populate modal inputs from confirmed activeProfileData
+  if (activeProfileData) {
+    populateSection2FromProfile(activeProfileData, false);
+  }
 }
 
 function flushUserProfileData() {
@@ -2567,29 +2602,11 @@ async function submitTextContextParse() {
     const data = await parseJsonResponse(res);
     if (data.status === 'success') {
       const p = data.profile || {};
-      activeProfileData = { ...activeProfileData, ...p, resume_text: rawText };
-      renderCandidateSummary(activeProfileData);
+      parsedResumeData = p;
+      lastParsedResumeText = rawText;
 
-      // Auto-fill form inputs
-      const nameInput = document.getElementById('prof-name');
-      const titleInput = document.getElementById('prof-title');
-      const yearsInput = document.getElementById('prof-years');
-      const eduInput = document.getElementById('prof-education');
-      const skillsInput = document.getElementById('prof-skills');
-      const targetsInput = document.getElementById('prof-targets');
-      const excludesInput = document.getElementById('prof-excludes');
-
-      if (nameInput && p.name) nameInput.value = p.name;
-      if (titleInput && p.title) titleInput.value = p.title;
-      if (yearsInput && p.experience_years) yearsInput.value = p.experience_years;
-      if (eduInput && p.education) eduInput.value = p.education;
-      if (skillsInput && p.skills) skillsInput.value = Array.isArray(p.skills) ? p.skills.join(', ') : p.skills;
-      if (targetsInput && p.target_keywords && p.target_keywords.length) {
-        targetsInput.value = Array.isArray(p.target_keywords) ? p.target_keywords.join(', ') : p.target_keywords;
-      }
-      if (excludesInput && p.exclude_keywords && p.exclude_keywords.length) {
-        excludesInput.value = Array.isArray(p.exclude_keywords) ? p.exclude_keywords.join(', ') : p.exclude_keywords;
-      }
+      // Populate form inputs only — do NOT mutate activeProfileData until user saves
+      populateSection2FromProfile(p, true);
 
       showToast('Candidate profile extracted from text context!', 'success');
       setTimeout(() => profileWizardGoTo(2), 600);
@@ -2639,7 +2656,6 @@ async function handleResumeFileSelectedAndParse(event) {
       const extractedText = data.resume_text || p.resume_text || '';
       parsedResumeData = p;
       lastParsedResumeText = extractedText;
-      activeProfileData = { ...activeProfileData, resume_text: extractedText, resume_filename: file.name };
 
       // Update dropzone label and text context textarea in Step 1
       if (dropText) dropText.innerText = `Text extracted from ${file.name}`;
@@ -2776,7 +2792,6 @@ async function submitResumeParse() {
       const extractedText = data.resume_text || p.resume_text || pasteText || '';
       parsedResumeData = p;
       lastParsedResumeText = extractedText;
-      activeProfileData = { ...activeProfileData, resume_text: extractedText };
       const resumeTextInput = document.getElementById('prof-resume-text') || document.getElementById('resume-paste-text');
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
     } else {
@@ -2890,7 +2905,7 @@ async function saveProfilePreferences() {
     target_keywords: targets,
     exclude_keywords: excludes,
     resume_text: resumeText,
-    resume_filename: activeProfileData?.resume_filename || '',
+    resume_filename: selectedResumeFile?.name || activeProfileData?.resume_filename || '',
     email_notifications_enabled: notifEnabled,
     mail_mode: mailMode,
     notification_email: notifEmail,
@@ -3490,6 +3505,13 @@ document.addEventListener('click', (e) => {
     case 'clear-search':
       clearSearch();
       break;
+    case 'search-tag': {
+      const tag = actionTarget.getAttribute('data-tag') || actionTarget.innerText.trim();
+      if (tag) {
+        applySearchFilter(tag);
+      }
+      break;
+    }
     case 'set-filter': {
       const filter = actionTarget.getAttribute('data-filter') || 'all';
       setFilter(filter);
@@ -4091,7 +4113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   appState.locationFilter = locParam || Storage.get(localStorage, STORAGE_KEYS.LOCATION_FILTER, 'all') || 'all';
   appState.ats = atsParam || Storage.get(localStorage, STORAGE_KEYS.ATS_FILTER, 'all');
   appState.sort = sortParam || Storage.get(localStorage, STORAGE_KEYS.SORT_BY, 'date');
-  appState.search = searchParam || Storage.get(localStorage, STORAGE_KEYS.SEARCH_QUERY, '');
+  appState.search = searchParam || Storage.get(sessionStorage, STORAGE_KEYS.SEARCH_QUERY, '');
 
   if (kitParam) {
     appState.activeKitId = kitParam;

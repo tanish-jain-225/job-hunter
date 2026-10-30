@@ -42,7 +42,6 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
         "JavaScript",
         "TypeScript",
         "Golang",
-        "Go",
         "Java",
         "C++",
         "C#",
@@ -61,7 +60,6 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
         "Flask",
         "Django",
         "React",
-        "React.js",
         "Next.js",
         "Node.js",
         "Express.js",
@@ -71,7 +69,6 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
         "CI/CD",
         "Git",
         "Tailwind CSS",
-        "Tailwind",
         "Jest",
         "Playwright",
         "Firebase",
@@ -84,8 +81,12 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
     for kw in common_keywords:
         escaped = re.escape(kw)
         pattern = rf"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])"
-        if re.search(pattern, resume_text, re.IGNORECASE):
+        flags = re.IGNORECASE if kw not in ("AI",) else 0
+        if re.search(pattern, resume_text, flags):
             found_skills.append(kw)
+    if "Golang" not in found_skills and re.search(r"(?<![a-zA-Z0-9])Go(?![a-zA-Z0-9])", resume_text):
+        if re.search(r"(?i)\b(?:golang|go\s+developer|go\s+engineer|go\s+routine)\b", resume_text):
+            found_skills.append("Go")
     return found_skills
 
 
@@ -293,16 +294,24 @@ def api_resume_upload():
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
+    existing: dict[str, Any] = (memory.get_user_profile(email, token=token) or {}) if memory.is_configured else {}
+
     if not parsed_profile or not isinstance(parsed_profile, dict):
         # Fallback smart extraction from resume text if LLM unavailable or times out
         username_part = email.split("@")[0]
-        derived_name = ""
-        derived_title = ""
-        derived_edu = ""
+        derived_name = existing.get("name") or ""
+        derived_title = existing.get("title") or ""
+        derived_edu = existing.get("education") or ""
         if resume_text:
             lines = [line.strip() for line in resume_text.splitlines() if line.strip()]
-            first_lines = [line for line in lines[:10] if len(line) < 50]
-            if first_lines:
+            name_skip_terms = {"resume", "curriculum vitae", "cv", "portfolio", "github", "linkedin", "contact", "email", "phone"}
+            first_lines = [
+                line for line in lines[:10]
+                if len(line) < 50
+                and not any(term in line.lower() for term in name_skip_terms)
+                and not re.search(r"[@:/0-9]", line)
+            ]
+            if not derived_name and first_lines:
                 derived_name = first_lines[0]
             title_keywords = [
                 "Engineer", "Developer", "Architect", "Scientist", "Designer",
@@ -310,8 +319,9 @@ def api_resume_upload():
             ]
             for line in lines[:15]:
                 if any(tk.lower() in line.lower() for tk in title_keywords) and len(line) < 60:
-                    derived_title = line
-                    break
+                    if not any(term in line.lower() for term in name_skip_terms):
+                        derived_title = line
+                        break
             edu_keywords = [
                 "B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master",
                 "Degree", "University", "College", "Institute",
@@ -322,42 +332,73 @@ def api_resume_upload():
                     break
 
         if not derived_name or len(derived_name) > 40:
-            derived_name = " ".join(
-                part.capitalize() for part in username_part.replace(".", " ").replace("_", " ").split()
-            )
+            cleaned_username = re.sub(r"\d+", "", username_part).replace(".", " ").replace("_", " ").strip()
+            derived_name = " ".join(part.capitalize() for part in cleaned_username.split()) or "Candidate"
 
         skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
 
+        derived_years = 0.0
+        if resume_text:
+            yoe_match = re.search(
+                r"(?i)(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:experience|exp|industry experience|software experience)",
+                resume_text,
+            )
+            if yoe_match:
+                try:
+                    derived_years = float(yoe_match.group(1))
+                except ValueError:
+                    pass
+            if derived_years == 0.0:
+                yoe_match_2 = re.search(r"(?i)(?:experience|exp):\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)", resume_text)
+                if yoe_match_2:
+                    try:
+                        derived_years = float(yoe_match_2.group(1))
+                    except ValueError:
+                        pass
+        if derived_years == 0.0 and existing.get("experience_years"):
+            try:
+                derived_years = float(existing["experience_years"])
+            except (ValueError, TypeError):
+                pass
+
+        if derived_years <= 0.0:
+            derived_exp_level = "fresher"
+            derived_seniority = "entry"
+        elif derived_years < 1.0:
+            derived_exp_level = "0-1"
+            derived_seniority = "entry"
+        elif derived_years < 3.0:
+            derived_exp_level = "1-3"
+            derived_seniority = "mid"
+        elif derived_years < 5.0:
+            derived_exp_level = "3-5"
+            derived_seniority = "mid"
+        else:
+            derived_exp_level = "5+"
+            derived_seniority = "senior"
+
         target_titles: list[str] = []
-        if derived_title:
+        if isinstance(existing.get("target_keywords"), list):
+            target_titles.extend(existing["target_keywords"])
+        elif derived_title:
             target_titles.append(derived_title)
-        if any(s.lower() in ["python", "django", "fastapi", "flask", "node.js", "backend", "golang", "java"] for s in skills_list):
-            if "Backend Engineer" not in target_titles:
-                target_titles.append("Backend Engineer")
-        if any(s.lower() in ["react", "next.js", "typescript", "frontend", "vue", "javascript"] for s in skills_list):
-            if "Frontend Engineer" not in target_titles:
-                target_titles.append("Frontend Engineer")
-        if any(s.lower() in ["full stack", "fullstack", "node.js", "react", "next.js"] for s in skills_list):
-            if "Full Stack Developer" not in target_titles:
-                target_titles.append("Full Stack Developer")
-        if not target_titles:
-            target_titles = ["Software Engineer", "Full Stack Developer"]
+        else:
+            target_titles.append("Software Engineer")
 
         parsed_profile = {
             "name": derived_name or "",
             "current_title": derived_title or "Software Engineer",
-            "years_experience": 0.0,
+            "years_experience": derived_years,
             "education": derived_edu or "",
             "core_skills": skills_list,
             "target_titles": target_titles[:5],
-            "domains": ["Software Engineering", "Full Stack", "Web Development"],
+            "domains": ["Software Engineering"],
             "notable_projects": [],
-            "seniority": "mid",
-            "experience_level": "0-1",
+            "seniority": derived_seniority,
+            "experience_level": derived_exp_level,
         }
 
-    # Fetch existing profile to retain notification preferences
-    existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
+    # Extract existing notification preferences
     existing_notif = bool((existing or {}).get("email_notifications_enabled", False))
     existing_target_email = (existing or {}).get("notification_email") or email
 

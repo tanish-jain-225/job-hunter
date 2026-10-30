@@ -410,8 +410,11 @@ def api_jobs():
 
         # Filter search text
         if search:
+            skills_part = " ".join(item.get("skills") or []) if isinstance(item.get("skills"), list) else str(item.get("skills") or "")
+            reasons_part = str(item.get("fit_reasons") or item.get("match_reason") or "")
+            tags_part = " ".join(item.get("tags") or []) if isinstance(item.get("tags"), list) else ""
             searchable = (
-                f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats}".lower()
+                f"{item.get('company', '')} {item.get('title', '')} {item.get('location', '')} {job_ats} {skills_part} {reasons_part} {tags_part}".lower()
             )
             if search not in searchable:
                 continue

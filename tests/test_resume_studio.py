@@ -419,4 +419,88 @@ def test_resume_upload_unsupported_extension_rejection(client, mock_supabase_env
     assert "Only PDF and TXT" in res.get_json()["message"]
 
 
+def test_resume_upload_fallback_experience_and_clean_name(client, mock_supabase_env):
+    """Verify smart fallback parses YoE accurately and sanitizes username without numeric suffixes."""
+    raw_resume = """
+    Tanish Jain
+    Full Stack Developer
+    B.Tech Computer Science
+    4 years of experience building scalable distributed systems in Python and React.
+    Docker, PostgreSQL, FastAPI.
+    """
+    with (
+        patch("jobhunt.llm.build_profile", side_effect=Exception("LLM Timeout")),
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [{"name": "Tanish Jain"}])),
+    ):
+        res = client.post(
+            "/api/resume/upload",
+            json={"resume_text": raw_resume, "filename": "resume.txt"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+        prof = data["profile"]
+        assert prof["name"] == "Tanish Jain"
+        assert prof["experience_years"] == 4.0
+        assert prof["experience_level"] == "3-5"
+        assert prof["seniority"] == "mid"
+        assert "Python" in prof["skills"]
+        assert "React" in prof["skills"]
+        assert "FastAPI" in prof["skills"]
+
+
+def test_api_jobs_search_matches_skills_and_fit_reasons(client, mock_supabase_env, monkeypatch):
+    """Verify /api/jobs?search= matches skills and fit reasons."""
+    from jobhunt.store import Store
+
+    mock_store = Store()
+    mock_store.data = {
+        "greenhouse:eng-1": {
+            "title": "Software Engineer II",
+            "company": "Acme Corp",
+            "location": "Bengaluru",
+            "score": 8.5,
+            "skills": ["Rust", "Distributed Systems"],
+            "fit_reasons": "Strong alignment with backend distributed systems",
+        },
+        "lever:front-1": {
+            "title": "Web Developer",
+            "company": "Beta Inc",
+            "location": "Remote",
+            "score": 7.0,
+            "skills": ["Vue.js"],
+            "fit_reasons": "Frontend focus",
+        },
+    }
+    monkeypatch.setattr("jobhunt.web.routes.jobs.Store", lambda *args, **kwargs: mock_store)
+
+    # Search for Rust (matches skills)
+    res = client.get("/api/jobs?search=rust", headers={"Authorization": "Bearer mock-token"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["job_id"] == "greenhouse:eng-1"
+
+    # Search for "backend distributed" (matches fit_reasons)
+    res = client.get("/api/jobs?search=backend%20distributed", headers={"Authorization": "Bearer mock-token"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["job_id"] == "greenhouse:eng-1"
+
+
+def test_profile_settings_modal_elements_and_structure(client):
+    """Verify templates have visible prof-title input and step 2 save button."""
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    # prof-title should NOT be hidden
+    assert '<input type="hidden" id="prof-title"' not in html
+    assert 'id="prof-title"' in html
+    assert 'Headline Professional Title' in html
+    assert 'data-action="save-profile-preferences"' in html
+
+
+
 

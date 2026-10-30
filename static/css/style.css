@@ -1483,6 +1483,23 @@ input:checked + .slider::before {
   font-weight: 600;
 }
 
+.studio-skill-tag.clickable-skill-chip {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.studio-skill-tag.clickable-skill-chip:hover {
+  background: var(--primary-light, #e0e7ff);
+  border-color: var(--primary, #4f46e5);
+  color: var(--primary, #4f46e5);
+  transform: translateY(-1px);
+}
+
 /* Placeholder tag shown in sidebar when profile has no skills yet */
 .studio-skill-tag.studio-skill-placeholder {
   color: var(--text-muted);
