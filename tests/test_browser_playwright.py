@@ -12,13 +12,33 @@ import pytest
 from werkzeug.serving import make_server
 
 try:
-    from playwright.sync_api import sync_playwright, Page
+    from playwright.sync_api import sync_playwright, Page, Error as PlaywrightError
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
+    PlaywrightError = Exception  # type: ignore
+
+
+def is_chromium_available() -> bool:
+    """Check if Playwright is installed and the Chromium binary is present on disk."""
+    if not PLAYWRIGHT_AVAILABLE:
+        return False
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            exe_path = getattr(p.chromium, "executable_path", None)
+            return bool(exe_path and Path(exe_path).is_file())
+    except Exception:
+        return False
+
+
+CHROMIUM_AVAILABLE = is_chromium_available()
 
 pytestmark = [
-    pytest.mark.skipif(not PLAYWRIGHT_AVAILABLE, reason="playwright is required for browser tests"),
+    pytest.mark.skipif(
+        not CHROMIUM_AVAILABLE,
+        reason="playwright and chromium browser binary are required; run 'playwright install chromium'",
+    ),
     pytest.mark.playwright,
 ]
 
@@ -67,78 +87,88 @@ def browser_page(live_server) -> Generator[tuple[Page, list[str], list[str]], No
     console_errors: list[str] = []
     page_errors: list[str] = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
-        )
-        context = browser.new_context(viewport={"width": 1280, "height": 800})
-        page = context.new_page()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
+            )
+            context = browser.new_context(viewport={"width": 1280, "height": 800})
+            page = context.new_page()
 
-        # Abort external resources to prevent network hangs in sandboxed or offline test runs
-        page.route(
-            "**/*",
-            lambda route: route.abort()
-            if any(h in route.request.url for h in ["fonts.googleapis.com", "fonts.gstatic.com", "jsdelivr.net"])
-            else route.continue_()
-        )
+            # Abort external resources to prevent network hangs in sandboxed or offline test runs
+            page.route(
+                "**/*",
+                lambda route: route.abort()
+                if any(h in route.request.url for h in ["fonts.googleapis.com", "fonts.gstatic.com", "jsdelivr.net"])
+                else route.continue_()
+            )
 
-        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
-        page.on("pageerror", lambda err: page_errors.append(str(err)))
+            page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+            page.on("pageerror", lambda err: page_errors.append(str(err)))
 
-        yield page, console_errors, page_errors
+            yield page, console_errors, page_errors
 
-        browser.close()
+            browser.close()
+    except Exception as exc:
+        if "Executable doesn't exist" in str(exc):
+            pytest.skip(f"Chromium binary not found: {exc}")
+        raise
 
 
 def test_landing_page_unauthenticated_render(live_server):
     """Verify landing page loads cleanly without JS errors when unauthenticated."""
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
-        page = browser.new_page()
-        page_errors = []
-        page.on("pageerror", lambda err: page_errors.append(str(err)))
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+            page = browser.new_page()
+            page_errors = []
+            page.on("pageerror", lambda err: page_errors.append(str(err)))
 
-        page.route(
-            "**/*",
-            lambda route: route.abort()
-            if any(h in route.request.url for h in ["fonts.googleapis.com", "fonts.gstatic.com", "jsdelivr.net"])
-            else route.continue_()
-        )
-
-        # Force unauthenticated landing view via auth config route mock
-        def mock_auth_cfg(route):
-            route.fulfill(
-                status=200,
-                content_type="application/json",
-                body=json.dumps({"status": "success", "auth_required": True, "supabase_url": "https://test.supabase.co", "supabase_anon_key": "test_anon_key"})
+            page.route(
+                "**/*",
+                lambda route: route.abort()
+                if any(h in route.request.url for h in ["fonts.googleapis.com", "fonts.gstatic.com", "jsdelivr.net"])
+                else route.continue_()
             )
 
-        page.route("**/api/auth/config", mock_auth_cfg)
-        page.goto(f"{live_server}/", wait_until="domcontentloaded")
-        page.wait_for_timeout(600)
+            # Force unauthenticated landing view via auth config route mock
+            def mock_auth_cfg(route):
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body=json.dumps({"status": "success", "auth_required": True, "supabase_url": "https://test.supabase.co", "supabase_anon_key": "test_anon_key"})
+                )
 
-        # Landing view should be visible
-        assert page.is_visible("#landing-view")
-        assert page.is_visible("#landing-nav-links")
-        assert not page.is_visible("#dashboard-view")
+            page.route("**/api/auth/config", mock_auth_cfg)
+            page.goto(f"{live_server}/", wait_until="domcontentloaded")
+            page.wait_for_timeout(600)
 
-        # Verify hero elements
-        title_text = page.inner_text(".landing-hero-title")
-        assert "Stop sifting through job spam" in title_text
+            # Landing view should be visible
+            assert page.is_visible("#landing-view")
+            assert page.is_visible("#landing-nav-links")
+            assert not page.is_visible("#dashboard-view")
 
-        # Verify auth tab switching
-        page.click("#tab-signup")
-        page.wait_for_timeout(200)
-        assert page.is_visible("#form-signup")
-        assert not page.is_visible("#form-signin")
+            # Verify hero elements
+            title_text = page.inner_text(".landing-hero-title")
+            assert "Stop sifting through job spam" in title_text
 
-        page.click("#tab-signin")
-        page.wait_for_timeout(200)
-        assert page.is_visible("#form-signin")
+            # Verify auth tab switching
+            page.click("#tab-signup")
+            page.wait_for_timeout(200)
+            assert page.is_visible("#form-signup")
+            assert not page.is_visible("#form-signin")
 
-        assert len(page_errors) == 0, f"Page errors: {page_errors}"
-        browser.close()
+            page.click("#tab-signin")
+            page.wait_for_timeout(200)
+            assert page.is_visible("#form-signin")
+
+            assert len(page_errors) == 0, f"Page errors: {page_errors}"
+            browser.close()
+    except Exception as exc:
+        if "Executable doesn't exist" in str(exc):
+            pytest.skip(f"Chromium binary not found: {exc}")
+        raise
 
 
 def test_dashboard_flow_profile_wizard_and_save(browser_page, live_server):
