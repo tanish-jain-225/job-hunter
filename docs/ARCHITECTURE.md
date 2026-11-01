@@ -79,6 +79,10 @@ flowchart TD
 
 ```text
 job-hunter/
+├── CHANGELOG.md                 # Universal release history and notable changes
+├── RELEASE_NOTES.md             # Detailed feature release notes (v1.1.8)
+├── SECURITY.md                  # Vulnerability reporting, security scope, and hardening architecture
+├── README.md                    # Project homepage, live badges, and architectural overview
 ├── assets/                      # Documentation-only vector diagrams & banners
 │   ├── banner.svg               # Vector header banner
 │   └── pipeline-flow.svg        # 5-phase automated architecture infographic
@@ -88,7 +92,6 @@ job-hunter/
 ├── docs/                        # Complete technical documentation suite
 │   ├── API.md                   # REST API contracts, routes, and JSON schemas
 │   ├── ARCHITECTURE.md          # System architecture and developer handbook (this file)
-│   ├── CHANGELOG.md             # Release history and notable changes
 │   ├── CODE_OF_CONDUCT.md       # Community participation standards
 │   ├── CONTRIBUTING.md          # Contribution rules, coding standards, and PR workflows
 │   ├── DASHBOARD.md             # Web UI guide, state sync, and view isolation
@@ -100,7 +103,6 @@ job-hunter/
 │   ├── METRICS.md               # Capacity, cost, and operational metrics
 │   ├── MULTI_USER.md            # Multi-tenant batch execution architecture
 │   ├── PRODUCT_ANALYSIS_WALKTHROUGH.md # Definitive India-first product audit, 2026 research & SaaS valuation
-│   ├── SECURITY.md              # Vulnerability reporting and security controls
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
@@ -168,7 +170,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (522 passing tests)
+├── tests/                       # Automated Test Suite (546 passing tests, 93% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

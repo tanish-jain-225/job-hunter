@@ -641,7 +641,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 522 automated test cases with 92%+ line coverage
+├── tests/                    # 546 automated test cases with 93% statement coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -692,13 +692,13 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**522 unit & integration tests**):
+Run the full automated test suite locally (**546 automated tests**, 93% coverage):
 
 ```bash
 # Run full test suite
 pytest
 
-# Run tests with 90%+ terminal coverage report (92%+ achieved)
+# Run tests with 90%+ terminal coverage report (93% achieved)
 pytest --cov=jobhunt --cov-report=term-missing
 
 # Run static type checker
@@ -716,7 +716,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **522 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest -q`                           | **546 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 
@@ -735,11 +735,11 @@ The repository includes a comprehensive 17-document technical suite:
 - **[Engine Documentation](docs/ENGINE.md)**: Prefilter logic, ATS parsers, and LLM resolution cascade.
 - **[Dashboard Guide](docs/DASHBOARD.md)**: Features and usage of the executive web dashboard.
 - **[Multi-User Operations](docs/MULTI_USER.md)**: Multi-tenant single-pass architecture and batch runner details.
-- **[Security Policy](docs/SECURITY.md)**: Threat model, authentication flows, and data protections.
+- **[Security Policy](SECURITY.md)**: Threat model, authentication flows, and data protections.
 - **[Troubleshooting & FAQ](docs/TROUBLESHOOTING.md)**: Solutions for common setup and operational issues.
 - **[Metrics & Limits](docs/METRICS.md)**: System capacity, provider rate limits, and cost projections.
 - **[Contributing Guidelines](docs/CONTRIBUTING.md)**: Guidelines for developer contributions and code standards.
-- **[Changelog](docs/CHANGELOG.md)**: Version history, release notes, and migration details.
+- **[Changelog](CHANGELOG.md)**: Version history, release notes, and migration details.
 - **[Launch Readiness](docs/LAUNCH_READINESS.md)**: Production launch readiness checklist and audit scores.
 - **[System Specification](docs/JOB_HUNT.md)**: Master architecture specification and initial design prompt.
 - **[Code of Conduct](docs/CODE_OF_CONDUCT.md)**: Community participation guidelines and standards.

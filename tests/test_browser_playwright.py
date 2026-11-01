@@ -20,14 +20,31 @@ except ImportError:
 
 
 def is_chromium_available() -> bool:
-    """Check if Playwright is installed and the Chromium binary is present on disk."""
+    """Check if Playwright is installed and the Chromium binary is present on disk without launching subprocess."""
     if not PLAYWRIGHT_AVAILABLE:
         return False
     try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            exe_path = getattr(p.chromium, "executable_path", None)
-            return bool(exe_path and Path(exe_path).is_file())
+        import sys
+        candidates: list[Path] = []
+        if sys.platform == "win32":
+            local_app = os.environ.get("LOCALAPPDATA", "")
+            if local_app:
+                candidates.append(Path(local_app) / "ms-playwright")
+        elif sys.platform == "darwin":
+            candidates.append(Path.home() / "Library" / "Caches" / "ms-playwright")
+        else:
+            candidates.append(Path.home() / ".cache" / "ms-playwright")
+
+        custom = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+        if custom and custom != "0":
+            candidates.insert(0, Path(custom))
+
+        for base in candidates:
+            if base.is_dir():
+                for exe in ("chrome.exe", "chrome", "chrome-headless-shell", "chrome-headless-shell.exe"):
+                    if any(base.glob(f"**/{exe}")):
+                        return True
+        return False
     except Exception:
         return False
 
@@ -227,11 +244,15 @@ def test_dashboard_flow_profile_wizard_and_save(browser_page, live_server):
     assert page.input_value("#prof-name") == "Jordan Lee"
     assert "Lead Software Engineer" in page.input_value("#prof-title")
     assert "Kubernetes" in page.input_value("#prof-skills")
+    # Verify save button is NOT present in Step 2
+    assert not page.is_visible("#btn-profile-save")
 
     # 5. Transition to Step 3
     page.click("#profile-next-2")
     page.wait_for_timeout(300)
     assert page.is_visible("#profile-step-3")
+    # Verify save button IS present at the end in Step 3
+    assert page.is_visible("#btn-profile-save")
 
     # 6. Save Profile
     page.click("#btn-profile-save")

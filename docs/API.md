@@ -406,6 +406,6 @@ All errors follow this shape:
 - **[DASHBOARD.md](DASHBOARD.md)** — Web dashboard features and interactive UI guide.
 - **[SETUP.md](SETUP.md)** — Local development and cloud configuration guide.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
-- **[SECURITY.md](SECURITY.md)** — Security architecture, authentication, and compliance.
+- **[SECURITY.md](../SECURITY.md)** — Security architecture, authentication, and compliance.
 - **[README.md](../README.md)** — Project homepage.
 

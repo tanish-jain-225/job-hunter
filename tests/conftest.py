@@ -7,6 +7,15 @@ from jobhunt.providers import reset_provider_state
 
 
 @pytest.fixture(autouse=True)
+def reset_memory_cache_state():
+    """Ensure in-memory profile and jobs cache is cleanly isolated for every test."""
+    from jobhunt.memory import clear_memory_cache
+    clear_memory_cache()
+    yield
+    clear_memory_cache()
+
+
+@pytest.fixture(autouse=True)
 def reset_global_provider_state():
     """Ensure provider state (counters, cooldowns, throttles) is cleanly isolated for every test."""
     reset_provider_state()

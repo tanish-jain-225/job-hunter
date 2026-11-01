@@ -27,7 +27,7 @@ identity guarantees, not extra steps required for the current deployment.
 - Multi-currency salary regex extraction (`₹X-Y LPA`, `₹Xk/mo`, USD/EUR) and enterprise ATS pagination (SmartRecruiters offset up to 500, Workable cursor up to 500) ensure rich compensation data and complete listing coverage.
 - Dynamic asset hashing (`asset_hash`) ensures instant cache-busting of CSS and JS on production deployments.
 - Ephemeral Vercel serverless worker state automatically hydrates from Supabase `user_pipeline_runs`.
-- Regression status: 522 tests pass on the current suite with zero warnings; strict Mypy typing checks (0 errors across all source files), Ruff linter (0 errors), >=90% test coverage (92%+ achieved), and workflow YAML validation pass.
+- Regression status: 546 tests pass on the current suite with zero warnings; strict Mypy typing checks (0 errors across all source files), Ruff linter (0 errors), >=90% test coverage (93% achieved), and workflow YAML validation pass.
 
 ## Current release status
 
@@ -157,6 +157,6 @@ Job Hunter is architected to operate at 100% free-tier economics ($0.00/mo) for 
 - **[SETUP.md](SETUP.md)** — Beginner installation and local quickstart guide.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
 - **[METRICS.md](METRICS.md)** — Operational capacity, storage equilibrium, and cost economics.
-- **[SECURITY.md](SECURITY.md)** — Security architecture, authentication, and compliance.
+- **[SECURITY.md](../SECURITY.md)** — Security architecture, authentication, and compliance.
 - **[README.md](../README.md)** — Project homepage.
 

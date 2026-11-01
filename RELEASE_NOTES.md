@@ -30,8 +30,10 @@
 
 ### 🧩 UI Stability & Modal Lifecycle Improvements
 * **Resolved Critical Script Deadlock**: Identified and fixed an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
+* **Clean 3-Step Profile Wizard Lifecycle**: Consolidated the profile save action strictly at the end of the 3-step setup flow (`#btn-profile-save` in Step 3: Alert Settings), removing redundant intermediary save triggers from Step 2 to guarantee a smooth, unambiguous candidate onboarding flow.
 * **Form Button Explicit Typing**: Explicitly assigned `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.
 * **Test Isolation via Conftest**: Added an autouse `isolate_profile_file` fixture in `tests/conftest.py` ensuring `profile.json` on disk is preserved and restored cleanly across test sessions.
+* **Documentation Unification**: Eliminated redundant markdown files (`docs/CHANGELOG.md` and `docs/SECURITY.md`), consolidating canonical policies into root `CHANGELOG.md` and `SECURITY.md`, and verifying all 205 markdown cross-links with 0 broken references.
 
 ### 🧪 Diagnostic & Edge-Case Coverage Expansion
 * **Preflight Diagnostics (100% Coverage)**: Added comprehensive unit tests in `tests/test_preflight.py` covering all healthy environments, missing or corrupt YAML, missing dependencies, Python version checks, and permission diagnostics.
