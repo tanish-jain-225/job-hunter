@@ -25,6 +25,8 @@
 
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
+  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.1.8)</strong></a> &bull;
+  <a href="CHANGELOG.md"><strong>Changelog</strong></a> &bull;
   <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
   <a href="docs/GUIDE.md">Candidate Playbook</a> &bull;
   <a href="docs/SETUP.md">Setup Guide</a> &bull;

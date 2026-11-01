@@ -1,4 +1,17 @@
-# Release Notes
+# 🚀 Release Notes — Job Hunter
+
+<p align="center">
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.8"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-546%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
+</p>
+
+> **Current Production Version**: `v1.1.8` | **Release Date**: November 1, 2026
+>
+> **Quick Links**: [GitHub Release v1.1.8](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+
+---
 
 ## [v1.1.8] - 2026-11-01
 
