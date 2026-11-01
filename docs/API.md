@@ -42,7 +42,7 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 {
   "status": "healthy",
   "service": "job-hunter",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,

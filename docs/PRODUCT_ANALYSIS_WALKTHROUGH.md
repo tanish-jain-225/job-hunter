@@ -1,6 +1,6 @@
 # Job Hunter (`job-hunter`) — Definitive India-First Product Audit & Valuation Walkthrough (with Global Compatibility)
 
-* **Release Baseline**: Production Release `v1.1.7`  
+* **Release Baseline**: Production Release `v1.1.8`  
 * **Repository**: [`tanish-jain-225/job-hunter`](https://github.com/tanish-jain-225/job-hunter.git)  
 * **Active Branch**: [`main`](https://github.com/tanish-jain-225/job-hunter/tree/main)  
 * **Architecture Scope**: Full-Stack Autonomous Career Intelligence Platform (Core Application Engine, Multi-Tenant Database, Test Harness, Web Dashboard & Cloud Cron Automation)  
@@ -130,7 +130,7 @@ An autonomous, end-to-end verification audit was executed against live cloud inf
 | **5. Multi-Key Failover** | Gemini Quota Management Pool | Induced simulated quota exhaustion (`HTTP 429`) across multi-key pool in `GEMINI_API_KEY` | Auto-rotated to backup fresh keys without pipeline failure | **PASS** |
 | **6. Email Relay** | Production SMTP Relay | Connected to `SMTP_HOST:587`, issued `STARTTLS`, and authenticated credentials | TLS session established and authenticated | **PASS** |
 | **7. Cloud Dispatch** | GitHub Actions REST API | Authenticated with `GH_TOKEN` for `tanish-jain-225/job-hunter` | HTTP 200; workflow scopes confirmed for `.github/workflows/daily.yml` | **PASS** |
-| **8. Live Web Board** | Vercel Serverless Deployment | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.1.7"}` | **PASS** |
+| **8. Live Web Board** | Vercel Serverless Deployment | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.1.8"}` | **PASS** |
 | **9. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules | **522 passed / 0 failures (100% pass rate, 92%+ coverage)** | **PASS** |
 | **10. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across all source files** | **PASS** |
 

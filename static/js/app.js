@@ -1136,7 +1136,11 @@ function setFilter(filter) {
 function resolveJobUrl(j) {
   if (!j) return '#';
   let url = (j.url || '').trim();
-  if (url && url !== '#' && !url.startsWith('javascript:')) {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.startsWith('javascript:') || lowerUrl.startsWith('data:') || lowerUrl.startsWith('vbscript:')) {
+    url = '';
+  }
+  if (url && url !== '#') {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
@@ -1171,14 +1175,16 @@ function resolveJobUrl(j) {
   return `https://www.google.com/search?q=${encodeURIComponent(query || 'tech jobs apply')}`;
 }
 
-// Highlight matching search query in strings safely
+// Highlight matching search query in strings safely without splitting HTML entities
 function highlightText(text, query) {
   if (!text) return '';
   const escapedText = escapeHtml(text);
   if (!query || !query.trim()) return escapedText;
 
-  const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${q})`, 'gi');
+  const escapedQuery = escapeHtml(query.trim()).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!escapedQuery) return escapedText;
+
+  const regex = new RegExp(`(${escapedQuery})(?![^&]*;)`, 'gi');
   return escapedText.replace(regex, '<span class="highlight-match">$1</span>');
 }
 

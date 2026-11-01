@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.8] — 2026-11-01
+
+### Added
+- **Headless Playwright Browser Test Suite**: Added a dedicated browser testing suite in `tests/test_browser_playwright.py` using Playwright Chromium with 4 tests covering unauthenticated landing view, multi-step onboarding wizard progression, live tracker search query and ATS chip filtering, and modal escape/dismissal lifecycles.
+- **Diagnostic Preflight Checks Suite**: Added comprehensive test coverage in `tests/test_preflight.py` bringing `jobhunt/preflight.py` to 100% test coverage across all healthy environments, missing or corrupt configuration, missing dependencies, Python version checks, and directory write permissions.
+- **Custom Target Companies & Jobs Route Test Suite**: Added `tests/test_custom_companies_and_edge_cases.py` verifying board discovery, live board URL verification, custom company management in cloud memory and local cache, boosting `jobhunt/web/routes/jobs.py` to 91% and `jobhunt/web/routes/pipeline.py` cloud dispatch coverage.
+
+### Security
+- **Protocol Injection Defense in Job URLs**: Hardened `resolveJobUrl()` in `static/js/app.js` to strip `javascript:`, `data:`, and `vbscript:` pseudo-protocols, ensuring recruiter URLs can only open safe `http://` and `https://` destinations.
+- **HTML Entity-Safe Search Highlighting**: Updated `highlightText()` in `static/js/app.js` with regex entity lookahead `(?![^&]*;)`, preventing search term queries from corrupting escaped HTML character entities (such as `&amp;` and `&quot;`).
+- **Content Security Policy (CSP) Whitelist**: Added `https://job-hunter-web-board.vercel.app` to CSP `img-src` in `jobhunt/web/__init__.py` to allow official briefing previews without browser warnings.
+- **Candidate Credential Stripping**: Added recursive sanitization in `POST /api/profile` to strip any accidental credential fields (`api_key`, `token`, `secret`, `password`) before writing to persistent storage.
+
+### Fixed
+- **UI Freeze Syntax Error**: Resolved an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
+- **Profile Modal Button Types**: Added `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.
+- **Test State Isolation**: Added an autouse `isolate_profile_file` fixture in `tests/conftest.py` ensuring `profile.json` on disk is preserved and restored cleanly across test sessions.
+
+---
+
 ## [1.1.7] — 2026-10-30
 
 ### Added
@@ -218,6 +238,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.1.8]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8
 [1.1.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.7
 [1.0.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.7
 [1.0.6]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.6

@@ -17,7 +17,10 @@ try:
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
-pytestmark = pytest.mark.skipif(not PLAYWRIGHT_AVAILABLE, reason="playwright is required for browser tests")
+pytestmark = [
+    pytest.mark.skipif(not PLAYWRIGHT_AVAILABLE, reason="playwright is required for browser tests"),
+    pytest.mark.playwright,
+]
 
 
 def find_free_port() -> int:

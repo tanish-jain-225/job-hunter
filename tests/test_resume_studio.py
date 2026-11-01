@@ -502,5 +502,154 @@ def test_profile_settings_modal_elements_and_structure(client):
     assert 'data-action="save-profile-preferences"' in html
 
 
+def test_profile_post_type_validation_rejects_non_strings(client, mock_supabase_env):
+    """Verify POST /api/profile rejects non-string types for name, title, and resume_text with HTTP 400."""
+    for field, invalid_val in [("name", 12345), ("title", ["Senior Dev"]), ("resume_text", {"text": "invalid"})]:
+        res = client.post(
+            "/api/profile",
+            json={field: invalid_val},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 400
+        data = res.get_json()
+        assert data["status"] == "error"
+        assert f"{field} must be a string." in data["message"]
+
+
+def test_profile_post_strips_sensitive_api_keys(client, mock_supabase_env):
+    """Verify POST /api/profile strips sensitive credential fields from candidate profile."""
+    with patch("requests.post", return_value=MagicMock(status_code=201)):
+        res = client.post(
+            "/api/profile",
+            json={
+                "name": "Jane Safe",
+                "title": "Security Architect",
+                "openai_api_key": "sk-secret-key-12345",
+                "custom_token": "token-xyz",
+                "admin_password": "super-secret-password",
+            },
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        profile = res.get_json()["profile"]
+        assert "openai_api_key" not in profile
+        assert "custom_token" not in profile
+        assert "admin_password" not in profile
+
+
+def test_profile_post_cloud_upsert_failure(client, mock_supabase_env):
+    """Verify POST /api/profile returns 503 if Supabase storage upsert fails."""
+    with patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=False):
+        res = client.post(
+            "/api/profile",
+            json={"name": "Cloud Retry", "title": "DevOps"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 503
+        assert "could not be saved" in res.get_json()["message"]
+
+
+def test_resume_upload_corrupt_pdf_fails(client, mock_supabase_env):
+    """Verify POST /api/resume/upload returns 400 when PDF parsing raises ValueError."""
+    with patch("jobhunt.llm.extract_text_from_pdf", side_effect=ValueError("Corrupt PDF stream")):
+        doc_file = io.BytesIO(b"%PDF-1.4 Mock invalid pdf")
+        res = client.post(
+            "/api/resume/upload",
+            data={"file": (doc_file, "corrupt.pdf")},
+            content_type="multipart/form-data",
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 400
+        assert "Corrupt PDF stream" in res.get_json()["message"]
+
+
+def test_resume_upload_non_string_fields_rejected(client, mock_supabase_env):
+    """Verify POST /api/resume/upload rejects non-string resume_text or filename."""
+    res = client.post(
+        "/api/resume/upload",
+        json={"resume_text": 12345, "filename": "test.txt"},
+        headers={"Authorization": "Bearer mock-token"},
+    )
+    assert res.status_code == 400
+    assert "must be strings" in res.get_json()["message"]
+
+
+def test_resume_upload_experience_level_categories(client, mock_supabase_env):
+    """Verify fallback parser categorizes YoE into 0-1, 1-3, and 5+ brackets accurately."""
+    yoe_cases = [
+        ("0.5 years of experience", "0-1", "entry"),
+        ("2 years of experience", "1-3", "mid"),
+        ("7 years of experience", "5+", "senior"),
+    ]
+    for text, exp_level, seniority in yoe_cases:
+        with (
+            patch("jobhunt.llm.build_profile", side_effect=Exception("Timeout")),
+            patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])),
+        ):
+            res = client.post(
+                "/api/resume/upload",
+                json={"resume_text": f"Alex Dev\nSoftware Engineer\n{text}\nPython", "filename": "resume.txt"},
+                headers={"Authorization": "Bearer mock-token"},
+            )
+            assert res.status_code == 200
+            prof = res.get_json()["profile"]
+            assert prof["experience_level"] == exp_level
+            assert prof["seniority"] == seniority
+
+
+def test_profile_preferences_unauthenticated_or_failed_upsert(client, mock_supabase_env):
+    """Verify POST /api/profile/preferences handles unauthenticated context (400) and cloud storage failure (503)."""
+    # 1. Unauthenticated context
+    with patch("jobhunt.web.routes.profile.get_current_user_context", return_value=(None, None)):
+        res = client.post("/api/profile/preferences", json={"notice_period": "immediate"})
+        assert res.status_code == 400
+        assert "Authentication required" in res.get_json()["message"]
+
+    # 2. Cloud storage failure
+    with patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=False):
+        res = client.post(
+            "/api/profile/preferences",
+            json={"notice_period": "immediate"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 503
+        assert "could not be saved" in res.get_json()["message"]
+
+
+def test_profile_unauthenticated_contexts_and_reset_cloud_failure(client, mock_supabase_env):
+    """Verify missing user context returns proper 400/401 and reset cloud failure returns 503."""
+    with patch("jobhunt.web.routes.profile.get_current_user_context", return_value=(None, None)):
+        res_post = client.post("/api/profile", json={"name": "No Auth"})
+        assert res_post.status_code == 400
+        assert "email required" in res_post.get_json()["message"]
+
+        res_upload = client.post("/api/resume/upload", json={"resume_text": "text"})
+        assert res_upload.status_code == 401
+        assert "Authentication required" in res_upload.get_json()["message"]
+
+    with patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=False):
+        res_reset_fail = client.post("/api/profile/reset", headers={"Authorization": "Bearer mock-token"})
+        assert res_reset_fail.status_code == 503
+        assert "could not be saved" in res_reset_fail.get_json()["message"]
+
+
+def test_profile_local_cache_write_exceptions_logged_gracefully(client, mock_supabase_env):
+    """Verify IOError on local file cache writes is caught and does not fail HTTP responses."""
+    with (
+        patch("builtins.open", side_effect=OSError("Disk write denied")),
+        patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=True),
+    ):
+        res_post = client.post("/api/profile", json={"name": "Resilient Dev"}, headers={"Authorization": "Bearer mock-token"})
+        assert res_post.status_code == 200
+
+        res_pref = client.post("/api/profile/preferences", json={"notice_period": "immediate"}, headers={"Authorization": "Bearer mock-token"})
+        assert res_pref.status_code == 200
+
+        res_reset = client.post("/api/profile/reset", headers={"Authorization": "Bearer mock-token"})
+        assert res_reset.status_code == 200
+
+
+
+
 
 

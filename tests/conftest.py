@@ -14,6 +14,20 @@ def reset_global_provider_state():
     reset_provider_state()
 
 
+@pytest.fixture(autouse=True)
+def isolate_profile_file():
+    """Ensure profile.json on disk is preserved and restored across test cases."""
+    from pathlib import Path
+    p = Path("profile.json")
+    original = p.read_text(encoding="utf-8") if p.is_file() else None
+    yield
+    if original is not None:
+        p.write_text(original, encoding="utf-8")
+    elif p.is_file():
+        p.unlink(missing_ok=True)
+
+
+
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_transient_test_artifacts():
     """Ensure test artifacts are cleaned up when the pytest session completes."""

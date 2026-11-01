@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import smtplib
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -306,6 +307,57 @@ def test_mailer_circuit_breaker_max_daily_send(monkeypatch: pytest.MonkeyPatch):
         assert mock_smtp_cls.call_count == 0
 
     mailer.reset_sent_count()
+
+
+def test_mailer_get_sent_count():
+    """Verify get_sent_count reflects dispatched message counter accurately."""
+    mailer.reset_sent_count()
+    assert mailer.get_sent_count() == 0
+    mailer._sent_counter = 5
+    assert mailer.get_sent_count() == 5
+    mailer.reset_sent_count()
+    assert mailer.get_sent_count() == 0
+
+
+def test_build_message_fallback_for_empty_plain_text():
+    """Verify build_message provides a fallback plain-text summary when HTML contains only tags."""
+    msg = mailer.build_message("Test Subject", "<p></p><div></div>", "to@test.com", "from@test.com")
+    content = msg.get_body(preferencelist=("plain",)).get_content()
+    assert "Job Hunter Executive Digest" in content
+
+
+def test_smtp_session_noop_reuse_and_disconnect_reconnect(monkeypatch: pytest.MonkeyPatch):
+    """Verify SMTPSession reuses connection when noop succeeds and reconnects on disconnect."""
+    monkeypatch.setenv("SMTP_USER", "user@test.com")
+    monkeypatch.setenv("SMTP_PASS", "pass123")
+
+    mock_server = MagicMock()
+    mock_server.noop.return_value = (250, b"OK")
+
+    with patch("smtplib.SMTP", return_value=mock_server):
+        session = mailer.SMTPSession()
+        session.connect()
+        # Second connect should reuse because noop == 250
+        session.connect()
+        assert session.server is mock_server
+
+        # Test reconnect on SMTPServerDisconnected
+        mock_server.send_message.side_effect = [smtplib.SMTPServerDisconnected("Lost connection"), None]
+        msg = mailer.build_message("Subj", "Body", "to@test.com", "from@test.com")
+        session.send_message(msg)
+        assert mock_server.send_message.call_count == 2
+        session.close()
+
+
+def test_smtp_session_quit_exception_handled():
+    """Verify quit exception on close does not crash the session teardown."""
+    session = mailer.SMTPSession(user="u", password="p")
+    mock_server = MagicMock()
+    mock_server.quit.side_effect = Exception("Socket closed unexpectedly")
+    session.server = mock_server
+    session.close()
+    assert session.server is None
+
 
 
 

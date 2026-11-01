@@ -1,5 +1,33 @@
 # Release Notes
 
+## [v1.1.8] - 2026-11-01
+
+### 🌐 End-to-End Headless Playwright Browser Test Suite
+* **Automated Browser Verification**: Added a dedicated Playwright Chromium browser test suite in `tests/test_browser_playwright.py` with 100% pass rate:
+  - `test_landing_page_unauthenticated_render`: Verifies unauthenticated landing hero elements, seamless authentication tab switching (Sign In vs. Sign Up), and asserts zero browser console/page errors.
+  - `test_dashboard_flow_profile_wizard_and_save`: Exercises the multi-step onboarding wizard end-to-end, filling candidate profile information, headline professional title, and verifying storage persistence and UI sync.
+  - `test_tracker_search_filter_and_chips`: Tests reactive search query filtering, ATS source chips (`greenhouse`, `lever`), and search input clearing.
+  - `test_modal_overlay_escape_behavior`: Validates modal accessibility, Escape keyboard dismissal, and backdrop click closures.
+
+### 🛡️ Security Hardening & Protocol Sanitization
+* **Protocol Whitelisting**: Hardened `resolveJobUrl()` in `static/js/app.js` to strictly reject malicious `javascript:`, `data:`, and `vbscript:` pseudo-protocol URLs, shielding candidates from script injection when opening external application links.
+* **HTML Entity-Safe Highlighting**: Updated `highlightText()` in `static/js/app.js` with regex entity lookahead `(?![^&]*;)`, preventing search term matches from corrupting escaped HTML character entities like `&amp;` and `&quot;`.
+* **Content Security Policy (CSP)**: Enhanced CSP configuration in `jobhunt/web/__init__.py` to whitelist official preview assets from `https://job-hunter-web-board.vercel.app` without browser console warnings.
+* **Credential Stripping**: Added automatic security filtering to `POST /api/profile` to strip sensitive credential keys (`api_key`, `token`, `secret`, `password`) before writing to persistent storage.
+
+### 🧩 UI Stability & Modal Lifecycle Improvements
+* **Resolved Critical Script Deadlock**: Identified and fixed an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
+* **Form Button Explicit Typing**: Explicitly assigned `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.
+* **Test Isolation via Conftest**: Added an autouse `isolate_profile_file` fixture in `tests/conftest.py` ensuring `profile.json` on disk is preserved and restored cleanly across test sessions.
+
+### 🧪 Diagnostic & Edge-Case Coverage Expansion
+* **Preflight Diagnostics (100% Coverage)**: Added comprehensive unit tests in `tests/test_preflight.py` covering all healthy environments, missing or corrupt YAML, missing dependencies, Python version checks, and permission diagnostics.
+* **Mailer Resilience (94% Coverage)**: Expanded `tests/test_digest_mailer.py` with SMTP session reconnection tests, connection reuse, daily rate-limit circuit breakers, and plain-text fallback generation.
+* **Custom Target Companies & API Edge Cases**: Created `tests/test_custom_companies_and_edge_cases.py` testing URL detection, board accessibility validation, and store update error handling, elevating `jobs.py` to 91% and `profile.py` to 95% coverage.
+* **546 Passing Tests**: Codebase test count expanded to **546 automated tests** (542 unit/integration + 4 browser E2E) with **93% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
+
+---
+
 ## [v1.1.7] - 2026-10-30
 
 ### 🛡️ Profile & Search Criteria Autofill Save Isolation
@@ -50,4 +78,3 @@
 
 * **Market Research Grounding**: Grounded documentation, ATS support list, and scoring methodology against 2026 production standards.
 * **Dependency Synchronization**: Synchronized `uv.lock` and pinned `hypothesis` for Python 3.10+ compatibility.
-
