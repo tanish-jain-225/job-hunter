@@ -75,10 +75,10 @@ def api_health():
 
 @views_bp.route("/logo.png")
 def serve_logo():
-    """Serve brand logo PNG across multiple deployment root locations."""
+    """Serve brand logo PNG across deployment root locations."""
     candidates = [
-        ROOT / "static" / "assets" / "logo.png",
         ROOT / "assets" / "logo.png",
+        ROOT / "static" / "assets" / "logo.png",
         ROOT / "static" / "logo.png",
         ROOT / "logo.png",
     ]
@@ -93,9 +93,9 @@ def serve_logo():
 def serve_favicon():
     """Serve brand favicon (.ico preferred, falling back to logo.png)."""
     ico_candidates = [
+        ROOT / "assets" / "favicon.ico",
         ROOT / "static" / "assets" / "favicon.ico",
         ROOT / "static" / "favicon.ico",
-        ROOT / "assets" / "favicon.ico",
         ROOT / "favicon.ico",
     ]
     for p in ico_candidates:

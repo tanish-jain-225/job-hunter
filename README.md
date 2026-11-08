@@ -632,6 +632,12 @@ job-hunter/
 │           ├── pipeline.py   # Radar dispatch, SSE log streaming, sync heartbeat, digest API
 │           ├── profile.py    # Candidate profile CRUD, Resume Studio & notification preferences
 │           └── views.py      # Landing page, dashboard view, health check & auth config
+├── assets/                   # Canonical brand identity assets, logo, favicon & diagrams
+│   ├── banner.svg            # Vector header banner
+│   ├── favicon.ico           # Canonical brand favicon
+│   ├── logo.png              # Canonical brand logo PNG
+│   └── pipeline-flow.svg     # 5-phase automated architecture infographic
+├── docs/                     # 15 technical architectural manuals and guides
 ├── templates/
 │   ├── index.html            # Web dashboard single-page HTML layout
 │   └── partials/             # Modular UI components (dashboard, landing, modals, profile settings)

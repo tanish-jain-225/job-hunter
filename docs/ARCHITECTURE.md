@@ -83,9 +83,11 @@ job-hunter/
 ├── RELEASE_NOTES.md             # Detailed feature release notes (v1.1.8)
 ├── SECURITY.md                  # Vulnerability reporting, security scope, and hardening architecture
 ├── README.md                    # Project homepage, live badges, and architectural overview
-├── assets/                      # Documentation-only vector diagrams & banners
-│   ├── banner.svg               # Vector header banner
-│   └── pipeline-flow.svg        # 5-phase automated architecture infographic
+├── assets/                          # Canonical brand identity assets & diagrams
+│   ├── banner.svg                   # Vector header banner
+│   ├── favicon.ico                  # Canonical brand favicon
+│   ├── logo.png                     # Canonical brand logo PNG
+│   └── pipeline-flow.svg            # 5-phase automated architecture infographic
 ├── api/
 │   ├── index.py                 # Vercel Serverless WSGI entrypoint
 │   └── requirements.txt         # Pinned serverless dependencies
@@ -153,9 +155,9 @@ job-hunter/
 ├── static/                      # Frontend Assets
 │   ├── css/
 │   │   └── style.css            # 12-section pure Flexbox executive light mode design system
-│   ├── js/
-│   │   └── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
-│   └── assets/                  # Runtime logo and favicon assets
+│   └── js/
+│       ├── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
+│       └── modules/             # Modular client storage, events, and utilities
 ├── supabase/                    # Database Architecture
 │   ├── schema.sql               # Atomic PostgreSQL schema: tables, indexes, cascading FKs, and RLS policies
 │   └── teardown.sql             # Atomic, cascade-safe database reset and migration teardown script
