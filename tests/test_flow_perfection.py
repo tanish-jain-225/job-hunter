@@ -1,4 +1,4 @@
-"""Comprehensive validation tests for 10/10 perfection enhancements."""
+"""Comprehensive validation tests for core workflow perfection enhancements."""
 
 import json
 import os
