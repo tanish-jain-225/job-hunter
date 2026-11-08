@@ -196,7 +196,7 @@ The modern job search is fundamentally broken. Engineers and technology professi
 [3. LLM Screening] ───────── Batched candidate fit evaluation (0.0 to 10.0) via Google Gemini 3.5 Flash (llm.py)
            │                 └─ Multi-key rotation, 12 RPM leaky-bucket pacing (5.0s interval) & fallback cascades
            ▼
-[4. Kit Drafting] ────────── Tailored cover notes, recruiter DMs, referral requests & prep for >= 7.5 (llm.py)
+[4. Kit Drafting] ────────── Tailored cover notes, recruiter DMs, referral requests & prep for >= 7.0 (llm.py)
            │                 └─ Top-1 qualifying match focus for optimal token efficiency
            ▼
 [5. Persistence] ─────────── Local JSON (seen.json) / Supabase PostgreSQL with Row-Level Security (store.py / memory.py)
@@ -350,8 +350,8 @@ filters:
 
 # Harmonic Operational Parameters (Multiples of 5 & 10)
 screen_batch_size: 10 # Postings batched per screening request (single-batch screening)
-screen_jd_chars: 800 # Description character limit for fit evaluation
-draft_jd_chars: 7000 # Full context for tailored kit drafting
+screen_jd_chars: 1000 # Description character limit for fit evaluation
+draft_jd_chars: 6000 # Full context for tailored kit drafting
 score_threshold: 7.0 # Minimum score (0.0 to 10.0) for application kit generation
 max_per_digest: 5 # Maximum job kits included in morning briefing
 max_jobs_to_screen: 10 # Top roles screened per candidate batch
@@ -365,8 +365,8 @@ llm_delay_seconds: 0.0 # Leaky-bucket pacing enforced at 5.0s (12 RPM) via provi
 | ---------------------------- | ----------------------- | :-------: | :------: | -------------------------------------------------------------------------------------------------------- |
 | **`screen_batch_size`**      | `config.yaml`           |  **10**   |  **10**  | 10 jobs per call is the ideal payload size for single-batch Gemini evaluation.                           |
 | **`max_jobs_to_screen`**     | `config.yaml`           |  **10**   |  **10**  | Matches batch size exactly; eliminates partial residual API calls and prevents token spillover.          |
-| **`screen_jd_chars`**        | `config.yaml`           |  **800**  |  **10**  | Clean, high-density character limit capturing core responsibilities while preventing token bloat.        |
-| **`draft_jd_chars`**         | `config.yaml`           | **7000**  |  **10**  | Uncapped deep technical context window for top-1 candidate application kits.                             |
+| **`screen_jd_chars`**        | `config.yaml`           | **1000**  |  **10**  | Clean, high-density character limit capturing core responsibilities while preventing token bloat.        |
+| **`draft_jd_chars`**         | `config.yaml`           | **6000**  |  **10**  | Uncapped deep technical context window for top-1 candidate application kits.                             |
 | **`max_per_digest`**         | `config.yaml`           |   **5**   |  **5**   | Curated daily briefing density ensuring maximum candidate engagement without inbox fatigue.              |
 | **`max_age_days`**           | `config.yaml`           |  **20**   |  **10**  | Strict 20-day crawler window dropping stale listings and saving Supabase storage.                        |
 | **`fetch_max_workers`**      | `config.yaml`           |  **20**   |  **10**  | Concurrent async connection pool crawling 114+ ATS endpoints in under 4 seconds.                          |
@@ -724,7 +724,7 @@ ruff check .
 
 ## Documentation Index
 
-The repository includes a comprehensive 17-document technical suite:
+The repository includes a comprehensive 19-document technical documentation suite (4 root guides + 15 architectural manuals in `docs/`):
 
 - **[Product Audit & Valuation Walkthrough](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md)**: Definitive India-first product analysis, 2026 hiring research, hackathon defense scripts, capstone blueprints, and SaaS valuation.
 - **[Setup Guide](docs/SETUP.md)**: Detailed step-by-step local installation and cloud setup instructions.

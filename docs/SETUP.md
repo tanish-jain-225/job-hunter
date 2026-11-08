@@ -435,8 +435,8 @@ filters:
 
 # Harmonic Operational Parameters (Multiples of 5 & 10)
 screen_batch_size: 10     # Evaluates 10 jobs per LLM request (single-batch screening)
-screen_jd_chars: 800      # Description character limit for fit evaluation
-draft_jd_chars: 7000      # Full context for tailored kit drafting
+screen_jd_chars: 1000     # Description character limit for fit evaluation
+draft_jd_chars: 6000      # Full context for tailored kit drafting
 score_threshold: 7.0      # Minimum fit score (0.0 - 10.0) required for application kit generation
 max_per_digest: 5         # Maximum top roles included in the morning email briefing
 max_jobs_to_screen: 10    # Top roles screened per candidate batch
