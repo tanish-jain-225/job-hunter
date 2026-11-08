@@ -107,7 +107,7 @@ Default engine is **Google Gemini** (`GEMINI_API_KEY`). Override via `LLM_PROVID
 
 - `--mock` flag runs fixtures through real parsers with zero network requests.
 - `--scorer keyword` provides offline dev scoring without API keys.
-- Comprehensive test suite in `tests/` (**546 automated tests**, 93% statement coverage) covering batching, parsing, store persistence, prompt injection defense, thread safety, and mock funnel assertions.
+- Comprehensive test suite in `tests/` (**560 automated tests**, 93% statement coverage) covering batching, parsing, store persistence, prompt injection defense, thread safety, and mock funnel assertions.
 
 ---
 
