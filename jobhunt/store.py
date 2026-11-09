@@ -57,7 +57,8 @@ class Store:
         use_service_key: bool = False,
     ):
         self.original_path = Path(path)
-        self.user_email = (user_email or "").strip().lower() if user_email else None
+        raw_email = (user_email or "").strip().lower() if user_email else None
+        self.user_email = raw_email if raw_email and raw_email != "developer@local" else None
         self.token = token
         self.use_service_key = use_service_key
         self.memory = SupabaseMemory(token=self.token)
@@ -247,6 +248,7 @@ class Store:
         previous = dict(self.data[job_id])
         clean_stage = stage.lower().strip()
         applied = clean_stage in ("applied", "interviewing", "offer", "rejected")
+        self.data[job_id]["stage"] = clean_stage
         self.data[job_id]["application_stage"] = clean_stage
         self.data[job_id]["applied"] = applied
         if applied and not self.data[job_id].get("applied_on"):
@@ -382,6 +384,7 @@ class Store:
             "emailed": False,
             "applied": is_applied,
             "applied_on": now if is_applied else None,
+            "stage": clean_stage,
             "application_stage": clean_stage,
             "notes": "",
             "salary_range": "",

@@ -342,3 +342,262 @@ def test_modal_overlay_escape_behavior(browser_page, live_server):
     assert not has_active
 
     assert len(page_errors) == 0, f"Page errors: {page_errors}"
+
+
+@pytest.fixture
+def populated_jobs():
+    """Populate state/seen.json and profile.json with a deterministic test dataset."""
+    from jobhunt.store import get_writable_path
+
+    seen_path = get_writable_path("state/seen.json")
+    seen_path.parent.mkdir(parents=True, exist_ok=True)
+
+    jobs = {}
+    for i in range(1, 16):
+        jid = f"greenhouse:comp{i}:{100+i}"
+        comp = f"Company {chr(64+i)}"
+        stage = "to_apply"
+        applied = False
+        if i in (2, 3):
+            stage = "applied"
+            applied = True
+        elif i == 4:
+            stage = "interviewing"
+            applied = True
+        elif i == 5:
+            stage = "offer"
+            applied = True
+
+        loc = "Bengaluru, India" if i % 3 == 0 else ("Hyderabad, India" if i % 3 == 1 else "Remote, India")
+        ats = "greenhouse" if i % 3 == 0 else ("lever" if i % 3 == 1 else "workday")
+        score = round(10.0 - (i * 0.2), 1)
+
+        jobs[jid] = {
+            "job_id": jid,
+            "url": f"https://boards.greenhouse.io/comp{i}/jobs/{100+i}",
+            "title": f"Staff Software Engineer {i}",
+            "company": comp,
+            "location": loc,
+            "ats": ats,
+            "score": score,
+            "stage": stage,
+            "application_stage": stage,
+            "applied": applied,
+            "applied_on": "2026-11-08T10:00:00Z" if applied else None,
+            "first_seen": f"2026-11-0{min(9, i)}T08:00:00Z",
+            "salary_range": "₹35L - ₹55L",
+            "draft": {
+                "fit_summary": f"Tailored fit summary for role {i} with strong backend alignment.",
+                "cold_outreach": f"Cold outreach message for role {i}",
+                "cover_note": f"Cover note for role {i}",
+            },
+        }
+
+    seen_path.write_text(json.dumps(jobs, indent=2), encoding="utf-8")
+
+    orig_profile = Path("profile.json").read_text(encoding="utf-8") if Path("profile.json").is_file() else None
+    test_profile = {
+        "name": "Jane Doe",
+        "title": "Full-Stack Engineer",
+        "experience_years": 4,
+        "skills": ["Python", "JavaScript", "React"],
+        "target_keywords": ["Full-Stack", "Software Engineer"],
+        "exclude_keywords": [],
+        "onboarding_completed": True,
+        "job_types": ["fulltime", "remote"],
+        "experience_level": "3-5",
+        "location_preference": "Pune, Delhi-NCR, Remote",
+        "notice_period": "30_days",
+        "current_ctc_lpa": 18.0,
+        "expected_ctc_lpa": 30.0,
+        "email_notifications_enabled": False,
+        "notification_email": "",
+        "min_score_notification": 7.5,
+    }
+    Path("profile.json").write_text(json.dumps(test_profile, indent=2), encoding="utf-8")
+
+    yield jobs
+
+    if seen_path.is_file():
+        seen_path.unlink()
+    if orig_profile is not None:
+        Path("profile.json").write_text(orig_profile, encoding="utf-8")
+    elif Path("profile.json").is_file():
+        Path("profile.json").unlink()
+
+
+def test_pipeline_stage_filters_kit_and_inline_transitions(browser_page, live_server, populated_jobs):
+    """Test stage filter pills, ATS dropdown, kit inspection modal, inline stage transitions, and job deletion."""
+    page, console_errors, page_errors = browser_page
+
+    page.goto(f"{live_server}/", wait_until="domcontentloaded")
+    page.wait_for_timeout(800)
+
+    # Ensure tracker tab is active
+    page.click("#tab-btn-tracker")
+    page.wait_for_timeout(400)
+    assert page.is_visible("#tab-content-tracker")
+
+    # 1. Pipeline stage filter pills
+    page.click("#pill-applied")
+    page.wait_for_timeout(400)
+    applied_items = page.query_selector_all(".job-item")
+    assert len(applied_items) >= 4, f"Expected at least 4 applied pipeline items, got {len(applied_items)}"
+
+    page.click("#pill-interviewing")
+    page.wait_for_timeout(400)
+    interviewing_items = page.query_selector_all(".job-item")
+    assert len(interviewing_items) == 1, f"Expected 1 interviewing item, got {len(interviewing_items)}"
+
+    page.click("#pill-offer")
+    page.wait_for_timeout(400)
+    offer_items = page.query_selector_all(".job-item")
+    assert len(offer_items) == 1, f"Expected 1 offer item, got {len(offer_items)}"
+
+    page.click("#pill-all")
+    page.wait_for_timeout(400)
+
+    # 2. ATS Dropdown filter
+    page.select_option("#tracker-ats-select", "greenhouse")
+    page.wait_for_timeout(400)
+    gh_items = page.query_selector_all(".job-item")
+    assert len(gh_items) == 5, f"Expected 5 Greenhouse items, got {len(gh_items)}"
+
+    page.select_option("#tracker-ats-select", "all")
+    page.wait_for_timeout(300)
+
+    # 3. Inspect Kit Modal
+    first_kit_btn = page.query_selector('.job-item:first-child button[data-action="open-kit-modal"]')
+    assert first_kit_btn is not None
+    first_kit_btn.click()
+    page.wait_for_timeout(300)
+    assert page.is_visible("#kit-modal")
+
+    modal_body = page.inner_text("#modal-body")
+    assert "fit" in modal_body.lower() or "summary" in modal_body.lower()
+
+    # Modal header applied toggle
+    btn_modal_applied = page.query_selector("#modal-applied-toggle-btn")
+    if btn_modal_applied:
+        initial_text = btn_modal_applied.inner_text()
+        btn_modal_applied.click()
+        page.wait_for_timeout(500)
+        new_text = btn_modal_applied.inner_text()
+        assert initial_text != new_text
+
+    page.click('.modal-close[data-action="close-kit-modal"]')
+    page.wait_for_timeout(300)
+    assert not page.is_visible("#kit-modal")
+
+    # 4. Inline Application Stage Transition
+    first_stage_select = page.query_selector('.job-item:first-child .job-stage-select')
+    assert first_stage_select is not None
+    first_stage_select.select_option("interviewing")
+    page.wait_for_timeout(500)
+
+    # Verify transition in interviewing filter
+    page.click("#pill-interviewing")
+    page.wait_for_timeout(400)
+    updated_interviewing = page.query_selector_all(".job-item")
+    assert len(updated_interviewing) >= 2
+
+    # Reset filter
+    page.click("#pill-all")
+    page.wait_for_timeout(400)
+
+    # 5. Delete Job action
+    first_del_btn = page.query_selector('.job-item:first-child button[data-action="delete-job"]')
+    assert first_del_btn is not None
+    del_job_id = first_del_btn.get_attribute("data-job-id")
+    assert del_job_id is not None
+    page.once("dialog", lambda dialog: dialog.accept())
+    first_del_btn.click()
+    page.wait_for_timeout(500)
+    assert page.query_selector(f"[id='job-card-{del_job_id}']") is None
+
+    assert len(page_errors) == 0, f"Page errors: {page_errors}"
+    js_errors = [e for e in console_errors if "net::ERR_FAILED" not in e and "fonts.googleapis" not in e]
+    assert len(js_errors) == 0, f"Console JS errors: {js_errors}"
+
+
+def test_pagination_sorting_tech_hubs_and_digest(browser_page, live_server, populated_jobs):
+    """Test pagination, page size selector, sorting, Indian tech hub chips, guide banner, and digest tab."""
+    page, console_errors, page_errors = browser_page
+
+    page.goto(f"{live_server}/", wait_until="domcontentloaded")
+    page.wait_for_timeout(800)
+
+    # Ensure tracker tab is active
+    page.click("#tab-btn-tracker")
+    page.wait_for_timeout(400)
+    assert page.is_visible("#tab-content-tracker")
+
+    # 1. Pagination & Page Size
+    items_p1 = page.query_selector_all(".job-item")
+    assert len(items_p1) == 10, f"Expected 10 items on page 1, found {len(items_p1)}"
+    assert page.is_visible(".pagination-bar")
+
+    page.select_option("#pagination-page-size", "25")
+    page.wait_for_timeout(400)
+    items_all = page.query_selector_all(".job-item")
+    assert len(items_all) == 15, f"Expected 15 items with page size 25, found {len(items_all)}"
+
+    # 2. Sorting by score and company
+    page.select_option("#tracker-sort-select", "score")
+    page.wait_for_timeout(400)
+    first_score = page.inner_text(".job-item:first-child .score-badge")
+    assert "9." in first_score
+
+    page.select_option("#tracker-sort-select", "company")
+    page.wait_for_timeout(400)
+    first_comp = page.inner_text(".job-item:first-child .job-sub-company")
+    assert "Company A" in first_comp
+
+    # 3. Settings modal & Indian Tech Hub Chips
+    page.click("#btn-sidebar-settings")
+    page.wait_for_timeout(400)
+    assert page.is_visible("#profile-modal")
+
+    page.click("#profile-next-1")
+    page.wait_for_timeout(300)
+    assert page.is_visible("#profile-step-2")
+
+    page.click("#prof-loc-pref-specific")
+    page.wait_for_timeout(200)
+    assert page.is_visible("#prof-specific-cities-input")
+
+    # Smart toggle chips
+    page.fill("#prof-specific-cities", "")
+    page.click('button[data-city="Bengaluru"]')
+    page.wait_for_timeout(100)
+    page.click('button[data-city="Hyderabad"]')
+    page.wait_for_timeout(100)
+    cities_val = page.input_value("#prof-specific-cities")
+    assert "Bengaluru" in cities_val and "Hyderabad" in cities_val
+
+    # Close modal
+    page.click(".modal-close[data-action='close-profile-modal']")
+    page.wait_for_timeout(300)
+
+    # 4. Workflow Guide Banner
+    assert page.is_visible("#workflow-guide-banner")
+    page.click(".guide-banner-dismiss")
+    page.wait_for_timeout(300)
+    assert not page.is_visible("#workflow-guide-banner")
+
+    page.click("#btn-guide-toggle")
+    page.wait_for_timeout(300)
+    assert page.is_visible("#workflow-guide-banner")
+
+    # 5. Daily Digest Briefing Tab
+    page.click("#tab-btn-digest")
+    page.wait_for_timeout(400)
+    assert page.is_visible("#tab-content-digest")
+    assert page.is_visible("#digest-frame")
+
+    page.click('button[data-action="refresh-digest"]')
+    page.wait_for_timeout(500)
+
+    assert len(page_errors) == 0, f"Page errors: {page_errors}"
+    js_errors = [e for e in console_errors if "net::ERR_FAILED" not in e and "fonts.googleapis" not in e]
+    assert len(js_errors) == 0, f"Console JS errors: {js_errors}"

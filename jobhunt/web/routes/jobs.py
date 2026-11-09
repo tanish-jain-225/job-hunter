@@ -300,6 +300,9 @@ def api_stats():
     applied_count = sum(1 for v in st.data.values() if v.get("applied"))
     unapplied_count = total_count - applied_count
 
+    def _row_stage(row: dict) -> str:
+        return str(row.get("stage") or row.get("application_stage") or ("applied" if row.get("applied") else "to_apply")).lower().strip()
+
     stats = {
         "tracked": total_count,
         "emailed": sum(1 for v in st.data.values() if v.get("emailed")),
@@ -307,11 +310,11 @@ def api_stats():
         "unapplied": unapplied_count,
         "shortlisted": shortlisted_count,
         "stages": {
-            "to_apply": sum(1 for v in st.data.values() if (v.get("stage") == "to_apply") or (not v.get("applied") and not v.get("stage"))),
+            "to_apply": sum(1 for v in st.data.values() if _row_stage(v) == "to_apply"),
             "applied": applied_count,
-            "interviewing": sum(1 for v in st.data.values() if v.get("stage") == "interviewing"),
-            "offer": sum(1 for v in st.data.values() if v.get("stage") == "offer"),
-            "rejected": sum(1 for v in st.data.values() if v.get("stage") == "rejected"),
+            "interviewing": sum(1 for v in st.data.values() if _row_stage(v) == "interviewing"),
+            "offer": sum(1 for v in st.data.values() if _row_stage(v) == "offer"),
+            "rejected": sum(1 for v in st.data.values() if _row_stage(v) == "rejected"),
         },
         "user_threshold": user_threshold,
         "version": get_store_version(st),
@@ -385,18 +388,21 @@ def api_jobs():
 
     jobs_list = []
     for job_id, data in st.data.items():
-        item = {"job_id": job_id, **data}
+        curr_stage = str(data.get("stage") or data.get("application_stage") or ("applied" if data.get("applied") else "to_apply")).lower().strip()
+        item = {"job_id": job_id, **data, "stage": curr_stage, "application_stage": curr_stage}
         job_ats = (item.get("ats") or (job_id.split(":")[0] if ":" in job_id else "custom")).lower()
 
         # Filter status
-        if status == "shortlisted" and float(item.get("score") or 0.0) < shortlist_threshold:
-            continue
-        elif status == "applied" and not item.get("applied") and item.get("stage") != "applied":
-            continue
-        elif status == "unapplied" and (item.get("applied") or item.get("stage") in ("applied", "interviewing", "offer")):
-            continue
+        if status == "shortlisted":
+            if float(item.get("score") or 0.0) < shortlist_threshold:
+                continue
+        elif status == "applied":
+            if not item.get("applied") and curr_stage != "applied":
+                continue
+        elif status == "unapplied":
+            if item.get("applied") or curr_stage in ("applied", "interviewing", "offer"):
+                continue
         elif status in VALID_APPLICATION_STAGES:
-            curr_stage = item.get("stage") or ("applied" if item.get("applied") else "to_apply")
             if curr_stage != status:
                 continue
 

@@ -1577,14 +1577,15 @@ function updateModalAppliedButton(job) {
     ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`
     : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`;
   btn.setAttribute('data-job-id', job.job_id);
-  btn.setAttribute('data-action', isApplied ? 'unmark' : 'mark');
+  btn.setAttribute('data-action', 'toggle-modal-applied');
+  btn.setAttribute('data-mode', isApplied ? 'unmark' : 'mark');
 }
 
 function toggleModalAppliedDirect() {
   const btn = document.getElementById('modal-applied-toggle-btn');
   if (!btn) return;
   const jobId = btn.getAttribute('data-job-id');
-  const action = btn.getAttribute('data-action') || 'mark';
+  const action = btn.getAttribute('data-mode') || 'mark';
   if (jobId) {
     toggleAppliedDirect(jobId, action);
   }
@@ -3125,7 +3126,9 @@ async function toggleAppliedDirect(jobId, action) {
       ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Mark Applied`
       : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Applied`;
     btn.className = isUnmark ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-sm btn-applied';
-    btn.setAttribute('onclick', `toggleAppliedDirect(${jsLiteral(jobId)}, '${isUnmark ? 'mark' : 'unmark'}')`);
+    btn.setAttribute('data-action', 'toggle-applied');
+    btn.setAttribute('data-mode', isUnmark ? 'mark' : 'unmark');
+    btn.setAttribute('title', isUnmark ? 'Mark as applied to activate follow-up tracking' : 'Application submitted — click to unmark');
   }
 
   // 2.5. Optimistic Card Removal for Active Status Filter
@@ -4035,9 +4038,15 @@ async function initAuth() {
           if (window.location.hash && window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
-        } else {
+        } else if (authConfig.auth_required) {
           stopHeartbeat();
           setAppView('landing');
+        } else {
+          setAppView('dashboard');
+          if (!initialAuthSynced) {
+            initialAuthSynced = true;
+            syncDashboard(true);
+          }
         }
       });
  
@@ -4061,11 +4070,26 @@ async function initAuth() {
           syncDashboard(true);
         }
         startHeartbeat();
-      } else {
+      } else if (authConfig.auth_required) {
         renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
         renderCandidateSummary(null);
         setAppView('landing');
         stopHeartbeat();
+      } else {
+        const cachedStats = Storage.get(localStorage, STORAGE_KEYS.CACHED_STATS, null);
+        if (cachedStats && cachedStats.stats) {
+          renderMetrics(cachedStats.stats);
+        }
+        const cachedProfile = Storage.get(localStorage, STORAGE_KEYS.CACHED_PROFILE, null);
+        if (cachedProfile) {
+          activeProfileData = cachedProfile;
+          renderCandidateSummary(cachedProfile);
+        }
+        setAppView('dashboard');
+        if (!initialAuthSynced) {
+          initialAuthSynced = true;
+          syncDashboard(true);
+        }
       }
     } else {
       appState.authInitialized = true;

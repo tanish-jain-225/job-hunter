@@ -511,10 +511,7 @@ def test_pipeline_sync_github_actions_branches(client, tmp_path: Path, monkeypat
 
 def test_pipeline_stats_and_digest_rebuild(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Test /api/sync stats calculation and /api/digest live generation with remote profile fallback."""
-    import hashlib
-    dev_email = "developer@local"
-    user_hash = hashlib.md5(dev_email.encode("utf-8")).hexdigest()[:12]
-    st_file = tmp_path / f"seen_{user_hash}.json"
+    st_file = tmp_path / "seen.json"
     st_data = {
         "job1": {"title": "SWE", "company": "Stripe", "ats": "greenhouse", "score": 8.5, "applied": False, "emailed": True},
         "job2": {"title": "Dev", "company": "Meesho", "ats": "lever", "score": 6.0, "applied": True, "emailed": False},
