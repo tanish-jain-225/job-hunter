@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.8"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-560%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-563%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
@@ -16,11 +16,14 @@
 ## [v1.1.8] - 2026-11-01
 
 ### 🌐 End-to-End Headless Playwright Browser Test Suite
-* **Automated Browser Verification**: Added a dedicated Playwright Chromium browser test suite in `tests/test_browser_playwright.py` with 100% pass rate:
+* **Automated Browser Verification**: Added a dedicated Playwright Chromium browser test suite in `tests/test_browser_playwright.py` with 100% pass rate across 7 tests:
   - `test_landing_page_unauthenticated_render`: Verifies unauthenticated landing hero elements, seamless authentication tab switching (Sign In vs. Sign Up), and asserts zero browser console/page errors.
   - `test_dashboard_flow_profile_wizard_and_save`: Exercises the multi-step onboarding wizard end-to-end, filling candidate profile information, headline professional title, and verifying storage persistence and UI sync.
   - `test_tracker_search_filter_and_chips`: Tests reactive search query filtering, ATS source chips (`greenhouse`, `lever`), and search input clearing.
   - `test_modal_overlay_escape_behavior`: Validates modal accessibility, Escape keyboard dismissal, and backdrop click closures.
+  - `test_jobs_search_filter_and_export_flow`: Validates live query filtering, ATS source tagging, and client CSV export triggering.
+  - `test_onboarding_wizard_and_profile_sync`: Validates multi-step profile wizard navigation, live validation, and state sync.
+  - `test_profile_and_settings_full_lifecycle`: Exercises the complete profile lifecycle, resume parsing integration, preference updates, and account reset.
 
 ### 🛡️ Security Hardening & Protocol Sanitization
 * **Protocol Whitelisting**: Hardened `resolveJobUrl()` in `static/js/app.js` to strictly reject malicious `javascript:`, `data:`, and `vbscript:` pseudo-protocol URLs, shielding candidates from script injection when opening external application links.
@@ -39,7 +42,7 @@
 * **Preflight Diagnostics (100% Coverage)**: Added comprehensive unit tests in `tests/test_preflight.py` covering all healthy environments, missing or corrupt YAML, missing dependencies, Python version checks, and permission diagnostics.
 * **Mailer Resilience (94% Coverage)**: Expanded `tests/test_digest_mailer.py` with SMTP session reconnection tests, connection reuse, daily rate-limit circuit breakers, and plain-text fallback generation.
 * **Custom Target Companies & API Edge Cases**: Created `tests/test_custom_companies_and_edge_cases.py` testing URL detection, board accessibility validation, and store update error handling, elevating `jobs.py` to 91% and `profile.py` to 95% coverage.
-* **560 Passing Tests**: Codebase test count expanded to **560 automated tests** (556 unit/integration + 4 browser E2E) with **93% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
+* **563 Passing Tests**: Codebase test count expanded to **563 automated tests** (556 unit/integration + 7 browser E2E) with **93% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
 
 ---
 
