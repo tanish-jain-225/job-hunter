@@ -83,7 +83,7 @@ The engine sends the full job description (up to **7,000 characters**, configure
 * **Gaps Analysis:** An honest assessment of missing requirements and how to address them.
 * **Cover Note:** A direct, professional outreach letter tailored directly to the hiring team.
 * **Cold Outreach:** A concise (<80 words) recruiter outreach message referencing the exact role title, tech match, and candidate availability.
-* **Referral Request:** A short (<60 words) LinkedIn message asking an engineering peer or alumnus for an internal referral with key tech alignment.
+* **Referral Request:** A short (<60 words) LinkedIn message asking an engineering peer or alumnus for an internal referral with key tech alignment (designed specifically to tap into the 50%–70% referral hiring channel across Indian product startups and GCCs).
 * **Salary Range (INR/USD):** Extracted compensation formatted as `₹X-Y LPA` for full-time Indian roles, `₹Xk/mo` for internships, or `USD $X-Y`.
 * **Interview Questions:** 2 sharp technical questions showing thorough reading of the JD.
 
