@@ -601,3 +601,121 @@ def test_pagination_sorting_tech_hubs_and_digest(browser_page, live_server, popu
     assert len(page_errors) == 0, f"Page errors: {page_errors}"
     js_errors = [e for e in console_errors if "net::ERR_FAILED" not in e and "fonts.googleapis" not in e]
     assert len(js_errors) == 0, f"Console JS errors: {js_errors}"
+
+
+def test_profile_and_settings_full_lifecycle(browser_page, live_server, populated_jobs):
+    """Verify Candidate Profile & Search Settings full end-to-end UX lifecycle, persistence, and reset."""
+    page, console_errors, page_errors = browser_page
+
+    page.goto(f"{live_server}/", wait_until="domcontentloaded")
+    page.wait_for_timeout(800)
+
+    # 1. Open Profile Modal via Sidebar
+    page.click("#btn-sidebar-settings")
+    page.wait_for_selector("#profile-modal.active", timeout=5000)
+    assert page.is_visible("#profile-step-1")
+
+    # 2. Enter Resume Text Context in Step 1
+    sample_resume = (
+        "Alex Morgan\n"
+        "Principal Platform Engineer\n"
+        "6+ years of software experience\n"
+        "B.Tech Computer Science, Tier-1 University\n"
+        "Core skills: Python, React, PostgreSQL, Docker, AWS, FastAPI, Kubernetes\n"
+        "Target titles: Staff Engineer, Platform Lead, Backend Architect\n"
+        "Notice period: 15 days\n"
+        "Current CTC: 22 LPA, Expected CTC: 38 LPA\n"
+        "Specific cities: Bengaluru, Pune\n"
+    )
+    page.fill("#prof-resume-text", sample_resume)
+    page.click("#profile-next-1")
+    page.wait_for_selector("#profile-step-2:not([style*='display: none'])", timeout=5000)
+    assert page.is_visible("#profile-step-2")
+
+    # 3. Auto-Fill & Customize Criteria in Step 2
+    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200):
+        page.click("#btn-autofill-roles")
+    page.wait_for_timeout(300)
+
+    page.fill("#prof-name", "Alex Morgan")
+    page.fill("#prof-title", "Principal Platform Engineer")
+    page.fill("#prof-targets", "Staff Engineer, Platform Lead, Backend Architect")
+    page.fill("#prof-skills", "Python, React, PostgreSQL, Docker, AWS, FastAPI, Kubernetes")
+    page.fill("#prof-years", "6")
+    page.fill("#prof-education", "B.Tech Computer Science")
+    page.select_option("#prof-notice-period", "15_days")
+    page.fill("#prof-current-ctc", "22")
+    page.fill("#prof-expected-ctc", "38")
+    page.fill("#prof-excludes", "Manager, Director, Sales")
+
+    # Job types and specific city presets
+    page.click("label:has(#prof-jt-fulltime)")
+    page.click("label:has(#prof-jt-remote)")
+
+    page.click("#prof-loc-pref-specific")
+    page.fill("#prof-specific-cities", "")
+    page.click("button[data-city='Bengaluru']")
+    page.click("button[data-city='Hyderabad']")
+    cities_val = page.input_value("#prof-specific-cities")
+    assert "Bengaluru" in cities_val and "Hyderabad" in cities_val
+
+    # 4. Progress to Step 3 (Alert Settings)
+    page.click("#profile-next-2")
+    page.wait_for_selector("#profile-step-3:not([style*='display: none'])", timeout=5000)
+    assert page.is_visible("#profile-step-3")
+
+    page.fill("#notif-min-score", "8.0")
+    page.click("#settings-mode-card-daily")
+    page.fill("#notif-target-email", "alex.morgan@platformlabs.dev")
+
+    # 5. Save Profile & Verify Dashboard Update
+    with page.expect_response(lambda res: "/api/profile" in res.url and res.status == 200):
+        page.click("#btn-profile-save")
+    page.wait_for_selector("#profile-modal", state="hidden", timeout=5000)
+    page.wait_for_timeout(400)
+
+    cand_name = page.inner_text("#summary-candidate-name")
+    cand_title = page.inner_text("#summary-candidate-title")
+    assert "Alex Morgan" in cand_name
+    assert "Principal Platform Engineer" in cand_title
+
+    # 6. Re-open Modal & Verify Persistence via Wizard Node Direct Navigation
+    page.click("#btn-open-settings")
+    page.wait_for_selector("#profile-modal.active", timeout=5000)
+
+    page.click("#pws-node-2")
+    page.wait_for_selector("#profile-step-2:not([style*='display: none'])", timeout=5000)
+    assert page.input_value("#prof-name") == "Alex Morgan"
+    assert page.input_value("#prof-title") == "Principal Platform Engineer"
+    assert page.input_value("#prof-current-ctc") == "22"
+    assert page.input_value("#prof-expected-ctc") == "38"
+    assert page.input_value("#prof-notice-period") == "15_days"
+
+    page.click("#pws-node-3")
+    page.wait_for_selector("#profile-step-3:not([style*='display: none'])", timeout=5000)
+    assert page.input_value("#notif-min-score") in ("8", "8.0")
+    assert page.input_value("#notif-target-email") == "alex.morgan@platformlabs.dev"
+    assert page.is_checked("#radio-mode-daily")
+
+    # 7. Reset Profile via Step 1
+    page.click("#pws-node-1")
+    page.wait_for_selector("#profile-step-1:not([style*='display: none'])", timeout=5000)
+
+    page.once("dialog", lambda dialog: dialog.accept())
+    with page.expect_response(lambda res: "/api/profile/reset" in res.url and res.status == 200):
+        page.click("button[data-action='flush-profile-data']")
+    page.wait_for_timeout(400)
+
+    page.click("#pws-node-2")
+    assert page.input_value("#prof-name") == ""
+    assert page.input_value("#prof-title") == ""
+    assert page.input_value("#prof-current-ctc") == ""
+    assert page.input_value("#prof-expected-ctc") == ""
+
+    # Close modal via Escape
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#profile-modal", state="hidden", timeout=5000)
+
+    assert len(page_errors) == 0, f"Page errors: {page_errors}"
+    js_errors = [e for e in console_errors if "net::ERR_FAILED" not in e and "fonts.googleapis" not in e]
+    assert len(js_errors) == 0, f"Console JS errors: {js_errors}"

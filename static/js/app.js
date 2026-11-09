@@ -1905,12 +1905,17 @@ let lastParsedResumeText = '';
 
 function isCandidateProfileFilled(profile) {
   if (!profile) return false;
+  if (profile.onboarding_completed === true) return true;
 
   const hasName = (profile.name || '').trim().length > 0;
-  const hasSkills = Array.isArray(profile.skills) && profile.skills.length > 0;
-  const hasTargets = Array.isArray(profile.target_keywords) && profile.target_keywords.length > 0;
+  const skills = Array.isArray(profile.skills) && profile.skills.length > 0
+    ? profile.skills
+    : (Array.isArray(profile.core_skills) ? profile.core_skills : []);
+  const targets = Array.isArray(profile.target_keywords) && profile.target_keywords.length > 0
+    ? profile.target_keywords
+    : (Array.isArray(profile.target_titles) && profile.target_titles.length > 0 ? profile.target_titles : (profile.title ? [profile.title] : []));
 
-  return Boolean(hasName && hasSkills && hasTargets);
+  return Boolean(hasName && skills.length > 0 && targets.length > 0);
 }
 
 function isProfileIncomplete(profile) {
@@ -2403,7 +2408,7 @@ function closeProfileModal() {
   }
 }
 
-function flushUserProfileData() {
+async function flushUserProfileData() {
   if (!checkAuthOrRedirect('flush candidate profile')) return;
   if (!confirm('Are you sure you want to reset your candidate profile and search settings?')) return;
   const preservedEmail = (
@@ -2546,8 +2551,21 @@ function flushUserProfileData() {
   parsedResumeData = null;
   lastParsedResumeText = '';
 
-  // Reset form inputs in frontend only — server profile is NOT wiped until user clicks "Save Profile"
-  showToast('Form inputs reset. Click "Save Profile" in Step 3 to persist, or "Cancel" to keep your current saved profile.', 'info', 4000);
+  try {
+    const res = await authFetch('/api/profile/reset', { method: 'POST' });
+    const data = await parseJsonResponse(res);
+    if (data.status === 'success') {
+      activeProfileData = { ...(data.profile || {}) };
+      Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
+      renderCandidateSummary(activeProfileData);
+      updateJobSearchButtonState();
+      showToast('Candidate profile and search preferences reset successfully.', 'success', 3500);
+    } else {
+      showToast('Reset notice: ' + (data.message || 'local fields cleared'), 'info');
+    }
+  } catch (err) {
+    showToast('Reset notice: ' + err.message, 'info');
+  }
 }
 
 
@@ -2743,10 +2761,7 @@ function initDropzoneHandlers() {
     const files = dt.files;
     if (files && files.length > 0) {
       selectedResumeFile = files[0];
-      const dropText = document.getElementById('dropzone-text');
-      if (dropText) {
-        dropText.innerText = `Selected: ${files[0].name} (${(files[0].size / 1024).toFixed(1)} KB)`;
-      }
+      handleResumeFileSelectedAndParse({ target: { files: files } });
     }
   }, false);
 }
@@ -2857,6 +2872,25 @@ async function saveProfilePreferences() {
     ? excludesInput.value.split(',').map(s => s.trim()).filter(Boolean)
     : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : []);
 
+  if (!name) {
+    showToast('Please enter your candidate name in Step 2.', 'warning');
+    profileWizardGoTo(2);
+    nameInput?.focus();
+    return;
+  }
+  if (!targets.length) {
+    showToast('Please specify at least one target job title in Step 2.', 'warning');
+    profileWizardGoTo(2);
+    targetsInput?.focus();
+    return;
+  }
+  if (!skills.length) {
+    showToast('Please enter your core skills in Step 2.', 'warning');
+    profileWizardGoTo(2);
+    skillsInput?.focus();
+    return;
+  }
+
   const dailyRadio = document.getElementById('radio-mode-daily');
   const notifEnabled = dailyRadio ? Boolean(dailyRadio.checked) : false;
 
@@ -2871,12 +2905,25 @@ async function saveProfilePreferences() {
   if ((notifEnabled || onetimeSelected) && !notifEmail) {
     showToast('Please provide a destination email address for dispatch alerts.', 'warning');
     profileWizardGoTo(3);
+    notifEmailInput?.focus();
+    return;
+  }
+  if ((notifEnabled || onetimeSelected) && notifEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifEmail)) {
+    showToast('Please enter a valid email address for notifications.', 'warning');
+    profileWizardGoTo(3);
+    notifEmailInput?.focus();
     return;
   }
 
   const minScoreInput = document.getElementById('notif-min-score');
   const minScoreVal = minScoreInput ? minScoreInput.value.trim() : '';
   const notifScore = minScoreVal ? parseFloat(minScoreVal) : null;
+  if (notifScore !== null && (isNaN(notifScore) || notifScore < 0 || notifScore > 10)) {
+    showToast('Minimum match score must be between 0.0 and 10.0.', 'warning');
+    profileWizardGoTo(3);
+    minScoreInput?.focus();
+    return;
+  }
 
   const resumeTextInput = document.getElementById('prof-resume-text');
   const resumeText = resumeTextInput ? resumeTextInput.value.trim() : (activeProfileData?.resume_text || '');
@@ -2892,6 +2939,7 @@ async function saveProfilePreferences() {
   };
   const expLevel = getSelectedExpLevel('prof-exp') || deriveExpLevel(years) || activeProfileData?.experience_level || '0-1';
   const locationPref = getLocationPreference('prof-location-pref', 'prof-specific-cities');
+  const preferredLocations = Array.isArray(locationPref?.locations) ? locationPref.locations : [];
 
   const noticeInput = document.getElementById('prof-notice-period');
   const noticePeriod = noticeInput ? noticeInput.value : (activeProfileData?.notice_period || 'immediate');
@@ -2920,10 +2968,12 @@ async function saveProfilePreferences() {
     job_types: jobTypes,
     experience_level: expLevel,
     location_preference: locationPref,
-    preferred_locations: locationPref,
+    preferred_locations: preferredLocations,
     notice_period: noticePeriod,
     current_ctc_lpa: curCtc,
     expected_ctc_lpa: expCtc,
+    min_salary_lpa: expCtc,
+    preferred_sectors: activeProfileData?.preferred_sectors || [],
     domains: activeProfileData?.domains || parsedResumeData?.domains || [],
     notable_projects: activeProfileData?.notable_projects || parsedResumeData?.notable_projects || []
   };
@@ -3393,6 +3443,11 @@ document.addEventListener('keydown', (e) => {
     if (input) {
       input.focus();
       input.select();
+    }
+  } else if ((e.key === 'Enter' || e.key === ' ') && !isTyping) {
+    if (document.activeElement?.getAttribute('role') === 'button') {
+      e.preventDefault();
+      document.activeElement.click();
     }
   } else if (e.key === 'Escape') {
     if (document.getElementById('add-job-modal')?.classList.contains('active')) {

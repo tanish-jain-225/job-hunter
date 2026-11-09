@@ -126,6 +126,55 @@ def api_profile():
         existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
         merged_profile = {**(existing or {}), **data}
 
+        # Normalize experience_years and CTC numbers
+        if "experience_years" in merged_profile:
+            try:
+                merged_profile["experience_years"] = float(merged_profile["experience_years"] or 0)
+            except (ValueError, TypeError):
+                merged_profile["experience_years"] = 0.0
+
+        for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
+            if ctc_field in merged_profile and merged_profile[ctc_field] is not None:
+                try:
+                    merged_profile[ctc_field] = float(merged_profile[ctc_field])
+                except (ValueError, TypeError):
+                    merged_profile[ctc_field] = 0.0
+
+        if merged_profile.get("expected_ctc_lpa") and not merged_profile.get("min_salary_lpa"):
+            merged_profile["min_salary_lpa"] = merged_profile["expected_ctc_lpa"]
+
+        # Ensure preferred_locations is always a list of clean strings
+        raw_pref_locs = merged_profile.get("preferred_locations")
+        if isinstance(raw_pref_locs, dict):
+            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs.get("locations", []) if str(x).strip()]
+        elif isinstance(raw_pref_locs, list):
+            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs if str(x).strip()]
+        elif isinstance(raw_pref_locs, str) and raw_pref_locs.strip():
+            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs.split(",") if str(x).strip()]
+        else:
+            merged_profile["preferred_locations"] = []
+
+        # Normalize location_preference
+        raw_loc_pref = merged_profile.get("location_preference")
+        if isinstance(raw_loc_pref, dict):
+            loc_type = str(raw_loc_pref.get("type") or "all_india").strip()
+            loc_list = [str(x).strip() for x in raw_loc_pref.get("locations", []) if str(x).strip()]
+            if not loc_list and merged_profile["preferred_locations"]:
+                loc_list = merged_profile["preferred_locations"]
+            merged_profile["location_preference"] = {"type": loc_type, "locations": loc_list}
+        elif isinstance(raw_loc_pref, str) and raw_loc_pref.strip():
+            merged_profile["location_preference"] = raw_loc_pref.strip()
+        else:
+            merged_profile["location_preference"] = "specific_cities" if merged_profile["preferred_locations"] else "all_india"
+
+        # Normalize list fields
+        for list_field in ("skills", "target_keywords", "exclude_keywords", "job_types", "preferred_sectors"):
+            val = merged_profile.get(list_field)
+            if isinstance(val, str):
+                merged_profile[list_field] = [s.strip() for s in val.split(",") if s.strip()]
+            elif not isinstance(val, list):
+                merged_profile[list_field] = []
+
         # If new non-empty resume_text is submitted without skills, auto-extract skills
         data_resume_text = (data.get("resume_text") or "").strip()
         if data_resume_text and not data.get("skills"):
@@ -190,6 +239,7 @@ def api_profile_reset():
         "min_score_notification": None,
         "onboarding_completed": False,
         "preferred_locations": [],
+        "location_preference": "all_india",
         "job_types": [],  # e.g. ["fulltime", "internship", "remote", "hybrid", "onsite"]
         "experience_level": "",  # e.g. "fresher", "0-1", "1-3", "3-5", "5+"
         "notice_period": "30_days",  # e.g. "immediate", "15_days", "30_days", "60_days", "90_days"
@@ -486,6 +536,47 @@ def api_profile_preferences():
         # Merge with existing profile
         existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
         merged = {**(existing or {}), **data, "onboarding_completed": True}
+
+        # Normalize preferred_locations
+        raw_pref = merged.get("preferred_locations")
+        if isinstance(raw_pref, dict):
+            merged["preferred_locations"] = [str(x).strip() for x in raw_pref.get("locations", []) if str(x).strip()]
+        elif isinstance(raw_pref, list):
+            merged["preferred_locations"] = [str(x).strip() for x in raw_pref if str(x).strip()]
+        elif isinstance(raw_pref, str) and raw_pref.strip():
+            merged["preferred_locations"] = [str(x).strip() for x in raw_pref.split(",") if str(x).strip()]
+        else:
+            merged["preferred_locations"] = []
+
+        # Normalize location_preference
+        raw_loc = merged.get("location_preference")
+        if isinstance(raw_loc, dict):
+            loc_t = str(raw_loc.get("type") or "all_india").strip()
+            loc_l = [str(x).strip() for x in raw_loc.get("locations", []) if str(x).strip()]
+            if not loc_l and merged["preferred_locations"]:
+                loc_l = merged["preferred_locations"]
+            merged["location_preference"] = {"type": loc_t, "locations": loc_l}
+        elif isinstance(raw_loc, str) and raw_loc.strip():
+            merged["location_preference"] = raw_loc.strip()
+        else:
+            merged["location_preference"] = "specific_cities" if merged["preferred_locations"] else "all_india"
+
+        for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
+            if ctc_field in merged and merged[ctc_field] is not None:
+                try:
+                    merged[ctc_field] = float(merged[ctc_field])
+                except (ValueError, TypeError):
+                    merged[ctc_field] = 0.0
+
+        if merged.get("expected_ctc_lpa") and not merged.get("min_salary_lpa"):
+            merged["min_salary_lpa"] = merged["expected_ctc_lpa"]
+
+        for list_field in ("job_types", "preferred_sectors", "target_keywords", "exclude_keywords"):
+            val = merged.get(list_field)
+            if isinstance(val, str):
+                merged[list_field] = [s.strip() for s in val.split(",") if s.strip()]
+            elif not isinstance(val, list):
+                merged[list_field] = []
 
         if memory.is_configured:
             if not memory.upsert_user_profile(email, merged, token=token):
