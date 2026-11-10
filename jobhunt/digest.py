@@ -244,7 +244,7 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
   </table>
 
   <p style="color:#334155;font-size:13.5px;line-height:1.6;margin:0 0 14px 0;word-break:break-word;overflow-wrap:anywhere;">
-    Our autonomous crawler scanned <b>{scanned} postings</b> across <b>88+ curated ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint).
+    Our autonomous crawler scanned <b>{scanned} postings</b> across <b>114+ curated ATS company boards</b> (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint).
   </p>
 
   <div style="background:#f8fafc;border:1px solid {LINE};border-radius:8px;padding:14px 16px;box-sizing:border-box;width:100%;display:block;margin:0 0 14px 0;">
