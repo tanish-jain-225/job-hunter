@@ -289,14 +289,14 @@ def api_sync():
                                         pipe_state["running"] = True
                                         pipe_state["step"] = "running"
                                         pipe_state["message"] = (
-                                            f"Cloud Radar ({gh_status}): Crawling 100+ ATS company boards in GitHub Actions cloud..."
+                                            f"Cloud Radar ({gh_status}): Crawling 114+ ATS company boards in GitHub Actions cloud..."
                                         )
                                     elif gh_status == "completed":
                                         if gh_conclusion == "success":
                                             pipe_state["running"] = False
                                             pipe_state["step"] = "completed"
                                             pipe_state["message"] = (
-                                                "Cloud Radar completed! 100+ company boards crawled and candidate fits evaluated."
+                                                "Cloud Radar completed! 114+ company boards crawled and candidate fits evaluated."
                                             )
                                             pipe_state.pop("dispatched_at", None)
                                             set_user_pipeline_state(
@@ -662,7 +662,7 @@ def api_run():
             gh_resp = requests.post(gh_url, json=gh_payload, headers=gh_headers, timeout=8)
             if gh_resp.status_code in (200, 204):
                 _GH_STATUS_CACHE.pop(repo_name, None)
-                msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 100+ company boards in the cloud..."
+                msg = "Autonomous Radar dispatched to GitHub Actions! Crawling 114+ company boards in the cloud..."
                 dispatched_time = time.time()
                 set_user_pipeline_state(
                     email,
@@ -711,7 +711,7 @@ def api_run():
         gh_actions_url = (
             f"https://github.com/{repo_name}/actions/workflows/daily.yml" if repo_name else "https://github.com"
         )
-        msg = "Cloud Radar: GitHub Actions is ready to crawl 100+ live boards. Triggering workflow..."
+        msg = "Cloud Radar: GitHub Actions is ready to crawl 114+ live boards. Triggering workflow..."
         return jsonify(
             {
                 "status": "need_github_dispatch",

@@ -3235,7 +3235,7 @@ async function runPipeline() {
       startCloudPoller(data.dispatched_at || (Date.now() / 1000));
 
     } else if (data.status === 'need_github_dispatch') {
-      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 100+ live board crawl in the cloud... Monitoring for results.';
+      if (consoleBox) consoleBox.innerText = 'Opening GitHub Actions to run the full 114+ live board crawl in the cloud... Monitoring for results.';
       showToast('Opening GitHub Actions to run the live radar in the cloud... Loader will monitor until results arrive.', 'info', 5000);
       fetchAndRenderJobs(false);
       if (data.actions_url) {

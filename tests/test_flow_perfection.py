@@ -434,7 +434,7 @@ def test_pipeline_sync_github_actions_branches(client, tmp_path: Path, monkeypat
         data = r.get_json()
         assert data["status"] == "success"
         assert data["pipeline"]["running"] is True
-        assert "Crawling 100+ ATS" in data["pipeline"]["message"]
+        assert "Crawling 114+ ATS" in data["pipeline"]["message"]
 
     from jobhunt.web.routes.pipeline import _GH_STATUS_CACHE
     _GH_STATUS_CACHE.clear()
