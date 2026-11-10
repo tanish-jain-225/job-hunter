@@ -1830,38 +1830,58 @@ let activeProfileData = null;
 let selectedResumeFile = null;
 
 function renderCandidateSummary(profile) {
-  if (!profile) return;
-  activeProfileData = { ...profile };
-  Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
-
   const nameEl = document.getElementById('summary-candidate-name');
   const titleEl = document.getElementById('summary-candidate-title');
   const skillsContainer = document.getElementById('summary-skills-tags');
   const notifIndicator = document.getElementById('notif-badge-indicator');
+  const authEmail = (currentAuthSession?.user?.email || '').trim();
 
-  const authDisplayName = (
-    currentAuthSession?.user?.user_metadata?.full_name ||
-    currentAuthSession?.user?.user_metadata?.name ||
-    ''
-  ).trim();
+  if (!profile) {
+    activeProfileData = null;
+    if (nameEl) {
+      nameEl.innerText = authEmail || 'Email';
+      nameEl.classList.add('profile-incomplete-label');
+    }
+    if (titleEl) {
+      titleEl.innerText = 'Complete your profile to begin';
+      titleEl.classList.add('profile-incomplete-label');
+      titleEl.setAttribute('data-action', 'open-profile-modal');
+      titleEl.removeAttribute('data-tag');
+      titleEl.removeAttribute('title');
+      titleEl.style.cursor = '';
+    }
+    if (skillsContainer) {
+      skillsContainer.innerHTML = '<span class="studio-skill-tag studio-skill-placeholder">No skills yet</span>';
+    }
+    if (notifIndicator) {
+      notifIndicator.className = 'notif-badge-off';
+      notifIndicator.innerText = 'Email Alerts: Off';
+    }
+    updateJobSearchButtonState();
+    return;
+  }
 
-  const savedName = (activeProfileData.name || '').trim();
-  const savedTitle = (activeProfileData.title || '').trim();
+  activeProfileData = { ...profile };
+  Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
+
+  const rawSavedName = (activeProfileData.name || '').trim();
+  const savedName = (rawSavedName && rawSavedName !== 'Candidate') ? rawSavedName : '';
+  const savedTitle = (activeProfileData.title || activeProfileData.current_title || '').trim();
   
-  const rawSkills = Array.isArray(activeProfileData.skills) ? activeProfileData.skills : [];
+  const rawSkills = Array.isArray(activeProfileData.skills) && activeProfileData.skills.length > 0
+    ? activeProfileData.skills
+    : (Array.isArray(activeProfileData.core_skills) ? activeProfileData.core_skills : []);
   const skillsList = rawSkills.map(s => String(s).trim()).filter(Boolean);
 
-  const isFilled = Boolean(savedName || savedTitle || skillsList.length > 0);
-  const isComplete = Boolean(activeProfileData.onboarding_completed) || Boolean((savedName || savedTitle) && skillsList.length > 0);
-
   if (nameEl) {
-    const displayName = savedName || authDisplayName || (currentAuthSession?.user?.email ? currentAuthSession.user.email.split('@')[0] : '');
-    nameEl.innerText = displayName || 'Setup Profile';
-    nameEl.classList.toggle('profile-incomplete-label', !savedName && !authDisplayName);
+    // Privacy-first: if no explicit candidate name is saved, display user's authenticated email
+    const displayEmail = authEmail || (activeProfileData.email || '').trim();
+    nameEl.innerText = savedName || displayEmail || 'Email';
+    nameEl.classList.toggle('profile-incomplete-label', !savedName);
   }
 
   if (titleEl) {
-    titleEl.innerText = savedTitle || (isFilled ? 'Candidate Profile' : 'Click to configure your profile');
+    titleEl.innerText = savedTitle || 'Complete your profile to begin';
     titleEl.classList.toggle('profile-incomplete-label', !savedTitle);
     if (savedTitle) {
       titleEl.setAttribute('data-action', 'search-tag');
@@ -1882,7 +1902,7 @@ function renderCandidateSummary(profile) {
         `<button type="button" class="studio-skill-tag clickable-skill-chip" data-action="search-tag" data-tag="${escapeHtml(s)}" title="Filter job board by ${escapeHtml(s)}">${escapeHtml(s)}</button>`
       ).join('');
     } else {
-      skillsContainer.innerHTML = '<span class="studio-skill-tag studio-skill-placeholder">No skills added yet</span>';
+      skillsContainer.innerHTML = '<span class="studio-skill-tag studio-skill-placeholder">No skills yet</span>';
     }
   }
 
@@ -1983,7 +2003,7 @@ async function openProfileModal(tab = 'resume') {
       const notifScore   = document.getElementById('notif-min-score');
 
       if (nameInput) {
-        const candidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
+        const candidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : '';
         nameInput.value = candidateName;
       }
       if (resumeTextInput) resumeTextInput.value = p.resume_text || '';
@@ -2025,7 +2045,7 @@ async function openProfileModal(tab = 'resume') {
       const notifEmail = document.getElementById('notif-target-email');
       const targetsInput = document.getElementById('prof-targets');
       const excludesInput= document.getElementById('prof-excludes');
-      if (nameInput)  nameInput.value  = authName || '';
+      if (nameInput)  nameInput.value  = '';
       if (titleInput) titleInput.value = '';
       if (notifEmail && authEmail) notifEmail.value = authEmail;
       if (targetsInput)  targetsInput.value  = '';
@@ -2039,7 +2059,7 @@ async function openProfileModal(tab = 'resume') {
     const notifEmail = document.getElementById('notif-target-email');
     const targetsInput = document.getElementById('prof-targets');
     const excludesInput= document.getElementById('prof-excludes');
-    if (nameInput)  nameInput.value  = authName || '';
+    if (nameInput)  nameInput.value  = '';
     if (titleInput) titleInput.value = '';
     if (notifEmail && authEmail) notifEmail.value = authEmail;
     if (targetsInput)  targetsInput.value  = '';
@@ -2073,21 +2093,12 @@ function selectMailMode(mode) {
 function populateSection2FromProfile(p, isAutoFill = false) {
   if (!p) return;
 
-  // 1. Candidate Name
+  // 1. Candidate Name (Privacy-first: never infer or prefill from email or OAuth metadata)
   const nameInput = document.getElementById('prof-name');
   const onbNameInput = document.getElementById('onboard-prof-name');
-  const authName = (
-    currentAuthSession?.user?.user_metadata?.full_name ||
-    currentAuthSession?.user?.user_metadata?.name ||
-    ''
-  ).trim();
-  const rawCandidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
+  const rawCandidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : '';
   const existingNameVal = nameInput ? nameInput.value.trim() : '';
-
-  let finalName = rawCandidateName;
-  if (!finalName || finalName === 'Candidate') {
-    finalName = existingNameVal || authName || '';
-  }
+  const finalName = rawCandidateName || existingNameVal || '';
 
   if (nameInput) nameInput.value = finalName;
   if (onbNameInput) onbNameInput.value = finalName;
@@ -2489,7 +2500,15 @@ function closeProfileModal() {
 
 async function flushUserProfileData() {
   if (!checkAuthOrRedirect('flush candidate profile')) return;
-  if (!confirm('Are you sure you want to reset your candidate profile and search settings?')) return;
+  const confirmMsg =
+    "Are you sure you want to completely reset and wipe your profile data?\n\n" +
+    "This will permanently clear:\n" +
+    "• All extracted resume information & uploaded files\n" +
+    "• Technical skills, experience, and education\n" +
+    "• Target roles, salary, locations, and search criteria\n" +
+    "• Job alert preferences\n\n" +
+    "Your authenticated email account will remain intact.";
+  if (!confirm(confirmMsg)) return;
   const preservedEmail = (
     currentAuthSession?.user?.email ||
     activeProfileData?.notification_email ||
@@ -2638,6 +2657,7 @@ async function flushUserProfileData() {
       Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
       renderCandidateSummary(activeProfileData);
       updateJobSearchButtonState();
+      profileWizardGoTo(1);
       showToast('Candidate profile and search preferences reset successfully.', 'success', 3500);
     } else {
       showToast('Reset notice: ' + (data.message || 'local fields cleared'), 'info');
@@ -2650,7 +2670,7 @@ async function flushUserProfileData() {
 
 // Profile wizard step navigation
 function profileWizardGoTo(step) {
-  const subtitles = ['', 'Step 1 of 3 — Resume & Text Context', 'Step 2 of 3 — Target Roles & Exclusions', 'Step 3 of 3 — Match Score & Mail Modes'];
+  const subtitles = ['', 'Step 1 of 3 — Resume Upload', 'Step 2 of 3 — Profile & Criteria', 'Step 3 of 3 — Alert Settings'];
   const subtitle = document.getElementById('profile-wizard-subtitle');
   if (subtitle) subtitle.innerText = subtitles[step] || '';
 

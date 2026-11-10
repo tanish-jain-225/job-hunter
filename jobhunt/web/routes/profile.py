@@ -179,13 +179,9 @@ def api_profile():
         merged_profile["title"] = t_str
         merged_profile["current_title"] = t_str
 
-        # Smart fallback for candidate name
-        if not merged_profile.get("name") or merged_profile.get("name") == "Candidate":
-            username_part = email.split("@")[0]
-            cleaned_username = re.sub(r"\d+", "", username_part).replace(".", " ").replace("_", " ").strip()
-            derived_name = " ".join(part.capitalize() for part in cleaned_username.split())
-            if derived_name:
-                merged_profile["name"] = derived_name
+        # Candidate name normalization (strictly privacy-first: never synthesize from email or placeholders)
+        raw_name = str(data.get("name") if "name" in data else (existing.get("name") or "")).strip()
+        merged_profile["name"] = "" if raw_name == "Candidate" else raw_name
 
         # Smart title & target keywords cross-inference
         if not merged_profile.get("title") and merged_profile.get("target_keywords"):
@@ -343,10 +339,14 @@ def api_profile_reset():
         "email": email,
         "name": "",
         "title": "",
+        "current_title": "",
         "education": "",
         "experience_years": 0,
+        "years_experience": 0,
         "skills": [],
+        "core_skills": [],
         "target_keywords": [],
+        "target_titles": [],
         "exclude_keywords": [],
         "resume_text": "",
         "resume_filename": "",
@@ -467,7 +467,6 @@ def api_resume_upload():
 
     if not parsed_profile or not isinstance(parsed_profile, dict):
         # Fallback smart extraction from resume text if LLM unavailable or times out
-        username_part = email.split("@")[0]
         derived_name = ""
         derived_title = ""
         derived_edu = ""
@@ -554,8 +553,7 @@ def api_resume_upload():
             if existing.get("name") and existing["name"] != "Candidate":
                 derived_name = existing["name"]
             else:
-                cleaned_username = re.sub(r"\d+", "", username_part).replace(".", " ").replace("_", " ").strip()
-                derived_name = " ".join(part.capitalize() for part in cleaned_username.split()) or "Candidate"
+                derived_name = ""
 
         skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
 

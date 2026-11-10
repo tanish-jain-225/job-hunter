@@ -228,37 +228,35 @@ def test_dashboard_flow_profile_wizard_and_save(browser_page, live_server):
     assert page.is_visible("#profile-modal")
     assert page.is_visible("#profile-step-1")
 
-    # 2. Add text context in Step 1
-    page.fill("#prof-resume-text", "Jordan Lee. 7 years experience in Python, Kubernetes, FastAPI, PostgreSQL.")
-
-    # 3. Transition to Step 2
-    page.click("#profile-next-1")
-    page.wait_for_timeout(300)
+    # 2. Upload resume in Step 1 -> AI auto-fill is default
+    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200):
+        page.set_input_files("#resume-file-input", {
+            "name": "resume.txt",
+            "mimeType": "text/plain",
+            "buffer": b"Jordan Lee. 7 years experience in Python, Kubernetes, FastAPI, PostgreSQL."
+        })
+    page.wait_for_selector("#profile-step-2:not([style*='display: none'])", timeout=5000)
     assert page.is_visible("#profile-step-2")
 
-    # 4. Clear and click Auto-Fill
-    page.fill("#prof-name", "")
-    page.click("#btn-autofill-roles")
-    page.wait_for_timeout(400)
-
+    # 3. Verify auto-filled criteria in Step 2
     assert page.input_value("#prof-name") == "Jordan Lee"
     assert "Lead Software Engineer" in page.input_value("#prof-title")
     assert "Kubernetes" in page.input_value("#prof-skills")
     # Verify save button is NOT present in Step 2
     assert not page.is_visible("#btn-profile-save")
 
-    # 5. Transition to Step 3
+    # 4. Transition to Step 3
     page.click("#profile-next-2")
     page.wait_for_timeout(300)
     assert page.is_visible("#profile-step-3")
     # Verify save button IS present at the end in Step 3
     assert page.is_visible("#btn-profile-save")
 
-    # 6. Save Profile
+    # 5. Save Profile
     page.click("#btn-profile-save")
     page.wait_for_timeout(800)
 
-    # 7. Verify modal closes
+    # 6. Verify modal closes
     if page.is_visible("#profile-modal"):
         page.click(".modal-close[data-action='close-profile-modal']")
         page.wait_for_timeout(300)
@@ -615,7 +613,7 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
     page.wait_for_selector("#profile-modal.active", timeout=5000)
     assert page.is_visible("#profile-step-1")
 
-    # 2. Enter Resume Text Context in Step 1
+    # 2. Upload resume in Step 1 -> AI auto-fills by default
     sample_resume = (
         "Alex Morgan\n"
         "Principal Platform Engineer\n"
@@ -627,14 +625,16 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
         "Current CTC: 22 LPA, Expected CTC: 38 LPA\n"
         "Specific cities: Bengaluru, Pune\n"
     )
-    page.fill("#prof-resume-text", sample_resume)
-    page.click("#profile-next-1")
+    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200):
+        page.set_input_files("#resume-file-input", {
+            "name": "resume.txt",
+            "mimeType": "text/plain",
+            "buffer": sample_resume.encode("utf-8")
+        })
     page.wait_for_selector("#profile-step-2:not([style*='display: none'])", timeout=5000)
     assert page.is_visible("#profile-step-2")
 
-    # 3. Auto-Fill & Customize Criteria in Step 2
-    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200):
-        page.click("#btn-autofill-roles")
+    # 3. Customize and verify criteria in Step 2
     page.wait_for_timeout(300)
 
     page.fill("#prof-name", "Alex Morgan")
@@ -697,10 +697,15 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
     assert page.input_value("#notif-target-email") == "alex.morgan@platformlabs.dev"
     assert page.is_checked("#radio-mode-daily")
 
-    # 7. Reset Profile via Step 1
+    # 7a. Test Reset cancellation -> no changes
+    page.once("dialog", lambda dialog: dialog.dismiss())
+    page.click("button[data-action='flush-profile-data']")
+    page.wait_for_timeout(200)
+    page.click("#pws-node-2")
+    assert page.input_value("#prof-name") == "Alex Morgan"
     page.click("#pws-node-1")
-    page.wait_for_selector("#profile-step-1:not([style*='display: none'])", timeout=5000)
 
+    # 7b. Test Confirmed Reset -> complete application-data clearance
     page.once("dialog", lambda dialog: dialog.accept())
     with page.expect_response(lambda res: "/api/profile/reset" in res.url and res.status == 200):
         page.click("button[data-action='flush-profile-data']")
@@ -715,6 +720,11 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
     # Close modal via Escape
     page.keyboard.press("Escape")
     page.wait_for_selector("#profile-modal", state="hidden", timeout=5000)
+
+    # 8. Verify dashboard candidate summary reflects reset privacy-first state
+    summary_after = page.inner_text("#summary-candidate-name")
+    assert summary_after in ("developer@local", "Email")
+    assert page.inner_text("#summary-candidate-title") == "Complete your profile to begin"
 
     assert len(page_errors) == 0, f"Page errors: {page_errors}"
     js_errors = [e for e in console_errors if "net::ERR_FAILED" not in e and "fonts.googleapis" not in e]
