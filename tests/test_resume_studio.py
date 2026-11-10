@@ -649,6 +649,109 @@ def test_profile_local_cache_write_exceptions_logged_gracefully(client, mock_sup
         assert res_reset.status_code == 200
 
 
+def test_resume_upload_fallback_smart_parser_indian_context(client, mock_supabase_env):
+    """Verify smart fallback parser extracts Indian tech hubs, notice period, CTC, and guarantees bidirectional aliases."""
+    resume_text = """
+    Priya Sharma
+    Senior Backend Developer | Python, Django, AWS, PostgreSQL
+    priya.sharma@example.com | +91 9876543210 | Bengaluru, India
+
+    PROFESSIONAL SUMMARY
+    Backend Engineer with 4.5 years of industry experience designing high-throughput microservices.
+    Currently located in Bengaluru, open to roles in Hyderabad or Pune.
+    Notice Period: 15 days notice
+    Current CTC: 16.5 LPA
+    Expected CTC: 24 LPA
+
+    TECHNICAL SKILLS
+    Languages & Frameworks: Python, Django, FastAPI, Go, Docker, Kubernetes, AWS, Redis, SQL
+    Education: B.Tech in Computer Science, Tier-1 Institute
+    """
+
+    # Force LLM build_profile to raise an exception so the fallback parser is exercised
+    with (
+        patch("jobhunt.llm.build_profile", side_effect=RuntimeError("AI Timeout")),
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])),
+    ):
+        res = client.post(
+            "/api/resume/upload",
+            json={"resume_text": resume_text},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+        prof = data["profile"]
+        parsed = data["parsed_profile"]
+
+        # Candidate name should not be 'PROFESSIONAL SUMMARY' or 'Candidate'
+        assert prof["name"] == "Priya Sharma"
+        assert parsed["name"] == "Priya Sharma"
+
+        # Title cleaned of trailing skills
+        assert "Senior Backend Developer" in prof["title"]
+        assert prof["title"] == prof["current_title"]
+        assert parsed["title"] == parsed["current_title"]
+
+        # Experience years
+        assert prof["experience_years"] == prof["years_experience"] == 4.5
+        assert parsed["experience_years"] == parsed["years_experience"] == 4.5
+
+        # Bidirectional aliases for skills & core_skills
+        assert prof["skills"] == prof["core_skills"]
+        assert parsed["skills"] == parsed["core_skills"]
+        assert "Python" in prof["skills"]
+
+        # Bidirectional aliases for target_keywords & target_titles
+        assert prof["target_keywords"] == prof["target_titles"]
+        assert parsed["target_keywords"] == parsed["target_titles"]
+
+        # Indian tech hubs detected
+        assert "Bengaluru" in prof["preferred_locations"]
+        assert "Hyderabad" in prof["preferred_locations"]
+        assert "Pune" in prof["preferred_locations"]
+        assert prof["location_preference"] == "specific_cities"
+
+        # Notice period & CTC extracted
+        assert prof["notice_period"] == "15_days"
+        assert prof["current_ctc_lpa"] == 16.5
+        assert prof["expected_ctc_lpa"] == 24.0
+        assert prof["min_salary_lpa"] == 24.0
+
+
+def test_api_profile_save_and_retrieve_bidirectional_aliases(client, mock_supabase_env):
+    """Verify POST /api/profile normalizes aliases and notice period properly."""
+    with (
+        patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=True),
+        patch("requests.post", return_value=MagicMock(status_code=201)),
+        patch("requests.get", return_value=MagicMock(status_code=200, json=lambda: [])),
+    ):
+        payload = {
+            "name": "Karan Verma",
+            "current_title": "Full Stack Engineer",
+            "years_experience": 3.0,
+            "core_skills": ["React", "Node.js", "TypeScript"],
+            "target_titles": ["Full Stack Developer", "Software Engineer"],
+            "notice_period": "Immediate",
+            "current_ctc_lpa": "12.0",
+            "expected_ctc_lpa": "18.0",
+        }
+        res = client.post("/api/profile", json=payload, headers={"Authorization": "Bearer mock-token"})
+        assert res.status_code == 200
+        saved = res.get_json()["profile"]
+
+        assert saved["title"] == saved["current_title"] == "Full Stack Engineer"
+        assert saved["experience_years"] == saved["years_experience"] == 3.0
+        assert saved["skills"] == saved["core_skills"] == ["React", "Node.js", "TypeScript"]
+        assert saved["target_keywords"] == saved["target_titles"] == ["Full Stack Developer", "Software Engineer"]
+        assert saved["notice_period"] == "immediate"
+        assert saved["current_ctc_lpa"] == 12.0
+        assert saved["expected_ctc_lpa"] == 18.0
+
+
+
 
 
 

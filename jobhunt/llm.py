@@ -67,7 +67,11 @@ Return ONLY a JSON object, no prose, no markdown fences:
   "seniority": str,            // intern | new-grad | junior | mid | senior | staff
   "experience_level": str,     // fresher | 0-1 | 1-3 | 3-5 | 5+
   "job_types": [str],          // e.g. ["fulltime", "internship", "remote"]
-  "location_preference": str   // all_india | remote_only | specific_cities | global
+  "location_preference": str,  // all_india | remote_only | specific_cities | global
+  "preferred_locations": [str], // e.g. ["Bengaluru", "Hyderabad", "Remote"] if detected or indicated
+  "notice_period": str,        // immediate | 15_days | 30_days | 60_days | 90_days (closest match or default "30_days")
+  "current_ctc_lpa": number,   // current compensation in LPA (Lakhs Per Annum) if stated, or 0
+  "expected_ctc_lpa": number   // expected compensation in LPA if stated, or 0
 }"""
 
 
@@ -180,28 +184,93 @@ def build_profile(
     if not isinstance(profile, dict):
         raise ValueError("profile extraction did not return a JSON object")
 
-    # Normalize years_experience
+    # Normalize years_experience and bidirectional alias experience_years
     yoe = profile.get("years_experience")
+    if yoe is None:
+        yoe = profile.get("experience_years")
     if isinstance(yoe, (int, float)):
-        profile["years_experience"] = float(yoe)
+        val_yoe = float(yoe)
     elif isinstance(yoe, str):
         m = re.search(r"(\d+(?:\.\d+)?)", yoe)
-        profile["years_experience"] = float(m.group(1)) if m else 0.0
+        val_yoe = float(m.group(1)) if m else 0.0
     else:
-        profile["years_experience"] = 0.0
+        val_yoe = 0.0
+    profile["years_experience"] = val_yoe
+    profile["experience_years"] = val_yoe
 
-    profile["core_skills"] = _ensure_list(profile.get("core_skills") or profile.get("skills"))
+    # Bidirectional aliases for core_skills <-> skills
+    skills_list = _ensure_list(profile.get("core_skills") or profile.get("skills"))
+    profile["core_skills"] = skills_list
+    profile["skills"] = skills_list
+
     profile["domains"] = _ensure_list(profile.get("domains"))
     profile["notable_projects"] = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
-    profile["target_titles"] = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
+
+    # Bidirectional aliases for target_titles <-> target_keywords
+    targets_list = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
+    profile["target_titles"] = targets_list
+    profile["target_keywords"] = targets_list
+
     profile["exclude_keywords"] = _ensure_list(profile.get("exclude_keywords") or profile.get("avoid_roles"))
     profile["job_types"] = _ensure_list(profile.get("job_types"))
     profile["name"] = str(profile.get("name") or "").strip()
-    profile["current_title"] = str(profile.get("current_title") or profile.get("title") or "").strip()
+
+    # Bidirectional aliases for current_title <-> title
+    cur_title = str(profile.get("current_title") or profile.get("title") or "").strip()
+    profile["current_title"] = cur_title
+    profile["title"] = cur_title
+
     profile["education"] = str(profile.get("education") or "").strip()
     profile["seniority"] = str(profile.get("seniority") or "").strip()
     profile["experience_level"] = str(profile.get("experience_level") or "").strip()
-    profile["location_preference"] = str(profile.get("location_preference") or "all_india").strip()
+
+    # Preferred locations & location preference normalization
+    raw_locs = profile.get("preferred_locations")
+    if isinstance(raw_locs, list):
+        pref_locs = [str(x).strip() for x in raw_locs if str(x).strip()]
+    elif isinstance(raw_locs, str) and raw_locs.strip():
+        pref_locs = [s.strip() for s in raw_locs.split(",") if s.strip()]
+    else:
+        pref_locs = []
+    profile["preferred_locations"] = pref_locs
+
+    loc_pref = str(profile.get("location_preference") or "").strip()
+    if not loc_pref:
+        loc_pref = "specific_cities" if pref_locs else "all_india"
+    profile["location_preference"] = loc_pref
+
+    # Notice period normalization
+    raw_np = str(profile.get("notice_period") or "").lower().strip()
+    if "imm" in raw_np or raw_np == "0":
+        norm_np = "immediate"
+    elif "15" in raw_np or "2 week" in raw_np:
+        norm_np = "15_days"
+    elif "60" in raw_np or "2 month" in raw_np:
+        norm_np = "60_days"
+    elif "90" in raw_np or "3 month" in raw_np:
+        norm_np = "90_days"
+    elif "30" in raw_np or "1 month" in raw_np:
+        norm_np = "30_days"
+    elif raw_np in {"immediate", "15_days", "30_days", "60_days", "90_days"}:
+        norm_np = raw_np
+    else:
+        norm_np = "30_days"
+    profile["notice_period"] = norm_np
+
+    # Current & Expected CTC in LPA
+    for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
+        val = profile.get(ctc_field)
+        if isinstance(val, (int, float)):
+            profile[ctc_field] = float(val)
+        elif isinstance(val, str):
+            m = re.search(r"(\d+(?:\.\d+)?)", val)
+            profile[ctc_field] = float(m.group(1)) if m else 0.0
+        else:
+            profile[ctc_field] = 0.0
+
+    if profile.get("expected_ctc_lpa") and not profile.get("min_salary_lpa"):
+        profile["min_salary_lpa"] = profile["expected_ctc_lpa"]
+
     return profile
 
 

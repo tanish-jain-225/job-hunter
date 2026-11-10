@@ -2095,36 +2095,63 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (nameInput) nameInput.value = finalName;
   if (onbNameInput) onbNameInput.value = finalName;
 
-  // 2. Core Skills
+  // 2. Core Skills (Support array or comma-separated string, deduplicate case-insensitively)
   const skillsInput = document.getElementById('prof-skills');
-  if (skillsInput && (Array.isArray(p.skills) || Array.isArray(p.core_skills))) {
-    const skl = (Array.isArray(p.skills) && p.skills.length) ? p.skills : (Array.isArray(p.core_skills) ? p.core_skills : []);
-    if (skl.length > 0) skillsInput.value = skl.join(', ');
+  const onbSkillsInput = document.getElementById('onboard-prof-skills');
+  let rawSkills = p.skills || p.core_skills;
+  let skl = [];
+  if (Array.isArray(rawSkills)) {
+    skl = rawSkills.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawSkills === 'string' && rawSkills.trim()) {
+    skl = rawSkills.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (skl.length > 0) {
+    const seenSkills = new Set();
+    const dedupedSkills = [];
+    for (const s of skl) {
+      const lower = s.toLowerCase();
+      if (!seenSkills.has(lower)) {
+        seenSkills.add(lower);
+        dedupedSkills.push(s);
+      }
+    }
+    const skillsStr = dedupedSkills.join(', ');
+    if (skillsInput) skillsInput.value = skillsStr;
+    if (onbSkillsInput) onbSkillsInput.value = skillsStr;
   }
 
   // 3. Years of Experience & Education
   const yearsInput = document.getElementById('prof-years');
-  if (yearsInput) {
+  const onbYearsInput = document.getElementById('onboard-prof-years');
+  if (yearsInput || onbYearsInput) {
+    let yoeVal = '';
     if (p.experience_years != null || p.years_experience != null) {
-      yearsInput.value = String(p.experience_years ?? p.years_experience);
-    } else if (!yearsInput.value.trim() && p.experience_level) {
+      const numYoe = parseFloat(p.experience_years ?? p.years_experience);
+      yoeVal = !isNaN(numYoe) ? String(numYoe) : '';
+    } else if (p.experience_level) {
       const expMap = { 'fresher': 0, '0-1': 1, '1-3': 2, '3-5': 4, '5+': 6 };
       if (p.experience_level in expMap) {
-        yearsInput.value = String(expMap[p.experience_level]);
+        yoeVal = String(expMap[p.experience_level]);
       }
     }
+    if (yearsInput && (yoeVal !== '' || !yearsInput.value.trim())) yearsInput.value = yoeVal;
+    if (onbYearsInput && (yoeVal !== '' || !onbYearsInput.value.trim())) onbYearsInput.value = yoeVal;
   }
   const eduInput = document.getElementById('prof-education');
-  if (eduInput && p.education) {
-    eduInput.value = p.education.trim();
+  const onbEduInput = document.getElementById('onboard-prof-education');
+  if (p.education) {
+    const eduStr = p.education.trim();
+    if (eduInput) eduInput.value = eduStr;
+    if (onbEduInput) onbEduInput.value = eduStr;
   }
 
   // 4. Target Job Titles (Included) & Headline Title
+  let rawTargets = p.target_keywords || p.target_titles;
   let targets = [];
-  if (Array.isArray(p.target_keywords) && p.target_keywords.length) {
-    targets = p.target_keywords.map(s => String(s).trim()).filter(Boolean);
-  } else if (Array.isArray(p.target_titles) && p.target_titles.length) {
-    targets = p.target_titles.map(s => String(s).trim()).filter(Boolean);
+  if (Array.isArray(rawTargets)) {
+    targets = rawTargets.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawTargets === 'string' && rawTargets.trim()) {
+    targets = rawTargets.split(',').map(s => s.trim()).filter(Boolean);
   }
   const mainTitle = (p.title || p.current_title || '').trim();
   if (mainTitle && !targets.some(t => t.toLowerCase() === mainTitle.toLowerCase())) {
@@ -2133,36 +2160,47 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (targets.length === 0) {
     targets = ['Software Engineer'];
   }
-  const targetsStr = Array.from(new Set(targets)).join(', ');
+  const seenTargets = new Set();
+  const dedupedTargets = [];
+  for (const t of targets) {
+    const lower = t.toLowerCase();
+    if (!seenTargets.has(lower)) {
+      seenTargets.add(lower);
+      dedupedTargets.push(t);
+    }
+  }
+  const targetsStr = dedupedTargets.join(', ');
   const targetsInput = document.getElementById('prof-targets');
   const onbTargetsInput = document.getElementById('onboard-prof-targets');
   if (targetsInput) targetsInput.value = targetsStr;
   if (onbTargetsInput) onbTargetsInput.value = targetsStr;
 
   const titleInput = document.getElementById('prof-title');
-  if (titleInput) {
-    const existingTitle = titleInput.value.trim();
-    if (mainTitle) {
-      titleInput.value = mainTitle;
-    } else if (!existingTitle && targets.length > 0) {
-      titleInput.value = targets[0];
-    }
-  }
+  const onbTitleInput = document.getElementById('onboard-prof-title');
+  const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : 'Software Engineer');
+  if (titleInput && (mainTitle || !titleInput.value.trim())) titleInput.value = chosenTitle;
+  if (onbTitleInput && (mainTitle || !onbTitleInput.value.trim())) onbTitleInput.value = chosenTitle;
 
   // 5. Excluded Title Keywords
+  let rawExcludes = p.exclude_keywords || p.exclude_titles || p.avoid_roles;
   let excludes = [];
-  if (Array.isArray(p.exclude_keywords) && p.exclude_keywords.length) {
-    excludes = p.exclude_keywords;
-  } else if (Array.isArray(p.exclude_titles) && p.exclude_titles.length) {
-    excludes = p.exclude_titles;
-  } else if (Array.isArray(p.avoid_roles) && p.avoid_roles.length) {
-    excludes = p.avoid_roles;
-  } else if (typeof p.exclude_keywords === 'string' && p.exclude_keywords.trim()) {
-    excludes = p.exclude_keywords.split(',').map(s => s.trim()).filter(Boolean);
+  if (Array.isArray(rawExcludes)) {
+    excludes = rawExcludes.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawExcludes === 'string' && rawExcludes.trim()) {
+    excludes = rawExcludes.split(',').map(s => s.trim()).filter(Boolean);
   } else if (isAutoFill) {
     excludes = ['Manager', 'Director', 'Sales', 'Recruiter', 'VP'];
   }
-  const excludesStr = excludes.join(', ');
+  const seenExcludes = new Set();
+  const dedupedExcludes = [];
+  for (const ex of excludes) {
+    const lower = ex.toLowerCase();
+    if (!seenExcludes.has(lower)) {
+      seenExcludes.add(lower);
+      dedupedExcludes.push(ex);
+    }
+  }
+  const excludesStr = dedupedExcludes.join(', ');
   const excludesInput = document.getElementById('prof-excludes');
   const onbExcludesInput = document.getElementById('onboard-prof-excludes');
   if (excludesInput) excludesInput.value = excludesStr;
@@ -2198,8 +2236,14 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     });
   });
 
-  // 5. Job Type Preferences
-  let jobTypes = Array.isArray(p.job_types) && p.job_types.length ? p.job_types : [];
+  // 7. Job Type Preferences
+  let rawJobTypes = p.job_types;
+  let jobTypes = [];
+  if (Array.isArray(rawJobTypes)) {
+    jobTypes = rawJobTypes.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawJobTypes === 'string' && rawJobTypes.trim()) {
+    jobTypes = rawJobTypes.split(',').map(s => s.trim()).filter(Boolean);
+  }
   if (jobTypes.length === 0) {
     if (expKey === 'fresher' || seniority.includes('intern')) {
       jobTypes = ['fulltime', 'internship', 'remote'];
@@ -2220,18 +2264,30 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     }
   });
 
-  // 6. Location Preference & Specific Cities
+  // 8. Location Preference & Specific Cities Normalization
   let locPref = '';
   let citiesList = [];
   if (p.location_preference) {
-    locPref = typeof p.location_preference === 'object' ? (p.location_preference.type || '') : p.location_preference;
+    locPref = typeof p.location_preference === 'object' ? (p.location_preference.type || '') : String(p.location_preference);
     citiesList = Array.isArray(p.location_preference.locations) ? p.location_preference.locations : [];
   }
-  if (!citiesList.length && Array.isArray(p.preferred_locations) && p.preferred_locations.length) {
-    citiesList = p.preferred_locations;
+  if (!citiesList.length) {
+    if (Array.isArray(p.preferred_locations)) {
+      citiesList = p.preferred_locations.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof p.preferred_locations === 'string' && p.preferred_locations.trim()) {
+      citiesList = p.preferred_locations.split(',').map(s => s.trim()).filter(Boolean);
+    }
   }
-  if (!locPref) {
-    locPref = citiesList.length ? 'specific_cities' : 'all_india';
+
+  const normLoc = locPref.toLowerCase().trim();
+  if (normLoc.includes('remote')) {
+    locPref = 'remote_only';
+  } else if (normLoc.includes('specific') || normLoc.includes('cit') || citiesList.length > 0) {
+    locPref = 'specific_cities';
+  } else if (normLoc.includes('global') || normLoc.includes('world') || normLoc.includes('internat')) {
+    locPref = 'global';
+  } else {
+    locPref = 'all_india';
   }
 
   ['prof-location-pref', 'onboard-location-pref'].forEach(radioName => {
@@ -2255,20 +2311,37 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const onbCities = document.getElementById('onboard-specific-cities');
   if (onbCities) onbCities.value = citiesStr;
 
-  // Indian Context Preferences (Notice Period, Current & Expected CTC)
+  // 9. Indian Context Preferences (Notice Period, Current & Expected CTC)
   const noticeInput = document.getElementById('prof-notice-period');
   if (noticeInput) {
-    noticeInput.value = p.notice_period || '30_days';
+    const rawNotice = String(p.notice_period || '').toLowerCase().trim();
+    let normNotice = '30_days';
+    if (rawNotice.includes('imm') || rawNotice === '0') {
+      normNotice = 'immediate';
+    } else if (rawNotice.includes('15') || rawNotice.includes('2 week')) {
+      normNotice = '15_days';
+    } else if (rawNotice.includes('60') || rawNotice.includes('2 month')) {
+      normNotice = '60_days';
+    } else if (rawNotice.includes('90') || rawNotice.includes('3 month')) {
+      normNotice = '90_days';
+    } else if (rawNotice.includes('30') || rawNotice.includes('1 month')) {
+      normNotice = '30_days';
+    } else if (['immediate', '15_days', '30_days', '60_days', '90_days'].includes(rawNotice)) {
+      normNotice = rawNotice;
+    }
+    noticeInput.value = normNotice;
   }
+
   const currentCtcInput = document.getElementById('prof-current-ctc');
   if (currentCtcInput) {
-    currentCtcInput.value = (p.current_ctc_lpa != null && p.current_ctc_lpa !== '') ? String(p.current_ctc_lpa) : '';
+    const curVal = parseFloat(p.current_ctc_lpa);
+    currentCtcInput.value = (!isNaN(curVal) && curVal > 0) ? String(curVal) : '';
   }
+
   const expectedCtcInput = document.getElementById('prof-expected-ctc');
   if (expectedCtcInput) {
-    expectedCtcInput.value = (p.expected_ctc_lpa != null && p.expected_ctc_lpa !== '')
-      ? String(p.expected_ctc_lpa)
-      : (p.min_salary_lpa ? String(p.min_salary_lpa) : '');
+    const expVal = parseFloat(p.expected_ctc_lpa != null ? p.expected_ctc_lpa : p.min_salary_lpa);
+    expectedCtcInput.value = (!isNaN(expVal) && expVal > 0) ? String(expVal) : '';
   }
 
   // Update active state of Indian Tech Hub preset chips
@@ -2336,7 +2409,16 @@ async function autoFillRolesFromResume() {
   }
 
   // If parsedResumeData already exists in memory for this exact resume text, populate Step 2 fields instantly
-  if (parsedResumeData && lastParsedResumeText === resumeText && (parsedResumeData.target_keywords?.length || parsedResumeData.skills?.length || parsedResumeData.name || parsedResumeData.title)) {
+  const hasCachedParsedData = parsedResumeData && (
+    (Array.isArray(parsedResumeData.skills) && parsedResumeData.skills.length) ||
+    (Array.isArray(parsedResumeData.core_skills) && parsedResumeData.core_skills.length) ||
+    (Array.isArray(parsedResumeData.target_keywords) && parsedResumeData.target_keywords.length) ||
+    (Array.isArray(parsedResumeData.target_titles) && parsedResumeData.target_titles.length) ||
+    parsedResumeData.name ||
+    parsedResumeData.title ||
+    parsedResumeData.current_title
+  );
+  if (hasCachedParsedData && lastParsedResumeText === resumeText) {
     // Populate form fields only — do NOT mutate activeProfileData or save until explicit save click
     populateSection2FromProfile(parsedResumeData, true);
     showToast('Criteria auto-filled from resume. Review and click "Save Profile" to apply.', 'success', 3500);
@@ -2595,7 +2677,23 @@ function profileWizardGoTo(step) {
 }
 
 function profileWizardNext(fromStep) {
-  // Pure navigation — does not mutate or populate Section 2 fields
+  // If moving from Step 1 to Step 2 with parsed resume data, auto-fill Step 2 criteria if blank
+  if (fromStep === 1) {
+    const hasParsed = parsedResumeData && (
+      (Array.isArray(parsedResumeData.skills) && parsedResumeData.skills.length) ||
+      (Array.isArray(parsedResumeData.core_skills) && parsedResumeData.core_skills.length) ||
+      (Array.isArray(parsedResumeData.target_keywords) && parsedResumeData.target_keywords.length) ||
+      (Array.isArray(parsedResumeData.target_titles) && parsedResumeData.target_titles.length) ||
+      parsedResumeData.name ||
+      parsedResumeData.title ||
+      parsedResumeData.current_title
+    );
+    const skillsVal = document.getElementById('prof-skills')?.value?.trim();
+    const targetsVal = document.getElementById('prof-targets')?.value?.trim();
+    if (hasParsed && (!skillsVal || !targetsVal)) {
+      populateSection2FromProfile(parsedResumeData, true);
+    }
+  }
   profileWizardGoTo(fromStep + 1);
 }
 
@@ -2845,32 +2943,44 @@ async function saveProfilePreferences() {
   const targetsInput = document.getElementById('prof-targets');
   const targets = targetsInput && targetsInput.value.trim() !== ''
     ? targetsInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.target_keywords) ? activeProfileData.target_keywords : []);
+    : (Array.isArray(activeProfileData?.target_keywords) && activeProfileData.target_keywords.length
+        ? activeProfileData.target_keywords
+        : (Array.isArray(activeProfileData?.target_titles) && activeProfileData.target_titles.length
+            ? activeProfileData.target_titles
+            : (Array.isArray(parsedResumeData?.target_keywords) && parsedResumeData.target_keywords.length
+                ? parsedResumeData.target_keywords
+                : (Array.isArray(parsedResumeData?.target_titles) ? parsedResumeData.target_titles : []))));
 
   const titleInput = document.getElementById('prof-title');
   const title = titleInput && titleInput.value.trim() !== ''
     ? titleInput.value.trim()
-    : (targets.length > 0 ? targets[0] : (activeProfileData?.title || ''));
+    : (targets.length > 0 ? targets[0] : (activeProfileData?.title || activeProfileData?.current_title || parsedResumeData?.title || parsedResumeData?.current_title || ''));
 
   const yearsInput = document.getElementById('prof-years');
   const years = yearsInput && yearsInput.value.trim() !== ''
     ? (parseFloat(yearsInput.value) || 0)
-    : (activeProfileData?.experience_years || 0);
+    : (activeProfileData?.experience_years ?? activeProfileData?.years_experience ?? parsedResumeData?.experience_years ?? parsedResumeData?.years_experience ?? 0);
 
   const eduInput = document.getElementById('prof-education');
   const education = eduInput && eduInput.value.trim() !== ''
     ? eduInput.value.trim()
-    : (activeProfileData?.education || '');
+    : (activeProfileData?.education || parsedResumeData?.education || '');
 
   const skillsInput = document.getElementById('prof-skills');
   const skills = skillsInput && skillsInput.value.trim() !== ''
     ? skillsInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.skills) ? activeProfileData.skills : (Array.isArray(parsedResumeData?.skills) ? parsedResumeData.skills : []));
+    : (Array.isArray(activeProfileData?.skills) && activeProfileData.skills.length
+        ? activeProfileData.skills
+        : (Array.isArray(activeProfileData?.core_skills) && activeProfileData.core_skills.length
+            ? activeProfileData.core_skills
+            : (Array.isArray(parsedResumeData?.skills) && parsedResumeData.skills.length
+                ? parsedResumeData.skills
+                : (Array.isArray(parsedResumeData?.core_skills) ? parsedResumeData.core_skills : []))));
 
   const excludesInput = document.getElementById('prof-excludes');
   const excludes = excludesInput && excludesInput.value.trim() !== ''
     ? excludesInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : []);
+    : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : (Array.isArray(parsedResumeData?.exclude_keywords) ? parsedResumeData.exclude_keywords : []));
 
   if (!name) {
     showToast('Please enter your candidate name in Step 2.', 'warning');
@@ -2953,10 +3063,14 @@ async function saveProfilePreferences() {
   const payload = {
     name,
     title,
+    current_title: title,
     experience_years: years,
+    years_experience: years,
     education,
     skills,
+    core_skills: skills,
     target_keywords: targets,
+    target_titles: targets,
     exclude_keywords: excludes,
     resume_text: resumeText,
     resume_filename: selectedResumeFile?.name || activeProfileData?.resume_filename || '',

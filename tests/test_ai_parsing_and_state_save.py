@@ -207,9 +207,43 @@ def test_build_profile_normalization():
     assert isinstance(prof, dict)
     assert prof["name"] == "Jane Candidate"
     assert prof["years_experience"] == 4.0
+    assert prof["experience_years"] == 4.0
     assert isinstance(prof["core_skills"], list)
+    assert prof["core_skills"] == prof["skills"]
     assert "Python" in prof["core_skills"]
+    assert prof["target_titles"] == prof["target_keywords"]
+    assert "Backend Engineer" in prof["target_titles"]
+    assert prof["title"] == prof["current_title"] == "Senior Backend Developer"
     assert prof["experience_level"] == "3-5"
+    assert prof["notice_period"] == "30_days"
+
+
+def test_build_profile_bidirectional_aliases_and_indian_context():
+    mock_provider = mock.MagicMock()
+    mock_provider.complete.return_value = json.dumps({
+        "name": "Arjun Sharma",
+        "title": "Lead Platform Engineer",
+        "experience_years": 8.5,
+        "skills": ["Go", "Kubernetes", "AWS", "Kafka"],
+        "target_keywords": ["Staff Engineer", "Principal Architect"],
+        "notice_period": "Immediate (0 days notice)",
+        "preferred_locations": "Bengaluru, Hyderabad, Pune",
+        "current_ctc_lpa": "28 LPA",
+        "expected_ctc_lpa": "38 LPA",
+    })
+
+    prof = llm.build_profile(resume_text="Resume", provider=mock_provider, model="gemini-3.5-flash")
+    assert prof["name"] == "Arjun Sharma"
+    assert prof["title"] == prof["current_title"] == "Lead Platform Engineer"
+    assert prof["experience_years"] == prof["years_experience"] == 8.5
+    assert prof["skills"] == prof["core_skills"] == ["Go", "Kubernetes", "AWS", "Kafka"]
+    assert prof["target_keywords"] == prof["target_titles"] == ["Staff Engineer", "Principal Architect"]
+    assert prof["notice_period"] == "immediate"
+    assert prof["preferred_locations"] == ["Bengaluru", "Hyderabad", "Pune"]
+    assert prof["location_preference"] == "specific_cities"
+    assert prof["current_ctc_lpa"] == 28.0
+    assert prof["expected_ctc_lpa"] == 38.0
+    assert prof["min_salary_lpa"] == 38.0
 
 
 def test_draft_synonym_and_alias_mapping():
