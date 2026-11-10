@@ -34,59 +34,68 @@ def is_profile_complete(profile: dict[str, Any]) -> bool:
 
 
 def _extract_skills_from_text(resume_text: str) -> list[str]:
-    """Safely extract skills from resume text using strict word boundaries to avoid false substring matches."""
+    """Safely extract technical skills from resume text using section heuristics and strict word boundaries."""
     if not resume_text:
         return []
-    common_keywords = [
-        "Python",
-        "JavaScript",
-        "TypeScript",
-        "Golang",
-        "Java",
-        "C++",
-        "C#",
-        "Rust",
-        "PostgreSQL",
-        "SQL",
-        "MySQL",
-        "MongoDB",
-        "Redis",
-        "Docker",
-        "Kubernetes",
-        "AWS",
-        "GCP",
-        "Azure",
-        "FastAPI",
-        "Flask",
-        "Django",
-        "React",
-        "Next.js",
-        "Node.js",
-        "Express.js",
-        "REST APIs",
-        "GraphQL",
-        "Microservices",
-        "CI/CD",
-        "Git",
-        "Tailwind CSS",
-        "Jest",
-        "Playwright",
-        "Firebase",
-        "Firestore",
-        "Distributed Systems",
-        "AI",
-        "LLM",
-    ]
+
     found_skills: list[str] = []
+    seen_lower: set[str] = set()
+
+    def add_skill(sk: str) -> None:
+        sk_clean = sk.strip()
+        if sk_clean and len(sk_clean) <= 30 and sk_clean.lower() not in seen_lower:
+            seen_lower.add(sk_clean.lower())
+            found_skills.append(sk_clean)
+
+    # 1. Section-aware extraction: check explicit Skills section
+    skills_sec_m = re.search(
+        r"(?i)(?:technical\s+skills|skills\s*(?:&|and)\s*technologies|core\s+competencies|technologies|technical\s+expertise|skills)\s*[:\n](.*?)(?=\n\s*(?:experience|work\s+history|employment|projects|education|certifications|awards|summary|objective|$))",
+        resume_text,
+        re.DOTALL,
+    )
+    if skills_sec_m:
+        sec_text = skills_sec_m.group(1)
+        # Split by category headers, commas, bullets, pipes, or newlines
+        cleaned_lines = []
+        for line in sec_text.splitlines():
+            line_str = re.sub(r"(?i)^[a-z\s]+:\s*", "", line.strip())  # remove e.g. "Languages: ", "Frameworks: "
+            if line_str:
+                cleaned_lines.append(line_str)
+        tokens = re.split(r"[,•·|\t\n;/]+", " ".join(cleaned_lines))
+        for tok in tokens:
+            cleaned = tok.strip("•-*| \t()[]{}")
+            if 1 < len(cleaned) <= 25 and not re.search(r"[@:/0-9]", cleaned):
+                # Only add if it looks like a clean tech term (starts with letter)
+                if re.match(r"^[A-Za-z][A-Za-z0-9#\+\.\-\s]{0,24}$", cleaned):
+                    # Filter out non-technical noise words
+                    skip_words = {"proficient", "familiar", "basics", "strong", "advanced", "intermediate", "tools", "languages", "frameworks", "databases"}
+                    if cleaned.lower() not in skip_words:
+                        add_skill(cleaned)
+
+    # 2. Comprehensive catalog of 100+ modern engineering and tech stack keywords
+    common_keywords = [
+        "Python", "JavaScript", "TypeScript", "Golang", "Java", "C++", "C#", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "SQL",
+        "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch", "SQLite", "Cassandra", "DynamoDB", "Firebase", "Firestore",
+        "Docker", "Kubernetes", "AWS", "GCP", "Azure", "Terraform", "Linux", "Git", "GitHub Actions", "CI/CD",
+        "FastAPI", "Flask", "Django", "React", "Next.js", "Node.js", "Express.js", "NestJS", "Spring Boot", "ASP.NET", "Vue.js", "Angular", "Svelte",
+        "REST APIs", "GraphQL", "gRPC", "Microservices", "Celery", "Kafka", "RabbitMQ", "WebSockets", "Prisma", "SQLAlchemy",
+        "Tailwind CSS", "Redux", "Bootstrap", "HTML", "CSS", "Bash", "Shell",
+        "Jest", "Playwright", "Pytest", "Selenium", "Cypress", "Postman",
+        "Distributed Systems", "System Design", "OOP", "Data Structures", "Algorithms",
+        "AI", "LLM", "Machine Learning", "Deep Learning", "NLP", "Computer Vision", "PyTorch", "TensorFlow", "scikit-learn", "Pandas", "NumPy", "LangChain", "HuggingFace", "RAG",
+    ]
+
     for kw in common_keywords:
         escaped = re.escape(kw)
         pattern = rf"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])"
-        flags = re.IGNORECASE if kw not in ("AI",) else 0
+        flags = re.IGNORECASE if kw not in ("AI", "C", "R", "Go") else 0
         if re.search(pattern, resume_text, flags):
-            found_skills.append(kw)
-    if "Golang" not in found_skills and re.search(r"(?<![a-zA-Z0-9])Go(?![a-zA-Z0-9])", resume_text):
-        if re.search(r"(?i)\b(?:golang|go\s+developer|go\s+engineer|go\s+routine)\b", resume_text):
-            found_skills.append("Go")
+            add_skill(kw)
+
+    if "Golang" not in found_skills and "Go" not in found_skills:
+        if re.search(r"(?i)\b(?:golang|go\s+developer|go\s+engineer|go\s+routine|go\s+lang)\b", resume_text):
+            add_skill("Go")
+
     return found_skills
 
 
@@ -380,10 +389,10 @@ def api_resume_upload():
 
     memory = SupabaseMemory(token=token)
 
-    # Perform AI Candidate Profile Extraction with responsive safety timeout (8s on Vercel to stay within 10s serverless limit, 14s standard)
+    # Perform AI Candidate Profile Extraction with responsive safety timeout (9.5s on Vercel to stay within serverless limit, 28s standard)
     parsed_profile = None
     is_vercel = os.environ.get("VERCEL") == "1"
-    extraction_timeout = 8.0 if is_vercel else 14.0
+    extraction_timeout = 9.5 if is_vercel else 28.0
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
         provider, model = llm.resolve("draft")
@@ -420,32 +429,70 @@ def api_resume_upload():
                 "profile", "personal profile", "experience", "work experience",
                 "skills", "technical skills", "education", "projects", "certifications",
             }
-            first_lines = [
-                line for line in lines[:10]
-                if len(line) < 50
-                and not any(term in line.lower() for term in name_skip_terms)
-                and not re.search(r"[@:/0-9]", line)
-            ]
-            if first_lines:
-                derived_name = first_lines[0].strip("•-*| \t")
-                if derived_name.islower() or derived_name.isupper():
-                    derived_name = derived_name.title()
 
+            # 1. Check explicit name label
+            name_pat = re.search(
+                r"(?i)^(?:name|candidate(?:\s+name)?|full\s+name)\s*[:\-]\s*([A-Za-z\s\.\'-]{2,40})",
+                resume_text,
+                re.MULTILINE,
+            )
+            if name_pat:
+                cand = name_pat.group(1).strip("•-*| \t")
+                if not any(term in cand.lower() for term in name_skip_terms):
+                    derived_name = cand.title()
+
+            # 2. Check top lines before major section headers (splitting contact delimiters like |, •, -, ,)
+            if not derived_name:
+                for line in lines[:8]:
+                    if any(term in line.lower() for term in name_skip_terms):
+                        continue
+                    segments = re.split(r"[|•·,\t/]+", line)
+                    for seg in segments:
+                        clean_seg = seg.strip("•-*| \t()[]{}")
+                        if 2 <= len(clean_seg) <= 35 and not re.search(r"[@:/0-9]", clean_seg):
+                            if not any(term in clean_seg.lower() for term in name_skip_terms):
+                                words = clean_seg.split()
+                                if 1 <= len(words) <= 4:
+                                    derived_name = clean_seg.title() if (clean_seg.islower() or clean_seg.isupper()) else clean_seg
+                                    break
+                    if derived_name:
+                        break
+
+            # 3. Check headline professional title
             title_keywords = [
                 "Engineer", "Developer", "Architect", "Scientist", "Designer",
-                "Specialist", "Analyst", "Lead", "Manager", "Consultant",
+                "Specialist", "Analyst", "Lead", "Manager", "Consultant", "SDE",
             ]
-            for line in lines[:15]:
-                if any(tk.lower() in line.lower() for tk in title_keywords) and len(line) < 60:
-                    if not any(term in line.lower() for term in name_skip_terms):
-                        # Clean title line from trailing skills or bullet separators
-                        clean_line = line.split("|")[0].split("•")[0].strip("•-*| \t")
-                        derived_title = clean_line or line
-                        break
+            role_pat = re.search(
+                r"(?i)^(?:title|designation|current\s+role|role)\s*[:\-]\s*([A-Za-z\s\.\'-]{3,50})",
+                resume_text,
+                re.MULTILINE,
+            )
+            if role_pat:
+                clean_r = role_pat.group(1).strip("•-*| \t")
+                if not any(term in clean_r.lower() for term in name_skip_terms):
+                    derived_title = clean_r
+
+            if not derived_title:
+                for line in lines[:15]:
+                    if any(tk.lower() in line.lower() for tk in title_keywords) and len(line) < 150:
+                        if not any(term in line.lower() for term in name_skip_terms):
+                            segments = re.split(r"[|•·\t/]+", line)
+                            for seg in segments:
+                                clean_seg = seg.strip("•-*| \t()[]{}")
+                                if any(tk.lower() in clean_seg.lower() for tk in title_keywords) and not re.search(r"[@:]", clean_seg) and len(clean_seg) < 60:
+                                    derived_title = clean_seg
+                                    break
+                            if derived_title:
+                                break
+                            clean_line = line.split("|")[0].split("•")[0].split("-")[0].strip("•-*| \t")
+                            if clean_line and any(tk.lower() in clean_line.lower() for tk in title_keywords):
+                                derived_title = clean_line
+                                break
 
             edu_keywords = [
                 "B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master",
-                "Degree", "University", "College", "Institute",
+                "Degree", "University", "College", "Institute", "BCA", "MCA", "B.Sc", "M.Sc",
             ]
             for line in lines:
                 if any(ek.lower() in line.lower() for ek in edu_keywords) and len(line) < 80:
@@ -459,17 +506,26 @@ def api_resume_upload():
                 cleaned_username = re.sub(r"\d+", "", username_part).replace(".", " ").replace("_", " ").strip()
                 derived_name = " ".join(part.capitalize() for part in cleaned_username.split()) or "Candidate"
 
-        if not derived_title:
-            derived_title = existing.get("title") or existing.get("current_title") or "Software Engineer"
+        skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
+
+        if not derived_title or derived_title.lower() in {"student", "fresher", "intern", "candidate", "b.tech student"}:
+            skills_lower = [s.lower() for s in skills_list]
+            if any(k in skills_lower for k in ("react", "vue", "angular", "next.js", "frontend", "html", "css")) and not any(k in skills_lower for k in ("django", "fastapi", "spring", "golang")):
+                derived_title = "Frontend Developer"
+            elif any(k in skills_lower for k in ("python", "fastapi", "django", "golang", "go", "java", "sql", "backend", "postgresql")):
+                derived_title = "Backend Engineer"
+            elif any(k in skills_lower for k in ("pytorch", "tensorflow", "machine learning", "deep learning", "ai", "llm")):
+                derived_title = "AI/ML Engineer"
+            else:
+                derived_title = existing.get("title") or existing.get("current_title") or "Software Engineer"
+
         if not derived_edu and existing.get("education"):
             derived_edu = existing.get("education") or ""
-
-        skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
 
         derived_years = 0.0
         if resume_text:
             yoe_match = re.search(
-                r"(?i)(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:experience|exp|industry experience|software experience)",
+                r"(?i)(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)\s*(?:of\s+)?(?:total\s+)?(?:experience|exp|industry\s+experience|work\s+experience|software\s+experience)",
                 resume_text,
             )
             if yoe_match:
@@ -478,7 +534,7 @@ def api_resume_upload():
                 except ValueError:
                     pass
             if derived_years == 0.0:
-                yoe_match_2 = re.search(r"(?i)(?:experience|exp):\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)", resume_text)
+                yoe_match_2 = re.search(r"(?i)(?:total\s+)?(?:experience|exp):\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)", resume_text)
                 if yoe_match_2:
                     try:
                         derived_years = float(yoe_match_2.group(1))
@@ -511,10 +567,37 @@ def api_resume_upload():
             target_titles.extend(existing["target_keywords"])
         elif isinstance(existing.get("target_titles"), list) and existing["target_titles"]:
             target_titles.extend(existing["target_titles"])
-        elif derived_title:
+
+        if derived_title and derived_title not in target_titles:
             target_titles.append(derived_title)
+
+        # Supplement high-signal target titles tailored to specialization
+        tl_lower = [t.lower() for t in target_titles]
+        if "backend" in derived_title.lower():
+            for t in ["Backend Engineer", "Software Engineer", "Python Developer", "Full Stack Developer", "Software Development Engineer"]:
+                if t.lower() not in tl_lower and len(target_titles) < 5:
+                    target_titles.append(t)
+                    tl_lower.append(t.lower())
+        elif "frontend" in derived_title.lower():
+            for t in ["Frontend Engineer", "React Developer", "Software Engineer", "UI Engineer", "Full Stack Developer"]:
+                if t.lower() not in tl_lower and len(target_titles) < 5:
+                    target_titles.append(t)
+                    tl_lower.append(t.lower())
+        elif "full" in derived_title.lower():
+            for t in ["Full Stack Developer", "Software Engineer", "Backend Engineer", "Frontend Engineer", "Full Stack Engineer"]:
+                if t.lower() not in tl_lower and len(target_titles) < 5:
+                    target_titles.append(t)
+                    tl_lower.append(t.lower())
+        elif "ai" in derived_title.lower() or "ml" in derived_title.lower():
+            for t in ["AI/ML Engineer", "Machine Learning Engineer", "Python Developer", "Data Scientist", "Software Engineer"]:
+                if t.lower() not in tl_lower and len(target_titles) < 5:
+                    target_titles.append(t)
+                    tl_lower.append(t.lower())
         else:
-            target_titles.append("Software Engineer")
+            for t in ["Software Engineer", "Backend Developer", "Full Stack Developer", "Software Development Engineer", "SDE"]:
+                if t.lower() not in tl_lower and len(target_titles) < 5:
+                    target_titles.append(t)
+                    tl_lower.append(t.lower())
 
         # Indian tech hub city detection from resume text
         detected_locations: list[str] = []
@@ -544,17 +627,17 @@ def api_resume_upload():
         # Notice period detection
         derived_notice_period = "30_days"
         if resume_text:
-            np_m = re.search(r"(?i)(?:notice\s*period|availability|serving\s*notice)\s*[:\-]?\s*([^\n,\.;]+)", resume_text)
+            np_m = re.search(r"(?i)(?:notice\s*period|notice|availability|serving\s*notice|joining\s*time)\s*[:\-]?\s*([^\n,\.;]+)", resume_text)
             text_for_np = np_m.group(1).lower() if np_m else resume_text.lower()
-            if any(k in text_for_np for k in ("immediate", "available immediately", "0 day", "zero day", "serving notice")):
+            if any(k in text_for_np for k in ("immediate", "available immediately", "join immediately", "0 day", "zero day", "serving notice", "lwd")):
                 derived_notice_period = "immediate"
-            elif any(k in text_for_np for k in ("15 day", "2 week")):
+            elif any(k in text_for_np for k in ("15 day", "2 week", "15d")):
                 derived_notice_period = "15_days"
-            elif any(k in text_for_np for k in ("60 day", "2 month")):
+            elif any(k in text_for_np for k in ("60 day", "2 month", "60d")):
                 derived_notice_period = "60_days"
-            elif any(k in text_for_np for k in ("90 day", "3 month")):
+            elif any(k in text_for_np for k in ("90 day", "3 month", "90d")):
                 derived_notice_period = "90_days"
-            elif any(k in text_for_np for k in ("30 day", "1 month")):
+            elif any(k in text_for_np for k in ("30 day", "1 month", "30d")):
                 derived_notice_period = "30_days"
             elif existing.get("notice_period"):
                 derived_notice_period = str(existing["notice_period"])
@@ -565,13 +648,13 @@ def api_resume_upload():
         derived_current_ctc = 0.0
         derived_expected_ctc = 0.0
         if resume_text:
-            c_ctc = re.search(r"(?i)(?:current\s*ctc|present\s*ctc|cctc|current\s*salary)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakh|lac)?", resume_text)
+            c_ctc = re.search(r"(?i)(?:current\s*ctc|present\s*ctc|cctc|current\s*salary|current\s*fixed|fixed\s*ctc|current\s*pkg|current\s*package)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|lacs?|l\b)?", resume_text)
             if c_ctc:
                 try:
                     derived_current_ctc = float(c_ctc.group(1))
                 except ValueError:
                     pass
-            e_ctc = re.search(r"(?i)(?:expected\s*ctc|exp\s*ctc|ectc|expected\s*salary)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakh|lac)?", resume_text)
+            e_ctc = re.search(r"(?i)(?:expected\s*ctc|exp\s*ctc|ectc|expected\s*salary|expected\s*pkg|expected\s*package)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|lacs?|l\b)?", resume_text)
             if e_ctc:
                 try:
                     derived_expected_ctc = float(e_ctc.group(1))

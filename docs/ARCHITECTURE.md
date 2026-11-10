@@ -172,7 +172,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (566 passing tests, 93% coverage)
+├── tests/                       # Automated Test Suite (569 passing tests, 93% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

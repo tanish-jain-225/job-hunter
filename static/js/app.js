@@ -2083,14 +2083,11 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   ).trim();
   const rawCandidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : (authName || (p.name || '').trim());
   const existingNameVal = nameInput ? nameInput.value.trim() : '';
-  const isExistingNameGood = existingNameVal && existingNameVal.includes(' ') && !/\d/.test(existingNameVal);
 
-  // If candidate already typed a clean full name (e.g. "Tanish Jain"), don't overwrite with single word or numeric username
   let finalName = rawCandidateName;
-  if (isAutoFill && isExistingNameGood && (!rawCandidateName || !rawCandidateName.includes(' ') || /\d/.test(rawCandidateName))) {
-    finalName = existingNameVal;
+  if (!finalName || finalName === 'Candidate') {
+    finalName = existingNameVal || authName || '';
   }
-  if (!finalName) finalName = existingNameVal || authName || '';
 
   if (nameInput) nameInput.value = finalName;
   if (onbNameInput) onbNameInput.value = finalName;
@@ -2116,8 +2113,8 @@ function populateSection2FromProfile(p, isAutoFill = false) {
       }
     }
     const skillsStr = dedupedSkills.join(', ');
-    if (skillsInput) skillsInput.value = skillsStr;
-    if (onbSkillsInput) onbSkillsInput.value = skillsStr;
+    if (skillsInput && (isAutoFill || !skillsInput.value.trim())) skillsInput.value = skillsStr;
+    if (onbSkillsInput && (isAutoFill || !onbSkillsInput.value.trim())) onbSkillsInput.value = skillsStr;
   }
 
   // 3. Years of Experience & Education
@@ -2134,15 +2131,15 @@ function populateSection2FromProfile(p, isAutoFill = false) {
         yoeVal = String(expMap[p.experience_level]);
       }
     }
-    if (yearsInput && (yoeVal !== '' || !yearsInput.value.trim())) yearsInput.value = yoeVal;
-    if (onbYearsInput && (yoeVal !== '' || !onbYearsInput.value.trim())) onbYearsInput.value = yoeVal;
+    if (yearsInput && (isAutoFill || yoeVal !== '' || !yearsInput.value.trim())) yearsInput.value = yoeVal;
+    if (onbYearsInput && (isAutoFill || yoeVal !== '' || !onbYearsInput.value.trim())) onbYearsInput.value = yoeVal;
   }
   const eduInput = document.getElementById('prof-education');
   const onbEduInput = document.getElementById('onboard-prof-education');
   if (p.education) {
     const eduStr = p.education.trim();
-    if (eduInput) eduInput.value = eduStr;
-    if (onbEduInput) onbEduInput.value = eduStr;
+    if (eduInput && (isAutoFill || !eduInput.value.trim())) eduInput.value = eduStr;
+    if (onbEduInput && (isAutoFill || !onbEduInput.value.trim())) onbEduInput.value = eduStr;
   }
 
   // 4. Target Job Titles (Included) & Headline Title
@@ -2172,14 +2169,14 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const targetsStr = dedupedTargets.join(', ');
   const targetsInput = document.getElementById('prof-targets');
   const onbTargetsInput = document.getElementById('onboard-prof-targets');
-  if (targetsInput) targetsInput.value = targetsStr;
-  if (onbTargetsInput) onbTargetsInput.value = targetsStr;
+  if (targetsInput && (isAutoFill || !targetsInput.value.trim())) targetsInput.value = targetsStr;
+  if (onbTargetsInput && (isAutoFill || !onbTargetsInput.value.trim())) onbTargetsInput.value = targetsStr;
 
   const titleInput = document.getElementById('prof-title');
   const onbTitleInput = document.getElementById('onboard-prof-title');
   const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : 'Software Engineer');
-  if (titleInput && (mainTitle || !titleInput.value.trim())) titleInput.value = chosenTitle;
-  if (onbTitleInput && (mainTitle || !onbTitleInput.value.trim())) onbTitleInput.value = chosenTitle;
+  if (titleInput && (isAutoFill || !titleInput.value.trim() || mainTitle)) titleInput.value = chosenTitle;
+  if (onbTitleInput && (isAutoFill || !onbTitleInput.value.trim() || mainTitle)) onbTitleInput.value = chosenTitle;
 
   // 5. Excluded Title Keywords
   let rawExcludes = p.exclude_keywords || p.exclude_titles || p.avoid_roles;
@@ -2203,8 +2200,8 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const excludesStr = dedupedExcludes.join(', ');
   const excludesInput = document.getElementById('prof-excludes');
   const onbExcludesInput = document.getElementById('onboard-prof-excludes');
-  if (excludesInput) excludesInput.value = excludesStr;
-  if (onbExcludesInput) onbExcludesInput.value = excludesStr;
+  if (excludesInput && (isAutoFill || !excludesInput.value.trim())) excludesInput.value = excludesStr;
+  if (onbExcludesInput && (isAutoFill || !onbExcludesInput.value.trim())) onbExcludesInput.value = excludesStr;
 
   // 6. Experience Level
   let expKey = '';
@@ -2444,9 +2441,9 @@ async function autoFillRolesFromResume() {
       const p = data.profile || {};
       parsedResumeData = p;
       lastParsedResumeText = resumeText;
-      // Preserve candidate name if already entered in Step 1 or Step 2
+      // Preserve candidate name if already entered in Step 1 or Step 2 and new profile doesn't have a valid name
       const currentName = document.getElementById('prof-name')?.value?.trim();
-      if (currentName) {
+      if (currentName && (!p.name || p.name === 'Candidate')) {
         p.name = currentName;
       }
 
@@ -2657,6 +2654,13 @@ function profileWizardGoTo(step) {
   const subtitle = document.getElementById('profile-wizard-subtitle');
   if (subtitle) subtitle.innerText = subtitles[step] || '';
 
+  if (step === 2 && parsedResumeData) {
+    const skillsVal = document.getElementById('prof-skills')?.value?.trim();
+    if (!skillsVal) {
+      populateSection2FromProfile(parsedResumeData, true);
+    }
+  }
+
   [1, 2, 3].forEach(s => {
     const stepEl = document.getElementById(`profile-step-${s}`);
     const nodeEl = document.getElementById(`pws-node-${s}`);
@@ -2677,22 +2681,9 @@ function profileWizardGoTo(step) {
 }
 
 function profileWizardNext(fromStep) {
-  // If moving from Step 1 to Step 2 with parsed resume data, auto-fill Step 2 criteria if blank
-  if (fromStep === 1) {
-    const hasParsed = parsedResumeData && (
-      (Array.isArray(parsedResumeData.skills) && parsedResumeData.skills.length) ||
-      (Array.isArray(parsedResumeData.core_skills) && parsedResumeData.core_skills.length) ||
-      (Array.isArray(parsedResumeData.target_keywords) && parsedResumeData.target_keywords.length) ||
-      (Array.isArray(parsedResumeData.target_titles) && parsedResumeData.target_titles.length) ||
-      parsedResumeData.name ||
-      parsedResumeData.title ||
-      parsedResumeData.current_title
-    );
-    const skillsVal = document.getElementById('prof-skills')?.value?.trim();
-    const targetsVal = document.getElementById('prof-targets')?.value?.trim();
-    if (hasParsed && (!skillsVal || !targetsVal)) {
-      populateSection2FromProfile(parsedResumeData, true);
-    }
+  // If moving from Step 1 to Step 2 with parsed resume data, auto-fill Step 2 criteria
+  if (fromStep === 1 && parsedResumeData) {
+    populateSection2FromProfile(parsedResumeData, true);
   }
   profileWizardGoTo(fromStep + 1);
 }
@@ -2780,25 +2771,23 @@ async function handleResumeFileSelectedAndParse(event) {
       lastParsedResumeText = extractedText;
 
       // Update dropzone label and text context textarea in Step 1
-      if (dropText) dropText.innerText = `Text extracted from ${file.name}`;
+      if (dropText) dropText.innerText = `Resume extracted: ${file.name}`;
       if (resumeTextInput && extractedText) resumeTextInput.value = extractedText;
 
-      // STRICT SECTION ISOLATION:
-      // Section 1 strictly handles resume text extraction and in-place editing.
-      // Do NOT populate Section 2 fields here.
-      // Section 2 is populated only when the user explicitly clicks "Auto-Fill from Resume Context" in Section 2.
+      // Auto-fill Step 2 search criteria and preferences from the newly parsed profile
+      populateSection2FromProfile(p, true);
 
       // Inline status confirmation in Step 1
       if (alertEl) {
         alertEl.className = 'studio-alert success';
-        alertEl.innerText = `Text extracted from "${file.name}". Review or edit your resume text context above, then continue to Step 2 when ready.`;
+        alertEl.innerText = `✓ "${file.name}" parsed! Candidate details & search criteria auto-filled in Step 2. Review text below, then click Next.`;
         alertEl.style.display = 'block';
       }
       if (previewCard) {
         previewCard.style.display = 'none';
       }
 
-      showToast('Resume text extracted! Review or edit text below, then click Next.', 'success', 3500);
+      showToast('Resume parsed! Candidate profile and search criteria auto-filled.', 'success', 3500);
     } else {
       if (dropText) dropText.innerText = `${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {

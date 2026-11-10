@@ -751,6 +751,46 @@ def test_api_profile_save_and_retrieve_bidirectional_aliases(client, mock_supaba
         assert saved["expected_ctc_lpa"] == 18.0
 
 
+def test_resume_upload_delimiter_header_and_full_smart_fallback(client, mock_supabase_env):
+    """Verify fallback parser extracts name from pipe-separated header, notice period, and CTC in LPA."""
+    resume_content = (
+        "Ananya Deshmukh | Senior Full Stack Engineer | ananya.deshmukh@fintech.co | +91 9876543210\n"
+        "Bengaluru, Karnataka, India\n\n"
+        "PROFESSIONAL SUMMARY\n"
+        "Senior Full Stack Engineer with 5.5 years of industry experience building low-latency payment rails.\n"
+        "Current CTC: 24 LPA | Expected CTC: 36 LPA\n"
+        "Notice Period: Serving notice period, LWD 30th Nov (immediate joiner)\n\n"
+        "TECHNICAL SKILLS\n"
+        "Python, TypeScript, React, Next.js, Node.js, PostgreSQL, Redis, Docker, AWS, Kafka\n\n"
+        "EDUCATION\n"
+        "B.Tech Computer Science, NIT Surathkal (2020), 8.9 CGPA\n"
+    )
+
+    with (
+        patch("jobhunt.llm.build_profile", side_effect=Exception("LLM offline in test")),
+        patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={}),
+    ):
+        res = client.post(
+            "/api/resume/upload",
+            json={"resume_text": resume_content, "filename": "ananya_resume.txt"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+        prof = data["profile"]
+        assert prof["name"] == "Ananya Deshmukh"
+        assert "Senior Full Stack Engineer" in prof["title"]
+        assert prof["experience_years"] == 5.5
+        assert "Python" in prof["skills"]
+        assert "PostgreSQL" in prof["skills"]
+        assert "Bengaluru" in prof["preferred_locations"]
+        assert prof["current_ctc_lpa"] == 24.0
+        assert prof["expected_ctc_lpa"] == 36.0
+        assert prof["notice_period"] == "immediate"
+
+
 
 
 

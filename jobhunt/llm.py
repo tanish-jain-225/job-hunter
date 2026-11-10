@@ -51,27 +51,80 @@ from .llm_utils import (
 
 # ---------------------------------------------------------------- profile ---
 
+PROFILE_SYSTEM_PROMPT = """You are an expert AI Technical Recruiter, Talent Analyst, and ATS Resume Intelligence Engine specialized in software engineering and technology hiring.
+Your task is to analyze candidate resumes with extreme accuracy and extract a comprehensive, high-signal, structured profile in JSON format.
+
+Extraction Guidelines:
+1. Candidate Name:
+   - Identify the candidate's actual personal full name from the top header of the resume.
+   - Clean out contact tokens, emails, phone numbers, or document labels (e.g. "Resume", "CV", "Curriculum Vitae", "Profile").
+   - Never return company names, college names, or job titles as the candidate's name.
+
+2. Professional Headline Title (current_title):
+   - Extract their current or most recent job title (e.g. "Senior Backend Engineer", "Full Stack Developer", "Data Scientist").
+   - If the candidate is a fresher, recent graduate, or student, infer their target professional title based on their projects, skills, and coursework (e.g. "Software Engineer" or "Frontend Developer").
+   - NEVER return generic non-professional terms like "Student", "Fresher", "Intern", or "Candidate".
+
+3. Total Years of Experience (years_experience):
+   - Calculate total full-time professional software engineering experience in years by analyzing work history start/end dates up to the present (2026).
+   - If the candidate has only internships, academic projects, or is a fresher/new-grad, return 0.0 or 0.5.
+   - Always return a numeric value (e.g. 0.0, 1.5, 3.0, 5.0).
+
+4. Core Skills (core_skills):
+   - Extract 10 to 20 concrete technical skills: programming languages, backend/frontend frameworks, databases, cloud platforms, DevOps tools, and system architectures.
+   - Examples: ["Python", "FastAPI", "React", "PostgreSQL", "Docker", "AWS", "TypeScript", "Redis", "Kafka", "Microservices", "CI/CD", "Git"].
+   - DO NOT include soft skills (e.g. "team player", "leadership", "problem solving", "communication", "hard working").
+
+5. Target Job Titles (target_titles):
+   - Generate 3 to 6 realistic, specific technical job search titles matching this candidate's stack and experience level.
+   - Examples: ["Backend Engineer", "Python Developer", "Software Development Engineer", "Full Stack Developer"].
+   - These are directly used for ATS job matching and search queries.
+
+6. Excluded Keywords (exclude_keywords):
+   - 3 to 5 roles or seniority levels to automatically exclude based on candidate's profile.
+   - Standard defaults: ["Manager", "Director", "Sales", "Recruiter", "VP"].
+
+7. Education (education):
+   - Extract the highest degree, major, university/college name, graduation year, and GPA/CGPA if stated.
+   - Example: "B.Tech in Computer Science, IIT Delhi (2024), 8.8 CGPA".
+
+8. Indian Tech Hubs & Locations (preferred_locations & location_preference):
+   - Detect mentioned cities, prioritizing Indian tech hubs: "Bengaluru", "Hyderabad", "Pune", "Delhi-NCR", "Mumbai", "Chennai", or "Remote".
+   - If candidate lists "Bangalore", normalize to "Bengaluru". If "Gurgaon", "Noida", or "Delhi", normalize to "Delhi-NCR".
+   - If candidate prefers remote work or has remote experience, include "Remote".
+   - location_preference should be: "specific_cities" (if specific cities detected), "remote_only" (if exclusively remote), "all_india", or "global".
+
+9. Notice Period (notice_period):
+   - Detect notice period if stated: "immediate", "15_days", "30_days", "60_days", "90_days".
+   - If candidate is a fresher, student, or currently unemployed / available immediately, use "immediate".
+   - If not stated, default to "30_days" (standard Indian notice period).
+
+10. Compensation / CTC in LPA (current_ctc_lpa & expected_ctc_lpa):
+    - Detect compensation stated in Lakhs Per Annum (LPA), INR, or Indian notation (e.g. "8.5 LPA" -> 8.5, "₹12 Lakhs" -> 12.0, "15L" -> 15.0).
+    - If not stated, return 0.0.
+"""
+
 PROFILE_PROMPT = """Extract a structured job-search profile from this resume.
 
-Return ONLY a JSON object, no prose, no markdown fences:
+Return ONLY a valid JSON object matching this exact schema:
 {
-  "name": str,
-  "current_title": str,
-  "years_experience": number,
-  "core_skills": [str],        // 10-20, most load-bearing first
-  "domains": [str],            // e.g. "distributed systems", "frontend", "backend"
-  "notable_projects": [str],   // one line each, with impact if stated
-  "education": str,
-  "target_titles": [str],      // 3-6 realistic job search titles to include e.g. ["Software Engineer", "Full Stack Developer", "Backend Engineer"]
-  "exclude_keywords": [str],   // 3-5 roles/keywords to exclude e.g. ["Manager", "Director", "Sales", "Recruiter", "VP"]
-  "seniority": str,            // intern | new-grad | junior | mid | senior | staff
-  "experience_level": str,     // fresher | 0-1 | 1-3 | 3-5 | 5+
-  "job_types": [str],          // e.g. ["fulltime", "internship", "remote"]
-  "location_preference": str,  // all_india | remote_only | specific_cities | global
-  "preferred_locations": [str], // e.g. ["Bengaluru", "Hyderabad", "Remote"] if detected or indicated
-  "notice_period": str,        // immediate | 15_days | 30_days | 60_days | 90_days (closest match or default "30_days")
-  "current_ctc_lpa": number,   // current compensation in LPA (Lakhs Per Annum) if stated, or 0
-  "expected_ctc_lpa": number   // expected compensation in LPA if stated, or 0
+  "name": "Full Name",
+  "current_title": "Current or Target Professional Role (e.g. Backend Engineer, Software Engineer)",
+  "years_experience": 0.0,
+  "core_skills": ["Python", "FastAPI", "React", "PostgreSQL", "Docker"],
+  "domains": ["backend", "distributed systems", "cloud"],
+  "notable_projects": ["One line project summary with metrics and impact"],
+  "education": "Degree, Major, Institution, Year, CGPA",
+  "target_titles": ["Software Engineer", "Backend Developer", "Full Stack Engineer"],
+  "exclude_keywords": ["Manager", "Director", "Sales", "Recruiter", "VP"],
+  "seniority": "intern | new-grad | junior | mid | senior | staff",
+  "experience_level": "fresher | 0-1 | 1-3 | 3-5 | 5+",
+  "job_types": ["fulltime", "remote", "hybrid"],
+  "location_preference": "all_india | remote_only | specific_cities | global",
+  "preferred_locations": ["Bengaluru", "Hyderabad", "Remote"],
+  "notice_period": "immediate | 15_days | 30_days | 60_days | 90_days",
+  "current_ctc_lpa": 0.0,
+  "expected_ctc_lpa": 0.0
 }"""
 
 
@@ -94,12 +147,13 @@ def build_profile(
     effective_text = (resume_text or extracted_pdf_text).strip()
 
     if effective_text:
+        prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{effective_text}"
         if api_key:
             try:
                 raw = provider.complete(
                     model,
-                    "",
-                    f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}",
+                    PROFILE_SYSTEM_PROMPT,
+                    prompt_content,
                     PROFILE_MAX_TOKENS,
                     json_mode=True,
                     api_key=api_key,
@@ -107,26 +161,27 @@ def build_profile(
             except TypeError:
                 raw = provider.complete(
                     model,
-                    "",
-                    f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}",
+                    PROFILE_SYSTEM_PROMPT,
+                    prompt_content,
                     PROFILE_MAX_TOKENS,
                     json_mode=True,
                 )
         else:
             raw = provider.complete(
                 model,
-                "",
-                f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{effective_text}",
+                PROFILE_SYSTEM_PROMPT,
+                prompt_content,
                 PROFILE_MAX_TOKENS,
                 json_mode=True,
             )
     elif is_pdf and resume_bytes:
+        doc_prompt = f"{PROFILE_SYSTEM_PROMPT}\n\n{PROFILE_PROMPT}"
         try:
             if api_key:
                 try:
                     raw = provider.complete_document(
                         model,
-                        PROFILE_PROMPT,
+                        doc_prompt,
                         resume_bytes,
                         PROFILE_MAX_TOKENS,
                         api_key=api_key,
@@ -134,14 +189,14 @@ def build_profile(
                 except TypeError:
                     raw = provider.complete_document(
                         model,
-                        PROFILE_PROMPT,
+                        doc_prompt,
                         resume_bytes,
                         PROFILE_MAX_TOKENS,
                     )
             else:
                 raw = provider.complete_document(
                     model,
-                    PROFILE_PROMPT,
+                    doc_prompt,
                     resume_bytes,
                     PROFILE_MAX_TOKENS,
                 )
@@ -151,12 +206,13 @@ def build_profile(
                 f"DRAFT_PROVIDER=anthropic|gemini for PDF support."
             ) from e
     else:
+        prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{resume_text or ''}"
         if api_key:
             try:
                 raw = provider.complete(
                     model,
-                    "",
-                    f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{resume_text or ''}",
+                    PROFILE_SYSTEM_PROMPT,
+                    prompt_content,
                     PROFILE_MAX_TOKENS,
                     json_mode=True,
                     api_key=api_key,
@@ -164,16 +220,16 @@ def build_profile(
             except TypeError:
                 raw = provider.complete(
                     model,
-                    "",
-                    f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{resume_text or ''}",
+                    PROFILE_SYSTEM_PROMPT,
+                    prompt_content,
                     PROFILE_MAX_TOKENS,
                     json_mode=True,
                 )
         else:
             raw = provider.complete(
                 model,
-                "",
-                f"{PROFILE_PROMPT}\n\n--- RESUME ---\n{resume_text or ''}",
+                PROFILE_SYSTEM_PROMPT,
+                prompt_content,
                 PROFILE_MAX_TOKENS,
                 json_mode=True,
             )
@@ -206,11 +262,6 @@ def build_profile(
     profile["domains"] = _ensure_list(profile.get("domains"))
     profile["notable_projects"] = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
 
-    # Bidirectional aliases for target_titles <-> target_keywords
-    targets_list = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
-    profile["target_titles"] = targets_list
-    profile["target_keywords"] = targets_list
-
     profile["exclude_keywords"] = _ensure_list(profile.get("exclude_keywords") or profile.get("avoid_roles"))
     profile["job_types"] = _ensure_list(profile.get("job_types"))
     profile["name"] = str(profile.get("name") or "").strip()
@@ -219,6 +270,13 @@ def build_profile(
     cur_title = str(profile.get("current_title") or profile.get("title") or "").strip()
     profile["current_title"] = cur_title
     profile["title"] = cur_title
+
+    # Bidirectional aliases for target_titles <-> target_keywords
+    targets_list = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
+    if not targets_list:
+        targets_list = [cur_title or "Software Engineer"]
+    profile["target_titles"] = targets_list
+    profile["target_keywords"] = targets_list
 
     profile["education"] = str(profile.get("education") or "").strip()
     profile["seniority"] = str(profile.get("seniority") or "").strip()
@@ -232,11 +290,27 @@ def build_profile(
         pref_locs = [s.strip() for s in raw_locs.split(",") if s.strip()]
     else:
         pref_locs = []
-    profile["preferred_locations"] = pref_locs
+
+    # Normalize hub city names
+    hub_name_map = {
+        "bangalore": "Bengaluru", "bengaluru": "Bengaluru", "blr": "Bengaluru",
+        "hyderabad": "Hyderabad", "hyd": "Hyderabad",
+        "pune": "Pune",
+        "delhi": "Delhi-NCR", "gurgaon": "Delhi-NCR", "gurugram": "Delhi-NCR", "noida": "Delhi-NCR", "ncr": "Delhi-NCR",
+        "mumbai": "Mumbai", "bombay": "Mumbai",
+        "chennai": "Chennai", "madras": "Chennai",
+        "remote": "Remote", "wfh": "Remote",
+    }
+    normalized_locs = []
+    for loc in pref_locs:
+        clean_loc = hub_name_map.get(loc.lower(), loc)
+        if clean_loc not in normalized_locs:
+            normalized_locs.append(clean_loc)
+    profile["preferred_locations"] = normalized_locs
 
     loc_pref = str(profile.get("location_preference") or "").strip()
     if not loc_pref:
-        loc_pref = "specific_cities" if pref_locs else "all_india"
+        loc_pref = "specific_cities" if normalized_locs else "all_india"
     profile["location_preference"] = loc_pref
 
     # Notice period normalization

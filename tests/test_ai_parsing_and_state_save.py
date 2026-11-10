@@ -318,3 +318,66 @@ def test_store_add_job_with_direct_stage(tmp_path):
     assert st_reloaded.data[jid]["applied"] is True
     assert st_reloaded.data[jid]["score"] == 9.2
 
+
+# =============================================================================
+# 5. Enhanced Section-Aware Skills & Complex Header Parsing Tests
+# =============================================================================
+
+def test_enhanced_section_aware_skills_extraction():
+    from jobhunt.web.routes.profile import _extract_skills_from_text
+
+    complex_resume = """
+    Vikram Malhotra
+    Senior Backend Architect
+    Bangalore, India | vikram@dev.io | +91 9123456789
+
+    TECHNICAL SKILLS
+    Languages: Python, Golang, TypeScript, Java, SQL
+    Frameworks & Libraries: FastAPI, Django, React, Next.js, Express.js
+    Databases & Caching: PostgreSQL, Redis, MongoDB, Elasticsearch
+    DevOps & Cloud: Docker, Kubernetes, AWS, Terraform, CI/CD, GitHub Actions
+    Architecture & Messaging: Kafka, RabbitMQ, Microservices, Distributed Systems, gRPC
+
+    PROFESSIONAL EXPERIENCE
+    Senior Backend Architect at CloudScale (2021 - Present)
+    """
+
+    skills = _extract_skills_from_text(complex_resume)
+    assert "Python" in skills
+    assert "FastAPI" in skills
+    assert "PostgreSQL" in skills
+    assert "Docker" in skills
+    assert "Kubernetes" in skills
+    assert "Kafka" in skills
+    assert "AWS" in skills
+    assert "React" in skills
+    assert "Next.js" in skills
+    assert "Redis" in skills
+    assert "Microservices" in skills
+
+
+def test_resume_upload_complex_header_name_and_indian_ctc_extraction(client=None):
+    from jobhunt.web.routes.profile import _extract_skills_from_text
+
+    resume_text = """
+    Ananya Deshmukh | Senior Full Stack Engineer | ananya.deshmukh@fintech.co | +91 9876543210
+    Bengaluru, Karnataka, India
+
+    PROFESSIONAL SUMMARY
+    Senior Full Stack Engineer with 5.5 years of industry experience building low-latency payment rails.
+    Current CTC: 24 LPA | Expected CTC: 36 LPA
+    Notice Period: Serving notice period, LWD 30th Nov (immediate joiner)
+
+    TECHNICAL EXPERTISE
+    Python, TypeScript, React, Next.js, Node.js, PostgreSQL, Redis, Docker, AWS, Kafka
+
+    EDUCATION
+    B.Tech Computer Science, NIT Surathkal (2020), 8.9 CGPA
+    """
+
+    skills = _extract_skills_from_text(resume_text)
+    assert "Python" in skills
+    assert "React" in skills
+    assert "PostgreSQL" in skills
+
+
