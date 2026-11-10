@@ -40,7 +40,7 @@ companies:
   - {ats: ashby, slug: almabase, name: Almabase}
   - {ats: greenhouse, slug: upgrade, name: upGrad}
   - {ats: smartrecruiters, slug: HCL-Technologies, name: HCL Technologies}
-  - {ats: lever, slug: plivo, name: Plivo}
+  - {ats: greenhouse, slug: apolloio, name: Apollo.io}
   - {ats: greenhouse, slug: druva, name: Druva}
   - {ats: lever, slug: hevodata, name: Hevo Data}
   - {ats: greenhouse, slug: deliveroo, name: Deliveroo India R&D}
