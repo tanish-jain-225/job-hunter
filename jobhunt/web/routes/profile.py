@@ -179,6 +179,33 @@ def api_profile():
         merged_profile["title"] = t_str
         merged_profile["current_title"] = t_str
 
+        # Smart fallback for candidate name
+        if not merged_profile.get("name") or merged_profile.get("name") == "Candidate":
+            username_part = email.split("@")[0]
+            cleaned_username = re.sub(r"\d+", "", username_part).replace(".", " ").replace("_", " ").strip()
+            derived_name = " ".join(part.capitalize() for part in cleaned_username.split())
+            if derived_name:
+                merged_profile["name"] = derived_name
+
+        # Smart title & target keywords cross-inference
+        if not merged_profile.get("title") and merged_profile.get("target_keywords"):
+            merged_profile["title"] = merged_profile["target_keywords"][0]
+            merged_profile["current_title"] = merged_profile["target_keywords"][0]
+
+        if not merged_profile.get("target_keywords") and merged_profile.get("title"):
+            cur = merged_profile["title"]
+            inferred = [cur]
+            if "backend" in cur.lower():
+                inferred.extend(["Software Engineer", "Backend Developer", "Full Stack Developer"])
+            elif "frontend" in cur.lower():
+                inferred.extend(["Frontend Engineer", "React Developer", "Software Engineer"])
+            elif "ai" in cur.lower() or "ml" in cur.lower():
+                inferred.extend(["Machine Learning Engineer", "Python Developer", "Data Scientist"])
+            else:
+                inferred.extend(["Software Engineer", "Backend Developer", "Full Stack Developer"])
+            merged_profile["target_keywords"] = inferred[:5]
+            merged_profile["target_titles"] = inferred[:5]
+
         # Notice period normalization
         raw_np = str(data.get("notice_period") or merged_profile.get("notice_period") or "").lower().strip()
         if "imm" in raw_np or raw_np == "0":
@@ -239,12 +266,36 @@ def api_profile():
             elif not isinstance(val, list):
                 merged_profile[list_field] = []
 
-        # If new non-empty resume_text is submitted without skills, auto-extract skills
-        data_resume_text = (data.get("resume_text") or "").strip()
-        if data_resume_text and not data.get("skills"):
+        if not merged_profile.get("exclude_keywords"):
+            merged_profile["exclude_keywords"] = ["Manager", "Director", "Sales", "Recruiter", "VP"]
+
+        # Smart experience level calculation if missing
+        if not merged_profile.get("experience_level"):
+            y = float(merged_profile.get("experience_years") or 0.0)
+            if y <= 0.0:
+                merged_profile["experience_level"] = "fresher"
+            elif y <= 1.0:
+                merged_profile["experience_level"] = "0-1"
+            elif y <= 3.0:
+                merged_profile["experience_level"] = "1-3"
+            elif y <= 5.0:
+                merged_profile["experience_level"] = "3-5"
+            else:
+                merged_profile["experience_level"] = "5+"
+
+        if not merged_profile.get("job_types"):
+            if merged_profile.get("experience_level") == "fresher":
+                merged_profile["job_types"] = ["fulltime", "internship", "remote"]
+            else:
+                merged_profile["job_types"] = ["fulltime", "remote", "hybrid"]
+
+        # If resume_text is available but skills are missing, auto-extract skills
+        data_resume_text = (data.get("resume_text") or merged_profile.get("resume_text") or "").strip()
+        if data_resume_text and not merged_profile.get("skills"):
             found_skills = _extract_skills_from_text(data_resume_text)
             if found_skills:
-                merged_profile["skills"] = found_skills[:12]
+                merged_profile["skills"] = found_skills[:15]
+                merged_profile["core_skills"] = found_skills[:15]
 
         merged_profile["onboarding_completed"] = is_profile_complete(merged_profile)
         for key in list(merged_profile):

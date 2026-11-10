@@ -31,7 +31,7 @@
       <!-- Step 1: Resume Upload & Raw Text Context (Extraction Only) -->
       <div class="studio-wizard-step" id="profile-step-1">
         <div class="studio-section-desc">
-          Upload your resume (PDF/TXT) for automated text extraction, or paste and edit your raw resume text context directly below.
+          Upload your resume (PDF/TXT) to instantly auto-fill your candidate profile, technical skills, and search preferences with AI. You can also paste or edit your resume text directly below.
         </div>
 
         <div class="resume-dropzone" id="resume-dropzone" data-action="trigger-resume-input">
@@ -40,8 +40,8 @@
           <div class="dropzone-icon">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
           </div>
-          <div class="dropzone-text" id="dropzone-text">Click or drag &amp; drop a resume PDF / TXT file</div>
-          <div class="dropzone-sub">One-time text extraction &middot; No binary files stored &middot; Plain text only</div>
+          <div class="dropzone-text" id="dropzone-text">Click or drag &amp; drop a resume PDF / TXT file for AI Auto-Fill</div>
+          <div class="dropzone-sub">Instant AI extraction &middot; Auto-fills all profile fields &middot; Plain text context only</div>
         </div>
 
         <!-- Direct Resume Text Context Editor -->
@@ -51,6 +51,13 @@
             <span class="form-hint-inline">(Extracted text appears here &mdash; edit, alter, or paste freely before proceeding)</span>
           </label>
           <textarea class="form-input form-textarea" id="prof-resume-text" rows="8" placeholder="Resume text context will appear here upon upload. You can also paste or customize your resume background text directly..." autocomplete="off" spellcheck="false"></textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <span class="form-hint" style="font-size:12px; color:var(--text-muted, #64748b);">Pasted or modified text? Extract criteria with AI anytime:</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-parse-text-ai" data-action="parse-text-ai" style="gap:6px;">
+              <span class="spinner" id="parse-text-spinner" style="display:none;"></span>
+              <span id="parse-text-btn-label">✨ Auto-Fill Profile from Text</span>
+            </button>
+          </div>
         </div>
 
         <!-- Inline parse status -->
@@ -75,15 +82,18 @@
       <!-- Step 2: Candidate Profile & Search Criteria (The Relevant Nuts) -->
       <div class="studio-wizard-step" id="profile-step-2" style="display:none;">
         <div class="studio-section-desc">
-          Review and customize your candidate details and search criteria below, or auto-fill everything from your resume text.
+          Review and fine-tune your candidate details and search criteria below. Everything can be edited manually as needed.
         </div>
 
-        <!-- Auto-Fill from Resume Context Button at the Top -->
-        <div style="margin-top:14px; margin-bottom:18px;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" data-action="autofill-roles" style="width:100%; justify-content:center; gap:8px;">
+        <!-- AI Auto-Fill Status Banner & Re-Extract Action -->
+        <div class="studio-ai-banner" id="studio-ai-banner" style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.06); border:1px solid rgba(37,99,235,0.18); border-radius:8px; padding:10px 14px; margin-top:12px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">✨</span>
+            <span style="font-size:13px; color:#1e3a8a; font-weight:500;" id="studio-ai-banner-text">AI Auto-Fill Active: Inferred from resume. You can customize any field manually below.</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-autofill-roles" data-action="autofill-roles" style="gap:6px; font-size:12px; padding:4px 10px; white-space:nowrap;">
             <span class="spinner" id="autofill-roles-spinner" style="display:none;"></span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-            <span id="autofill-roles-btn-text">Auto-Fill from Resume Context</span>
+            <span id="autofill-roles-btn-text">Re-Extract with AI</span>
           </button>
         </div>
 
@@ -215,8 +225,13 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
               <span>Previous</span>
             </button>
-            <button type="button" class="btn btn-primary" id="profile-next-2" data-action="wizard-next" data-step="2">
-              <span>Next: Alert Settings &rarr;</span>
+            <button type="button" class="btn btn-secondary" id="profile-next-2" data-action="wizard-next" data-step="2">
+              <span>Next: Alerts &rarr;</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-profile-save-step2" data-action="save-profile-preferences">
+              <span class="spinner" id="profile-save-spinner-2" style="display:none;"></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span id="profile-save-btn-text-2">Save Profile</span>
             </button>
           </div>
         </div>

@@ -2701,10 +2701,12 @@ async function submitTextContextParse() {
     return;
   }
 
-  const btn = document.getElementById('btn-reparse-text');
-  const spinner = document.getElementById('reparse-text-spinner');
+  const btn = document.getElementById('btn-parse-text-ai') || document.getElementById('btn-reparse-text');
+  const spinner = document.getElementById('parse-text-spinner') || document.getElementById('reparse-text-spinner');
+  const btnLabel = document.getElementById('parse-text-btn-label');
   if (btn) btn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
+  if (btnLabel) btnLabel.innerText = 'Extracting with AI...';
 
   try {
     const res = await authFetch('/api/resume/upload', {
@@ -2721,7 +2723,16 @@ async function submitTextContextParse() {
       // Populate form inputs only — do NOT mutate activeProfileData until user saves
       populateSection2FromProfile(p, true);
 
-      showToast('Candidate profile extracted from text context!', 'success');
+      // Update Step 2 AI banner
+      const bannerText = document.getElementById('studio-ai-banner-text');
+      if (bannerText) {
+        const skillCount = Array.isArray(p.skills) ? p.skills.length : (Array.isArray(p.core_skills) ? p.core_skills.length : 0);
+        const candName = p.name || 'Candidate';
+        const candTitle = p.title || p.current_title || 'Software Engineer';
+        bannerText.innerText = `✨ Auto-filled by AI: ${candName} • ${candTitle} • ${skillCount} skills extracted.`;
+      }
+
+      showToast('Candidate profile auto-filled from resume text! Review details below.', 'success', 3500);
       setTimeout(() => profileWizardGoTo(2), 600);
     } else {
       showToast('Failed to extract profile: ' + (data.message || 'error'), 'error');
@@ -2731,6 +2742,7 @@ async function submitTextContextParse() {
   } finally {
     if (btn) btn.disabled = false;
     if (spinner) spinner.style.display = 'none';
+    if (btnLabel) btnLabel.innerText = '✨ Auto-Fill Profile from Text';
   }
 }
 
@@ -2746,7 +2758,7 @@ async function handleResumeFileSelectedAndParse(event) {
   const nextBtn = document.getElementById('profile-next-1');
   const resumeTextInput = document.getElementById('prof-resume-text');
 
-  if (dropText) dropText.innerText = `Extracting text & candidate profile: ${file.name}...`;
+  if (dropText) dropText.innerText = `Extracting candidate profile with AI: ${file.name}...`;
   if (alertEl) { alertEl.style.display = 'none'; }
   if (nextBtn) nextBtn.disabled = false;
 
@@ -2777,17 +2789,27 @@ async function handleResumeFileSelectedAndParse(event) {
       // Auto-fill Step 2 search criteria and preferences from the newly parsed profile
       populateSection2FromProfile(p, true);
 
+      // Update Step 2 AI banner
+      const bannerText = document.getElementById('studio-ai-banner-text');
+      if (bannerText) {
+        const skillCount = Array.isArray(p.skills) ? p.skills.length : (Array.isArray(p.core_skills) ? p.core_skills.length : 0);
+        const candName = p.name || 'Candidate';
+        const candTitle = p.title || p.current_title || 'Software Engineer';
+        bannerText.innerText = `✨ Auto-filled by AI: ${candName} • ${candTitle} • ${skillCount} skills extracted.`;
+      }
+
       // Inline status confirmation in Step 1
       if (alertEl) {
         alertEl.className = 'studio-alert success';
-        alertEl.innerText = `✓ "${file.name}" parsed! Candidate details & search criteria auto-filled in Step 2. Review text below, then click Next.`;
+        alertEl.innerText = `✓ "${file.name}" parsed! Candidate details & search criteria auto-filled with AI. Opening Step 2...`;
         alertEl.style.display = 'block';
       }
       if (previewCard) {
         previewCard.style.display = 'none';
       }
 
-      showToast('Resume parsed! Candidate profile and search criteria auto-filled.', 'success', 3500);
+      showToast('✓ Resume parsed! Candidate profile and search criteria auto-filled.', 'success', 3500);
+      setTimeout(() => profileWizardGoTo(2), 700);
     } else {
       if (dropText) dropText.innerText = `${file.name} — parse notice, click to retry or edit text below`;
       if (alertEl) {
@@ -3081,12 +3103,22 @@ async function saveProfilePreferences() {
     notable_projects: activeProfileData?.notable_projects || parsedResumeData?.notable_projects || []
   };
 
-  const btn = document.getElementById('btn-profile-save');
-  const spinner = document.getElementById('profile-save-spinner');
-  const btnText = document.getElementById('profile-save-btn-text');
-  if (btn) btn.disabled = true;
-  if (spinner) spinner.style.display = 'inline-block';
-  if (btnText) btnText.innerText = 'Saving...';
+  const saveBtns = [
+    document.getElementById('btn-profile-save'),
+    document.getElementById('btn-profile-save-step2')
+  ].filter(Boolean);
+  const spinners = [
+    document.getElementById('profile-save-spinner'),
+    document.getElementById('profile-save-spinner-2')
+  ].filter(Boolean);
+  const btnTexts = [
+    document.getElementById('profile-save-btn-text'),
+    document.getElementById('profile-save-btn-text-2')
+  ].filter(Boolean);
+
+  saveBtns.forEach(b => { b.disabled = true; });
+  spinners.forEach(s => { s.style.display = 'inline-block'; });
+  btnTexts.forEach(t => { t.innerText = 'Saving...'; });
 
   appState.isSavingProfile = true;
 
@@ -3116,9 +3148,9 @@ async function saveProfilePreferences() {
     showToast('Failed to save profile: ' + err.message, 'error');
   } finally {
     appState.isSavingProfile = false;
-    if (btn) btn.disabled = false;
-    if (spinner) spinner.style.display = 'none';
-    if (btnText) btnText.innerText = 'Save Profile';
+    saveBtns.forEach(b => { b.disabled = false; });
+    spinners.forEach(s => { s.style.display = 'none'; });
+    btnTexts.forEach(t => { t.innerText = 'Save Profile'; });
   }
 }
 
@@ -3708,6 +3740,9 @@ document.addEventListener('click', (e) => {
       break;
     case 'autofill-roles':
       autoFillRolesFromResume();
+      break;
+    case 'parse-text-ai':
+      submitTextContextParse();
       break;
     case 'toggle-city': {
       const city = actionTarget.getAttribute('data-city');
@@ -4801,6 +4836,7 @@ if (typeof window !== 'undefined') {
   window.profileWizardBack = profileWizardBack;
   window.flushUserProfileData = flushUserProfileData;
   window.autoFillRolesFromResume = autoFillRolesFromResume;
+  window.submitTextContextParse = submitTextContextParse;
   window.toggleCityPreset = toggleCityPreset;
   window.selectMailMode = selectMailMode;
   window.saveProfilePreferences = saveProfilePreferences;
