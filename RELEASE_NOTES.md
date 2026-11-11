@@ -7,13 +7,13 @@
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
-> **Current Production Version**: `v1.1.8` | **Release Date**: November 1, 2026
+> **Current Production Version**: `v1.1.8` | **Release Date**: November 11, 2026
 >
 > **Quick Links**: [GitHub Release v1.1.8](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
 
 ---
 
-## [v1.1.8] - 2026-11-01
+## [v1.1.8] - 2026-11-11
 
 ### 🌐 End-to-End Headless Playwright Browser Test Suite
 * **Automated Browser Verification**: Added a dedicated Playwright Chromium browser test suite in `tests/test_browser_playwright.py` with 100% pass rate across 7 tests:
@@ -25,13 +25,16 @@
   - `test_onboarding_wizard_and_profile_sync`: Validates multi-step profile wizard navigation, live validation, and state sync.
   - `test_profile_and_settings_full_lifecycle`: Exercises the complete profile lifecycle, resume parsing integration, preference updates, and account reset.
 
-### 🛡️ Security Hardening & Protocol Sanitization
+### 🛡️ Security, Privacy & Protocol Hardening
+* **Strict Blank-State Privacy & Supabase Isolation**: Enforced email-only initial and reset state via `create_blank_profile` (`jobhunt/memory_codec.py`), blocked local `profile.json` fallback during configured Supabase `POST /api/resume/upload` calls (`jobhunt/web/routes/profile.py`), removed email-prefix name synthesis (`jobhunt/digest.py`, `jobhunt/multi.py`), and consolidated credential-stripping & field normalization.
+* **Network, Header & Database Hardening**: Added CRLF header injection guards in `jobhunt/mailer.py`, strict SSRF/URL/slug checks across `jobhunt/parsers/`, `jobhunt/fetch.py`, `jobhunt/verify.py`, and `jobhunt/web/routes/jobs.py`, COOP/HSTS headers in `jobhunt/web/__init__.py`, unified rate limiting via `enforce_rate_limit`, and 3 `lower(email)` RLS indexes in `supabase/schema.sql`.
 * **Protocol Whitelisting**: Hardened `resolveJobUrl()` in `static/js/app.js` to strictly reject malicious `javascript:`, `data:`, and `vbscript:` pseudo-protocol URLs, shielding candidates from script injection when opening external application links.
 * **HTML Entity-Safe Highlighting**: Updated `highlightText()` in `static/js/app.js` with regex entity lookahead `(?![^&]*;)`, preventing search term matches from corrupting escaped HTML character entities like `&amp;` and `&quot;`.
 * **Content Security Policy (CSP)**: Enhanced CSP configuration in `jobhunt/web/__init__.py` to whitelist official preview assets from `https://job-hunter-web-board.vercel.app` without browser console warnings.
 * **Credential Stripping**: Added automatic security filtering to `POST /api/profile` to strip sensitive credential keys (`api_key`, `token`, `secret`, `password`) before writing to persistent storage.
 
-### 🧩 UI Stability & Modal Lifecycle Improvements
+### 🧩 UI Stability, Accessibility & Modal Lifecycle Improvements
+* **WCAG Modal Accessibility & Repo Cleanup**: Added dialog ARIA attributes and keyboard focus trapping (`activateModalFocus` / `deactivateModalFocus`) across all modal overlays, `prefers-reduced-motion` support in `static/css/style.css`, aligned `8.0s` Vercel / `14.0s` standard upload extraction timeouts, removed dead legacy `static/js/modules/` stubs, and synchronized all documentation cleanly.
 * **Resolved Critical Script Deadlock**: Identified and fixed an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
 * **Clean 3-Step Profile Wizard Lifecycle**: Consolidated the profile save action strictly at the end of the 3-step setup flow (`#btn-profile-save` in Step 3: Alert Settings), removing redundant intermediary save triggers from Step 2 to guarantee a smooth, unambiguous candidate onboarding flow.
 * **Form Button Explicit Typing**: Explicitly assigned `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.

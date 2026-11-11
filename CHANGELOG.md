@@ -5,37 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
-
-### Security & Privacy
-- **Strict Blank-State Privacy & Supabase Isolation**: Added canonical `create_blank_profile` (`jobhunt/memory_codec.py`) across signup, profile fetch, preferences, and reset so new/reset accounts retain only the verified email address; prevented configured Supabase `POST /api/resume/upload` requests from falling back to local `profile.json`, removed email-prefix name synthesis (`jobhunt/digest.py`, `jobhunt/multi.py`), and consolidated credential-stripping & preference normalization in `jobhunt/web/routes/profile.py`.
-- **Network, Transport & Header Hardening**: Added CRLF header injection protection in `jobhunt/mailer.py`, strict SSRF/URL/slug validation across `jobhunt/parsers/`, `jobhunt/fetch.py`, `jobhunt/verify.py`, and `jobhunt/web/routes/jobs.py`, COOP/HSTS security headers in `jobhunt/web/__init__.py`, and unified rate limiting via `enforce_rate_limit` (`jobhunt/web/state.py`, `jobhunt/web/routes/pipeline.py`).
-- **Database RLS Indexing**: Added 3 `lower(email)` lookup indexes in `supabase/schema.sql` aligned with `supabase/teardown.sql`.
-
-### Changed & Accessibility
-- **Modal Accessibility & UI Cleanup**: Added WCAG dialog ARIA attributes, keyboard focus trapping (`activateModalFocus` / `deactivateModalFocus`), `prefers-reduced-motion` CSS rules, guarded icon-only profile reset, aligned Vercel upload extraction timeout (`8.0s` Vercel / `14.0s` standard), removed unused `static/js/modules/` legacy files, and synchronized `README.md`, `RELEASE_NOTES.md`, and `docs/*.md` to **583 tests** (**92% statement coverage**).
-
----
-
-## [1.1.8] — 2026-11-01
+## [1.1.8] — 2026-11-11
 
 ### Added
 - **Headless Playwright Browser Test Suite**: Added a dedicated browser testing suite in `tests/test_browser_playwright.py` using Playwright Chromium with 7 tests covering unauthenticated landing view, multi-step onboarding wizard progression, live tracker search query and ATS chip filtering, workflow stage transitions, pagination/tech hubs, and modal escape/dismissal/reset lifecycles.
 - **Diagnostic Preflight Checks Suite**: Added comprehensive test coverage in `tests/test_preflight.py` bringing `jobhunt/preflight.py` to 100% test coverage across all healthy environments, missing or corrupt configuration, missing dependencies, Python version checks, and directory write permissions.
 - **Custom Target Companies & Jobs Route Test Suite**: Added `tests/test_custom_companies_and_edge_cases.py` verifying board discovery, live board URL verification, custom company management in cloud memory and local cache, boosting `jobhunt/web/routes/jobs.py` to 92% and `jobhunt/web/routes/pipeline.py` cloud dispatch coverage.
+- **Database RLS Email Lookup Indexes**: Added 3 `lower(email)` lookup indexes in `supabase/schema.sql`, synchronized with `supabase/teardown.sql` and schema tests.
 
-### Security
+### Security & Privacy
+- **Strict Blank-State Privacy & Supabase Isolation**: Added canonical `create_blank_profile` (`jobhunt/memory_codec.py`) across signup, profile fetch, preferences, and reset so new/reset accounts retain only the verified email address; prevented configured Supabase `POST /api/resume/upload` requests from falling back to local `profile.json`, removed email-prefix name synthesis (`jobhunt/digest.py`, `jobhunt/multi.py`), and consolidated credential-stripping & preference normalization in `jobhunt/web/routes/profile.py`.
+- **Network, Transport & Header Hardening**: Added CRLF header injection protection in `jobhunt/mailer.py`, strict SSRF/URL/slug validation across `jobhunt/parsers/`, `jobhunt/fetch.py`, `jobhunt/verify.py`, and `jobhunt/web/routes/jobs.py`, COOP/HSTS security headers in `jobhunt/web/__init__.py`, and unified rate limiting via `enforce_rate_limit` (`jobhunt/web/state.py`, `jobhunt/web/routes/pipeline.py`).
 - **Protocol Injection Defense in Job URLs**: Hardened `resolveJobUrl()` in `static/js/app.js` to strip `javascript:`, `data:`, and `vbscript:` pseudo-protocols, ensuring recruiter URLs can only open safe `http://` and `https://` destinations.
 - **HTML Entity-Safe Search Highlighting**: Updated `highlightText()` in `static/js/app.js` with regex entity lookahead `(?![^&]*;)`, preventing search term queries from corrupting escaped HTML character entities (such as `&amp;` and `&quot;`).
 - **Content Security Policy (CSP) Whitelist**: Added `https://job-hunter-web-board.vercel.app` to CSP `img-src` in `jobhunt/web/__init__.py` to allow official briefing previews without browser warnings.
 - **Candidate Credential Stripping**: Added recursive sanitization in `POST /api/profile` to strip any accidental credential fields (`api_key`, `token`, `secret`, `password`) before writing to persistent storage.
 
-### Fixed
+### Fixed & Accessibility
+- **Modal Accessibility & UI Cleanup**: Added WCAG dialog ARIA attributes, keyboard focus trapping (`activateModalFocus` / `deactivateModalFocus`), `prefers-reduced-motion` CSS rules, guarded icon-only profile reset, aligned Vercel upload extraction timeout (`8.0s` Vercel / `14.0s` standard), removed unused `static/js/modules/` legacy files, and synchronized `README.md`, `RELEASE_NOTES.md`, and `docs/*.md` to **583 tests** (**92% statement coverage**).
 - **UI Freeze Syntax Error**: Resolved an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
 - **Profile Modal Wizard Architecture**: Consolidated profile persistence to `#btn-profile-save` located strictly at the culmination of the 3-step setup flow (Step 3: Alert Settings), removing redundant intermediate save buttons from Step 2 to guarantee a smooth, complete wizard transition.
 - **Profile Modal Button Types**: Added `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.
 - **Test State Isolation**: Added an autouse `isolate_profile_file` fixture in `tests/conftest.py` ensuring `profile.json` on disk is preserved and restored cleanly across test sessions.
-- **Documentation Architecture & Link Validation**: Consolidated duplicate documentation (`docs/CHANGELOG.md` and `docs/SECURITY.md`) into authoritative root `CHANGELOG.md` and `SECURITY.md`, resolving relative target paths and verifying 205 internal links across 19 markdown files with zero broken references.
+- **Documentation Architecture & Link Validation**: Consolidated duplicate documentation (`docs/CHANGELOG.md` and `docs/SECURITY.md`) into authoritative root `CHANGELOG.md` and `SECURITY.md`, verifying internal links and anchors across all 19 markdown files with zero broken references.
 
 ---
 
