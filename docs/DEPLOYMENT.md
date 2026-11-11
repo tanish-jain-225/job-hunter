@@ -154,8 +154,8 @@ Job Hunter executes a centralized single-pass crawl across eligible users every 
 1. Any candidate visits `https://your-project.vercel.app`.
 2. Signs in with email/password or Magic Link.
 3. The candidate configures their profile and radar criteria via the 3-step **Profile & Search Settings**:
-   - *Step 1 (Resume & Raw Text Context)*: Upload `.pdf`/`.txt` resume with 100% in-memory extraction and an editable raw text context editor.
-   - *Step 2 (Profile & Search Criteria)*: 1-click **Auto-Fill from Resume Context** with 3-tier fallback protection (AI cascade $\rightarrow$ smart local regex parser $\rightarrow$ client defaults), plus customizable target roles, skills, experience, excluded keywords, job types, and locations.
+   - *Step 1 (Resume Upload)*: Upload `.pdf`/`.txt` resume with 100% in-memory extraction; AI auto-extraction runs automatically with 2-tier fallback protection (AI cascade $\rightarrow$ smart local regex parser).
+   - *Step 2 (Profile & Search Criteria)*: Review and refine extracted target roles, skills, experience, notice period, CTC (LPA), excluded keywords, job types, and locations.
    - *Step 3 (Delivery & Alert Settings)*: Match score threshold and notification preference (*Daily 5:00 AM Morning Briefing* or *Instant On-Demand Only*), notice period, current & expected CTC in LPA, and Indian tech hub location preferences.
 4. The system screens target boards, ranks opportunities, drafts custom cover notes and cold messages, and organizes everything onto their private interactive job tracker!
 

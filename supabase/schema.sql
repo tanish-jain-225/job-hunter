@@ -58,6 +58,7 @@ WHERE onboarding_completed = FALSE
 -- Performance Indexes on user_profiles
 CREATE INDEX IF NOT EXISTS idx_user_profiles_updated_at ON public.user_profiles (updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_created_at ON public.user_profiles (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_lower_email ON public.user_profiles (lower(email));
 
 -- ------------------------------------------------------------------------------
 -- 2. Create User Tracked Jobs Table (Keyed by user_email + job_id)
@@ -102,6 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_score ON public.user_trac
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_applied ON public.user_tracked_jobs (user_email, applied);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_stage ON public.user_tracked_jobs (user_email, application_stage);
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_email_ats ON public.user_tracked_jobs (user_email, ats);
+CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_lower_email ON public.user_tracked_jobs (lower(user_email));
 CREATE INDEX IF NOT EXISTS idx_user_tracked_jobs_created_at ON public.user_tracked_jobs (created_at DESC);
 
 -- ------------------------------------------------------------------------------
@@ -143,6 +145,7 @@ END $$;
 
 -- Performance Indexes on user_pipeline_runs
 CREATE INDEX IF NOT EXISTS idx_user_pipeline_runs_email ON public.user_pipeline_runs (user_email, run_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_user_pipeline_runs_lower_email ON public.user_pipeline_runs (lower(user_email));
 CREATE INDEX IF NOT EXISTS idx_user_pipeline_runs_created_at ON public.user_pipeline_runs (created_at DESC);
 
 -- ------------------------------------------------------------------------------

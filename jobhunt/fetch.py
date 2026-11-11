@@ -22,6 +22,7 @@ from .parsers import (
     strip_html,
     extract_salary_hint,
     is_safe_url,
+    is_valid_slug,
     detect_ats_from_url,
     parse_greenhouse,
     parse_lever,
@@ -79,6 +80,9 @@ def fetch_board(
     ats_lower = ats.lower()
     if ats_lower not in REGISTERED_ATS:
         raise ValueError(f"unknown ATS: {ats}")
+    if not is_valid_slug(slug):
+        print(f"  ! {ats}/{slug} -> blocked invalid company slug")
+        return []
 
     cache_key = f"{ats_lower}:{slug}"
     now = time.time()

@@ -359,5 +359,37 @@ def test_smtp_session_quit_exception_handled():
     assert session.server is None
 
 
+def test_build_message_strips_crlf_header_injection():
+    """Verify Subject, To, and From strip CR/LF so extra headers like Bcc cannot be injected."""
+    msg = mailer.build_message(
+        subject="Daily Matches\r\nBcc: attacker@evil.com",
+        html_body="<p>Hello</p>",
+        to_addr="user@test.com\nCc: leak@evil.com",
+        from_addr="sender@test.com\rX-Evil: 1",
+    )
+    assert "\r" not in msg["Subject"]
+    assert "\n" not in msg["Subject"]
+    assert "\r" not in msg["Subject"]
+    assert "\n" not in msg["Subject"]
+    assert "\r" not in msg["To"]
+    assert "\n" not in msg["To"]
+    assert "\r" not in msg["From"]
+    assert "\n" not in msg["From"]
+    assert "Bcc" not in msg
+    assert "Cc" not in msg
+    assert "X-Evil" not in msg
+    assert msg["Subject"].startswith("Daily Matches")
+
+
+def test_digest_never_infers_name_from_email():
+    """Privacy invariant: an email-only profile must keep generic Candidate greeting."""
+    subject, html = digest.build(
+        [], scanned=5, candidates=0, stats={"tracked": 5}, profile={"email": "tanish.jain@example.com"}
+    )
+    assert "Tanish" not in subject
+    assert "Tanish" not in html
+    assert "Candidate" in html
+
+
 
 

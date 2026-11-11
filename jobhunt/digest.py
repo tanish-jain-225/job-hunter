@@ -195,10 +195,9 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
     today = datetime.now(timezone.utc).strftime("%d %b %Y")
     name = ""
     if profile and profile.get("name"):
-        name = str(profile["name"]).strip()
-    elif profile and profile.get("email"):
-        username = str(profile["email"]).split("@")[0]
-        name = " ".join(part.capitalize() for part in username.replace(".", " ").replace("_", " ").split())
+        candidate_name = str(profile["name"]).strip()
+        if candidate_name and candidate_name.lower() != "candidate":
+            name = candidate_name
     if not name:
         name = "Candidate"
 

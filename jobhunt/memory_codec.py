@@ -5,6 +5,46 @@ from __future__ import annotations
 from typing import Any, Dict
 
 
+def create_blank_profile(email: str) -> Dict[str, Any]:
+    """Build a canonical privacy-first empty profile containing only the user's email.
+
+    Shared by both first-time signup stub creation and confirmed profile reset
+    so that initial signup state and post-reset state are strictly identical.
+    """
+    clean_email = (email or "").lower().strip()
+    return {
+        "email": clean_email,
+        "name": "",
+        "title": "",
+        "current_title": "",
+        "education": "",
+        "experience_years": 0,
+        "years_experience": 0,
+        "skills": [],
+        "core_skills": [],
+        "target_keywords": [],
+        "target_titles": [],
+        "exclude_keywords": [],
+        "resume_text": "",
+        "resume_filename": "",
+        "email_notifications_enabled": False,
+        "mail_mode": "",
+        "notification_email": clean_email,
+        "min_score_notification": None,
+        "onboarding_completed": False,
+        "preferred_locations": [],
+        "location_preference": "all_india",
+        "job_types": [],
+        "experience_level": "",
+        "notice_period": "30_days",
+        "current_ctc_lpa": 0,
+        "expected_ctc_lpa": 0,
+        "min_salary_lpa": 0,
+        "preferred_sectors": [],
+        "profile_json": {},
+    }
+
+
 def merge_db_profile_row(row: Dict[str, Any]) -> Dict[str, Any]:
     """Merge a Supabase DB row with its embedded profile_json blob into a unified profile dict.
 

@@ -156,8 +156,7 @@ job-hunter/
 │   ├── css/
 │   │   └── style.css            # 12-section pure Flexbox executive light mode design system
 │   └── js/
-│       ├── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
-│       └── modules/             # Modular client storage, events, and utilities
+│       └── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
 ├── supabase/                    # Database Architecture
 │   ├── schema.sql               # Atomic PostgreSQL schema: tables, indexes, cascading FKs, and RLS policies
 │   └── teardown.sql             # Atomic, cascade-safe database reset and migration teardown script
@@ -171,8 +170,8 @@ job-hunter/
 │       ├── landing.html         # Public landing hero and sign-in card
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
-│       └── profile_settings.html # 3-section settings modal: (1) Resume text context, (2) Criteria & Auto-Fill, (3) Alerts
-├── tests/                       # Automated Test Suite (569 passing tests, 93% coverage)
+│       └── profile_settings.html # 3-step settings modal: (1) Resume & automatic AI extraction, (2) Criteria review, (3) Alerts & Save
+├── tests/                       # Automated Test Suite (583 passing tests, 92% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

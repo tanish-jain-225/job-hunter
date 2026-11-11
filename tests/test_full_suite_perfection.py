@@ -139,11 +139,11 @@ def test_auth_dev_mode_unsigned_jwt_fallback(monkeypatch):
 
 
 # ==============================================================================
-# 2. digest.py Username Derivation & Formatting Coverage
+# 2. digest.py Privacy-First Identity & Formatting Coverage
 # ==============================================================================
 
 
-def test_digest_build_username_from_email():
+def test_digest_build_does_not_infer_name_from_email():
     j = Job(
         job_id="greenhouse:stripe:101",
         ats="greenhouse",
@@ -159,7 +159,9 @@ def test_digest_build_username_from_email():
     subject, html_content = digest.build(
         [j], scanned=50, candidates=10, stats={"tracked": 50}, profile={"email": "sarah.connor_cyber@example.com"}
     )
-    assert "Sarah Connor Cyber" in subject or "Sarah Connor Cyber" in html_content
+    assert "Sarah Connor Cyber" not in subject
+    assert "Sarah Connor Cyber" not in html_content
+    assert "Candidate" in subject
     assert "Stripe" in html_content
 
 

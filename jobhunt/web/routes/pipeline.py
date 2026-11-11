@@ -17,6 +17,7 @@ from ...memory import SupabaseMemory
 from ...store import Store, get_user_profile_path, get_writable_path
 from ..state import (
     ROOT,
+    enforce_rate_limit,
     get_current_user_context,
     get_store_version,
     get_user_pipeline_state,
@@ -518,18 +519,7 @@ def api_run():
     Rate limited to 5 calls/hour/IP (when flask-limiter is installed) to protect
     free-tier LLM quota from runaway clients or accidental retry loops.
     """
-    from flask import current_app
-    from werkzeug.exceptions import HTTPException
-
-    limiter = current_app.extensions.get("limiter")
-    if limiter and not current_app.testing:
-        try:
-            limiter.limit("5 per hour")(lambda: None)()
-        except HTTPException:
-            raise
-        except Exception:
-            # Skip misconfiguration errors silently
-            pass
+    enforce_rate_limit("5 per hour")
     data = request.get_json(silent=True) or {}
     use_mock = bool(data.get("mock", False))
     is_vercel = os.environ.get("VERCEL") == "1"
@@ -881,16 +871,7 @@ def api_history():
 @require_auth
 def api_email_test():
     """Send a live test career briefing email to verify SMTP delivery."""
-    limiter = current_app.extensions.get("limiter")
-    if limiter and not current_app.testing:
-        from werkzeug.exceptions import HTTPException
-
-        try:
-            limiter.limit("3 per hour")(lambda: None)()
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.debug("Rate limit check warning: %s", e)
+    enforce_rate_limit("3 per hour")
     email, token = get_current_user_context()
     cfg = cli._cfg(raise_on_error=False)
     memory = SupabaseMemory(token=token)

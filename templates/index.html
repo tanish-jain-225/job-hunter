@@ -65,7 +65,7 @@
   {% include 'partials/add_company.html' %}
 
   <!-- Toast Notification Portal Container -->
-  <div class="toast-container" id="toast-container" role="alert" aria-live="polite"></div>
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Client-side JavaScript -->
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ app_version }}&amp;h={{ asset_hash('js/app.js') }}" defer></script>

@@ -15,8 +15,8 @@
   <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.1.8"></a>
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-569%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-583%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-black?style=for-the-badge&logo=ruff" alt="Code Style: Ruff"></a>
@@ -393,11 +393,11 @@ jobhunt profile --resume path/to/your/resume.pdf
 
 This extracts your core skills, current title, experience level, and target keywords into [`profile.json`](profile.example.json).
 
-In the web dashboard, candidates manage their preferences through a streamlined **3-section Profile & Search Settings** modal:
+In the web dashboard, candidates manage their preferences through a privacy-first **3-step Profile & Search Settings** modal (new accounts start with only their verified email populated, and an icon-only reset control in the top-left restores that email-only state after confirmation):
 
-- **Section 1 (Resume & Raw Text Context)**: Drag-and-drop `.pdf` or `.txt` resume upload with 100% in-memory extraction and an interactive text context editor allowing you to freely refine your raw resume text before parsing.
-- **Section 2 (Candidate Profile & Search Criteria)**: 1-click **Auto-Fill from Resume Context** button backed by a **3-tier fallback engine** (AI provider cascade $\rightarrow$ smart local regex parser $\rightarrow$ client identity defaults), plus centralized fields for target roles, skills, experience, excluded keywords, job types, and locations.
-- **Section 3 (Alert Settings & Delivery Modes)**: Minimum AI match score threshold (default: 7.5) and email briefing frequency (_Daily 5:00 AM Radar_ vs. _Instant On-Demand Only_).
+- **Step 1 (Resume Upload & Extraction)**: Drag-and-drop `.pdf` or `.txt` resume upload with 100% in-memory parsing that automatically triggers server-side extraction and advances structured criteria into Step 2.
+- **Step 2 (Candidate Profile & Search Criteria)**: Review and manually refine extracted candidate fields—target roles, skills, experience, notice period, CTC, excluded keywords, job types, and locations—backed by a **2-tier extraction fallback engine** (AI provider cascade $\rightarrow$ smart local regex parser).
+- **Step 3 (Alert Settings & Delivery Modes)**: Minimum AI match score threshold (default: 7.5), email briefing frequency (_Daily 5:00 AM Radar_ vs. _Instant On-Demand Only_), notification email, and the single **Save** action.
 
 ---
 
@@ -471,7 +471,7 @@ The web dashboard is an interactive single-page application built with modern va
   - 🎙️ **Interviewing** (`interviewing`): Screening or technical interviews in progress.
   - 🎉 **Offer** (`offer`): Job offer received.
   - 📁 **Rejected / Archived** (`rejected`): Role archived or closed.
-- **Resume Studio**: Drag-and-drop resume upload with automated PDF text extraction, structured skill classification, candidate profile setup, and an adaptive 3-tier fallback engine (8s Vercel / 14s standard timeout with deterministic local regex fallback).
+- **Resume Studio**: Drag-and-drop resume upload with automated in-memory PDF/TXT text extraction, structured skill classification, candidate profile setup, and an adaptive 2-tier extraction fallback engine (8s Vercel / 14s standard timeout with deterministic local regex fallback).
 - **Smart Follow-Up Nudges**: Injects `⏳ Xd ago · Follow Up` badges on applied listings and generates context-aware follow-up notes with 1-click clipboard copy.
 - **Live SSE Pipeline Stream**: Streams real-time crawling and screening logs line-by-line via Server-Sent Events (`/api/pipeline/stream`).
 - **Real-Time Zero-Refresh Sync**: Synchronizes state cross-tab and cross-device via an adaptive 15-second heartbeat and version hashing (`/api/sync`), backed by proactive session token refresh and silent 401 retries.
@@ -653,7 +653,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 569 automated test cases with 93% statement coverage
+├── tests/                    # 583 automated test cases with 92% statement coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -704,13 +704,13 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**569 automated tests**, 93% coverage):
+Run the full automated test suite locally (**583 automated tests**, 92% coverage):
 
 ```bash
 # Run full test suite
 pytest
 
-# Run tests with 90%+ terminal coverage report (93% achieved)
+# Run tests with 90%+ terminal coverage report (92% achieved)
 pytest --cov=jobhunt --cov-report=term-missing
 
 # Run static type checker
@@ -728,7 +728,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **569 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest -q`                           | **583 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 

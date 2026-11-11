@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .models import Job, ParserFunc
 from .registry import REGISTERED_ATS, register_ats
-from .utils import strip_html, extract_salary_hint, is_safe_url
+from .utils import strip_html, extract_salary_hint, is_safe_url, is_valid_slug
 
 # Import individual parsers to trigger registration in REGISTERED_ATS
 from .greenhouse import parse_greenhouse
@@ -26,6 +26,7 @@ __all__ = [
     "strip_html",
     "extract_salary_hint",
     "is_safe_url",
+    "is_valid_slug",
     "parse_greenhouse",
     "parse_lever",
     "parse_ashby",

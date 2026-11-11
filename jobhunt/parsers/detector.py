@@ -4,6 +4,20 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from .utils import is_valid_slug
+
+
+def _host_matches(hostname: str, domain: str) -> bool:
+    """Strictly match exact domain or subdomain without allowing lookalike substring attacks."""
+    return hostname == domain or hostname.endswith(f".{domain}")
+
+
+def _result(ats: str, slug: str) -> dict[str, str] | None:
+    if not is_valid_slug(slug):
+        return None
+    clean_slug = slug.strip()
+    return {"ats": ats, "slug": clean_slug, "name": clean_slug.replace("-", " ").replace("_", " ").title()}
+
 
 def detect_ats_from_url(url: str) -> dict[str, str] | None:
     """Auto-detect ATS engine and extract slug/name from an arbitrary career board URL.
@@ -27,12 +41,14 @@ def detect_ats_from_url(url: str) -> dict[str, str] | None:
         raw = "https://" + raw
 
     parsed = urlparse(raw)
-    hostname = (parsed.hostname or "").lower()
+    if parsed.username is not None or parsed.password is not None:
+        return None
+    hostname = (parsed.hostname or "").lower().rstrip(".")
     path = parsed.path.strip("/")
     path_segments = [p for p in path.split("/") if p]
 
     # 1. Greenhouse
-    if "greenhouse.io" in hostname:
+    if _host_matches(hostname, "greenhouse.io"):
         slug = ""
         if path_segments:
             if path_segments[0] == "v1" and len(path_segments) >= 3 and path_segments[1] == "boards":
@@ -41,82 +57,76 @@ def detect_ats_from_url(url: str) -> dict[str, str] | None:
                 slug = path_segments[1]
             else:
                 slug = path_segments[0]
-        if slug:
-            return {"ats": "greenhouse", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("greenhouse", slug)
 
     # 2. Lever
-    if "lever.co" in hostname:
+    if _host_matches(hostname, "lever.co"):
         slug = ""
         if path_segments:
             if path_segments[0] == "v0" and len(path_segments) >= 3 and path_segments[1] == "postings":
                 slug = path_segments[2]
             else:
                 slug = path_segments[0]
-        if slug:
-            return {"ats": "lever", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("lever", slug)
 
     # 3. Ashby
-    if "ashbyhq.com" in hostname:
+    if _host_matches(hostname, "ashbyhq.com"):
         slug = ""
         if path_segments:
             if path_segments[0] == "posting-api" and len(path_segments) >= 3 and path_segments[1] == "job-board":
                 slug = path_segments[2]
             else:
                 slug = path_segments[0]
-        if slug:
-            return {"ats": "ashby", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("ashby", slug)
 
     # 4. Workable
-    if "workable.com" in hostname:
+    if _host_matches(hostname, "workable.com"):
         slug = ""
-        if hostname.startswith("apply.workable.com") and path_segments:
+        if hostname == "apply.workable.com" and path_segments:
             slug = path_segments[0]
         else:
             subdomain = hostname.split(".")[0]
-            if subdomain and subdomain != "apply" and subdomain != "www":
+            if subdomain and subdomain not in ("apply", "www"):
                 slug = subdomain
-        if slug:
-            return {"ats": "workable", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("workable", slug)
 
     # 5. SmartRecruiters
-    if "smartrecruiters.com" in hostname:
+    if _host_matches(hostname, "smartrecruiters.com"):
         slug = ""
         if path_segments:
             if path_segments[0] == "v1" and len(path_segments) >= 3 and path_segments[1] == "companies":
                 slug = path_segments[2]
             else:
                 slug = path_segments[0]
-        if slug:
-            return {"ats": "smartrecruiters", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("smartrecruiters", slug)
 
     # 6. BambooHR
-    if "bamboohr.com" in hostname:
+    if _host_matches(hostname, "bamboohr.com"):
         slug = hostname.split(".")[0]
         if slug and slug != "www":
-            return {"ats": "bamboohr", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+            return _result("bamboohr", slug)
 
     # 7. Recruitee
-    if "recruitee.com" in hostname:
+    if _host_matches(hostname, "recruitee.com"):
         slug = ""
-        if hostname.startswith("careers.recruitee.com") and path_segments:
+        if hostname == "careers.recruitee.com" and path_segments:
             slug = path_segments[0]
         else:
             subdomain = hostname.split(".")[0]
-            if subdomain and subdomain != "careers" and subdomain != "www":
+            if subdomain and subdomain not in ("careers", "www"):
                 slug = subdomain
-        if slug:
-            return {"ats": "recruitee", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+        return _result("recruitee", slug)
 
     # 8. Breezy HR
-    if "breezy.hr" in hostname:
+    if _host_matches(hostname, "breezy.hr"):
         slug = hostname.split(".")[0]
         if slug and slug != "www":
-            return {"ats": "breezy", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+            return _result("breezy", slug)
 
     # 9. Pinpoint
-    if "pinpoint.work" in hostname or "pinpointhq.com" in hostname:
+    if _host_matches(hostname, "pinpoint.work") or _host_matches(hostname, "pinpointhq.com"):
         slug = hostname.split(".")[0]
         if slug and slug != "www":
-            return {"ats": "pinpoint", "slug": slug, "name": slug.replace("-", " ").replace("_", " ").title()}
+            return _result("pinpoint", slug)
 
     return None

@@ -1,19 +1,19 @@
-<div class="modal-overlay" id="profile-modal">
+<div class="modal-overlay" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
   <div class="modal-content modal-content-studio">
     <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; position:relative; flex-wrap:nowrap !important; width:100%; box-sizing:border-box;">
       <button type="button" class="btn btn-secondary btn-sm btn-danger btn-flush-trace" data-action="flush-profile-data" title="Reset all profile details and start fresh" aria-label="Reset and wipe profile data" style="width:34px; height:34px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; flex-shrink:0;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
       </button>
       <div class="modal-header-info" style="text-align:center; flex:1; min-width:0; margin:0 12px;">
-        <div class="modal-title" style="text-align:center;">Profile &amp; Search Settings</div>
+        <div class="modal-title" id="profile-modal-title" style="text-align:center;">Profile &amp; Search Settings</div>
         <div class="modal-subtitle" id="profile-wizard-subtitle" style="text-align:center;">Step 1 of 3 — Resume Upload</div>
       </div>
-      <button class="modal-close" data-action="close-profile-modal" aria-label="Close modal" style="flex-shrink:0;">×</button>
+      <button type="button" class="modal-close" data-action="close-profile-modal" aria-label="Close modal" style="flex-shrink:0;">×</button>
     </div>
 
     <!-- Step Progress Bar -->
-    <div class="wizard-progress-bar" style="max-width:480px; margin:0 auto; width:100%;">
-      <div class="wizard-step-node active" id="pws-node-1" data-action="wizard-goto" data-step="1" role="button" tabindex="0" title="Go to Step 1: Resume Upload">
+    <div class="wizard-progress-bar" style="max-width:480px; margin:0 auto; width:100%;" role="navigation" aria-label="Profile setup steps">
+      <div class="wizard-step-node active" id="pws-node-1" data-action="wizard-goto" data-step="1" role="button" tabindex="0" aria-current="step" title="Go to Step 1: Resume Upload">
         <div class="wizard-step-circle">1</div>
         <div class="wizard-step-label">Resume</div>
       </div>
@@ -37,7 +37,7 @@
           Upload your resume (PDF or TXT) to automatically calibrate your candidate profile, technical skills, and search preferences with AI.
         </div>
 
-        <div class="resume-dropzone" id="resume-dropzone" data-action="trigger-resume-input">
+        <div class="resume-dropzone" id="resume-dropzone" data-action="trigger-resume-input" role="button" tabindex="0" aria-label="Upload resume PDF or TXT file for AI Auto-Fill">
           <label for="resume-file-input" class="sr-only">Upload Resume File</label>
           <input type="file" id="resume-file-input" accept=".pdf,.txt" style="display:none;" aria-label="Upload resume file (.pdf, .txt)">
           <div class="dropzone-icon">

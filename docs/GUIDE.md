@@ -47,9 +47,9 @@ flowchart LR
 2. [Accessing Job Hunter (Cloud vs. Local vs. Terminal)](#2-accessing-job-hunter-cloud-vs-local-vs-terminal)
 3. [Step 1: Sign Up & Private Account Isolation](#3-step-1-sign-up--private-account-isolation)
 4. [Step 2: Candidate Profile Setup (3-Step Guided Studio)](#4-step-2-candidate-profile-setup-3-step-guided-studio)
-   - [Step 1: Resume Upload & Context Extraction](#step-1-resume-upload--context-extraction)
+   - [Step 1: Resume Upload & Extraction](#step-1-resume-upload--extraction)
    - [Step 2: Criteria, Indian Tech Hubs, Notice Period & CTC](#step-2-criteria-indian-tech-hubs-notice-period--ctc)
-   - [Auto-Fill from Resume Context & Fallback Engine](#auto-fill-from-resume-context--fallback-engine)
+   - [2-Tier Extraction Fallback Engine](#2-tier-extraction-fallback-engine)
    - [Step 3: Alert Thresholds & Delivery Modes](#step-3-alert-thresholds--delivery-modes)
 5. [Step 3: Running Your First Autonomous Job Hunt](#5-step-3-running-your-first-autonomous-job-hunt)
 6. [Step 4: Mastering the Dashboard & Interactive Board](#6-step-4-mastering-the-dashboard--interactive-board)
@@ -135,11 +135,11 @@ Configure your matching radar anytime by clicking **Settings** in the top naviga
 
 ```mermaid
 flowchart LR
-    subgraph S1["Step 1: Resume Context"]
-        A["Upload PDF/TXT"] --> B["Editable Raw Text Editor"]
+    subgraph S1["Step 1: Resume Upload"]
+        A["Upload PDF/TXT"] --> B["Automatic AI Extraction"]
     end
     subgraph S2["Step 2: Candidate Criteria"]
-        C["Auto-Fill with AI"] --> D["Target Titles & Skills"]
+        C["Review Extracted Fields"] --> D["Target Titles & Skills"]
         D --> E["Notice Period & CTC (₹ LPA)"]
         E --> F["Indian Tech Hub Chips"]
     end
@@ -152,27 +152,22 @@ flowchart LR
 
 ---
 
-### Step 1: Resume Upload & Context Extraction
+### Step 1: Resume Upload & Extraction
 
-1. **Upload Resume**: Drag and drop your `.pdf` or `.txt` resume into the dropzone box, or click to browse.
-2. **Instant Text Extraction**: The extracted text instantly appears in the editable text editor. You can freely edit, add recent projects, or type extra context.
-3. **100% In-Memory Privacy**: Resume text extraction happens completely in-memory. Your raw PDF files are never uploaded to public storage buckets.
-4. Click **Next: Profile & Search Criteria →** to proceed.
+1. **Privacy-First Start**: New accounts start with only their verified email populated—no prefilled candidate fields or guessed names.
+2. **Upload Resume**: Drag and drop your `.pdf` or `.txt` resume into the dropzone box, or click to browse.
+3. **Automatic Extraction**: Uploading automatically runs server-side AI extraction and advances your structured details into Step 2.
+4. **100% In-Memory Privacy**: Resume text extraction happens completely in-memory. Your raw PDF files are never uploaded to public storage buckets.
 
 ---
 
 ### Step 2: Criteria, Indian Tech Hubs, Notice Period & CTC
 
-Step 2 centralizes all your candidate parameters and search preferences:
+Step 2 lets you review and manually refine all candidate parameters and search preferences (including **Candidate Name**, **Target Job Titles**, **Core Skills**, **Years of Experience**, **Education**, **Notice Period**, **CTC**, and **Indian Tech Hub** chips):
 
-#### Auto-Fill from Resume Context & Fallback Engine
-* Click **Auto-Fill from Resume Context** at the top of Step 2.
-* Job Hunter reads your resume text and automatically populates:
-  - **Candidate Name**
-  - **Target Job Titles**
-  - **Core Skills**
-  - **Years of Experience** & **Education**
-* **3-Tier Fallback Protection**: If upstream AI services experience rate limits, high demand, or network timeouts, Job Hunter's adaptive timeout engine (`8.0s` on Vercel serverless to prevent 504s, `14.0s` on standard servers) seamlessly engages the built-in deterministic local regex parser, accurately extracting your details without external API dependencies.
+#### 2-Tier Extraction Fallback Engine
+* **Tier 1 (Multi-Provider AI Cascade)**: Automatically cascades across Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular multi-key rotation and an adaptive timeout (`8.0s` on Vercel serverless to prevent 504s; `14.0s` on standard servers).
+* **Tier 2 (Deterministic Local Regex Parser)**: If upstream AI services experience rate limits, high demand, or timeouts, Job Hunter seamlessly engages its built-in local regex parser, extracting candidate details without external API dependencies.
 
 #### Tailoring Your Parameters:
 * **Candidate Name**: Your full name used in personalized Application Kits.

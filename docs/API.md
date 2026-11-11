@@ -315,7 +315,7 @@ Upload and extract structured candidate profile data from a resume document (PDF
 
 **Auth:** Required  
 **Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "...", "filename": "resume.pdf"}`)  
-**Timeout & Resilience:** Adaptive backend execution ceiling (`8.0s` on Vercel serverless to guarantee completion before Vercel's 10s gateway timeout; `14.0s` on standard/local servers) backed by a 3-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser (guaranteeing deterministic extraction of name, title, education, and 100+ skills during upstream AI provider load spikes or outages) $\rightarrow$ Tier 3 client identity defaults.  
+**Timeout & Resilience:** Adaptive backend execution ceiling (`8.0s` on Vercel serverless to guarantee completion before Vercel's 10s gateway timeout; `14.0s` on standard/local servers) backed by a 2-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser (guaranteeing deterministic extraction of title, education, and 100+ skills during upstream AI provider load spikes or outages without fabricating personal defaults).  
 **Response:**
 ```json
 {

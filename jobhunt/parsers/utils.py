@@ -54,6 +54,19 @@ def extract_salary_hint(title: str = "", description: str = "") -> str | None:
     return None
 
 
+_VALID_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
+
+
+def is_valid_slug(slug: str | None) -> bool:
+    """Validate ATS board slug to prevent path traversal, host injection, and SSRF."""
+    if not slug or not isinstance(slug, str):
+        return False
+    clean = slug.strip()
+    if not clean or ".." in clean:
+        return False
+    return bool(_VALID_SLUG_RE.match(clean))
+
+
 def is_safe_url(url: str) -> bool:
     """Validate external URLs to prevent SSRF against private/loopback/link-local networks."""
     if not url or not isinstance(url, str):
@@ -62,21 +75,26 @@ def is_safe_url(url: str) -> bool:
         p = urlparse(url.strip())
         if p.scheme.lower() not in ("http", "https"):
             return False
+        if p.username is not None or p.password is not None:
+            return False
         hostname = p.hostname
         if not hostname:
             return False
         # Block localhost aliases
-        lower_host = hostname.lower()
-        if lower_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        lower_host = hostname.lower().rstrip(".")
+        if lower_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0", "metadata.google.internal"):
             return False
-        # If it is an IP address, check against private and reserved CIDRs
+        # If it is an IP address, check against private and reserved CIDRs (including IPv4-mapped IPv6)
         try:
-            ip = ipaddress.ip_address(hostname)
+            ip = ipaddress.ip_address(lower_host)
+            ip_v4 = getattr(ip, "ipv4_mapped", None)
             if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+                return False
+            if ip_v4 and (ip_v4.is_private or ip_v4.is_loopback or ip_v4.is_link_local or ip_v4.is_reserved or ip_v4.is_multicast):
                 return False
         except ValueError:
             # Domain name: verify it doesn't end with local domain patterns
-            if lower_host.endswith((".local", ".localhost", ".internal")):
+            if lower_host.endswith((".local", ".localhost", ".internal", ".arpa")):
                 return False
         return True
     except Exception:

@@ -28,18 +28,26 @@ def reset_sent_count() -> None:
     _sent_counter = 0
 
 
+def _sanitize_header_value(value: str) -> str:
+    """Strip CR/LF characters from email headers to prevent header injection (CWE-93)."""
+    return str(value or "").replace("\r", " ").replace("\n", " ").strip()
+
+
 def build_message(subject: str, html_body: str, to_addr: str, from_addr: str) -> EmailMessage:
     """Construct an RFC-compliant EmailMessage with plain-text fallback and deliverability headers."""
+    safe_subject = _sanitize_header_value(subject)
+    safe_to = _sanitize_header_value(to_addr)
+    safe_from = _sanitize_header_value(from_addr)
     msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to_addr
+    msg["Subject"] = safe_subject
+    msg["From"] = safe_from
+    msg["To"] = safe_to
     msg["Date"] = email.utils.formatdate(localtime=True)
-    msg["Message-ID"] = email.utils.make_msgid(domain=from_addr.split("@")[-1] if "@" in from_addr else None)
+    msg["Message-ID"] = email.utils.make_msgid(domain=safe_from.split("@")[-1] if "@" in safe_from else None)
     msg["Auto-Submitted"] = "auto-generated"
     msg["Precedence"] = "bulk"
     msg["X-Auto-Response-Suppress"] = "All"
-    msg["List-Unsubscribe"] = f"<mailto:{from_addr}?subject=Unsubscribe>"
+    msg["List-Unsubscribe"] = f"<mailto:{safe_from}?subject=Unsubscribe>"
     msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 
     # Provide clean plain-text fallback to maximize inbox deliverability and lower spam scoring

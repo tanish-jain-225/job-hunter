@@ -5,6 +5,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import math
 import os
 import re
 from typing import Any
@@ -12,13 +13,122 @@ from flask import Blueprint, current_app, jsonify, request
 
 from ... import cli, llm
 from ...auth import require_auth
-from ...memory import SupabaseMemory
+from ...memory import SupabaseMemory, create_blank_profile, invalidate_user_cache
 from ...store import get_user_profile_path, get_writable_path  # noqa: F401
-from ..state import get_current_user_context, get_user_profile, sanitize_profile_for_response
+from ..state import enforce_rate_limit, get_current_user_context, get_user_profile, sanitize_profile_for_response
 
 logger = logging.getLogger(__name__)
 
 profile_bp = Blueprint("profile", __name__)
+
+_SENSITIVE_KEY_MARKERS = ("api_key", "token", "secret", "password")
+_MAX_CTC_LPA = 1000.0
+
+
+def _strip_sensitive_fields(payload: dict[str, Any]) -> None:
+    """Remove credential-like keys before persisting profile or preference payloads."""
+    for key in list(payload):
+        normalized = str(key).lower().replace("-", "_")
+        if any(marker in normalized for marker in _SENSITIVE_KEY_MARKERS):
+            payload.pop(key, None)
+
+
+def _clamp_float(value: Any, *, minimum: float = 0.0, maximum: float = _MAX_CTC_LPA) -> float:
+    """Parse finite numeric input and clamp it within safe domain bounds."""
+    try:
+        parsed = float(value if value is not None else 0.0)
+    except (ValueError, TypeError):
+        return 0.0
+    if not math.isfinite(parsed):
+        return 0.0
+    return max(minimum, min(maximum, parsed))
+
+
+def _normalize_string_list(value: Any, *, max_items: int = 30, max_len: int = 100) -> list[str]:
+    """Normalize comma-separated or list inputs into bounded stripped strings."""
+    if isinstance(value, str):
+        items = value.split(",")
+    elif isinstance(value, list):
+        items = value
+    else:
+        return []
+    return [cleaned[:max_len] for item in items if (cleaned := str(item).strip())][:max_items]
+
+
+def _normalize_preference_fields(
+    target: dict[str, Any],
+    *,
+    list_fields: tuple[str, ...] = ("exclude_keywords", "job_types", "preferred_sectors"),
+) -> None:
+    """Normalize shared location, CTC, and list fields on profile/preference payloads."""
+    raw_pref = target.get("preferred_locations")
+    pref_source = raw_pref.get("locations", []) if isinstance(raw_pref, dict) else raw_pref
+    target["preferred_locations"] = _normalize_string_list(pref_source, max_items=30, max_len=100)
+
+    raw_loc = target.get("location_preference")
+    if isinstance(raw_loc, dict):
+        loc_type = str(raw_loc.get("type") or "all_india").strip()[:50]
+        loc_list = _normalize_string_list(raw_loc.get("locations", []), max_items=30, max_len=100)
+        if not loc_list and target["preferred_locations"]:
+            loc_list = list(target["preferred_locations"])
+        target["location_preference"] = {"type": loc_type, "locations": loc_list}
+    elif isinstance(raw_loc, str) and raw_loc.strip():
+        target["location_preference"] = raw_loc.strip()[:50]
+    else:
+        target["location_preference"] = "specific_cities" if target["preferred_locations"] else "all_india"
+
+    for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
+        if ctc_field in target and target[ctc_field] is not None:
+            target[ctc_field] = _clamp_float(target[ctc_field], minimum=0.0, maximum=_MAX_CTC_LPA)
+
+    if target.get("expected_ctc_lpa") and not target.get("min_salary_lpa"):
+        target["min_salary_lpa"] = target["expected_ctc_lpa"]
+
+    for list_field in list_fields:
+        target[list_field] = _normalize_string_list(target.get(list_field), max_items=30, max_len=100)
+
+
+def _extract_preferences_view(profile: dict[str, Any], *, include_keywords: bool = True) -> dict[str, Any]:
+    """Serialize preference fields consistently across GET and POST responses."""
+    prefs: dict[str, Any] = {
+        "preferred_locations": profile.get("preferred_locations") or [],
+        "location_preference": profile.get("location_preference") or "all_india",
+        "job_types": profile.get("job_types") or [],
+        "experience_level": profile.get("experience_level") or "",
+        "notice_period": profile.get("notice_period") or "30_days",
+        "current_ctc_lpa": profile.get("current_ctc_lpa") or 0,
+        "expected_ctc_lpa": profile.get("expected_ctc_lpa") or 0,
+        "min_salary_lpa": profile.get("min_salary_lpa") or 0,
+        "preferred_sectors": profile.get("preferred_sectors") or [],
+    }
+    if include_keywords:
+        prefs["target_keywords"] = profile.get("target_keywords") or []
+        prefs["exclude_keywords"] = profile.get("exclude_keywords") or []
+    return prefs
+
+
+def _persist_profile_state(
+    memory: SupabaseMemory,
+    cfg: dict[str, Any],
+    email: str,
+    token: str | None,
+    profile_data: dict[str, Any],
+    *,
+    cloud_error_message: str,
+) -> tuple[Any, int] | None:
+    """Persist profile data to Supabase when configured and update the local JSON cache."""
+    if memory.is_configured:
+        if not memory.upsert_user_profile(email, profile_data, token=token):
+            return jsonify({"status": "error", "message": cloud_error_message}), 503
+
+    try:
+        profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(profile_path, "w", encoding="utf-8") as f:
+            json.dump(profile_data, f, indent=2)
+    except Exception as e:
+        logger.warning("Could not cache profile locally: %s", e)
+    return None
 
 
 def is_profile_complete(profile: dict[str, Any]) -> bool:
@@ -113,10 +223,14 @@ def api_profile():
         if email and memory.is_configured:
             memory._ensure_user_profile_exists(email, token=token)
             profile = memory.get_user_profile(email, token=token)
-        # If Supabase is not configured fall back to the local profile file.
-        if not profile:
-            raw = get_user_profile(cfg, email, token)
-            raw.setdefault("onboarding_completed", True)
+            if not profile:
+                profile = create_blank_profile(email)
+        else:
+            raw = get_user_profile(cfg, email, token) or {}
+            if raw and (raw.get("name") or raw.get("skills") or raw.get("core_skills")):
+                raw.setdefault("onboarding_completed", True)
+            elif email and not raw:
+                raw = create_blank_profile(email)
             profile = raw
 
         return jsonify(
@@ -134,17 +248,14 @@ def api_profile():
         # Merge with existing profile in Supabase/local memory so existing background data is preserved
         existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
         if not existing:
-            existing = get_user_profile(cfg, email, token) or {}
-        merged_profile = {**(existing or {}), **data}
+            existing = {} if memory.is_configured else (get_user_profile(cfg, email, token) or {})
+        merged_profile = {**(existing or {}), **data, "email": email}
 
         # Normalize experience_years and bidirectional alias years_experience
         y_val = data.get("experience_years") if "experience_years" in data else data.get("years_experience")
         if y_val is None:
             y_val = merged_profile.get("experience_years", merged_profile.get("years_experience", 0.0))
-        try:
-            flt_yoe = float(y_val or 0)
-        except (ValueError, TypeError):
-            flt_yoe = 0.0
+        flt_yoe = _clamp_float(y_val, minimum=0.0, maximum=70.0)
         merged_profile["experience_years"] = flt_yoe
         merged_profile["years_experience"] = flt_yoe
 
@@ -152,12 +263,7 @@ def api_profile():
         raw_s = data.get("skills") if "skills" in data else data.get("core_skills")
         if raw_s is None:
             raw_s = merged_profile.get("skills") or merged_profile.get("core_skills")
-        if isinstance(raw_s, str):
-            s_list = [s.strip() for s in raw_s.split(",") if s.strip()]
-        elif isinstance(raw_s, list):
-            s_list = [str(s).strip() for s in raw_s if str(s).strip()]
-        else:
-            s_list = []
+        s_list = _normalize_string_list(raw_s, max_items=50, max_len=80)
         merged_profile["skills"] = s_list
         merged_profile["core_skills"] = s_list
 
@@ -165,23 +271,21 @@ def api_profile():
         raw_t = data.get("target_keywords") if "target_keywords" in data else data.get("target_titles")
         if raw_t is None:
             raw_t = merged_profile.get("target_keywords") or merged_profile.get("target_titles")
-        if isinstance(raw_t, str):
-            t_list = [s.strip() for s in raw_t.split(",") if s.strip()]
-        elif isinstance(raw_t, list):
-            t_list = [str(s).strip() for s in raw_t if str(s).strip()]
-        else:
-            t_list = []
+        t_list = _normalize_string_list(raw_t, max_items=30, max_len=100)
         merged_profile["target_keywords"] = t_list
         merged_profile["target_titles"] = t_list
 
         # Bidirectional aliases for title <-> current_title
-        t_str = str(data.get("title") or data.get("current_title") or merged_profile.get("title") or merged_profile.get("current_title") or "").strip()
+        t_str = str(data.get("title") or data.get("current_title") or merged_profile.get("title") or merged_profile.get("current_title") or "").strip()[:200]
         merged_profile["title"] = t_str
         merged_profile["current_title"] = t_str
 
         # Candidate name normalization (strictly privacy-first: never synthesize from email or placeholders)
-        raw_name = str(data.get("name") if "name" in data else (existing.get("name") or "")).strip()
+        raw_name = str(data.get("name") if "name" in data else (existing.get("name") or "")).strip()[:150]
         merged_profile["name"] = "" if raw_name == "Candidate" else raw_name
+        merged_profile["education"] = str(merged_profile.get("education") or "").strip()[:300]
+        if isinstance(merged_profile.get("resume_text"), str):
+            merged_profile["resume_text"] = merged_profile["resume_text"][:50_000]
 
         # Smart title & target keywords cross-inference
         if not merged_profile.get("title") and merged_profile.get("target_keywords"):
@@ -220,47 +324,7 @@ def api_profile():
             norm_np = "30_days"
         merged_profile["notice_period"] = norm_np
 
-        for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
-            if ctc_field in merged_profile and merged_profile[ctc_field] is not None:
-                try:
-                    merged_profile[ctc_field] = float(merged_profile[ctc_field])
-                except (ValueError, TypeError):
-                    merged_profile[ctc_field] = 0.0
-
-        if merged_profile.get("expected_ctc_lpa") and not merged_profile.get("min_salary_lpa"):
-            merged_profile["min_salary_lpa"] = merged_profile["expected_ctc_lpa"]
-
-        # Ensure preferred_locations is always a list of clean strings
-        raw_pref_locs = merged_profile.get("preferred_locations")
-        if isinstance(raw_pref_locs, dict):
-            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs.get("locations", []) if str(x).strip()]
-        elif isinstance(raw_pref_locs, list):
-            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs if str(x).strip()]
-        elif isinstance(raw_pref_locs, str) and raw_pref_locs.strip():
-            merged_profile["preferred_locations"] = [str(x).strip() for x in raw_pref_locs.split(",") if str(x).strip()]
-        else:
-            merged_profile["preferred_locations"] = []
-
-        # Normalize location_preference
-        raw_loc_pref = merged_profile.get("location_preference")
-        if isinstance(raw_loc_pref, dict):
-            loc_type = str(raw_loc_pref.get("type") or "all_india").strip()
-            loc_list = [str(x).strip() for x in raw_loc_pref.get("locations", []) if str(x).strip()]
-            if not loc_list and merged_profile["preferred_locations"]:
-                loc_list = merged_profile["preferred_locations"]
-            merged_profile["location_preference"] = {"type": loc_type, "locations": loc_list}
-        elif isinstance(raw_loc_pref, str) and raw_loc_pref.strip():
-            merged_profile["location_preference"] = raw_loc_pref.strip()
-        else:
-            merged_profile["location_preference"] = "specific_cities" if merged_profile["preferred_locations"] else "all_india"
-
-        # Normalize remaining list fields
-        for list_field in ("exclude_keywords", "job_types", "preferred_sectors"):
-            val = merged_profile.get(list_field)
-            if isinstance(val, str):
-                merged_profile[list_field] = [s.strip() for s in val.split(",") if s.strip()]
-            elif not isinstance(val, list):
-                merged_profile[list_field] = []
+        _normalize_preference_fields(merged_profile)
 
         if not merged_profile.get("exclude_keywords"):
             merged_profile["exclude_keywords"] = ["Manager", "Director", "Sales", "Recruiter", "VP"]
@@ -294,24 +358,18 @@ def api_profile():
                 merged_profile["core_skills"] = found_skills[:15]
 
         merged_profile["onboarding_completed"] = is_profile_complete(merged_profile)
-        for key in list(merged_profile):
-            normalized = str(key).lower().replace("-", "_")
-            if any(marker in normalized for marker in ("api_key", "token", "secret", "password")):
-                merged_profile.pop(key, None)
+        _strip_sensitive_fields(merged_profile)
 
-        if memory.is_configured:
-            if not memory.upsert_user_profile(email, merged_profile, token=token):
-                return jsonify(
-                    {"status": "error", "message": "Profile could not be saved to secure cloud storage. Please try again."}
-                ), 503
-
-        try:
-            profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
-            profile_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(profile_path, "w", encoding="utf-8") as f:
-                json.dump(merged_profile, f, indent=2)
-        except Exception as e:
-            logger.warning("Could not cache profile locally: %s", e)
+        persist_err = _persist_profile_state(
+            memory,
+            cfg,
+            email,
+            token,
+            merged_profile,
+            cloud_error_message="Profile could not be saved to secure cloud storage. Please try again.",
+        )
+        if persist_err is not None:
+            return persist_err
 
         return jsonify(
             {
@@ -331,46 +389,15 @@ def api_profile_reset():
     if not email:
         return jsonify({"status": "error", "message": "Authentication required."}), 401
     cfg = cli._cfg(raise_on_error=False)
-
     memory = SupabaseMemory(token=token)
-    cfg = cli._cfg(raise_on_error=False)
-
-    blank_profile: dict[str, Any] = {
-        "email": email,
-        "name": "",
-        "title": "",
-        "current_title": "",
-        "education": "",
-        "experience_years": 0,
-        "years_experience": 0,
-        "skills": [],
-        "core_skills": [],
-        "target_keywords": [],
-        "target_titles": [],
-        "exclude_keywords": [],
-        "resume_text": "",
-        "resume_filename": "",
-        "email_notifications_enabled": False,
-        "notification_email": email,
-        "min_score_notification": None,
-        "onboarding_completed": False,
-        "preferred_locations": [],
-        "location_preference": "all_india",
-        "job_types": [],  # e.g. ["fulltime", "internship", "remote", "hybrid", "onsite"]
-        "experience_level": "",  # e.g. "fresher", "0-1", "1-3", "3-5", "5+"
-        "notice_period": "30_days",  # e.g. "immediate", "15_days", "30_days", "60_days", "90_days"
-        "current_ctc_lpa": 0,
-        "expected_ctc_lpa": 0,
-        "min_salary_lpa": 0,
-        "preferred_sectors": [],  # e.g. ["fintech", "saas", "edtech"]
-        "profile_json": {},
-    }
+    blank_profile = create_blank_profile(email)
 
     if memory.is_configured:
         if not memory.upsert_user_profile(email, blank_profile, token=token):
             return jsonify(
                 {"status": "error", "message": "Profile reset could not be saved to secure cloud storage. Please try again."}
             ), 503
+    invalidate_user_cache(email)
 
     try:
         profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
@@ -393,6 +420,7 @@ def api_profile_reset():
 @require_auth
 def api_resume_upload():
     """Upload and parse candidate resume (PDF/TXT) -> dynamic AI profile extraction and Supabase sync."""
+    enforce_rate_limit("15 per hour")
     email, token = get_current_user_context()
     if not email:
         return jsonify({"status": "error", "message": "Authentication required."}), 401
@@ -440,10 +468,10 @@ def api_resume_upload():
 
     memory = SupabaseMemory(token=token)
 
-    # Perform AI Candidate Profile Extraction with responsive safety timeout (9.5s on Vercel to stay within serverless limit, 28s standard)
+    # Perform AI Candidate Profile Extraction with responsive safety timeout (8.0s on Vercel to stay within 10s serverless limit, 14.0s standard)
     parsed_profile = None
     is_vercel = os.environ.get("VERCEL") == "1"
-    extraction_timeout = 9.5 if is_vercel else 28.0
+    extraction_timeout = 8.0 if is_vercel else 14.0
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
         provider, model = llm.resolve("draft")
@@ -461,8 +489,9 @@ def api_resume_upload():
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
-    existing: dict[str, Any] = (memory.get_user_profile(email, token=token) or {}) if memory.is_configured else {}
-    if not existing:
+    if memory.is_configured:
+        existing: dict[str, Any] = memory.get_user_profile(email, token=token) or {}
+    else:
         existing = get_user_profile(cfg, email, token) or {}
 
     if not parsed_profile or not isinstance(parsed_profile, dict):
@@ -824,105 +853,47 @@ def api_profile_preferences():
         if email and memory.is_configured:
             profile = memory.get_user_profile(email, token=token)
         if not profile:
-            profile = get_user_profile(cfg, email, token)
+            profile = create_blank_profile(email or "") if memory.is_configured else get_user_profile(cfg, email, token)
 
-        return jsonify(
-            {
-                "status": "success",
-                "preferences": {
-                    "preferred_locations": profile.get("preferred_locations") or [],
-                    "location_preference": profile.get("location_preference") or "all_india",
-                    "job_types": profile.get("job_types") or [],
-                    "experience_level": profile.get("experience_level") or "",
-                    "notice_period": profile.get("notice_period") or "30_days",
-                    "current_ctc_lpa": profile.get("current_ctc_lpa") or 0,
-                    "expected_ctc_lpa": profile.get("expected_ctc_lpa") or 0,
-                    "min_salary_lpa": profile.get("min_salary_lpa") or 0,
-                    "preferred_sectors": profile.get("preferred_sectors") or [],
-                    "target_keywords": profile.get("target_keywords") or [],
-                    "exclude_keywords": profile.get("exclude_keywords") or [],
-                },
-            }
-        )
+        return jsonify({"status": "success", "preferences": _extract_preferences_view(profile, include_keywords=True)})
 
     elif request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not email:
             return jsonify({"status": "error", "message": "Authentication required."}), 400
 
-        # Merge with existing profile
-        existing = memory.get_user_profile(email, token=token) if memory.is_configured else {}
-        merged = {**(existing or {}), **data, "onboarding_completed": True}
-
-        # Normalize preferred_locations
-        raw_pref = merged.get("preferred_locations")
-        if isinstance(raw_pref, dict):
-            merged["preferred_locations"] = [str(x).strip() for x in raw_pref.get("locations", []) if str(x).strip()]
-        elif isinstance(raw_pref, list):
-            merged["preferred_locations"] = [str(x).strip() for x in raw_pref if str(x).strip()]
-        elif isinstance(raw_pref, str) and raw_pref.strip():
-            merged["preferred_locations"] = [str(x).strip() for x in raw_pref.split(",") if str(x).strip()]
-        else:
-            merged["preferred_locations"] = []
-
-        # Normalize location_preference
-        raw_loc = merged.get("location_preference")
-        if isinstance(raw_loc, dict):
-            loc_t = str(raw_loc.get("type") or "all_india").strip()
-            loc_l = [str(x).strip() for x in raw_loc.get("locations", []) if str(x).strip()]
-            if not loc_l and merged["preferred_locations"]:
-                loc_l = merged["preferred_locations"]
-            merged["location_preference"] = {"type": loc_t, "locations": loc_l}
-        elif isinstance(raw_loc, str) and raw_loc.strip():
-            merged["location_preference"] = raw_loc.strip()
-        else:
-            merged["location_preference"] = "specific_cities" if merged["preferred_locations"] else "all_india"
-
-        for ctc_field in ("current_ctc_lpa", "expected_ctc_lpa", "min_salary_lpa"):
-            if ctc_field in merged and merged[ctc_field] is not None:
-                try:
-                    merged[ctc_field] = float(merged[ctc_field])
-                except (ValueError, TypeError):
-                    merged[ctc_field] = 0.0
-
-        if merged.get("expected_ctc_lpa") and not merged.get("min_salary_lpa"):
-            merged["min_salary_lpa"] = merged["expected_ctc_lpa"]
-
-        for list_field in ("job_types", "preferred_sectors", "target_keywords", "exclude_keywords"):
-            val = merged.get(list_field)
-            if isinstance(val, str):
-                merged[list_field] = [s.strip() for s in val.split(",") if s.strip()]
-            elif not isinstance(val, list):
-                merged[list_field] = []
-
+        # Merge with existing profile while preserving ownership and real onboarding state
         if memory.is_configured:
-            if not memory.upsert_user_profile(email, merged, token=token):
-                return jsonify(
-                    {"status": "error", "message": "Preferences could not be saved securely. Please try again."}
-                ), 503
+            existing = memory.get_user_profile(email, token=token) or create_blank_profile(email)
+        else:
+            existing = get_user_profile(cfg, email, token) or create_blank_profile(email)
+        merged = {**(existing or {}), **data, "email": email}
+        merged.pop("id", None)
+        merged["experience_level"] = str(merged.get("experience_level") or "").strip()[:30]
+        merged["notice_period"] = str(merged.get("notice_period") or "30_days").strip()[:30]
+        _normalize_preference_fields(
+            merged,
+            list_fields=("job_types", "preferred_sectors", "target_keywords", "exclude_keywords"),
+        )
+        merged["target_titles"] = list(merged.get("target_keywords") or [])
+        merged["onboarding_completed"] = is_profile_complete(merged)
+        _strip_sensitive_fields(merged)
 
-        try:
-            profile_path = get_user_profile_path(cfg.get("profile_file", "profile.json"), email)
-            profile_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(profile_path, "w", encoding="utf-8") as f:
-                json.dump(merged, f, indent=2)
-        except Exception as e:
-            logger.warning("Could not cache preferences locally: %s", e)
+        persist_err = _persist_profile_state(
+            memory,
+            cfg,
+            email,
+            token,
+            merged,
+            cloud_error_message="Preferences could not be saved securely. Please try again.",
+        )
+        if persist_err is not None:
+            return persist_err
 
         return jsonify(
             {
                 "status": "success",
                 "message": "Search preferences updated successfully.",
-                "preferences": {
-                    "preferred_locations": merged.get("preferred_locations") or [],
-                    "location_preference": merged.get("location_preference") or "all_india",
-                    "job_types": merged.get("job_types") or [],
-                    "experience_level": merged.get("experience_level") or "",
-                    "notice_period": merged.get("notice_period") or "30_days",
-                    "current_ctc_lpa": merged.get("current_ctc_lpa") or 0,
-                    "expected_ctc_lpa": merged.get("expected_ctc_lpa") or 0,
-                    "min_salary_lpa": merged.get("min_salary_lpa") or 0,
-                    "preferred_sectors": merged.get("preferred_sectors") or [],
-                },
+                "preferences": _extract_preferences_view(merged, include_keywords=False),
             }
         )

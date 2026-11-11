@@ -20,10 +20,12 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from .auth import get_supabase_config
+from .memory_codec import create_blank_profile
 
 __all__ = [
     "SupabaseMemory",
     "merge_db_profile_row",
+    "create_blank_profile",
     "invalidate_user_cache",
     "clear_memory_cache",
 ]
@@ -532,25 +534,8 @@ class SupabaseMemory:
         if existing:
             return existing
 
-        # Minimal stub — only the fields required for FK integrity and notification routing.
-        # Content fields are intentionally empty; onboarding_completed=False signals the UI.
-        stub_profile = {
-            "email": clean_email,
-            "name": "",
-            "title": "",
-            "education": "",
-            "experience_years": 0,
-            "skills": [],
-            "target_keywords": [],
-            "exclude_keywords": [],
-            "resume_text": "",
-            "resume_filename": "",
-            "profile_json": {},
-            "email_notifications_enabled": False,
-            "notification_email": clean_email,
-            "min_score_notification": None,
-            "onboarding_completed": False,
-        }
+        # Canonical blank stub — matches post-reset state strictly with email only.
+        stub_profile = create_blank_profile(clean_email)
 
         self.upsert_user_profile(clean_email, stub_profile, token=token)
         return stub_profile

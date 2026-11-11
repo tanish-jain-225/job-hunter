@@ -791,6 +791,143 @@ def test_resume_upload_delimiter_header_and_full_smart_fallback(client, mock_sup
         assert prof["notice_period"] == "immediate"
 
 
+def test_get_profile_returns_blank_stub_when_supabase_row_missing(client, mock_supabase_env):
+    """Privacy invariant: configured Supabase with no DB row returns an uncompleted blank email-only stub."""
+    with (
+        patch("jobhunt.auth.verify_token", return_value={"email": "user@test.com"}),
+        patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value=None),
+    ):
+        res = client.get("/api/profile", headers={"Authorization": "Bearer mock-token"})
+        assert res.status_code == 200
+        data = res.get_json()
+        prof = data["profile"]
+        assert prof["email"] == "user@test.com"
+        assert prof["name"] == ""
+        assert prof["skills"] == []
+        assert prof["target_keywords"] == []
+        assert prof["onboarding_completed"] is False
+
+
+def test_blank_profile_matches_reset_output_and_multi_keeps_empty_name(client, mock_supabase_env, capsys):
+    """Signup stub and reset output must share one identical blank shape; batch processing never infers name."""
+    from jobhunt import digest, multi
+    from jobhunt.memory import create_blank_profile
+
+    stub = create_blank_profile("user@test.com")
+    with (
+        patch("jobhunt.auth.verify_token", return_value={"email": "user@test.com"}),
+        patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=True),
+    ):
+        res = client.post("/api/profile/reset", headers={"Authorization": "Bearer mock-token"})
+        assert res.status_code == 200
+        reset_prof = res.get_json()["profile"]
+        assert reset_prof == stub
+
+    # Also verify multi.py does not infer a name from email when user profile has blank name
+    captured_profiles = []
+    mock_users = [
+        {
+            "email": "alex.mercer@example.com",
+            "name": "",
+            "skills": ["Python"],
+            "target_keywords": ["Backend"],
+            "profile_json": {},
+        }
+    ]
+    mock_resp = MagicMock(status_code=200, json=lambda: mock_users)
+    orig_build = digest.build
+
+    def spy_build(*args, **kwargs):
+        captured_profiles.append(dict(kwargs.get("profile") or {}))
+        return orig_build(*args, **kwargs)
+
+    with (
+        patch("requests.get", return_value=mock_resp),
+        patch("jobhunt.multi.prefilter", return_value=[]),
+        patch("jobhunt.digest.build", side_effect=spy_build),
+        patch("jobhunt.mailer.send", return_value=True),
+        patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", return_value=True),
+        patch("jobhunt.memory.SupabaseMemory.record_pipeline_run", return_value=True),
+        patch("jobhunt.memory.SupabaseMemory.prune_pipeline_runs", return_value=0),
+    ):
+        res_multi = multi.run_multi_user_pipeline(mock=True, scorer="keyword", force_send=True)
+
+    captured_stdout = capsys.readouterr().out
+    assert res_multi["status"] == "success"
+    assert "Processing Candidate: alex.mercer@example.com" in captured_stdout
+    assert "Alex" not in captured_stdout
+    assert len(captured_profiles) == 1
+    assert captured_profiles[0]["name"] == ""
+
+
+def test_profile_preferences_strips_credentials_and_clamps_bounds(client, mock_supabase_env):
+    """POST /api/profile/preferences strips credential keys, clamps bounds, and preserves email & onboarding state."""
+    captured = {}
+
+    def fake_upsert(email, payload, token=None):
+        captured["email"] = email
+        captured["payload"] = dict(payload)
+        return True
+
+    with (
+        patch("jobhunt.auth.verify_token", return_value={"email": "user@test.com"}),
+        patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value=None),
+        patch("jobhunt.memory.SupabaseMemory.upsert_user_profile", side_effect=fake_upsert),
+    ):
+        res = client.post(
+            "/api/profile/preferences",
+            json={
+                "email": "attacker@evil.com",
+                "api_key": "sk-secret",
+                "smtp_password": "pw",
+                "custom_token": "tok",
+                "client_secret": "sec",
+                "current_ctc_lpa": -10,
+                "expected_ctc_lpa": 50000,
+                "min_salary_lpa": float("nan"),
+                "job_types": [f"type-{i}" for i in range(40)],
+            },
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        prefs = res.get_json()["preferences"]
+        assert prefs["current_ctc_lpa"] == 0.0
+        assert prefs["expected_ctc_lpa"] == 1000.0
+        assert prefs["min_salary_lpa"] == 1000.0
+        assert len(prefs["job_types"]) == 30
+
+        saved = captured["payload"]
+        assert saved["email"] == "user@test.com"
+        assert saved["onboarding_completed"] is False
+        for forbidden in ("api_key", "smtp_password", "custom_token", "client_secret"):
+            assert forbidden not in saved
+
+
+def test_resume_upload_does_not_leak_local_profile_when_supabase_configured(client, mock_supabase_env):
+    """Privacy invariant: configured Supabase with no DB row must never fall back to local profile.json during upload."""
+    with (
+        patch("jobhunt.auth.verify_token", return_value={"email": "newuser@test.com"}),
+        patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value=None),
+        patch(
+            "jobhunt.web.routes.profile.get_user_profile",
+            return_value={"name": "Leaked Local User", "title": "Staff Eng", "skills": ["Rust"]},
+        ) as mock_local_fallback,
+        patch("jobhunt.llm.resolve", side_effect=RuntimeError("offline")),
+    ):
+        res = client.post(
+            "/api/resume/upload",
+            json={"resume_text": "Python Developer with 2 years experience.", "filename": "cv.txt"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        mock_local_fallback.assert_not_called()
+        prof = res.get_json()["profile"]
+        assert prof["email"] == "newuser@test.com"
+        assert prof["name"] == ""
+        assert "Leaked Local User" not in prof.values()
+        assert "Rust" not in prof.get("skills", [])
+
+
 
 
 

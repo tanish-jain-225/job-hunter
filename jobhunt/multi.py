@@ -141,15 +141,17 @@ def run_multi_user_pipeline(
     with smtp_cm as smtp_session:
         for idx, user in enumerate(users_to_process, 1):
             user_email = (user.get("email") or user.get("notification_email") or f"user_{idx}").lower().strip()
-            user_name = user.get("name") or user_email.split("@")[0].capitalize()
+            raw_name = str(user.get("name") or "").strip()
+            user_name = "" if raw_name.lower() == "candidate" else raw_name
+            display_label = user_name or user_email
             print("\n--------------------------------------------------")
-            print(f"[{idx}/{len(users_to_process)}] Processing Candidate: {user_name} ({user_email})")
+            print(f"[{idx}/{len(users_to_process)}] Processing Candidate: {display_label} ({user_email})")
             print("--------------------------------------------------")
 
             try:
-                # Prepare user profile dictionary
+                # Prepare user profile dictionary (privacy-first: never infer name from email)
                 profile_dict = dict(user) if user else {}
-                profile_dict.setdefault("name", user_name)
+                profile_dict["name"] = user_name
                 if user:
                     profile_dict["current_title"] = user.get("title") or ""
                     profile_dict["core_skills"] = user.get("skills") or []

@@ -214,3 +214,101 @@ class TestRateLimiting:
                 sys.modules.pop("flask_limiter", None)
             else:
                 sys.modules["flask_limiter"] = original
+
+    def test_enforce_rate_limit_invokes_limiter_when_not_testing(self):
+        """enforce_rate_limit delegates to app limiter when TESTING is False."""
+        from unittest.mock import MagicMock
+
+        from jobhunt.web.state import enforce_rate_limit
+
+        app = create_app()
+        fake_decorator = MagicMock(return_value=lambda fn: fn)
+        fake_limiter = MagicMock()
+        fake_limiter.limit.return_value = fake_decorator
+        app.extensions["limiter"] = fake_limiter
+        app.testing = False
+        with app.test_request_context("/api/run", method="POST"):
+            enforce_rate_limit("5 per minute")
+        fake_limiter.limit.assert_called_once_with("5 per minute")
+        fake_decorator.assert_called_once()
+
+
+class TestSSRFSafeUrlAndSlug:
+    """Verify hardened SSRF protection, ATS URL host matching, slug checks, and security/ARIA headers."""
+
+    @pytest.mark.parametrize(
+        "unsafe_url",
+        [
+            "http://[::ffff:127.0.0.1]/admin",
+            "https://user:pass@boards.greenhouse.io/stripe",
+            "http://metadata.google.internal/computeMetadata/v1/",
+            "https://10.0.0.1.arpa/foo",
+        ],
+    )
+    def test_is_safe_url_blocks_advanced_ssrf_vectors(self, unsafe_url: str):
+        from jobhunt.parsers import is_safe_url
+
+        assert is_safe_url(unsafe_url) is False
+
+    def test_detect_ats_from_url_rejects_lookalike_hosts_and_credentials(self):
+        from jobhunt.parsers import detect_ats_from_url
+
+        assert detect_ats_from_url("https://evil-greenhouse.io/acme") is None
+        assert detect_ats_from_url("https://greenhouse.io.attacker.example/acme") is None
+        assert detect_ats_from_url("https://user:pass@boards.greenhouse.io/acme") is None
+        assert detect_ats_from_url("https://boards.greenhouse.io/..") is None
+        assert detect_ats_from_url("https://boards.greenhouse.io/stripe") == {
+            "ats": "greenhouse",
+            "slug": "stripe",
+            "name": "Stripe",
+        }
+
+    def test_slug_validation_blocks_traversal_across_fetch_verify_and_api(self):
+        from unittest.mock import MagicMock, patch
+
+        from jobhunt.fetch import fetch_board
+        from jobhunt.parsers import is_valid_slug
+        from jobhunt.verify import check_single_board
+
+        assert is_valid_slug("stripe") is True
+        assert is_valid_slug("open_ai-1.0") is True
+        for bad_slug in ("", "   ", "../etc", "foo/bar", "a" * 101):
+            assert is_valid_slug(bad_slug) is False
+
+        assert fetch_board("greenhouse", "../etc") == []
+
+        mock_sess = MagicMock()
+        _, ok, status = check_single_board({"ats": "greenhouse", "slug": "../etc"}, session=mock_sess)
+        assert ok is False
+        assert status == "Invalid company slug"
+        mock_sess.get.assert_not_called()
+
+        app = create_app()
+        client = app.test_client()
+        with patch("jobhunt.auth.verify_token", return_value={"email": "user@test.com"}):
+            res = client.post(
+                "/api/companies/add",
+                json={"ats": "greenhouse", "slug": "../etc", "name": "Evil"},
+                headers={"Authorization": "Bearer tok"},
+            )
+            assert res.status_code == 400
+            assert "Invalid company slug" in res.get_json()["message"]
+
+    def test_coop_hsts_headers_and_modal_aria_semantics(self):
+        app = create_app()
+        client = app.test_client()
+
+        resp_http = client.get("/")
+        assert resp_http.headers.get("Cross-Origin-Opener-Policy") == "same-origin-allow-popups"
+        assert "Strict-Transport-Security" not in resp_http.headers
+
+        html = resp_http.get_data(as_text=True)
+        for modal_id in ("profile-modal", "add-company-modal", "add-job-modal", "kit-modal"):
+            assert f'id="{modal_id}"' in html
+        assert html.count('role="dialog"') >= 4
+        assert html.count('aria-modal="true"') >= 4
+        assert 'id="toast-container"' in html and 'aria-live="polite"' in html
+        assert 'id="resume-dropzone"' in html and 'tabindex="0"' in html
+
+        resp_https = client.get("/", base_url="https://example.com")
+        assert resp_https.headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"

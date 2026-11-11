@@ -12,8 +12,9 @@ from flask import Blueprint, jsonify, request, send_file
 
 from ... import cli, llm
 from ...auth import require_auth
+from ...parsers.utils import is_valid_slug
 from ...store import Store, get_user_profile_path, get_writable_path  # noqa: F401
-from ..state import ROOT, get_current_user_context, get_store_version, get_user_profile
+from ..state import ROOT, enforce_rate_limit, get_current_user_context, get_store_version, get_user_profile
 
 logger = logging.getLogger(__name__)
 
@@ -157,10 +158,13 @@ def api_add_custom_company():
     if not ats or not slug:
         return jsonify({"status": "error", "message": "ATS type and company slug are required."}), 400
 
+    if not is_valid_slug(slug):
+        return jsonify({"status": "error", "message": "Invalid company slug format."}), 400
+
     if ats not in REGISTERED_ATS:
         return jsonify({"status": "error", "message": f"Unsupported ATS '{ats}'. Supported: {', '.join(REGISTERED_ATS)}"}), 400
 
-    company_entry = {"ats": ats, "slug": slug, "name": name or slug.replace("-", " ").title()}
+    company_entry = {"ats": ats, "slug": slug, "name": (name or slug.replace("-", " ").title())[:120]}
 
     # Validate live HTTP accessibility before saving
     _, is_valid, detail = check_single_board(company_entry, timeout=5)
@@ -606,7 +610,8 @@ def api_jobs_notes():
     notes = data.get("notes", "")
     if not isinstance(job_id, str) or not isinstance(notes, str):
         return jsonify({"status": "error", "message": "Job ID and notes must be strings."}), 400
-    job_id = job_id.strip()
+    job_id = job_id.strip()[:250]
+    notes = notes[:5000]
 
     if not job_id:
         return jsonify({"status": "error", "message": "Job ID is required"}), 400
@@ -644,8 +649,8 @@ def api_add():
     company = data.get("company", "")
     if not isinstance(title, str) or not isinstance(company, str):
         return jsonify({"status": "error", "message": "Title and Company must be strings."}), 400
-    title = title.strip()
-    company = company.strip()
+    title = title.strip()[:250]
+    company = company.strip()[:150]
 
     if not title or not company:
         return jsonify({"status": "error", "message": "Title and Company are required."}), 400
@@ -654,7 +659,11 @@ def api_add():
     values = {key: data.get(key, default) for key, default in text_fields.items()}
     if any(not isinstance(value, str) for value in values.values()):
         return jsonify({"status": "error", "message": "Location, URL, ATS, description, and reason must be strings."}), 400
-    location, url, ats, description, reason = (values[key].strip() for key in text_fields)
+    location = values["location"].strip()[:150]
+    url = values["url"].strip()[:2048]
+    ats = values["ats"].strip()[:50]
+    description = values["description"].strip()[:50000]
+    reason = values["reason"].strip()[:2000]
     raw_applied = data.get("applied", False)
     if isinstance(raw_applied, bool):
         applied = raw_applied
@@ -761,11 +770,12 @@ def api_add():
 @require_auth
 def api_job_followup():
     """Generate tailored follow-up outreach templates for an applied opportunity."""
+    enforce_rate_limit("20 per hour")
     data = request.get_json(silent=True) or {}
-    title = str(data.get("title") or "").strip()
-    company = str(data.get("company") or "").strip()
-    applied_on = str(data.get("applied_on") or "").strip()
-    stage = str(data.get("stage") or "applied").strip()
+    title = str(data.get("title") or "").strip()[:250]
+    company = str(data.get("company") or "").strip()[:150]
+    applied_on = str(data.get("applied_on") or "").strip()[:64]
+    stage = str(data.get("stage") or "applied").strip()[:32]
 
     email, token = get_current_user_context()
     from ...memory import SupabaseMemory

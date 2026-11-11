@@ -16,6 +16,7 @@ import requests
 import yaml
 
 from .fetch import REGISTERED_ATS
+from .parsers.utils import is_safe_url, is_valid_slug
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,13 @@ def check_single_board(
 
     if not slug:
         return company, False, "Missing company slug"
+    if not is_valid_slug(slug):
+        return company, False, "Invalid company slug"
 
     url_template, _ = REGISTERED_ATS[ats]
     url = url_template.format(slug=slug)
+    if not is_safe_url(url):
+        return company, False, "Blocked unsafe URL"
     sess = session or requests
 
     for attempt in range(2):

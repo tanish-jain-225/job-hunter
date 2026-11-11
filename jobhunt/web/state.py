@@ -11,7 +11,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from flask import g
+from flask import current_app, g
+from werkzeug.exceptions import HTTPException
 
 from ..auth import extract_bearer_token
 from ..store import Store
@@ -200,6 +201,18 @@ def clear_user_pipeline_logs(email: str | None) -> None:
     key = (email or "anonymous").lower().strip()
     with _PIPELINE_LOCK:
         _USER_LOG_BUFFERS[key] = []
+
+
+def enforce_rate_limit(limit_spec: str) -> None:
+    """Apply per-endpoint flask-limiter throttling outside pytest TESTING mode."""
+    limiter = current_app.extensions.get("limiter")
+    if limiter and not current_app.testing:
+        try:
+            limiter.limit(limit_spec)(lambda: None)()
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.debug("Rate limit check warning: %s", e)
 
 
 def get_store_version(st: Store) -> str:

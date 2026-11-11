@@ -132,6 +132,44 @@ const appState = {
   lastSyncTimestamp: Date.now()
 };
 
+// Accessible modal focus management (WCAG 2.2 AA focus trap & restoration)
+let _lastFocusedBeforeModal = null;
+function _getModalFocusableElements(modalEl) {
+  if (!modalEl) return [];
+  const selectors = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  return Array.from(modalEl.querySelectorAll(selectors)).filter(
+    el => el.offsetParent !== null && !el.closest('[style*="display: none"]') && !el.closest('[style*="display:none"]')
+  );
+}
+function activateModalFocus(modalEl, preferredEl = null) {
+  if (!modalEl) return;
+  if (!_lastFocusedBeforeModal && document.activeElement instanceof HTMLElement) {
+    _lastFocusedBeforeModal = document.activeElement;
+  }
+  requestAnimationFrame(() => {
+    const target = (preferredEl && preferredEl.offsetParent !== null)
+      ? preferredEl
+      : (_getModalFocusableElements(modalEl)[0] || modalEl);
+    if (target && typeof target.focus === 'function') {
+      target.focus({ preventScroll: true });
+    }
+  });
+}
+function _getActiveModalOverlay() {
+  return document.querySelector('.modal-overlay.active');
+}
+
+function deactivateModalFocus() {
+  const activeOverlay = _getActiveModalOverlay();
+  if (activeOverlay) return;
+  if (_lastFocusedBeforeModal && document.contains(_lastFocusedBeforeModal)) {
+    try {
+      _lastFocusedBeforeModal.focus({ preventScroll: true });
+    } catch (e) {}
+  }
+  _lastFocusedBeforeModal = null;
+}
+
 /**
  * Calculates follow-up elapsed time and badges for active opportunities.
  * @param {Object} j - Job object
@@ -1726,7 +1764,10 @@ function openKitModal(jobId) {
 
   if (bodyEl) bodyEl.innerHTML = html;
   const modalEl = document.getElementById('kit-modal');
-  if (modalEl) modalEl.classList.add('active');
+  if (modalEl) {
+    modalEl.classList.add('active');
+    activateModalFocus(modalEl, modalEl.querySelector('.modal-close'));
+  }
 }
 
 function closeKitModal() {
@@ -1739,6 +1780,7 @@ function closeKitModal() {
   appState.activeKitId = null;
   Storage.remove(sessionStorage, STORAGE_KEYS.ACTIVE_KIT);
   syncUrlState();
+  deactivateModalFocus();
 }
 
 async function saveJobNotes(jobId) {
@@ -1970,16 +2012,11 @@ async function openProfileModal(tab = 'resume') {
   const modalEl = document.getElementById('profile-modal');
   if (!modalEl) return;
   modalEl.classList.add('active');
+  activateModalFocus(modalEl, modalEl.querySelector('.modal-close'));
   
   // Always start with Part 1 (Step 1: Resume & Text Context)
   profileWizardGoTo(1);
 
-  // Auth identity — only these two are auto-filled as defaults
-  const authName = (
-    currentAuthSession?.user?.user_metadata?.full_name ||
-    currentAuthSession?.user?.user_metadata?.name ||
-    ''
-  ).trim();
   const authEmail = currentAuthSession?.user?.email || '';
 
   try {
@@ -2008,7 +2045,11 @@ async function openProfileModal(tab = 'resume') {
       }
       if (resumeTextInput) resumeTextInput.value = p.resume_text || '';
       if (titleInput)    titleInput.value   = (p.title || p.current_title || '').trim();
-      if (yearsInput)    yearsInput.value   = (p.experience_years != null || p.years_experience != null) ? String(p.experience_years ?? p.years_experience) : '';
+      if (yearsInput) {
+        const rawYoe = p.experience_years ?? p.years_experience;
+        const numYoe = rawYoe != null && rawYoe !== '' ? Number(rawYoe) : NaN;
+        yearsInput.value = (!isNaN(numYoe) && (numYoe > 0 || p.onboarding_completed === true)) ? String(rawYoe) : '';
+      }
       if (eduInput)      eduInput.value     = (p.education || '').trim();
       if (skillsInput)   skillsInput.value  = Array.isArray(p.skills) ? p.skills.join(', ') : (Array.isArray(p.core_skills) ? p.core_skills.join(', ') : (typeof p.skills === 'string' ? p.skills : ''));
 
@@ -2022,7 +2063,7 @@ async function openProfileModal(tab = 'resume') {
       }
 
       if (notifEmail)  notifEmail.value    = p.notification_email || authEmail;
-      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '7.5';
+      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '' && (p.onboarding_completed === true || p.email_notifications_enabled === true)) ? String(p.min_score_notification) : '';
 
       // ── Step 1 Next button: always accessible
       const nextBtn = document.getElementById('profile-next-1');
@@ -2135,7 +2176,9 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     let yoeVal = '';
     if (p.experience_years != null || p.years_experience != null) {
       const numYoe = parseFloat(p.experience_years ?? p.years_experience);
-      yoeVal = !isNaN(numYoe) ? String(numYoe) : '';
+      if (!isNaN(numYoe) && (isAutoFill || numYoe > 0 || p.onboarding_completed === true)) {
+        yoeVal = String(numYoe);
+      }
     } else if (p.experience_level) {
       const expMap = { 'fresher': 0, '0-1': 1, '1-3': 2, '3-5': 4, '5+': 6 };
       if (p.experience_level in expMap) {
@@ -2165,7 +2208,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   if (mainTitle && !targets.some(t => t.toLowerCase() === mainTitle.toLowerCase())) {
     targets.unshift(mainTitle);
   }
-  if (targets.length === 0) {
+  if (targets.length === 0 && isAutoFill) {
     targets = ['Software Engineer'];
   }
   const seenTargets = new Set();
@@ -2185,7 +2228,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   const titleInput = document.getElementById('prof-title');
   const onbTitleInput = document.getElementById('onboard-prof-title');
-  const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : 'Software Engineer');
+  const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : (isAutoFill ? 'Software Engineer' : ''));
   if (titleInput && (isAutoFill || !titleInput.value.trim() || mainTitle)) titleInput.value = chosenTitle;
   if (onbTitleInput && (isAutoFill || !onbTitleInput.value.trim() || mainTitle)) onbTitleInput.value = chosenTitle;
 
@@ -2231,13 +2274,13 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     expKey = '1-3';
   } else if (seniority.includes('intern') || seniority.includes('fresher') || seniority.includes('new-grad')) {
     expKey = 'fresher';
-  } else if (years === 0) {
+  } else if (years === 0 && (isAutoFill || p.onboarding_completed === true)) {
     expKey = '0-1';
   }
 
   ['prof-exp', 'onboard-exp'].forEach(nameAttr => {
     document.querySelectorAll(`input[name="${nameAttr}"]`).forEach(radio => {
-      const isMatch = expKey && radio.value === expKey;
+      const isMatch = Boolean(expKey && radio.value === expKey);
       radio.checked = isMatch;
       const chip = radio.closest('.chip-radio');
       if (chip) chip.classList.toggle('active', isMatch);
@@ -2252,7 +2295,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   } else if (typeof rawJobTypes === 'string' && rawJobTypes.trim()) {
     jobTypes = rawJobTypes.split(',').map(s => s.trim()).filter(Boolean);
   }
-  if (jobTypes.length === 0) {
+  if (jobTypes.length === 0 && isAutoFill) {
     if (expKey === 'fresher' || seniority.includes('intern')) {
       jobTypes = ['fulltime', 'internship', 'remote'];
     } else {
@@ -2294,13 +2337,15 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     locPref = 'specific_cities';
   } else if (normLoc.includes('global') || normLoc.includes('world') || normLoc.includes('internat')) {
     locPref = 'global';
-  } else {
+  } else if (isAutoFill || p.onboarding_completed === true || (normLoc === 'all_india' && (p.name || p.title || (p.skills && p.skills.length)))) {
     locPref = 'all_india';
+  } else {
+    locPref = '';
   }
 
   ['prof-location-pref', 'onboard-location-pref'].forEach(radioName => {
     document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
-      const isMatch = locPref && r.value === locPref;
+      const isMatch = Boolean(locPref && r.value === locPref);
       r.checked = isMatch;
       const opt = r.closest('.radio-option');
       if (opt) opt.classList.toggle('active', isMatch);
@@ -2488,7 +2533,7 @@ function closeProfileModal() {
   const alertEl = document.getElementById('resume-status-alert');
   if (alertEl) alertEl.style.display = 'none';
   const dropText = document.getElementById('dropzone-text');
-  if (dropText) dropText.innerText = 'Click or drag & drop a new resume PDF / TXT file';
+  if (dropText) dropText.innerText = 'Click or drag & drop a resume PDF / TXT file for AI Auto-Fill';
   const fileInput = document.getElementById('resume-file-input');
   if (fileInput) fileInput.value = '';
 
@@ -2496,6 +2541,7 @@ function closeProfileModal() {
   if (activeProfileData) {
     populateSection2FromProfile(activeProfileData, false);
   }
+  deactivateModalFocus();
 }
 
 async function flushUserProfileData() {
@@ -2611,7 +2657,7 @@ async function flushUserProfileData() {
 
   // 7. Reset dropzone text, file inputs, and previews
   const dropText = document.getElementById('dropzone-text');
-  if (dropText) dropText.innerText = 'Click or drag & drop a new resume PDF / TXT file';
+  if (dropText) dropText.innerText = 'Click or drag & drop a resume PDF / TXT file for AI Auto-Fill';
   const fileInput = document.getElementById('resume-file-input');
   if (fileInput) fileInput.value = '';
   selectedResumeFile = null;
@@ -2648,6 +2694,9 @@ async function flushUserProfileData() {
 
   parsedResumeData = null;
   lastParsedResumeText = '';
+  if (digestShadowRoot) {
+    digestShadowRoot.innerHTML = '';
+  }
 
   try {
     const res = await authFetch('/api/profile/reset', { method: 'POST' });
@@ -2689,6 +2738,11 @@ function profileWizardGoTo(step) {
     if (nodeEl) {
       nodeEl.classList.toggle('active', s === step);
       nodeEl.classList.toggle('completed', s < step);
+      if (s === step) {
+        nodeEl.setAttribute('aria-current', 'step');
+      } else {
+        nodeEl.removeAttribute('aria-current');
+      }
     }
     if (circleEl) {
       circleEl.innerText = String(s);
@@ -3590,6 +3644,22 @@ window.addEventListener('pagehide', () => {
 // Keyboard Shortcuts: '/' to search, 'Esc' to close modal
 document.addEventListener('keydown', (e) => {
   const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  const activeOverlay = _getActiveModalOverlay();
+  if (e.key === 'Tab' && activeOverlay) {
+    const focusables = _getModalFocusableElements(activeOverlay);
+    if (focusables.length > 0) {
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !activeOverlay.contains(document.activeElement))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !activeOverlay.contains(document.activeElement))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    return;
+  }
   if (e.key === '/' && !isTyping) {
     e.preventDefault();
     if (!checkAuthOrRedirect('search tracked jobs')) return;
@@ -4183,23 +4253,41 @@ async function handleSignOut() {
   stopHeartbeat();
 
   // Reset in-memory application state
-  appState.jobs = [];
+  appState.jobsList = [];
   appState.jobsMap = {};
+  appState.stats = { tracked: 0, emailed: 0, applied: 0, shortlisted: 0, unapplied: 0 };
+  appState.activeKitId = null;
   activeProfileData = null;
+  parsedResumeData = null;
+  lastParsedResumeText = '';
+  selectedResumeFile = null;
 
-  // Clear rendered dashboard DOM containers
+  // Clear rendered dashboard DOM containers (including Shadow DOM digest)
   const jobContainer = document.getElementById('job-list-container');
   if (jobContainer) jobContainer.innerHTML = '';
+  const historyContainer = document.getElementById('activity-history-list');
+  if (historyContainer) historyContainer.innerHTML = '';
+  const customCompContainer = document.getElementById('custom-companies-list');
+  if (customCompContainer) customCompContainer.innerHTML = '';
   const digestFrame = document.getElementById('digest-frame');
-  if (digestFrame) digestFrame.srcdoc = '';
+  if (digestShadowRoot) {
+    digestShadowRoot.innerHTML = '';
+  } else if (digestFrame?.shadowRoot) {
+    digestFrame.shadowRoot.innerHTML = '';
+  }
 
   // Reset header & studio metrics
   renderMetrics({ tracked: 0, emailed: 0, applied: 0 });
   renderCandidateSummary(null);
 
-  // Purge sensitive data cached in localStorage
+  // Purge sensitive data cached in localStorage and sessionStorage
   Storage.remove(localStorage, STORAGE_KEYS.CACHED_STATS);
   Storage.remove(localStorage, STORAGE_KEYS.CACHED_PROFILE);
+  Storage.remove(localStorage, STORAGE_KEYS.CACHED_JOBS);
+  Storage.remove(localStorage, STORAGE_KEYS.SEARCH_QUERY);
+  Storage.remove(sessionStorage, STORAGE_KEYS.ACTIVE_KIT);
+  Storage.remove(localStorage, STORAGE_KEYS.DRAFT_CUSTOM_JOB);
+  Storage.remove(localStorage, STORAGE_KEYS.DRAFT_APPLIED_ID);
 
   // Transition to landing view and notify
   setAppView('landing');
@@ -4513,9 +4601,7 @@ function openAddJobModal() {
   const modal = document.getElementById('add-job-modal');
   if (modal) {
     modal.classList.add('active');
-    setTimeout(() => {
-      document.getElementById('add-job-company')?.focus();
-    }, 100);
+    activateModalFocus(modal, document.getElementById('add-job-company'));
   }
 }
 
@@ -4529,6 +4615,7 @@ function closeAddJobModal() {
     const aiCheckbox = document.getElementById('add-job-ai-eval');
     if (aiCheckbox) aiCheckbox.checked = true;
   }
+  deactivateModalFocus();
 }
 
 async function handleAddJobSubmit(e) {
@@ -4645,8 +4732,8 @@ function openAddCompanyModal() {
     const urlInput = document.getElementById('add-company-url');
     if (urlInput) {
       urlInput.value = '';
-      urlInput.focus();
     }
+    activateModalFocus(modal, urlInput);
     const detectedCard = document.getElementById('add-company-detected');
     if (detectedCard) detectedCard.style.display = 'none';
     const alertBox = document.getElementById('add-company-status-alert');
@@ -4658,6 +4745,7 @@ function openAddCompanyModal() {
 function closeAddCompanyModal() {
   const modal = document.getElementById('add-company-modal');
   if (modal) modal.classList.remove('active');
+  deactivateModalFocus();
 }
 
 function handleCompanyUrlInput(rawUrl) {

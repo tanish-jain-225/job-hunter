@@ -2,8 +2,8 @@
 
 <p align="center">
   <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.8"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-563%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-583%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
@@ -41,8 +41,8 @@
 ### 🧪 Diagnostic & Edge-Case Coverage Expansion
 * **Preflight Diagnostics (100% Coverage)**: Added comprehensive unit tests in `tests/test_preflight.py` covering all healthy environments, missing or corrupt YAML, missing dependencies, Python version checks, and permission diagnostics.
 * **Mailer Resilience (94% Coverage)**: Expanded `tests/test_digest_mailer.py` with SMTP session reconnection tests, connection reuse, daily rate-limit circuit breakers, and plain-text fallback generation.
-* **Custom Target Companies & API Edge Cases**: Created `tests/test_custom_companies_and_edge_cases.py` testing URL detection, board accessibility validation, and store update error handling, elevating `jobs.py` to 91% and `profile.py` to 95% coverage.
-* **563 Passing Tests**: Codebase test count expanded to **563 automated tests** (556 unit/integration + 7 browser E2E) with **93% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
+* **Custom Target Companies & API Edge Cases**: Created `tests/test_custom_companies_and_edge_cases.py` testing URL detection, board accessibility validation, and store update error handling across `jobs.py` (92% coverage) and `profile.py` (86% coverage).
+* **583 Passing Tests**: Codebase test count expanded to **583 automated tests** (576 unit/integration + 7 browser E2E) with **92% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
 
 ---
 
