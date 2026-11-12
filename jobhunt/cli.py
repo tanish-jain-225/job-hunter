@@ -24,7 +24,7 @@ from .mock import fetch_all_mock
 from .prefilter import prefilter
 from .memory import SupabaseMemory
 from .providers import LLMError, resolve
-from .store import Store
+from .store import Store, extract_seen_archive
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -374,7 +374,11 @@ def run_pipeline(
 
         # Store
         seen_file = cfg.get("seen_file", "state/seen.json")
-        st = store or Store(seen_file, user_email=user_email, token=token)
+        prof_archive = extract_seen_archive(
+            profile,
+            memory_configured=bool(user_email and SupabaseMemory(token=token).is_configured),
+        )
+        st = store or Store(seen_file, user_email=user_email, token=token, seen_archive=prof_archive)
         jobs = st.unseen(candidates)
         max_jobs_to_screen = int(os.environ.get("MAX_JOBS_TO_SCREEN") or cfg.get("max_jobs_to_screen", 30))
         if len(jobs) > max_jobs_to_screen:

@@ -80,7 +80,7 @@ flowchart TD
 ```text
 job-hunter/
 ├── CHANGELOG.md                 # Universal release history and notable changes
-├── RELEASE_NOTES.md             # Detailed feature release notes (v1.1.8)
+├── RELEASE_NOTES.md             # Detailed feature release notes (v1.2.0)
 ├── SECURITY.md                  # Vulnerability reporting, security scope, and hardening architecture
 ├── README.md                    # Project homepage, live badges, and architectural overview
 ├── assets/                          # Canonical brand identity assets & diagrams
@@ -108,7 +108,7 @@ job-hunter/
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.1.8")
+│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.2.0")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, check, applied, stats, profile, web, verify, clean)
@@ -117,7 +117,7 @@ job-hunter/
 │   ├── fetch.py                 # Job dataclass and unified ATS scraping orchestrator
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
 │   ├── llm_utils.py             # Shared LLM serialization and prompt formatting helpers
-│   ├── mailer.py                # SMTP client with SMTPSession connection reuse, auto-reconnect, and MAX_DAILY_SEND = 450 circuit breaker
+│   ├── mailer.py                # SMTP client with thread-safe SMTPSession reuse, env-backed MAX_DAILY_SEND=50000, and upstream quota detection
 │   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security & automated 30-day log pruning (prune_pipeline_runs)
 │   ├── memory_codec.py          # Candidate profile schema encoding & validation
 │   ├── mock.py                  # Offline mock ATS fixtures for zero-network testing
@@ -156,7 +156,7 @@ job-hunter/
 │   ├── css/
 │   │   └── style.css            # 12-section pure Flexbox executive light mode design system
 │   └── js/
-│       └── app.js               # SPA client controller, 15s adaptive sync, proactive token refresh & 401 retry, job board pagination
+│       └── app.js               # SPA client controller, 60s idle-aware sync, proactive token refresh & 401 retry, job board pagination
 ├── supabase/                    # Database Architecture
 │   ├── schema.sql               # Atomic PostgreSQL schema: tables, indexes, cascading FKs, and RLS policies
 │   └── teardown.sql             # Atomic, cascade-safe database reset and migration teardown script
@@ -171,7 +171,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-step settings modal: (1) Resume & automatic AI extraction, (2) Criteria review, (3) Alerts & Save
-├── tests/                       # Automated Test Suite (591 passing tests, 92% coverage)
+├── tests/                       # Automated Test Suite (604 passing tests, 92% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

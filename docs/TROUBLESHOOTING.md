@@ -76,9 +76,9 @@ This guide covers solutions to common errors, configurations, and questions enco
   * **Pay-As-You-Go ($0.15/1M tokens):** Attaching a billing method in Google Cloud unlocks 1,000 RPM on `gemini-3.5-flash` with virtually unlimited daily volume.
   * In `config.yaml`, set `llm_max_workers: 1` for free-tier keys and keep `screen_batch_size: 10` for harmonic single-batch throughput.
 
-### Notice: Gmail SMTP Connection Reconnects & Circuit Breaker (`MAX_DAILY_SEND = 450`)
-* **How it works:** To prevent Google bot blocks (`421 4.7.0`) caused by rapid sequential TLS handshakes, Job Hunter uses a persistent `SMTPSession` context manager that maintains a single authenticated connection with automatic reconnect on socket drop.
-* **Circuit Breaker:** Job Hunter enforces `MAX_DAILY_SEND = 450` to guarantee your pipeline never breaches Gmail's 500-email/day rolling quota, keeping a 50-email safety buffer while reliably delivering daily matched roles or clean zero-match status briefings.
+### Notice: Gmail SMTP Connection Reconnects & Quota Protection (`MAX_DAILY_SEND = 50000` Default)
+* **How it works:** To prevent Google bot blocks (`421 4.7.0`) caused by rapid sequential TLS handshakes, Job Hunter uses a persistent, thread-safe `SMTPSession` context manager that maintains a single authenticated connection with automatic reconnect on socket drop.
+* **Codeless Scaling & Quota Circuit Breaker:** `MAX_DAILY_SEND` defaults to `50000` (env-overridable) so upgrading from free Gmail (`500/day`) to Google Workspace (`2,000/day`) or a bulk relay (Amazon SES / Resend / Brevo) requires **zero code or config changes**, while upstream SMTP daily quota errors (`550 5.4.5` / `421 4.7.0`) cleanly pause remaining emails without halting dashboard digest updates.
 
 ### Notice: Gemini HTTP 503 (High Demand), Timeouts, or Resume Upload Latency
 * **Why it happens:** Google AI Studio models periodically experience sudden traffic spikes, returning `HTTP 503 Service Unavailable`, or take >25s to generate long JSON application kits.

@@ -11,6 +11,9 @@ _KEY_COOLDOWN_MAP: dict[str, float] = {}
 _DISABLED_KEYS: set[str] = set()
 _LAST_CALL_MAP: dict[str, float] = {}
 _KEY_LAST_CALL_MAP: dict[str, float] = {}
+_KEY_ADAPTIVE_INTERVALS: dict[str, float] = {}
+_KEY_SUCCESS_STREAK: dict[str, int] = {}
+_KEY_ADAPTIVE_FLOOR: dict[str, float] = {}
 _MODEL_COOLDOWN_MAP: dict[str, float] = {}
 _MODEL_ALIAS_MAP: dict[str, str] = {}
 _GEMINI_KEY_COUNTER: int = 0
@@ -23,6 +26,14 @@ MIN_CALL_INTERVALS: dict[str, float] = {
     "anthropic": 1.2,
     "openai-compatible": 0.5,
     "ollama": 0.05,
+}
+
+ADAPTIVE_MIN_INTERVALS: dict[str, float] = {
+    "gemini": 0.05,
+    "groq": 0.05,
+    "anthropic": 0.05,
+    "openai-compatible": 0.05,
+    "ollama": 0.02,
 }
 
 
@@ -77,6 +88,9 @@ def reset_provider_state() -> None:
         _DISABLED_KEYS.clear()
         _LAST_CALL_MAP.clear()
         _KEY_LAST_CALL_MAP.clear()
+        _KEY_ADAPTIVE_INTERVALS.clear()
+        _KEY_SUCCESS_STREAK.clear()
+        _KEY_ADAPTIVE_FLOOR.clear()
         _MODEL_COOLDOWN_MAP.clear()
         _MODEL_ALIAS_MAP.clear()
     with _GEMINI_COUNTER_LOCK:
@@ -128,6 +142,78 @@ def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
 def _enforce_key_throttle(key: str, min_interval: float = 5.0) -> None:
     """Ensure an individual API key is never invoked faster than min_interval (12 RPM safe pacing)."""
     _reserve_throttle_slot(_KEY_LAST_CALL_MAP, key, min_interval)
+
+
+def _adaptive_slot(key: str, provider_name: str = "gemini") -> str:
+    """Build per-provider, per-key AIMD tracking key."""
+    prov = (provider_name or "gemini").strip().lower()
+    return f"{prov}::{key or 'default'}"
+
+
+def get_adaptive_key_interval(
+    key: str,
+    provider_name: str = "gemini",
+    default_interval: float | None = None,
+) -> float:
+    """Return the current AIMD inter-call interval (seconds) for an API key."""
+    prov = (provider_name or "gemini").strip().lower()
+    base = float(default_interval) if default_interval is not None else MIN_CALL_INTERVALS.get(prov, 1.0)
+    slot = _adaptive_slot(key, prov)
+    with _RATE_LOCK:
+        return _KEY_ADAPTIVE_INTERVALS.get(slot, base)
+
+
+def _record_key_success(
+    key: str,
+    provider_name: str = "gemini",
+    default_interval: float | None = None,
+) -> float:
+    """Gradually tighten pacing for keys proving higher RPM headroom (AIMD speedup)."""
+    prov = (provider_name or "gemini").strip().lower()
+    base = float(default_interval) if default_interval is not None else MIN_CALL_INTERVALS.get(prov, 1.0)
+    min_floor = ADAPTIVE_MIN_INTERVALS.get(prov, 0.05)
+    slot = _adaptive_slot(key, prov)
+    with _RATE_LOCK:
+        streak = _KEY_SUCCESS_STREAK.get(slot, 0) + 1
+        _KEY_SUCCESS_STREAK[slot] = streak
+        cur = _KEY_ADAPTIVE_INTERVALS.get(slot, base)
+        if streak >= 25:
+            # Sustained 429-free run permits lifting any earlier burst floor
+            _KEY_ADAPTIVE_FLOOR.pop(slot, None)
+        floor = max(min_floor, _KEY_ADAPTIVE_FLOOR.get(slot, min_floor))
+        if streak >= 3:
+            cur = max(floor, round(cur * 0.72, 4))
+        _KEY_ADAPTIVE_INTERVALS[slot] = cur
+        return cur
+
+
+def _record_key_rate_limit(
+    key: str,
+    provider_name: str = "gemini",
+    default_interval: float | None = None,
+) -> float:
+    """Back off pacing multiplicatively on HTTP 429 so free keys settle without sustained retries."""
+    prov = (provider_name or "gemini").strip().lower()
+    base = float(default_interval) if default_interval is not None else MIN_CALL_INTERVALS.get(prov, 1.0)
+    slot = _adaptive_slot(key, prov)
+    with _RATE_LOCK:
+        _KEY_SUCCESS_STREAK[slot] = 0
+        cur = _KEY_ADAPTIVE_INTERVALS.get(slot, base)
+        backed_off = min(15.0, max(base, round(cur * 1.6, 4)))
+        _KEY_ADAPTIVE_INTERVALS[slot] = backed_off
+        _KEY_ADAPTIVE_FLOOR[slot] = max(_KEY_ADAPTIVE_FLOOR.get(slot, 0.0), max(0.5, base * 0.85))
+        return backed_off
+
+
+def _enforce_adaptive_key_throttle(
+    key: str,
+    provider_name: str = "gemini",
+    default_interval: float | None = None,
+) -> float:
+    """Reserve the next leaky-bucket slot for key using its current AIMD adaptive interval."""
+    interval = get_adaptive_key_interval(key, provider_name=provider_name, default_interval=default_interval)
+    _reserve_throttle_slot(_KEY_LAST_CALL_MAP, _adaptive_slot(key, provider_name), interval)
+    return interval
 
 
 def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0, model: str | None = None) -> None:

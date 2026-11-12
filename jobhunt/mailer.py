@@ -6,26 +6,47 @@ import email.utils
 import os
 import re
 import smtplib
+import threading
 import time
 from email.message import EmailMessage
 
-# Harmonic operational limits (multiples of 5 & 10)
-MAX_DAILY_SEND: int = 450
+# Dynamic operational limits: 50,000 allows seamless scaling from Free Gmail (500/day)
+# to Google Workspace (2,000/day) and Paid SMTP Relays (SES/Resend/SendGrid) with zero code edits.
+MAX_DAILY_SEND: int = int(os.environ.get("MAX_DAILY_SEND") or 50000)
 SMTP_TIMEOUT: int = 30
 
 _sent_counter: int = 0
+_SEND_LOCK = threading.Lock()
+
+
+def is_smtp_quota_error(exc: BaseException) -> bool:
+    """Return True if an SMTP exception indicates upstream daily send quota or rate exhaustion."""
+    msg = str(exc or "").lower()
+    quota_tokens = (
+        "5.4.5",
+        "4.7.0",
+        "daily user sending",
+        "daily sending",
+        "sending limit",
+        "quota exceeded",
+        "exceeded your daily",
+        "too many emails",
+        "rate limit",
+    )
+    return any(tok in msg for tok in quota_tokens)
 
 
 def get_sent_count() -> int:
     """Return total number of emails dispatched in this runtime process."""
-    global _sent_counter
-    return _sent_counter
+    with _SEND_LOCK:
+        return _sent_counter
 
 
 def reset_sent_count() -> None:
     """Reset the dispatch counter (useful for unit tests)."""
     global _sent_counter
-    _sent_counter = 0
+    with _SEND_LOCK:
+        _sent_counter = 0
 
 
 def _sanitize_header_value(value: str) -> str:
@@ -89,67 +110,83 @@ class SMTPSession:
         self.password = (password or os.environ.get("SMTP_PASS", "")).strip()
         self.timeout = timeout
         self.server: smtplib.SMTP | None = None
+        self._lock = threading.RLock()
 
     def connect(self) -> SMTPSession:
         """Connect and authenticate to SMTP server."""
-        if not self.user or not self.password:
-            raise ValueError("SMTP_USER and SMTP_PASS environment variables must not be empty.")
-        if self.server is not None:
-            try:
-                status = self.server.noop()[0]
-                if status == 250:
-                    return self
-            except Exception:
-                self.close()
+        with self._lock:
+            if not self.user or not self.password:
+                raise ValueError("SMTP_USER and SMTP_PASS environment variables must not be empty.")
+            if self.server is not None:
+                try:
+                    status = self.server.noop()[0]
+                    if status == 250:
+                        return self
+                except Exception:
+                    self.close()
 
-        try:
-            self.server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
-            self.server.starttls()
-            self.server.login(self.user, self.password)
-        except smtplib.SMTPAuthenticationError as e:
-            print(
-                f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password."
-            )
-            self.server = None
-            raise
-        except Exception as e:
-            print(f"::error::SMTP connection failed ({type(e).__name__}): {e}")
-            self.server = None
-            raise
-        return self
+            try:
+                self.server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
+                self.server.starttls()
+                self.server.login(self.user, self.password)
+            except smtplib.SMTPAuthenticationError as e:
+                print(
+                    f"::error::SMTP authentication failed: {e}. If using Gmail, make sure SMTP_PASS is a 16-character App Password (myaccount.google.com/apppasswords), not your login password."
+                )
+                self.server = None
+                raise
+            except Exception as e:
+                print(f"::error::SMTP connection failed ({type(e).__name__}): {e}")
+                self.server = None
+                raise
+            return self
 
     def send_message(self, msg: EmailMessage) -> None:
         """Send an EmailMessage through the persistent connection with auto-reconnect."""
         global _sent_counter
-        if _sent_counter >= MAX_DAILY_SEND:
-            print(
-                f"  [Circuit Breaker] Daily send limit ({MAX_DAILY_SEND}) reached. Skipping dispatch to {msg.get('To')}."
-            )
-            return
+        with self._lock:
+            with _SEND_LOCK:
+                if _sent_counter >= MAX_DAILY_SEND:
+                    print(
+                        f"  [Circuit Breaker] Daily send limit ({MAX_DAILY_SEND}) reached. Skipping dispatch to {msg.get('To')}."
+                    )
+                    return
 
-        if self.server is None:
-            self.connect()
+            if self.server is None:
+                self.connect()
 
-        try:
-            assert self.server is not None
-            self.server.send_message(msg)
-            _sent_counter += 1
-        except (smtplib.SMTPServerDisconnected, smtplib.SMTPResponseException):
-            # Attempt one reconnection and retry
-            self.connect()
-            assert self.server is not None
-            self.server.send_message(msg)
-            _sent_counter += 1
+            try:
+                assert self.server is not None
+                self.server.send_message(msg)
+                with _SEND_LOCK:
+                    _sent_counter += 1
+            except smtplib.SMTPResponseException as e:
+                if is_smtp_quota_error(e):
+                    raise
+                # Attempt one reconnection and retry
+                self.connect()
+                assert self.server is not None
+                self.server.send_message(msg)
+                with _SEND_LOCK:
+                    _sent_counter += 1
+            except smtplib.SMTPServerDisconnected:
+                # Attempt one reconnection and retry
+                self.connect()
+                assert self.server is not None
+                self.server.send_message(msg)
+                with _SEND_LOCK:
+                    _sent_counter += 1
 
     def close(self) -> None:
         """Safely close the SMTP connection."""
-        if self.server is not None:
-            try:
-                self.server.quit()
-            except Exception:
-                pass
-            finally:
-                self.server = None
+        with self._lock:
+            if self.server is not None:
+                try:
+                    self.server.quit()
+                except Exception:
+                    pass
+                finally:
+                    self.server = None
 
     def __enter__(self) -> SMTPSession:
         return self
@@ -174,9 +211,10 @@ def send(
         raise ValueError("SMTP_USER and SMTP_PASS environment variables must not be empty.")
     to_addr = (to_email or os.getenv("MAIL_TO") or user).strip()
 
-    if _sent_counter >= MAX_DAILY_SEND:
-        print(f"  [Circuit Breaker] Daily send limit ({MAX_DAILY_SEND}) reached. Skipping dispatch to {to_addr}.")
-        return
+    with _SEND_LOCK:
+        if _sent_counter >= MAX_DAILY_SEND:
+            print(f"  [Circuit Breaker] Daily send limit ({MAX_DAILY_SEND}) reached. Skipping dispatch to {to_addr}.")
+            return
 
     msg = build_message(subject, html_body, to_addr, user)
 
@@ -196,7 +234,8 @@ def send(
                 s.starttls()
                 s.login(user, password)
                 s.send_message(msg)
-            _sent_counter += 1
+            with _SEND_LOCK:
+                _sent_counter += 1
             print(f"  mailed -> {to_addr}")
             return
         except smtplib.SMTPAuthenticationError as e:

@@ -12,10 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.1.8"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Release-v1.2.0-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.0"></a>
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-591%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-604%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -25,7 +25,7 @@
 
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
-  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.1.8)</strong></a> &bull;
+  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.2.0)</strong></a> &bull;
   <a href="CHANGELOG.md"><strong>Changelog</strong></a> &bull;
   <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
   <a href="docs/GUIDE.md">Candidate Playbook</a> &bull;
@@ -82,7 +82,7 @@ flowchart TD
 
     subgraph S5["📬 STAGE 5: EXECUTIVE DELIVERY & SYNCHRONIZATION"]
         WEB["💻 Interactive Web Board<br>5-Stage Pipeline Tracking • 4-Day Follow-Up Alerts"]
-        EMAIL["✉️ Daily Morning Briefing<br>07:37 AM IST Inbox Digest • SMTPSession (450 Quota Cap)"]
+        EMAIL["✉️ Daily Morning Briefing<br>07:37 AM IST Inbox Digest • Thread-Safe SMTPSession (Dynamic 50k Cap)"]
         DB[("⚡ Supabase PostgreSQL<br>Row-Level Security (RLS) Multi-Tenant Storage")]
         CSV["📊 Instant CSV Export<br>out/tracker.csv Pipeline Mirror"]
     end
@@ -117,8 +117,8 @@ The modern tech job search is fundamentally broken, especially across the high-s
 4. **Drafts Tailored Application Kits (Unlocking the Referral Channel)**: Produces tailored cover notes, 80-word recruiter outreach messages, **<60-word LinkedIn referral requests** for peer/alumni outreach (specifically crafted to tap into the 50%–70% referral hiring channel), matching resume alignment bullets, and interview prep questions for top-scoring roles (7.5+), optimizing LLM tokens by drafting exclusively for each candidate's #1 match.
 5. **Natively Models Indian Compensation & Notice Dynamics**: Filters candidate availability by **15, 30, 60, or 90 days notice** and target compensation in **₹ Lakhs Per Annum (LPA)** (supporting domestic SDE bands from ₹6L–₹40L+ LPA and USD global remote roles paying $4,000–$8,000/month).
 6. **Organizes Everything on an Executive Web Board**: Interactive single-page web dashboard with 5-stage pipeline tracking (_To Apply_, _Applied_, _Interviewing_, _Offer_, _Rejected_), live search, ATS board filtering, notes, and 4-day follow-up nudge alerts.
-7. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links, using persistent `SMTPSession` connection reuse with auto-reconnect and a `MAX_DAILY_SEND = 450` circuit breaker (delivers daily matches or a clean zero-match radar scan status).
-8. **Runs 100% Free Forever**: Operates within free-tier allowances across Vercel (Hobby), Supabase (Free tier 500 MB PostgreSQL + Auth), Google Gemini (1M free tokens/day via AI Studio), and GitHub Actions (40m timeout)—supporting **300+ Daily Active Users out-of-the-box** with automated daily 30-day database log pruning (`prune_pipeline_runs`) and 1,000-job rolling retention at **$0.00/month** total operating cost.
+7. **Delivers an Executive Morning Briefing**: Dispatches a clean, responsive HTML email digest to your inbox every morning with direct 1-click application links, using persistent `SMTPSession` connection reuse with auto-reconnect, an env-configurable `MAX_DAILY_SEND` (default `50000` so Google Workspace / Paid SMTP scales with zero code changes), and an upstream SMTP quota circuit breaker (delivers daily matches or a clean zero-match radar scan status).
+8. **Runs 100% Free Forever (300+ DAU) & Scales Codelessly**: Operates within free-tier allowances across Vercel (Hobby, 60s idle-aware heartbeat), Supabase (Free 500 MB PostgreSQL + Auth + paginated reads), Google Gemini / Groq (AIMD adaptive per-key throttling + shared-pool keyword fallback), and GitHub Actions (360m workflow ceiling + cached ATS pool)—supporting **300+ Daily Active Users out-of-the-box** with 30-day log pruning (`prune_pipeline_runs`) and 300-job rolling unapplied retention at **$0.00/month**, and scaling automatically whenever you attach paid provider plans with **0 code or config changes**.
 
 > [!IMPORTANT]
 > **The Golden Rule of Job Hunter**: _The Hunter never fires without manual authorization._ **Job Hunter** never automatically submits applications. It scouts, filters, scores, and drafts—leaving final application review and submission strictly under human control.
@@ -209,7 +209,7 @@ The modern tech job search is fundamentally broken, especially across the high-s
            │                 └─ Automated two-way sync, 30-day log pruning & out/tracker.csv export
            ▼
 [6. Delivery & UI] ───────── Interactive Web Dashboard (Flask/Vercel) & Daily HTML Email Briefing (digest.py / mailer.py)
-                             └─ Persistent SMTPSession with auto-reconnect & MAX_DAILY_SEND = 450 circuit breaker
+                             └─ Persistent SMTPSession with auto-reconnect & upstream SMTP quota circuit breaker
 ```
 
 ---
@@ -283,7 +283,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.1.8
+# Output: jobhunt 1.2.0
 ```
 
 ---
@@ -376,10 +376,10 @@ llm_delay_seconds: 0.0 # Leaky-bucket pacing enforced at 5.0s (12 RPM) via provi
 | **`max_per_digest`**         | `config.yaml`           |   **5**   |  **5**   | Curated daily briefing density ensuring maximum candidate engagement without inbox fatigue.              |
 | **`max_age_days`**           | `config.yaml`           |  **20**   |  **10**  | Strict 20-day crawler window dropping stale listings and saving Supabase storage.                        |
 | **`fetch_max_workers`**      | `config.yaml`           |  **20**   |  **10**  | Concurrent async connection pool crawling 114+ ATS endpoints in under 4 seconds.                          |
-| **`pacing_interval`**        | `providers_throttle.py` | **5.0s**  |  **5**   | Enforces 12 RPM per key, guaranteeing zero HTTP 429 rate limit exceptions against Gemini's 15 RPM cap.   |
-| **`MAX_DAILY_SEND`**         | `mailer.py`             |  **450**  |  **10**  | Circuit breaker on persistent `SMTPSession` safeguarding Gmail's 500/day limit with a 10% safety buffer. |
+| **`pacing_interval`**        | `providers_throttle.py` | **5.0s→0.05s** | **AIMD** | Starts at safe 12 RPM (`5.0s`) on free keys and automatically accelerates to `0.05s` (1,200 RPM) on paid keys with zero HTTP 429 retries. |
+| **`MAX_DAILY_SEND`**         | `mailer.py`             | **50000** | **Env**  | Default ceiling on persistent `SMTPSession` (env-overridable) with automatic upstream quota breaker (`550 5.4.5` / `421 4.7.0`), scaling Gmail &rarr; Workspace &rarr; SES/Resend codelessly. |
 | **`keep_days` (DB Pruning)** | `memory.py`             |  **30**   |  **10**  | Automated daily cleanup purging execution logs older than 30 days, keeping DB < 30 MB indefinitely.      |
-| **`timeout-minutes`**        | `daily.yml`             |  **40**   |  **10**  | Automated runner execution ceiling safeguarding GitHub Actions against runaway jobs.                     |
+| **`timeout-minutes`**        | `daily.yml`             |  **360**  | **Max**  | Full 6-hour GitHub Actions ceiling ensuring even 1,000+ DAU batches never time out prematurely.          |
 
 ---
 
@@ -422,8 +422,8 @@ SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 AUTH_REQUIRED=true          # Mandatory registration (set to false for local dev without Supabase)
 
-# Storage & Database Sliding Window Limits (default: 1000 unapplied jobs)
-MAX_TRACKED_JOBS_COUNT=1000
+# Storage & Database Sliding Window Limits (default: 300 unapplied jobs; applied jobs preserved forever)
+MAX_TRACKED_JOBS_COUNT=300
 
 # Flask Web Server Configuration
 FLASK_SECRET_KEY=jobhunter-secure-random-key-32-chars
@@ -594,7 +594,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.1.8) & public exports
+│   ├── __init__.py           # Package version (1.2.0) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
@@ -653,7 +653,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 591 automated test cases with 92% statement coverage
+├── tests/                    # 604 automated test cases with 92% statement coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -704,7 +704,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**591 automated tests**, 92% coverage):
+Run the full automated test suite locally (**604 automated tests**, 92% coverage):
 
 ```bash
 # Run full test suite
@@ -728,7 +728,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **591 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest -q`                           | **604 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 

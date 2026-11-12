@@ -14,7 +14,7 @@ import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from .fetch import Job
 from .memory import SupabaseMemory
@@ -30,8 +30,84 @@ logger = logging.getLogger(__name__)
 
 _CSV_EXPORT_LOCK = threading.Lock()
 
+DEFAULT_MAX_SEEN_ARCHIVE = 2000
+_ARCHIVE_DIGEST_LEN = 12
+_HEX_CHARS = frozenset("0123456789abcdef")
+
+
+def job_id_digest(job_id: str) -> str:
+    """Return a compact 12-hex-char SHA-1 fingerprint for long-term dedupe."""
+    return hashlib.sha1(str(job_id).encode("utf-8")).hexdigest()[:_ARCHIVE_DIGEST_LEN]
+
+
+def _max_seen_archive_count() -> int:
+    raw = os.environ.get("MAX_SEEN_ARCHIVE_COUNT")
+    if raw is None or not str(raw).strip():
+        return DEFAULT_MAX_SEEN_ARCHIVE
+    try:
+        return max(0, int(str(raw).strip()))
+    except ValueError:
+        return DEFAULT_MAX_SEEN_ARCHIVE
+
+
+def decode_seen_archive(raw: str | None) -> list[str]:
+    """Parse a packed hex-digest string into ordered unique 12-char digests."""
+    if not raw or not isinstance(raw, str):
+        return []
+    cleaned = raw.strip().lower()
+    digests: list[str] = []
+    seen: set[str] = set()
+    limit = len(cleaned) - (len(cleaned) % _ARCHIVE_DIGEST_LEN)
+    for i in range(0, limit, _ARCHIVE_DIGEST_LEN):
+        chunk = cleaned[i : i + _ARCHIVE_DIGEST_LEN]
+        if all(ch in _HEX_CHARS for ch in chunk) and chunk not in seen:
+            seen.add(chunk)
+            digests.append(chunk)
+    return digests
+
+
+def encode_seen_archive(digests: list[str], max_items: int) -> str:
+    """Encode a FIFO digest list capped to the newest ``max_items`` entries."""
+    if max_items <= 0 or not digests:
+        return ""
+    return "".join(digests[-max_items:])
+
+
+def extract_seen_archive(profile: Any, *, memory_configured: bool = False) -> Optional[str]:
+    """Extract packed seen_archive string from a profile dict or nested profile_json."""
+    if not isinstance(profile, dict):
+        return "" if memory_configured else None
+    pjson = profile.get("profile_json")
+    raw_arch = profile.get("seen_archive")
+    if raw_arch is None and isinstance(pjson, dict):
+        raw_arch = pjson.get("seen_archive")
+    if raw_arch is not None:
+        return str(raw_arch)
+    return "" if memory_configured else None
+
+
+def _atomic_write_text(target: Path, content: str) -> None:
+    """Atomically replace ``target`` on disk using a unique per-thread temp file."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f"{target.stem}.tmp.{os.getpid()}_{threading.get_ident()}")
+    try:
+        tmp.write_text(content, encoding="utf-8")
+        _atomic_replace(tmp, target)
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
 __all__ = [
     "Store",
+    "DEFAULT_MAX_SEEN_ARCHIVE",
+    "job_id_digest",
+    "decode_seen_archive",
+    "encode_seen_archive",
+    "extract_seen_archive",
     "sanitize_job_url",
     "get_writable_path",
     "get_user_profile_path",
@@ -55,6 +131,7 @@ class Store:
         user_email: Optional[str] = None,
         token: Optional[str] = None,
         use_service_key: bool = False,
+        seen_archive: Optional[str] = None,
     ):
         self.original_path = Path(path)
         raw_email = (user_email or "").strip().lower() if user_email else None
@@ -75,6 +152,11 @@ class Store:
             self.path = get_writable_path(user_target)
         else:
             self.path = get_writable_path(self.original_path)
+
+        self.archive_path = self.path.with_name(f"{self.path.stem}_archive.txt")
+        self._seen_archive_digests: list[str] = self._load_initial_archive(seen_archive)
+        self._seen_archive_set: set[str] = set(self._seen_archive_digests)
+        self._seen_archive_dirty: bool = False
 
         # 1. Load from local cache / JSON file
         read_target = self.path if self.path.exists() else (self.original_path if not self.user_email else None)
@@ -117,7 +199,10 @@ class Store:
 
         # 2. If user_email provided and Supabase is configured, pull from Supabase PostgreSQL memory
         if self.user_email and self.memory.is_configured:
-            remote_jobs = self.memory.load_user_jobs(self.user_email, token=self.token)
+            load_kwargs: dict[str, Any] = {"token": self.token}
+            if self.use_service_key:
+                load_kwargs["use_service_key"] = True
+            remote_jobs = self.memory.load_user_jobs(self.user_email, **load_kwargs)
             if remote_jobs:
                 # Purge local jobs that are no longer present in Supabase remote store
                 local_keys = set(self.data.keys())
@@ -149,8 +234,73 @@ class Store:
         if changed_urls:
             self.save(auto_export=False)
 
+    def _load_initial_archive(self, seen_archive: Optional[str]) -> list[str]:
+        max_cap = _max_seen_archive_count()
+        if max_cap <= 0:
+            return []
+        if seen_archive is not None:
+            return decode_seen_archive(seen_archive)[-max_cap:]
+        read_arch = self.archive_path if self.archive_path.exists() else None
+        if read_arch is None and not self.user_email:
+            orig_arch = self.original_path.with_name(f"{self.original_path.stem}_archive.txt")
+            if orig_arch.exists():
+                read_arch = orig_arch
+        if read_arch is not None:
+            try:
+                return decode_seen_archive(read_arch.read_text(encoding="utf-8"))[-max_cap:]
+            except OSError:
+                return []
+        return []
+
+    @property
+    def seen_archive_count(self) -> int:
+        return len(self._seen_archive_digests)
+
+    def _archive_job_id(self, job_id: str) -> None:
+        max_cap = _max_seen_archive_count()
+        if max_cap <= 0 or not job_id:
+            return
+        digest = job_id_digest(job_id)
+        if digest in self._seen_archive_set:
+            try:
+                self._seen_archive_digests.remove(digest)
+            except ValueError:
+                pass
+        else:
+            self._seen_archive_set.add(digest)
+        self._seen_archive_digests.append(digest)
+        if len(self._seen_archive_digests) > max_cap:
+            self._seen_archive_digests = self._seen_archive_digests[-max_cap:]
+            self._seen_archive_set = set(self._seen_archive_digests)
+        self._seen_archive_dirty = True
+
+    def _persist_seen_archive(self) -> None:
+        if not self._seen_archive_dirty:
+            return
+        packed = encode_seen_archive(self._seen_archive_digests, _max_seen_archive_count())
+        try:
+            _atomic_write_text(self.archive_path, packed)
+        except Exception as e:
+            logger.warning("Store archive cache save warning: %s", e)
+
+        if self.user_email and self.memory.is_configured:
+            try:
+                self.memory.update_user_profile_json(
+                    self.user_email,
+                    {"seen_archive": packed},
+                    token=self.token,
+                    use_service_key=self.use_service_key,
+                )
+            except Exception as e:
+                logger.warning("Supabase seen_archive sync warning for %s: %s", self.user_email, e)
+        self._seen_archive_dirty = False
+
     def unseen(self, jobs: list[Job]) -> list[Job]:
-        return [j for j in jobs if j.job_id not in self.data]
+        return [
+            j
+            for j in jobs
+            if j.job_id not in self.data and job_id_digest(j.job_id) not in self._seen_archive_set
+        ]
 
     def record(self, jobs: list[Job], emailed: bool = True) -> bool:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -487,7 +637,7 @@ class Store:
         if not is_prod and not has_env_limit:
             return
 
-        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 1000)
+        max_count = int(os.environ.get("MAX_TRACKED_JOBS_COUNT") or 300)
 
         if len(self.data) <= max_count:
             return
@@ -514,37 +664,32 @@ class Store:
             if is_applied or stage in keep_stages:
                 continue
 
+            self._archive_job_id(jid)
             del self.data[jid]
             excess_count -= 1
             purged += 1
 
             if self.user_email and self.memory.is_configured:
                 try:
-                    self.memory.delete_user_job(self.user_email, jid, token=self.token)
+                    del_kwargs: dict[str, Any] = {"token": self.token}
+                    if self.use_service_key:
+                        del_kwargs["use_service_key"] = True
+                    self.memory.delete_user_job(self.user_email, jid, **del_kwargs)
                 except Exception:
                     pass
 
         if purged > 0:
             logger.info(
-                "  [prune] purged %d stale jobs to stay under free storage limits (capped at %d).",
+                "  [prune] purged %d stale jobs (archived into %d-entry FIFO dedupe window, UI capped at %d).",
                 purged,
+                len(self._seen_archive_digests),
                 max_count,
             )
 
     def save(self, auto_export: bool = True) -> None:
         self.prune_old_jobs()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        unique_tmp_suffix = f".tmp.{os.getpid()}_{threading.get_ident()}"
-        tmp = self.path.with_suffix(unique_tmp_suffix)
-        try:
-            tmp.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
-            _atomic_replace(tmp, self.path)
-        finally:
-            if tmp.exists():
-                try:
-                    tmp.unlink()
-                except OSError:
-                    pass
+        self._persist_seen_archive()
+        _atomic_write_text(self.path, json.dumps(self.data, indent=2, ensure_ascii=False))
         if auto_export:
             try:
                 self.export_csv()
@@ -557,8 +702,15 @@ def init(
     user_email: Optional[str] = None,
     token: Optional[str] = None,
     use_service_key: bool = False,
+    seen_archive: Optional[str] = None,
 ) -> Store:
-    return Store(path, user_email=user_email, token=token, use_service_key=use_service_key)
+    return Store(
+        path,
+        user_email=user_email,
+        token=token,
+        use_service_key=use_service_key,
+        seen_archive=seen_archive,
+    )
 
 
 def unseen(store: Store, jobs: list[Job]) -> list[Job]:

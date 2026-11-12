@@ -14,7 +14,7 @@ from ... import cli, digest, mailer
 from ...auth import require_auth
 from ...fetch import Job
 from ...memory import SupabaseMemory
-from ...store import Store, get_user_profile_path, get_writable_path
+from ...store import Store, extract_seen_archive, get_user_profile_path, get_writable_path
 from ..state import (
     ROOT,
     enforce_rate_limit,
@@ -94,12 +94,14 @@ def api_sync():
     seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
 
-    # Ensure a minimal FK-safe stub exists for new users, then fetch their profile.
+    # Fetch user profile first; only bootstrap a minimal FK-safe stub for brand-new users.
     memory = SupabaseMemory(token=token)
     user_profile = None
     if email and memory.is_configured:
-        memory._ensure_user_profile_exists(email, token=token)
         user_profile = memory.get_user_profile(email, token=token)
+        if not user_profile:
+            memory._ensure_user_profile_exists(email, token=token)
+            user_profile = memory.get_user_profile(email, token=token)
     if not user_profile and not (email and memory.is_configured):
         raw_local = get_user_profile(cfg, email, token)
         if raw_local:
@@ -599,7 +601,8 @@ def api_run():
 
     cfg = cli._cfg(raise_on_error=False)
     seen_file = cfg.get("seen_file", "state/seen.json")
-    st = Store(seen_file, user_email=email, token=token)
+    web_archive = extract_seen_archive(user_profile, memory_configured=bool(email and memory.is_configured))
+    st = Store(seen_file, user_email=email, token=token, seen_archive=web_archive)
 
     gh_token = (
         os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_PAT") or ""

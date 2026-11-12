@@ -1,15 +1,28 @@
 # 🚀 Release Notes — Job Hunter
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8"><img src="https://img.shields.io/badge/Release-v1.1.8-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.8"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-591%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Release-v1.2.0-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.0"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-604%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
-> **Current Production Version**: `v1.1.8` | **Release Date**: November 12, 2026
+> **Current Production Version**: `v1.2.0` | **Release Date**: November 12, 2026
 >
-> **Quick Links**: [GitHub Release v1.1.8](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+> **Quick Links**: [GitHub Release v1.2.0](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+
+---
+
+## [v1.2.0] - 2026-11-12
+
+### ♻️ 2,300-Job Anti-Repeat Memory (`seen_archive`) — Zero DB Schema Changes
+* **Compact 2,000-Entry FIFO Digest Archive**: When unapplied jobs above the `300`-row UI cap (`MAX_TRACKED_JOBS_COUNT`) are pruned to keep free Supabase PostgreSQL compact, evicted `job_id`s are hashed into 12-hex-char SHA-1 digests inside existing `user_profiles.profile_json["seen_archive"]` (capped FIFO at `MAX_SEEN_ARCHIVE_COUNT=2000`, `<= 24 KB/user`) plus atomic local `_archive.txt` fallback.
+* **Zero Extra DB Reads & Zero Idle Writes**: Pipeline callers (`multi.py`, `cli.py`, `pipeline.py`) pass already-loaded `seen_archive` via `extract_seen_archive()`, and `Store.save()` writes to Supabase **only when rows are evicted** (`purged > 0`), while `sanitize_profile_for_response` strips `seen_archive` from browser payloads.
+
+### ⚡ Zero-Cost 300+ DAU & Codeless Autoscaling
+* **Balanced Free-Tier Engineering**: Uses `45s` in-memory profile/job cache TTL, profile-first `/api/sync`, `60s` idle-aware UI heartbeat & `5s` cloud poller, `300`-row default unapplied cap (applied/interviewing/offer/rejected jobs preserved forever), pip-cached `daily.yml` with `JOBHUNT_ATS_DISK_CACHE=1` & `360m` runtime limit.
+* **Automatic Paid-Tier Scale Without Code Edits**: AIMD adaptive per-key throttling (`5.0s -> 0.05s` on HTTP 200, backoff on HTTP 429), PostgREST >1,000-row pagination across `user_profiles` and `user_tracked_jobs`, concurrent multi-tenant batch workers with shared LLM/SMTP quota circuit breakers & BYOK isolation, and env-configurable `MAX_DAILY_SEND=50000`.
+* **604 Passing Tests & Hardened Playwright E2E**: Expanded `tests/test_zero_cost_scaling.py` to 13 scaling/archive tests and hardened `tests/test_browser_playwright.py` with threaded WSGI servers, module-scoped Chromium reuse, and bounded timeouts (**604 passed**, **92%+ coverage**, 0 Ruff issues, 0 Mypy issues).
 
 ---
 
@@ -46,7 +59,7 @@
 * **Mailer Resilience (94% Coverage)**: Expanded `tests/test_digest_mailer.py` with SMTP session reconnection tests, connection reuse, daily rate-limit circuit breakers, and plain-text fallback generation.
 * **Custom Target Companies & API Edge Cases**: Created `tests/test_custom_companies_and_edge_cases.py` testing URL detection, board accessibility validation, and store update error handling across `jobs.py` (92% coverage) and `profile.py` (86% coverage).
 * **Model-First Multi-Key Rotation & 07:37 IST Schedule**: Hardened LLM resilience so each model rotates across all project API keys before cascading, scopes cooldowns cleanly per `(key, model)` without infinite provider failover loops, falls back to keyword scoring in multi-user runs when LLM pools exhaust, and runs the daily GitHub Actions cron at **07:37 AM IST**.
-* **591 Passing Tests**: Codebase test count expanded to **591 automated tests** (584 unit/integration + 7 browser E2E) with **92% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues across 43 source files.
+* **591 Passing Tests**: Expanded suite coverage to **591 automated tests** with **92% global statement coverage**, zero Ruff lint errors, and zero Mypy type issues.
 
 ---
 

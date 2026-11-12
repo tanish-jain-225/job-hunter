@@ -39,9 +39,9 @@ limits and pricing with each provider before launch.
 | Service | Free Plan Quotas | What Job Hunter Uses | Capacity Limit | Cost |
 | :--- | :--- | :--- | :---: | :--- |
 | **Google Gemini API** | 15 RPM, 1M TPM, 1,500 RPD (AI Studio Free Tier per project) | Candidate batch fit screening (10 jobs/batch, 12 RPM / 5.0s pacing) & top-1 kit drafting | **300+ Users / Key** | **$0 / mo** |
-| **Gmail SMTP / Resend** | 500 emails/day (Gmail rolling cap) | Personalized daily briefings via persistent `SMTPSession` with `MAX_DAILY_SEND = 450` circuit breaker | **450 Dispatches / Day** | **$0 / mo** |
-| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, tracked jobs (1,000 cap), and automated 30-day log pruning (`prune_pipeline_runs`) | **330+ Users** (indefinite lifecycle) | **$0 / mo** |
-| **GitHub Actions** | 2,000 runner minutes/month | Automated daily morning batch radar (40 min timeout, ~900 mins/mo for 300 users) | **1,500 Users** | **$0 / mo** |
+| **Gmail SMTP / Resend** | 500 emails/day (Gmail free) / 2,000+ (Workspace) / Bulk (SES/Resend) | Personalized daily briefings via thread-safe `SMTPSession` (`MAX_DAILY_SEND=50000` default + automatic quota circuit breaker) | **500 Free / Unbounded Paid** | **$0 / mo** |
+| **Supabase** | 500 MB Database, 50k MAU, 500k Edge Invocations | User profiles, auth sessions, paginated >1,000-row sync, 300 unapplied cap (+ all applied jobs), & 30-day log pruning | **300+ Free Users** (Scales w/ Pro) | **$0 / mo** |
+| **GitHub Actions** | 2,000 runner minutes/month | Pip-cached daily/on-demand morning radar with ATS disk pool cache (`360m` ceiling) | **1,500+ Users** | **$0 / mo** |
 | **Vercel** | 100 GB Bandwidth, Unlimited Deployments | Web Dashboard & REST API Hosting | **6,600 Users** | **$0 / mo** |
 
 ---
@@ -115,8 +115,8 @@ GITHUB_REPOSITORY=your-username/job-hunter
 # Optional: Static Flask secret key for serverless session stability
 FLASK_SECRET_KEY=jobhunter-secure-prod-flask-key-2025
 
-# Optional: Storage & Database Sliding Window Limits (default: 1000 unapplied jobs)
-MAX_TRACKED_JOBS_COUNT=1000
+# Optional: Storage & Database Sliding Window Limits (default: 300 unapplied jobs; applied jobs preserved)
+MAX_TRACKED_JOBS_COUNT=300
 ```
 
 5. Click **Deploy**. Vercel will build and deploy your live dashboard at `https://your-project.vercel.app`!

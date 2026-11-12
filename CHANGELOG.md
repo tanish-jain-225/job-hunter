@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-11-12
+
+### Added
+- **2,000-Entry FIFO `seen_archive` Deduplication (`jobhunt/store.py`, `jobhunt/memory.py`, `jobhunt/multi.py`, `jobhunt/cli.py`, `jobhunt/web/routes/pipeline.py`, `jobhunt/web/state.py`)**: Compresses pruned `job_id`s above `MAX_TRACKED_JOBS_COUNT` (`300`) into a 12-hex-char SHA-1 FIFO ring buffer (`MAX_SEEN_ARCHIVE_COUNT=2000`, `<= 24 KB/user`) inside existing `user_profiles.profile_json` (plus atomic local `_archive.txt` fallback) with **zero DB schema changes**, **zero extra DB reads**, and **zero DB writes on non-pruning scans** — extending anti-repeat memory to **2,300 jobs (~7.5 months)** while preserving `300`-row UI efficiency and keeping browser API payloads sanitized.
+- **Zero-Cost 300+ DAU & Codeless Autoscaling Engine (`tests/test_zero_cost_scaling.py`)**: Added 13 scaling and dedup tests covering AIMD adaptive per-key throttling (`providers_throttle.py`, `providers.py`, ramping `5.0s -> 0.05s`), PostgREST chunk pagination past 1,000 rows (`memory.py`, `multi.py`), 300-job default unapplied storage pruning (`store.py`), 45s cache TTL, `/api/sync` profile-first zero-upsert optimization (`pipeline.py`), `60s` idle-aware heartbeat & `5s` cloud poller (`static/js/app.js`), concurrent multi-tenant worker pool with shared LLM/SMTP quota circuit breakers & BYOK isolation (`multi.py`, dynamic `MAX_DAILY_SEND=50000` in `mailer.py`), and opt-in `JOBHUNT_ATS_DISK_CACHE` (`fetch.py`, `.github/workflows/daily.yml` 360m timeout + pip cache).
+
+### Fixed
+- **Headless Playwright E2E Timeout Hardening (`tests/test_browser_playwright.py`)**: Replaced `WSGIServer` with threaded `make_server(..., threaded=True)` + `server.server_close()`, reused a single module-scoped Chromium browser instance with 10s/15s timeouts and local-only URL routing so E2E browser checks never stall.
+- **Full Suite Expansion**: Synchronized version metadata (`1.2.0`) and docs to **604 automated tests** (**92%+ statement coverage**, **0 Ruff issues**, **0 Mypy issues**).
+
+---
+
 ## [1.1.8] — 2026-11-12
 
 ### Added
@@ -245,6 +257,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.2.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0
 [1.1.8]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8
 [1.1.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.7
 [1.0.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.0.7

@@ -27,7 +27,7 @@ def sanitize_profile_for_response(profile: Any) -> Any:
         safe = {}
         for key, value in profile.items():
             normalized = str(key).lower().replace("-", "_")
-            if any(marker in normalized for marker in ("api_key", "token", "secret", "password")):
+            if normalized == "seen_archive" or any(marker in normalized for marker in ("api_key", "token", "secret", "password")):
                 continue
             safe[key] = sanitize_profile_for_response(value)
         return safe

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import threading
 import time
@@ -185,6 +187,86 @@ def fetch_board(
     return []
 
 
+def _ats_pool_cache_path() -> Path:
+    custom = os.environ.get("JOBHUNT_ATS_CACHE_PATH", "").strip()
+    return Path(custom) if custom else Path("state/ats_pool_cache.json")
+
+
+def _ats_pool_cache_key(company_list: Sequence[dict]) -> str:
+    entries = sorted(
+        f"{str(c.get('ats', '')).lower()}:{str(c.get('slug', '')).lower()}"
+        for c in company_list
+        if isinstance(c, dict) and c.get("ats") and c.get("slug")
+    )
+    return hashlib.sha256(json.dumps(entries).encode("utf-8")).hexdigest()
+
+
+def _load_disk_ats_cache(cache_key: str) -> list[Job] | None:
+    if os.environ.get("JOBHUNT_ATS_DISK_CACHE") != "1":
+        return None
+    cache_path = _ats_pool_cache_path()
+    if not cache_path.is_file():
+        return None
+    try:
+        ttl = float(os.environ.get("JOBHUNT_ATS_CACHE_TTL") or 1800)
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or payload.get("hash") != cache_key:
+            return None
+        cached_at = float(payload.get("cached_at") or 0.0)
+        if time.time() - cached_at >= ttl:
+            return None
+        rows = payload.get("jobs")
+        if not isinstance(rows, list):
+            return None
+        jobs: list[Job] = []
+        for row in rows:
+            if isinstance(row, dict) and row.get("job_id") and row.get("title"):
+                jobs.append(
+                    Job(
+                        job_id=str(row["job_id"]),
+                        ats=str(row.get("ats", "")),
+                        company=str(row.get("company", "")),
+                        title=str(row.get("title", "")),
+                        location=str(row.get("location", "")),
+                        url=str(row.get("url", "")),
+                        description=str(row.get("description", "")),
+                        posted_at=row.get("posted_at"),
+                        salary=row.get("salary"),
+                    )
+                )
+        return jobs if jobs else None
+    except Exception:
+        return None
+
+
+def _save_disk_ats_cache(cache_key: str, jobs: Sequence[Job]) -> None:
+    if os.environ.get("JOBHUNT_ATS_DISK_CACHE") != "1" or not jobs:
+        return
+    cache_path = _ats_pool_cache_path()
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        serializable = [
+            {
+                "job_id": j.job_id,
+                "ats": j.ats,
+                "company": j.company,
+                "title": j.title,
+                "location": j.location,
+                "url": j.url,
+                "description": j.description,
+                "posted_at": j.posted_at,
+                "salary": j.salary,
+            }
+            for j in jobs
+        ]
+        payload = {"hash": cache_key, "cached_at": time.time(), "jobs": serializable}
+        tmp_path = cache_path.with_suffix(".tmp")
+        tmp_path.write_text(json.dumps(payload), encoding="utf-8")
+        tmp_path.replace(cache_path)
+    except Exception:
+        pass
+
+
 def fetch_all(
     companies: Sequence[dict[str, Any]] | dict[str, Any] | str | Path | Any,
     sleep: float = 0.25,
@@ -226,6 +308,13 @@ def fetch_all(
             f"  [vercel] serverless environment detected — throttling crawl to first {len(company_list)} companies to prevent timeout."
         )
 
+    cache_key = _ats_pool_cache_key(company_list) if use_cache else ""
+    if use_cache:
+        cached_jobs = _load_disk_ats_cache(cache_key)
+        if cached_jobs is not None:
+            print(f"  [ats-cache] hit ({len(cached_jobs)} jobs across {len(company_list)} companies)")
+            return cached_jobs
+
     jobs: list[Job] = []
 
     with requests.Session() as session:
@@ -266,6 +355,9 @@ def fetch_all(
                 jobs.extend(got)
                 if sleep > 0:
                     time.sleep(sleep)
+
+    if use_cache and jobs:
+        _save_disk_ats_cache(cache_key, jobs)
 
     return jobs
 

@@ -980,9 +980,9 @@ function startCloudPoller(dispatchedAt = null) {
       console.warn('Cloud radar poll check:', e);
     }
 
-    if (appState.pipelineRunning && pollCount < 400) {
-      cloudPollerTimer = setTimeout(poll, 3000);
-    } else if (pollCount >= 400) {
+    if (appState.pipelineRunning && pollCount < 240) {
+      cloudPollerTimer = setTimeout(poll, 5000);
+    } else if (pollCount >= 240) {
       appState.pipelineRunning = false;
       appState.isCloudPollerActive = false;
       appState.cloudDispatchedAt = null;
@@ -994,7 +994,7 @@ function startCloudPoller(dispatchedAt = null) {
     }
   };
 
-  cloudPollerTimer = setTimeout(poll, 2500);
+  cloudPollerTimer = setTimeout(poll, 3000);
 }
 
 // Live Pipeline Console & Button State Updater
@@ -3590,14 +3590,37 @@ function initDraftSaving() {
   }
 }
 
-// Adaptive Background Polling Heartbeat
+// Adaptive Background Polling Heartbeat (60s cadence, pauses after 10m idle to minimize Vercel/Supabase usage)
+const HEARTBEAT_INTERVAL_MS = 60000;
+const HEARTBEAT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+let lastUserActivityAt = Date.now();
+let heartbeatPausedForIdle = false;
+
+function _markUserActive() {
+  const now = Date.now();
+  const wasIdle = heartbeatPausedForIdle;
+  lastUserActivityAt = now;
+  if (wasIdle && !document.hidden && navigator.onLine) {
+    heartbeatPausedForIdle = false;
+    syncDashboard(false);
+  }
+}
+
+['pointerdown', 'keydown'].forEach((evt) => {
+  window.addEventListener(evt, _markUserActive, { passive: true });
+});
+
 function startHeartbeat() {
   stopHeartbeat();
   heartbeatIntervalId = setInterval(() => {
-    if (!document.hidden && navigator.onLine) {
-      syncDashboard(false);
+    if (document.hidden || !navigator.onLine) return;
+    if (Date.now() - lastUserActivityAt > HEARTBEAT_IDLE_TIMEOUT_MS) {
+      heartbeatPausedForIdle = true;
+      return;
     }
-  }, 15000);
+    heartbeatPausedForIdle = false;
+    syncDashboard(false);
+  }, HEARTBEAT_INTERVAL_MS);
 }
 
 function stopHeartbeat() {
@@ -3612,6 +3635,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopHeartbeat();
   } else {
+    lastUserActivityAt = Date.now();
+    heartbeatPausedForIdle = false;
     // When tab wakes up from sleep/background, refresh session first to prevent stale 401s
     ensureFreshSession().then(() => {
       syncDashboard(false);

@@ -64,14 +64,14 @@ When running in multi-user mode (`python -m jobhunt multi-run`):
 
 | Service | Free Tier Allocation | Per-User Consumption | Hard Free User Limit | Role in Job Hunter |
 | :--- | :--- | :--- | :---: | :--- |
-| **Google Gemini AI** | 15 RPM, 1M TPM, 1,500 RPD (per project) | ~1.2 calls/user/day (single batch + top-1 draft) | **300+ Users / Key** | 12 RPM leaky-bucket pacing (`5.0s`), single-batch screening of Top 10 jobs |
-| **Gmail SMTP** | 500 emails / 24 hours | 1.0 email/day (daily briefing or zero-match radar) | **450 Dispatches / Day** | Daily briefing via persistent `SMTPSession` with `MAX_DAILY_SEND = 450` circuit breaker |
-| **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | <1.5 MB (1,000-job rolling window) | **330+ Users** (indefinite lifecycle) | Tenant-isolated profiles, tracking stores, & automated 30-day log pruning (`prune_pipeline_runs`) |
-| **GitHub Actions** | 2,000 free runner mins / month | ~6.0s / user in batch mode | **1,500 Users** | Automated scheduled morning radar execution (40m job timeout, 900 mins/mo for 300 users) |
-| **Vercel** | 100GB bandwidth, serverless | ~15 MB / user / month | **6,600 Users** | Web Dashboard hosting and REST API |
+| **Google Gemini AI** | 15 RPM, 1M TPM, 1,500 RPD (per project) | ~1.2 calls/user/day (single batch + top-1 draft) | **300+ Users / Key** | AIMD adaptive per-key pacing (`5.0s -> 0.05s`) + shared pool keyword fallback circuit breaker |
+| **Gmail SMTP** | 500 emails / 24 hours (or 2,000+ Workspace / Bulk SES) | 1.0 email/day (daily briefing or zero-match radar) | **500 Free / Unbounded Paid** | Daily briefing via thread-safe `SMTPSession` (`MAX_DAILY_SEND=50000` default + upstream quota circuit breaker) |
+| **Supabase PostgreSQL** | 500MB DB, 50,000 MAU | <450 KB (300-job rolling unapplied window) | **300–1,000 Free Users** (Scales codelessly on Pro) | Tenant-isolated paginated reads (>1,000 rows), & automated 30-day log pruning (`prune_pipeline_runs`) |
+| **GitHub Actions** | 2,000 free runner mins / month | Pip-cached ~4s/user concurrent batch execution | **1,500+ Users** | Automated scheduled morning radar execution (`360m` ceiling + `JOBHUNT_ATS_DISK_CACHE`) |
+| **Vercel** | 100GB bandwidth, 1M Hobby invocations | ~15 MB / user / month (60s idle-aware sync + 45s cache TTL) | **300–6,600 Users** | Web Dashboard hosting and REST API |
 | **9 ATS Board Crawlers** | Public JSON APIs (114+ boards) | 0 extra (single global pass) | **Unlimited** | Scouts Greenhouse, Lever, Ashby, Workable, SmartRecruiters, etc. |
 
-> **Bottom Line:** Operates with built-in safety margins running **100% Free ($0.00/month)** up to **300+ active candidates** with zero code changes or external infrastructure setup. All operational parameters follow a **Harmonic Balance Point (multiples of 5 & 10)**: 10 jobs/screen batch, 12 RPM pacing (5.0s), 450 max daily emails, 40m workflow timeout, and 30-day run log pruning.
+> **Bottom Line:** Operates comfortably at **100% Free ($0.00/month)** for **300+ Daily Active Users** out-of-the-box, and scales automatically to **1,000–25,000+ users** purely by upgrading external vendor plans (**0 code or configuration changes required**).
 
 ---
 

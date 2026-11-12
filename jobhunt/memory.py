@@ -37,8 +37,19 @@ _SESSION_LOCK = threading.Lock()
 # Thread-safe short TTL cache for read operations
 _PROFILE_CACHE: Dict[str, tuple[Dict[str, Any], float]] = {}
 _JOBS_CACHE: Dict[str, tuple[Dict[str, Dict[str, Any]], float]] = {}
-_CACHE_TTL = 10.0
+_CACHE_TTL = 45.0
 _CACHE_LOCK = threading.Lock()
+
+
+_PROFILE_JSON_EXTRA_KEYS = (
+    "latest_digest_html",
+    "latest_digest_subject",
+    "latest_digest_at",
+    "latest_digest_shortlisted",
+    "latest_digest_job_ids",
+    "custom_companies",
+    "seen_archive",
+)
 
 
 def invalidate_user_cache(email: Optional[str] = None) -> None:
@@ -130,7 +141,12 @@ class SupabaseMemory:
     # --------------------------------------------------------------------------
     # 1. User Profiles & Candidate Studio Memory
     # --------------------------------------------------------------------------
-    def get_user_profile(self, email: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def get_user_profile(
+        self,
+        email: str,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> Optional[Dict[str, Any]]:
         """Retrieve user candidate profile, resume, and preferences from Supabase."""
         if not self.is_configured or not email:
             return None
@@ -147,7 +163,12 @@ class SupabaseMemory:
         try:
             endpoint = f"{self.url}/rest/v1/user_profiles"
             params = {"email": f"eq.{clean_email}", "select": "*"}
-            resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
+            resp = _get_session().get(
+                endpoint,
+                headers=self._headers(token, use_service_key=use_service_key),
+                params=params,
+                timeout=self.timeout,
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 if data and isinstance(data, list) and len(data) > 0:
@@ -293,14 +314,7 @@ class SupabaseMemory:
                         "current_ctc_lpa": cur_ctc_val,
                         "expected_ctc_lpa": exp_ctc_val,
                     }
-                    for dk in (
-                        "latest_digest_html",
-                        "latest_digest_subject",
-                        "latest_digest_at",
-                        "latest_digest_shortlisted",
-                        "latest_digest_job_ids",
-                        "custom_companies",
-                    ):
+                    for dk in _PROFILE_JSON_EXTRA_KEYS:
                         if dk in pjson:
                             res_profile[dk] = pjson[dk]
 
@@ -460,7 +474,7 @@ class SupabaseMemory:
             "notable_projects": profile.get("notable_projects") or [],
         }
 
-        for dk in ("latest_digest_html", "latest_digest_subject", "latest_digest_at", "latest_digest_shortlisted", "latest_digest_job_ids", "custom_companies"):
+        for dk in _PROFILE_JSON_EXTRA_KEYS:
             if dk in profile:
                 pjson_merged[dk] = profile[dk]
 
@@ -508,11 +522,14 @@ class SupabaseMemory:
         token: Optional[str] = None,
         use_service_key: bool = False,
     ) -> bool:
-        """Update specific keys in user profile_json (e.g. latest_digest_html) without overwriting other profile fields."""
+        """Update specific keys in user profile_json (e.g. latest_digest_html, seen_archive) without overwriting other fields."""
         if not self.is_configured or not email:
             return False
         clean_email = email.lower().strip()
-        existing = self.get_user_profile(clean_email, token=token) or {}
+        try:
+            existing = self.get_user_profile(clean_email, token=token, use_service_key=use_service_key) or {}
+        except TypeError:
+            existing = self.get_user_profile(clean_email, token=token) or {}
         merged = {**existing, **updates}
         return self.upsert_user_profile(clean_email, merged, token=token, use_service_key=use_service_key)
 
@@ -543,8 +560,14 @@ class SupabaseMemory:
     # --------------------------------------------------------------------------
     # 2. Tracked Jobs Memory (Strict User Isolation)
     # --------------------------------------------------------------------------
-    def load_user_jobs(self, email: str, limit: int = 10000, token: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
-        """Load all tracked jobs for a given user email from Supabase PostgreSQL."""
+    def load_user_jobs(
+        self,
+        email: str,
+        limit: int = 10000,
+        token: Optional[str] = None,
+        use_service_key: bool = False,
+    ) -> Dict[str, Dict[str, Any]]:
+        """Load all tracked jobs for a given user email from Supabase PostgreSQL with PostgREST pagination."""
         self.last_error = None
         if not self.is_configured or not email:
             return {}
@@ -561,14 +584,25 @@ class SupabaseMemory:
         jobs_map: Dict[str, Dict[str, Any]] = {}
         try:
             endpoint = f"{self.url}/rest/v1/user_tracked_jobs"
-            params = {
-                "user_email": f"eq.{clean_email}",
-                "select": "job_id,company,title,location,url,ats,score,reason,applied,applied_on,application_stage,notes,salary_range,emailed,draft,first_seen,created_at",
-                "order": "created_at.desc",
-                "limit": str(limit),
-            }
-            resp = _get_session().get(endpoint, headers=self._headers(token), params=params, timeout=self.timeout)
-            if resp.status_code == 200:
+            headers = self._headers(token, use_service_key=use_service_key)
+            target_limit = max(1, int(limit))
+            page_size = min(1000, target_limit)
+            offset = 0
+            fetched_total = 0
+
+            while fetched_total < target_limit:
+                batch_limit = min(page_size, target_limit - fetched_total)
+                params = {
+                    "user_email": f"eq.{clean_email}",
+                    "select": "job_id,company,title,location,url,ats,score,reason,applied,applied_on,application_stage,notes,salary_range,emailed,draft,first_seen,created_at",
+                    "order": "created_at.desc",
+                    "limit": str(batch_limit),
+                    "offset": str(offset),
+                }
+                resp = _get_session().get(endpoint, headers=headers, params=params, timeout=self.timeout)
+                if resp.status_code != 200:
+                    self.last_error = f"Supabase jobs read failed with HTTP {resp.status_code}"
+                    return jobs_map
                 raw_json = resp.json()
                 records = raw_json if isinstance(raw_json, list) else []
                 for r in records:
@@ -596,10 +630,13 @@ class SupabaseMemory:
                             "draft": r.get("draft") or {},
                             "first_seen": r.get("first_seen") or r.get("created_at"),
                         }
-                with _CACHE_LOCK:
-                    _JOBS_CACHE[clean_email] = ({k: dict(v) for k, v in jobs_map.items()}, now + _CACHE_TTL)
-            if resp.status_code != 200:
-                self.last_error = f"Supabase jobs read failed with HTTP {resp.status_code}"
+                fetched_total += len(records)
+                if len(records) < batch_limit:
+                    break
+                offset += len(records)
+
+            with _CACHE_LOCK:
+                _JOBS_CACHE[clean_email] = ({k: dict(v) for k, v in jobs_map.items()}, time.time() + _CACHE_TTL)
             return jobs_map
         except Exception as e:
             self.last_error = str(e)

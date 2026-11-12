@@ -52,11 +52,11 @@ flowchart LR
 
 | Service / Infrastructure | Free Quota | Consumption / User | Hard Free User Cap | Bottleneck Status |
 |---|---|---|:---:|---|
-| **Google Gemini AI (1 Key)** | 1,500 req/day & 1M tokens/day | ~1.2 requests/day (single batch + top-1 draft) | **300+ Users** | 🛑 **Primary Ceiling** (out-of-the-box, 24% of daily RPD) |
-| **Gmail SMTP** | 500 emails / 24 hours | 1.0 email/day (daily briefing or zero-match radar) | **450 Dispatches / Day** | 🛑 **Secondary Ceiling** (`MAX_DAILY_SEND = 450` circuit breaker) |
-| **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | <1.5 MB (1,000-job FIFO window + 30d run log pruning) | **330+ Users** | 🛑 **Storage Ceiling** (free database disk; stays < 30 MB indefinitely) |
-| **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | ~6.0s / user in batch pass | **1,500 Users** | ✅ 40 min daily schedule headroom (900 mins/mo for 300 users) |
-| **Vercel Hobby** | 100 GB monthly bandwidth | ~15 MB / user / month | **6,600 Users** | ✅ High headroom |
+| **Google Gemini AI (1 Key)** | 1,500 req/day & 1M tokens/day | ~1.2 requests/day (single batch + top-1 draft) | **300+ Users** | ✅ Auto-accelerates from `5.0s` &rarr; `0.05s` via AIMD on paid keys; fast keyword fallback circuit breaker if shared quota exhausts |
+| **Gmail SMTP** | 500 emails / 24 hours (or 2,000+ Workspace / Bulk) | 1.0 email/day (daily briefing or zero-match radar) | **500 Free / Unbounded Paid** | ✅ Dynamic `MAX_DAILY_SEND=50000` default + automatic upstream quota breaker (`550 5.4.5` / `421 4.7.0`) |
+| **Supabase PostgreSQL** | 500 MB DB disk & 50,000 MAU | ~450 KB (300-job unapplied FIFO window + 30d run log pruning) | **300–1,000 Free Users** | ✅ Paginated >1,000-row reads + lightweight projection scale seamlessly upon Pro upgrade |
+| **GitHub Actions** | 2,000 mins/mo (or unlim. if public) | Pip-cached ~4s/user concurrent batch execution | **1,500+ Users** | ✅ `360m` ceiling + `JOBHUNT_ATS_DISK_CACHE=1` |
+| **Vercel Hobby** | 100 GB bandwidth / 1M invocations | ~15 MB / user / month | **300–6,600 Users** | ✅ High headroom (60s idle-aware sync + 45s cache TTL) |
 | **9 ATS Board Crawlers** | Public JSON endpoints (114+ boards) | 0 extra (single global pass) | **Unlimited** | ✅ Completely independent of user volume |
 
 ### A. Primary AI Engine: Google Gemini Flash (`gemini-3.5-flash`)
@@ -98,7 +98,7 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **591 automated tests** (584 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
+* **604 automated tests** (597 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.
@@ -112,11 +112,12 @@ Traditional databases grow indefinitely over time ($O(N \times T)$), eventually 
 $$\text{Database Storage}(t) = N_{\text{users}} \times \left( M_{\text{active\_jobs}} \times S_{\text{job\_record}} + M_{\text{applied\_jobs}} \times S_{\text{job\_record}} + S_{\text{profile}} \right)$$
 
 Where:
-* $M_{\text{active\_jobs}} \le 1000$ (enforced by FIFO pruning)
+* $M_{\text{active\_jobs}} \le 300$ unapplied jobs by default (enforced by FIFO pruning; override via `MAX_TRACKED_JOBS_COUNT`; applied/interviewing jobs retained forever)
+* $M_{\text{seen\_archive}} \le 2000$ compact 12-char `job_id` SHA-1 digests (`<= 24 \text{ KB}$ inside `user_profiles.profile_json`, configurable via `MAX_SEEN_ARCHIVE_COUNT`), providing **2,300 jobs (~7.5 months)** of anti-repeat dedup memory
 * $S_{\text{job\_record}} \approx 1.5 \text{ KB}$
 * $S_{\text{profile}} \approx 2.0 \text{ KB}$
 
-**Result**: After ~45 days of initial scan accumulation, storage stops growing and reaches a permanent, stable equilibrium plateau.
+**Result**: After ~30 days of initial scan accumulation, UI storage stops growing at an equilibrium plateau while `seen_archive` prevents pruned or undated jobs from re-appearing across months.
 
 ---
 
@@ -131,8 +132,8 @@ timeline
                      : Instant zero-downtime key rotation
     500 to 1,000 Users : Gmail 500 Email Cap Hit
                        : Add free Brevo (300/day) or Resend (3,000/mo) SMTP provider
-    330 to 500 Users : Supabase 500 MB Cap Hit (at 1,000 jobs default)
-                     : Reduce MAX_TRACKED_JOBS_COUNT (e.g. to 300) to reach 1,040 free users, or upgrade to Supabase Pro ($25/mo)
+    330 to 500 Users : Supabase 500 MB Comfortable Headroom (300 unapplied cap = ~450 KB/user)
+                     : Upgrade to Supabase Pro ($25/mo) or adjust MAX_TRACKED_JOBS_COUNT seamlessly without code changes
 ```
 
 ---
@@ -171,7 +172,7 @@ Commercial job search platforms charge substantial recurring subscription fees w
 |---|:---:|:---:|---|---|:---:|
 | **Tier 1: Free Baseline** | **1 – 300** | **$0.00** | • 1 Free Gemini Key<br>• 1 Free Gmail Account<br>• Supabase Free (500 MB)<br>• GitHub Actions Free (2,000m) | **Gemini Free Quota (1,500 RPD)**<br>Zero maintenance out-of-the-box. | **0 Lines** |
 | **Tier 2: Multi-Key Free**<br>*(Active 3-Key Setup)* | **300 – 500** | **$0.00** | • **3 Gemini Keys (CSV Rotation)**<br>• 1 Free Gmail Account<br>• Supabase Free (500 MB)<br>• GitHub Actions Free | **Gmail 500 Email Daily Cap**<br>AI handled easily at 45 RPM; capped by single Gmail account. | **0 Lines** |
-| **Tier 3: Absolute Free Ceiling** | **500 – 1,040** | **$0.00** | • 4 Free Gemini Keys (CSV)<br>• Free Multi-SMTP (Gmail + Brevo/Resend)<br>• Supabase Free (500 MB)<br>• GitHub Actions Free | **Supabase 500 MB Storage Plateau**<br>Hard ceiling of free database disk (requires setting `MAX_TRACKED_JOBS_COUNT=300` for ~450 KB / user, or 330 users at 1,000 jobs). | **0 Lines** |
+| **Tier 3: Absolute Free Ceiling** | **500 – 1,040** | **$0.00** | • 4 Free Gemini Keys (CSV)<br>• Free Multi-SMTP (Gmail + Brevo/Resend)<br>• Supabase Free (500 MB)<br>• GitHub Actions Free | **Supabase 500 MB Storage Plateau**<br>Hard ceiling of free database disk (~450 KB/user at default `MAX_TRACKED_JOBS_COUNT=300`, comfortably covering 300–1,040 DAU free). | **0 Lines** |
 | **Tier 4: Pro Scale** | **1,040 – 5,000** | **~$35 – $50 / mo** | • Gemini Pay-As-You-Go ($5–$15)<br>• Supabase Pro ($25/mo for 8 GB disk)<br>• Amazon SES / Resend ($5–$10 for bulk)<br>• GitHub Actions Free (or matrix runner) | **Daily Job Runtime**<br>Split GitHub Actions worker into 2 parallel matrix jobs via workflow YAML. | **0 Lines** |
 | **Tier 5: Enterprise Fleet** | **5,000 – 25,000+** | **~$150 – $300 / mo** | • Dedicated Postgres Cluster<br>• Gemini Enterprise API (1,000+ RPM)<br>• Dedicated Worker Nodes<br>• Amazon SES Dedicated IP | **Database Connection Limits**<br>Enable Supabase PgBouncer connection pooling. | **0 Lines** |
 

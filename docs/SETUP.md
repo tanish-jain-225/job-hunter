@@ -337,8 +337,9 @@ GITHUB_REPOSITORY=your-github-username/job-hunter
 # Generate key via: python -c "import secrets; print(secrets.token_hex(32))"
 FLASK_SECRET_KEY=generate_any_random_32_character_string_here
 
-# 6. Storage & Sliding Window Limits (Optional, default: 1000 unapplied jobs)
-MAX_TRACKED_JOBS_COUNT=1000
+# 6. Storage & Sliding Window Limits (Optional, default: 300 UI rows + 2000 FIFO archived IDs = 2300 jobs remembered)
+MAX_TRACKED_JOBS_COUNT=300
+MAX_SEEN_ARCHIVE_COUNT=2000
 ```
 
 ---
@@ -361,7 +362,8 @@ MAX_TRACKED_JOBS_COUNT=1000
 | `GH_TOKEN` | Cloud Radar | GitHub PAT for dispatching workflow runs. | `github_pat_...` |
 | `GITHUB_REPOSITORY` | Cloud Radar | Your GitHub repository path `owner/repo`. | `octocat/job-hunter` |
 | `FLASK_SECRET_KEY` | All Modes | Secret string used to sign session cookies. | 32-character hex string |
-| `MAX_TRACKED_JOBS_COUNT` | Optional | Rolling retention cap for unapplied jobs in store/database (pruned FIFO). | `1000` |
+| `MAX_TRACKED_JOBS_COUNT` | Optional | Rolling retention cap for unapplied jobs in store/database (pruned FIFO; applied jobs preserved forever). | `300` |
+| `MAX_SEEN_ARCHIVE_COUNT` | Optional | Compact FIFO `seen_archive` ring buffer inside `profile_json` remembering evicted `job_id` hashes (~24 KB max). | `2000` |
 | `LLM_PROVIDER` | Optional | Primary AI provider override (`gemini`, `anthropic`, `groq`). | `gemini` |
 
 ---
@@ -615,7 +617,7 @@ Run this diagnostic checklist to verify every subsystem:
 | **0. Preflight Diagnostics** | `jobhunt check` | All packages, configurations, and keys verified | ✅ Passed |
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
 | **2. Board Reachability** | `jobhunt verify --workers 10` | 114/114 boards verified reachable (HTTP 200) | ✅ Passed |
-| **3. Automated Test Suite** | `python -m pytest tests/` | **591 passed tests (100% pass rate, 92% coverage)** | ✅ Passed |
+| **3. Automated Test Suite** | `python -m pytest tests/` | **604 passed tests (100% pass rate, 92% coverage)** | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
 | **5. Type Checking** | `mypy jobhunt` | Success: no issues found across all source files | ✅ Passed |
 | **6. Code Linting** | `ruff check .` | All checks passed (0 errors) | ✅ Passed |

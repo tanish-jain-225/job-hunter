@@ -56,6 +56,9 @@ from .providers_throttle import (
     reset_provider_state,
     _enforce_rate_limit_throttle,
     _enforce_key_throttle,
+    _enforce_adaptive_key_throttle,
+    _record_key_success,
+    _record_key_rate_limit,
     _record_key_cooldown,
     _is_key_cooling_down,
     _record_key_disabled,
@@ -95,6 +98,9 @@ __all__ = [
     "reset_provider_state",
     "_enforce_rate_limit_throttle",
     "_enforce_key_throttle",
+    "_enforce_adaptive_key_throttle",
+    "_record_key_success",
+    "_record_key_rate_limit",
     "_record_key_cooldown",
     "_is_key_cooling_down",
     "_record_key_disabled",
@@ -338,14 +344,17 @@ class AnthropicProvider(Provider):
         max_attempts = max(3, len(keys))
         for attempt in range(max_attempts):
             cur_key = keys[attempt % len(keys)]
-            _enforce_rate_limit_throttle(self.name, num_keys=max(1, len(usable)))
+            throttle_key = cur_key or "default"
+            _enforce_adaptive_key_throttle(throttle_key, provider_name=self.name)
             try:
                 try:
                     c = self._client(api_key=cur_key) if cur_key else self._client()
                 except TypeError:
                     c = self._client()
                 msg = fn(c)
-                return self._text(msg)
+                text = self._text(msg)
+                _record_key_success(throttle_key, provider_name=self.name)
+                return text
             except Exception as e:
                 err_low = str(e).lower()
                 if cur_key and any(tok in err_low for tok in ("401", "403", "authentication", "invalid x-api-key", "invalid api key")):
@@ -354,6 +363,7 @@ class AnthropicProvider(Provider):
                     if len(configured) == 1 or not [k for k in configured if not _is_key_disabled(k)]:
                         raise LLMError(f"{op_name} error: {e}") from e
                 if cur_key and ("429" in err_low or "rate" in err_low):
+                    _record_key_rate_limit(throttle_key, provider_name=self.name)
                     _record_key_cooldown(cur_key, 30.0)
                 if attempt < max_attempts - 1:
                     delay = 3 * (attempt + 1)
@@ -470,7 +480,7 @@ class GeminiProvider(Provider):
 
             for attempt_idx in range(tier_attempts):
                 key = ordered_keys[attempt_idx % len(ordered_keys)]
-                _enforce_key_throttle(key, min_interval=5.0)
+                _enforce_adaptive_key_throttle(key, provider_name="gemini", default_interval=5.0)
                 try:
                     r = requests.post(
                         url,
@@ -484,6 +494,7 @@ class GeminiProvider(Provider):
 
                     if r.status_code == 429:
                         cooldown = _parse_retry_after(getattr(r, "headers", None), body_text, default=20.0, minimum=5.0)
+                        _record_key_rate_limit(key, provider_name="gemini", default_interval=5.0)
                         _record_key_cooldown(key, cooldown, model=effective_model)
                         last_error = LLMError(f"gemini HTTP 429: {body_text[:300]}")
 
@@ -592,6 +603,7 @@ class GeminiProvider(Provider):
                         )
                     if not text:
                         raise LLMError(f"gemini returned no text: {body_text[:300]}")
+                    _record_key_success(key, provider_name="gemini", default_interval=5.0)
                     return text
 
                 except requests.RequestException as e:
@@ -736,7 +748,7 @@ class OpenAICompatProvider(Provider):
 
             for attempt_idx in range(tier_attempts):
                 key = ordered_keys[attempt_idx % len(ordered_keys)]
-                _enforce_rate_limit_throttle(self.name, num_keys=max(1, len(ordered_keys)))
+                _enforce_adaptive_key_throttle(key, provider_name=self.name)
                 try:
                     r = requests.post(
                         f"{base}/chat/completions",
@@ -749,6 +761,7 @@ class OpenAICompatProvider(Provider):
 
                     if r.status_code == 429:
                         cooldown = _parse_retry_after(getattr(r, "headers", None), body_text, default=60.0, minimum=10.0)
+                        _record_key_rate_limit(key, provider_name=self.name)
                         _record_key_cooldown(key, cooldown, model=cur_model)
                         last_error = LLMError(f"{self.name} HTTP 429: {body_text[:300]}")
                         remaining = [k for k in ordered_keys[attempt_idx + 1 :] if not _is_key_cooling_down(k, model=cur_model)]
@@ -799,9 +812,11 @@ class OpenAICompatProvider(Provider):
                     if r.status_code != 200:
                         raise LLMError(f"{self.name} HTTP {r.status_code}: {body_text[:300]}")
                     try:
-                        return r.json()["choices"][0]["message"]["content"]
+                        content = r.json()["choices"][0]["message"]["content"]
                     except (KeyError, IndexError, ValueError) as e:
                         raise LLMError(f"{self.name} malformed reply: {body_text[:300]}") from e
+                    _record_key_success(key, provider_name=self.name)
+                    return content
                 except requests.RequestException as e:
                     last_error = LLMError(f"{self.name} network error: {e}")
                     last_cause = e

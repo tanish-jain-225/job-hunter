@@ -27,7 +27,7 @@ Before any LLM token is spent, all fetched postings are run through quick regex 
 * **Exclude Titles:** Drops invalid matches (e.g., `senior`, `lead`, `ios`, `devops`).
 * **India-First Location Gate & Tech Corridors:** Checks if the posting matches target regions or allows `remote`. Supports `all_india` preference with automatic matching of top Indian metro hubs (`Bengaluru`, `Hyderabad`, `Pune`, `Delhi-NCR`, `Mumbai`, `Chennai`, `Gurugram`, `Noida`) and prominent IT business districts / corridors (`Whitefield`, `Electronic City`, `Bellandur`, `Koramangala`, `HITEC City`, `Cyberabad`, `Gachibowli`, `Madhapur`, `Hinjewadi`, `Magarpatta`, `Manyata Tech Park`).
 * **Employment Type, Campus Trainee & Negation Gate:** Detects `remote`, `hybrid`, `onsite`, `internship`, and campus entry points (`campus hire`, `campus intern`, `graduate trainee`, `engineering trainee`) with negation awareness (filtering out *"not remote"*, *"no internships"* false positives).
-* **Date Freshness & Epoch Timestamp Parsing:** Discards jobs published longer than `max_age_days` (default `20` days) ago, supporting ISO-8601 strings, human-readable dates, and millisecond/second numeric epoch timestamps.
+* **Date Freshness & Epoch Timestamp Parsing:** Discards jobs published longer than `max_age_days` (default `20` days) ago, supporting ISO-8604 strings, human-readable dates, and millisecond/second numeric epoch timestamps.
 * **Deterministic Multi-Currency Salary Extraction:** Scans raw job text with `extract_salary_hint` (`_SALARY_PATTERNS`) to extract structured compensation without consuming LLM tokens:
   - Indian Rupee Full-Time: `₹X-Y LPA`, `12-18 LPA`, `10-15 Lacs`, `₹X Lakhs/yr`
   - Monthly Internship Stipends: `₹X,XXX-₹Y,YYY/month`, `₹Xk/mo`, `stipend: ₹25,000/mo`
