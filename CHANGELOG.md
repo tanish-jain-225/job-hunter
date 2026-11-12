@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.1.8] — 2026-11-11
+## [1.1.8] — 2026-11-12
 
 ### Added
 - **Headless Playwright Browser Test Suite**: Added a dedicated browser testing suite in `tests/test_browser_playwright.py` using Playwright Chromium with 7 tests covering unauthenticated landing view, multi-step onboarding wizard progression, live tracker search query and ATS chip filtering, workflow stage transitions, pagination/tech hubs, and modal escape/dismissal/reset lifecycles.
@@ -22,7 +22,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Candidate Credential Stripping**: Added recursive sanitization in `POST /api/profile` to strip any accidental credential fields (`api_key`, `token`, `secret`, `password`) before writing to persistent storage.
 
 ### Fixed & Accessibility
-- **Modal Accessibility & UI Cleanup**: Added WCAG dialog ARIA attributes, keyboard focus trapping (`activateModalFocus` / `deactivateModalFocus`), `prefers-reduced-motion` CSS rules, guarded icon-only profile reset, aligned Vercel upload extraction timeout (`8.0s` Vercel / `14.0s` standard), removed unused `static/js/modules/` legacy files, and synchronized `README.md`, `RELEASE_NOTES.md`, and `docs/*.md` to **583 tests** (**92% statement coverage**).
+- **Model-First Multi-Key Rotation & Failover Hardening**: Enforced true Model-first key rotation (`model 1` across all project keys before cascading to `model 2`), `(key, model)` scoped cooldowns, non-looping cross-provider failover, automatic keyword fallback in `jobhunt/multi.py` on LLM pool exhaustion, and updated the daily GitHub Actions cron schedule to `07:37 AM IST` (`07 02 * * *`).
+- **Modal Accessibility & UI Cleanup**: Added WCAG dialog ARIA attributes, keyboard focus trapping (`activateModalFocus` / `deactivateModalFocus`), `prefers-reduced-motion` CSS rules, guarded icon-only profile reset, aligned Vercel upload extraction timeout (`8.0s` Vercel / `14.0s` standard), removed unused `static/js/modules/` legacy files, and synchronized `README.md`, `RELEASE_NOTES.md`, and `docs/*.md` to **591 tests** (**92% statement coverage**).
 - **UI Freeze Syntax Error**: Resolved an unmatched brace syntax error in `static/js/app.js` (`populateSection2FromProfile`) that halted `DOMContentLoaded` compilation and froze the dashboard interface.
 - **Profile Modal Wizard Architecture**: Consolidated profile persistence to `#btn-profile-save` located strictly at the culmination of the 3-step setup flow (Step 3: Alert Settings), removing redundant intermediate save buttons from Step 2 to guarantee a smooth, complete wizard transition.
 - **Profile Modal Button Types**: Added `type="button"` and `id="profile-next-2"` to modal wizard buttons in `templates/partials/profile_settings.html`, preventing unintended form submission triggers.
