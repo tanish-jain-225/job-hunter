@@ -115,7 +115,7 @@ flowchart TD
         GHA["GitHub Actions Scheduled Cron (daily.yml)"]
         MultiEngine["Multi-User Batch Engine (jobhunt/multi.py)"]
         SMTP["SMTP StartTLS Relay (smtp.gmail.com:587)"]
-        GHA -->|Trigger 05:00 IST| MultiEngine
+        GHA -->|Trigger 07:37 IST| MultiEngine
         MultiEngine -->|Fetch Once| FetchAll
         MultiEngine -->|Iterate Active Candidates| PreFilter
         GeminiFlash -->|Scored Matches & Kits| MultiEngine
@@ -152,7 +152,7 @@ flowchart TD
    - Generates responsive, candidate-personalized HTML briefings containing top-scored vacancies, match rationales, and tailored LinkedIn referral pitch notes.
    - Dispatches via authenticated StartTLS SMTP (`smtp.gmail.com:587`), including RFC-compliant `Message-ID`, `Auto-Submitted: auto-generated`, and `Precedence: bulk` headers to ensure inbox delivery.
 7. **Cloud Cron Automation (`.github/workflows/daily.yml`)**:
-   - Scheduled daily runner executing at **23:30 UTC (05:00 IST)** every single morning.
+   - Scheduled daily runner executing at **02:07 UTC (07:37 IST)** every single morning.
    - Executes `jobhunt multi-run` autonomously in GitHub Actions, crawling feeds, matching active candidates, updating PostgreSQL tables, and dispatching morning dossiers before candidates start their workday.
 
 ---

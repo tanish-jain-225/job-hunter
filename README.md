@@ -82,7 +82,7 @@ flowchart TD
 
     subgraph S5["📬 STAGE 5: EXECUTIVE DELIVERY & SYNCHRONIZATION"]
         WEB["💻 Interactive Web Board<br>5-Stage Pipeline Tracking • 4-Day Follow-Up Alerts"]
-        EMAIL["✉️ Daily Morning Briefing<br>05:00 AM IST Inbox Digest • SMTPSession (450 Quota Cap)"]
+        EMAIL["✉️ Daily Morning Briefing<br>07:37 AM IST Inbox Digest • SMTPSession (450 Quota Cap)"]
         DB[("⚡ Supabase PostgreSQL<br>Row-Level Security (RLS) Multi-Tenant Storage")]
         CSV["📊 Instant CSV Export<br>out/tracker.csv Pipeline Mirror"]
     end
@@ -133,7 +133,7 @@ The modern tech job search is fundamentally broken, especially across the high-s
 | **AI Scorer & Engine** | Generic GPT-4o-mini prompt wrappers | Basic template variable substitutions | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
 | **Application Kit Output** | Single basic cover letter | Generic auto-filled forms | **Full Kit**: Cover Note, Recruiter DM, LinkedIn Referral & Bullets |
 | **Account Safety** | Safe (manual) | ⚠️ High risk of LinkedIn account bans & ATS spam penalties | **The Golden Rule**: Scout & Draft; Human Submits (100% Safe) |
-| **Daily Delivery** | Manual dashboard login | Email blast spam | **Automated Daily Morning Digest** (05:00 AM IST in your inbox) |
+| **Daily Delivery** | Manual dashboard login | Email blast spam | **Automated Daily Morning Digest** (07:37 AM IST in your inbox) |
 | **Data Privacy** | Closed proprietary cloud databases | Third-party bot servers | **100% Private**: Supabase PostgreSQL with Row-Level Security (RLS) |
 
 ---
@@ -503,7 +503,7 @@ For multi-tenant cloud hosting, **Job Hunter** is designed to run 100% free usin
 
 - **Vercel**: Hosts the Flask WSGI web application (`api/index.py`) and static dashboard assets.
 - **Supabase**: Manages user authentication and PostgreSQL storage with Row-Level Security.
-- **GitHub Actions**: Runs the scheduled daily batch crawler every morning at 05:00 AM IST (23:30 UTC).
+- **GitHub Actions**: Runs the scheduled daily batch crawler every morning at 07:37 AM IST (02:07 UTC).
 
 ```mermaid
 flowchart TD
@@ -521,7 +521,7 @@ flowchart TD
     end
 
     subgraph GHA["GitHub Actions (Scheduled Worker)"]
-        CRON["daily.yml (05:00 AM IST)"]
+        CRON["daily.yml (07:37 AM IST)"]
         MULTI["jobhunt multi-run"]
     end
 
@@ -562,7 +562,7 @@ flowchart TD
 
 ## Automated Scheduled Execution (GitHub Actions)
 
-The scheduled workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) executes every morning at **05:00 AM IST (23:30 UTC)**:
+The scheduled workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) executes every morning at **07:37 AM IST (02:07 UTC)**:
 
 - Uses least-privilege `contents: read` permissions.
 - Centralized multi-user batch pipeline crawls all company boards **once** into a shared pool.

@@ -233,12 +233,15 @@ def run_multi_user_pipeline(
                     if scorer == "keyword" or mock:
                         llm.keyword_screen(unseen_jobs, profile_dict)
                     else:
+                        strict_llm = os.environ.get("STRICT_LLM", "").strip().lower() in ("1", "true", "yes")
                         try:
                             provider, model = resolve("screen")
                             print(f"  Screening {len(unseen_jobs)} postings via {provider.name}/{model}...")
                             llm.screen(
                                 unseen_jobs,
                                 profile_dict,
+                                provider=provider,
+                                model=model,
                                 batch_size=int(cfg.get("screen_batch_size", 10)),
                                 jd_chars=int(cfg.get("screen_jd_chars", 800)),
                                 delay_seconds=float(cfg.get("llm_delay_seconds", 0.0)),
@@ -246,7 +249,13 @@ def run_multi_user_pipeline(
                                 api_key=candidate_api_key,
                             )
                         except Exception as e:
+                            if strict_llm:
+                                raise
                             print(f"  ! Screening error ({e}). Falling back to keyword matcher...")
+                            llm.keyword_screen(unseen_jobs, profile_dict)
+
+                        if not strict_llm and unseen_jobs and not any(j.score is not None for j in unseen_jobs):
+                            print("  ! LLM screening produced 0 scored jobs. Falling back to keyword matcher...")
                             llm.keyword_screen(unseen_jobs, profile_dict)
 
                     scored_jobs = [j for j in unseen_jobs if j.score is not None]

@@ -13,7 +13,7 @@ Job Hunter supports multi-user batch processing on a free-tier stack for develop
 ```text
                                ┌────────────────────────────────┐
                                │  GitHub Actions / Local Cron   │
-                               │  (Scheduled Daily at 05:00 IST)│
+                               │  (Scheduled Daily at 07:37 IST)│
                                └───────────────┬────────────────┘
                                                │
                                                ▼
@@ -91,7 +91,7 @@ python -m jobhunt multi-run --user-email candidate@example.com --send
 
 ### Via GitHub Actions:
 - Trigger manually from the **Actions** tab by choosing `multi` mode.
-- Automated daily schedule runs every day at 23:30 UTC (05:00 IST).
+- Automated daily schedule runs every day at 02:07 UTC (07:37 IST).
 
 The current Supabase schema isolates user rows by normalized email claims. The
 scheduled worker uses the service-role key to enumerate eligible profiles and

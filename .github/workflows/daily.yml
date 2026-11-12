@@ -3,8 +3,8 @@ run-name: 🏹 Daily Job Hunter Automated Radar (${{ github.event_name }})
 
 on:
   schedule:
-    # 23:30 UTC = 05:00 IST (Every Single Day, Monday through Sunday)
-    - cron: '30 23 * * *'
+    # 02:07 UTC = 07:37 IST (Every Single Day, Monday through Sunday)
+    - cron: '7 2 * * *'
   workflow_dispatch:
     inputs:
       mode:

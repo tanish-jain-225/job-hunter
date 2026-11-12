@@ -535,7 +535,7 @@ Deploy Job Hunter to the cloud so it runs 24/7 autonomously:
 ```mermaid
 flowchart TD
     Repo["GitHub Repository"] --> Vercel["Vercel Serverless\n(Hosts Web Dashboard & API)"]
-    Repo --> Actions["GitHub Actions\n(Runs Daily 05:00 AM IST Cron)"]
+    Repo --> Actions["GitHub Actions\n(Runs Daily 07:37 AM IST Cron)"]
     Vercel <--> Supabase[("Supabase PostgreSQL\n(Auth, Profiles, Tracked Jobs)")]
     Actions <--> Supabase
     Actions --> SMTP["Gmail SMTP\n(Sends Morning Digest)"]
@@ -568,7 +568,7 @@ flowchart TD
 
 ---
 
-### Step 6.2: Configure Automated Daily 05:00 AM Cron via GitHub Actions
+### Step 6.2: Configure Automated Daily 07:37 AM IST Cron via GitHub Actions
 
 The repository includes a ready-to-use GitHub Actions workflow in [`.github/workflows/daily.yml`](../.github/workflows/daily.yml).
 
@@ -589,7 +589,7 @@ The repository includes a ready-to-use GitHub Actions workflow in [`.github/work
 3. Navigate to the **Actions** tab in GitHub:
    - Click **"Daily Career Intelligence Digest"** in the left sidebar.
    - Click **"Run workflow"** to trigger a test execution immediately!
-   - By default, the workflow executes automatically every day at **05:00 AM IST (23:30 UTC)**.
+   - By default, the workflow executes automatically every day at **07:37 AM IST (02:07 UTC)**.
 
 ---
 

@@ -8,11 +8,13 @@ import time
 
 _RATE_LOCK = threading.Lock()
 _KEY_COOLDOWN_MAP: dict[str, float] = {}
+_DISABLED_KEYS: set[str] = set()
 _LAST_CALL_MAP: dict[str, float] = {}
 _KEY_LAST_CALL_MAP: dict[str, float] = {}
 _MODEL_COOLDOWN_MAP: dict[str, float] = {}
 _MODEL_ALIAS_MAP: dict[str, str] = {}
 _GEMINI_KEY_COUNTER: int = 0
+_PROVIDER_KEY_COUNTERS: dict[str, int] = {}
 _GEMINI_COUNTER_LOCK = threading.Lock()
 
 MIN_CALL_INTERVALS: dict[str, float] = {
@@ -24,11 +26,19 @@ MIN_CALL_INTERVALS: dict[str, float] = {
 }
 
 
+def _cooldown_slot(key: str, model: str | None = None) -> str:
+    """Build scoped cooldown dictionary key for an API key and optional model."""
+    return f"{key}::{model}" if model else key
+
+
 def _record_model_cooldown(model: str, cooldown_seconds: float = 600.0) -> None:
     """Mark a model endpoint as cooling down / exhausted."""
     if model:
         with _RATE_LOCK:
-            _MODEL_COOLDOWN_MAP[model] = time.time() + cooldown_seconds
+            _MODEL_COOLDOWN_MAP[model] = max(
+                _MODEL_COOLDOWN_MAP.get(model, 0.0),
+                time.time() + cooldown_seconds,
+            )
 
 
 def _is_model_cooling_down(model: str) -> bool:
@@ -41,17 +51,22 @@ def _is_model_cooling_down(model: str) -> bool:
 
 def _record_model_alias(from_model: str, to_model: str) -> None:
     """Cache working endpoint alias for a model name to eliminate subsequent 404 retries."""
-    if from_model and to_model:
+    if from_model and to_model and from_model != to_model:
         with _RATE_LOCK:
             _MODEL_ALIAS_MAP[from_model] = to_model
 
 
 def _resolve_model_alias(model: str) -> str:
-    """Resolve model through any cached endpoint alias."""
+    """Resolve model through any cached endpoint alias chain without cycles."""
     if not model:
         return model
     with _RATE_LOCK:
-        return _MODEL_ALIAS_MAP.get(model, model)
+        cur = model
+        seen: set[str] = set()
+        while cur in _MODEL_ALIAS_MAP and cur not in seen:
+            seen.add(cur)
+            cur = _MODEL_ALIAS_MAP[cur]
+        return cur
 
 
 def reset_provider_state() -> None:
@@ -59,56 +74,97 @@ def reset_provider_state() -> None:
     global _GEMINI_KEY_COUNTER
     with _RATE_LOCK:
         _KEY_COOLDOWN_MAP.clear()
+        _DISABLED_KEYS.clear()
         _LAST_CALL_MAP.clear()
         _KEY_LAST_CALL_MAP.clear()
         _MODEL_COOLDOWN_MAP.clear()
         _MODEL_ALIAS_MAP.clear()
     with _GEMINI_COUNTER_LOCK:
         _GEMINI_KEY_COUNTER = 0
+        _PROVIDER_KEY_COUNTERS.clear()
+
+
+def get_provider_key_index(provider_name: str) -> int:
+    """Thread-safely fetch and increment round-robin key index for a provider."""
+    global _GEMINI_KEY_COUNTER
+    name = (provider_name or "gemini").strip().lower()
+    with _GEMINI_COUNTER_LOCK:
+        idx = _PROVIDER_KEY_COUNTERS.get(name, 0)
+        _PROVIDER_KEY_COUNTERS[name] = idx + 1
+        if name == "gemini":
+            _GEMINI_KEY_COUNTER = idx + 1
+        return idx
 
 
 def get_gemini_key_index() -> int:
     """Thread-safely fetch and increment current Gemini round-robin key index."""
-    global _GEMINI_KEY_COUNTER
-    with _GEMINI_COUNTER_LOCK:
-        idx = _GEMINI_KEY_COUNTER
-        _GEMINI_KEY_COUNTER += 1
-        return idx
+    return get_provider_key_index("gemini")
+
+
+def _reserve_throttle_slot(slot_map: dict[str, float], slot_key: str, min_interval: float) -> None:
+    """Reserve the next leaky-bucket timestamp inside _RATE_LOCK before sleeping outside it."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
+        return
+    if min_interval <= 0:
+        return
+    with _RATE_LOCK:
+        now = time.time()
+        last_time = slot_map.get(slot_key, 0.0)
+        scheduled = max(now, last_time + min_interval)
+        slot_map[slot_key] = scheduled
+        wait = scheduled - now
+    if wait > 0:
+        time.sleep(wait)
 
 
 def _enforce_rate_limit_throttle(provider_name: str, num_keys: int = 1) -> None:
     """Enforce leaky-bucket inter-call spacing per provider scaled by active API key count."""
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
-        return
     base_interval = MIN_CALL_INTERVALS.get(provider_name.lower(), 1.0)
     effective_keys = max(1, num_keys)
     min_interval = max(0.3, base_interval / effective_keys)
-    with _RATE_LOCK:
-        last_time = _LAST_CALL_MAP.get(provider_name.lower(), 0.0)
-        now = time.time()
-        elapsed = now - last_time
-    if elapsed < min_interval:
-        time.sleep(min_interval - elapsed)
-    with _RATE_LOCK:
-        _LAST_CALL_MAP[provider_name.lower()] = time.time()
+    _reserve_throttle_slot(_LAST_CALL_MAP, provider_name.lower(), min_interval)
 
 
 def _enforce_key_throttle(key: str, min_interval: float = 5.0) -> None:
     """Ensure an individual API key is never invoked faster than min_interval (12 RPM safe pacing)."""
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("TEST_THROTTLING"):
+    _reserve_throttle_slot(_KEY_LAST_CALL_MAP, key, min_interval)
+
+
+def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0, model: str | None = None) -> None:
+    """Mark an API key (optionally scoped to a specific model) as cooling down."""
+    if not key:
         return
+    until = time.time() + max(10.0, cooldown_seconds)
+    slot = _cooldown_slot(key, model)
     with _RATE_LOCK:
-        last_time = _KEY_LAST_CALL_MAP.get(key, 0.0)
-        now = time.time()
-        elapsed = now - last_time
-    if elapsed < min_interval:
-        time.sleep(min_interval - elapsed)
-    with _RATE_LOCK:
-        _KEY_LAST_CALL_MAP[key] = time.time()
+        _KEY_COOLDOWN_MAP[slot] = max(_KEY_COOLDOWN_MAP.get(slot, 0.0), until)
 
 
-def _record_key_cooldown(key: str, cooldown_seconds: float = 30.0) -> None:
-    """Mark an API key as cooling down until time.time() + cooldown_seconds."""
+def _is_key_cooling_down(key: str, model: str | None = None) -> bool:
+    """Check if an API key is disabled or cooling down globally or for the given model."""
+    if not key:
+        return False
+    now = time.time()
+    with _RATE_LOCK:
+        if key in _DISABLED_KEYS:
+            return True
+        if now < _KEY_COOLDOWN_MAP.get(key, 0.0):
+            return True
+        if model and now < _KEY_COOLDOWN_MAP.get(_cooldown_slot(key, model), 0.0):
+            return True
+        return False
+
+
+def _record_key_disabled(key: str) -> None:
+    """Mark an API key as invalid/unauthorized for the duration of the process."""
     if key:
         with _RATE_LOCK:
-            _KEY_COOLDOWN_MAP[key] = time.time() + max(10.0, cooldown_seconds)
+            _DISABLED_KEYS.add(key)
+
+
+def _is_key_disabled(key: str) -> bool:
+    """Return True if an API key was permanently rejected (HTTP 401/403/invalid)."""
+    if not key:
+        return False
+    with _RATE_LOCK:
+        return key in _DISABLED_KEYS

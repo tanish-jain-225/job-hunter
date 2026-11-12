@@ -39,6 +39,7 @@ class UnsupportedDocument(LLMError):
 from .providers_throttle import (
     _RATE_LOCK,
     _KEY_COOLDOWN_MAP,
+    _DISABLED_KEYS,
     _LAST_CALL_MAP,
     _KEY_LAST_CALL_MAP,
     _MODEL_COOLDOWN_MAP,
@@ -46,6 +47,7 @@ from .providers_throttle import (
     _GEMINI_KEY_COUNTER,
     _GEMINI_COUNTER_LOCK,
     get_gemini_key_index,
+    get_provider_key_index,
     MIN_CALL_INTERVALS,
     _record_model_cooldown,
     _is_model_cooling_down,
@@ -55,6 +57,9 @@ from .providers_throttle import (
     _enforce_rate_limit_throttle,
     _enforce_key_throttle,
     _record_key_cooldown,
+    _is_key_cooling_down,
+    _record_key_disabled,
+    _is_key_disabled,
 )
 
 __all__ = [
@@ -70,14 +75,18 @@ __all__ = [
     "resolve",
     "get_fallback_provider",
     "DEFAULT_MODELS",
+    "GEMINI_FALLBACK_ORDER",
+    "GROQ_FALLBACK_ORDER",
     "_RATE_LOCK",
     "_KEY_COOLDOWN_MAP",
+    "_DISABLED_KEYS",
     "_LAST_CALL_MAP",
     "_KEY_LAST_CALL_MAP",
     "_MODEL_COOLDOWN_MAP",
     "_MODEL_ALIAS_MAP",
     "_GEMINI_KEY_COUNTER",
     "_GEMINI_COUNTER_LOCK",
+    "get_provider_key_index",
     "MIN_CALL_INTERVALS",
     "_record_model_cooldown",
     "_is_model_cooling_down",
@@ -87,17 +96,135 @@ __all__ = [
     "_enforce_rate_limit_throttle",
     "_enforce_key_throttle",
     "_record_key_cooldown",
+    "_is_key_cooling_down",
+    "_record_key_disabled",
+    "_is_key_disabled",
     "_get_active_api_keys",
 ]
 
+GEMINI_FALLBACK_ORDER: tuple[str, ...] = (
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+)
 
-def _get_active_api_keys(key_env: str) -> list[str]:
-    """Get list of API keys that are not currently in cooldown reset period."""
+GROQ_FALLBACK_ORDER: tuple[str, ...] = (
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+)
+
+
+def _is_vercel_env() -> bool:
+    """Return True inside live Vercel serverless execution (outside pytest)."""
+    return os.environ.get("VERCEL") == "1" and not os.environ.get("PYTEST_CURRENT_TEST")
+
+
+def _request_timeout() -> float:
+    """Return HTTP timeout bounded safely below Vercel serverless walls."""
+    return 6.5 if _is_vercel_env() else float(TIMEOUT)
+
+
+def _sleep_bounded(seconds: float) -> None:
+    """Sleep for retry backoff, capping duration in short-lived Vercel invocations."""
+    if seconds <= 0:
+        return
+    delay = min(seconds, 0.5) if _is_vercel_env() else seconds
+    time.sleep(delay)
+
+
+def _rotate_cycle(items: list[str], start_index: int) -> list[str]:
+    """Rotate a non-empty list so iteration begins at start_index % len(items)."""
+    if not items:
+        return []
+    offset = start_index % len(items)
+    return items[offset:] + items[:offset]
+
+
+def _get_eligible_keys(
+    configured_keys: list[str], model: str | None = None
+) -> tuple[list[str], list[str]]:
+    """Return (active_non_cooling_keys, all_non_disabled_keys) for a key list & model."""
+    usable = [k for k in configured_keys if not _is_key_disabled(k)]
+    active = [k for k in usable if not _is_key_cooling_down(k, model=model)]
+    return active, usable
+
+
+def _get_active_api_keys(key_env: str, model: str | None = None) -> list[str]:
+    """Get list of API keys that are not disabled or in cooldown for the given model."""
     all_keys = Provider._get_api_keys(key_env)
-    now = time.time()
-    with _RATE_LOCK:
-        active = [k for k in all_keys if now >= _KEY_COOLDOWN_MAP.get(k, 0.0)]
-    return active if active else all_keys
+    active, usable = _get_eligible_keys(all_keys, model=model)
+    return active if active else usable
+
+
+def _is_invalid_key_response(status_code: int, body_text: str) -> bool:
+    """Detect HTTP errors caused by a bad, revoked, or unauthorized API key."""
+    if status_code in (401, 403):
+        return True
+    if status_code == 400:
+        low = (body_text or "").lower()
+        return any(
+            marker in low
+            for marker in (
+                "api_key_invalid",
+                "api key not valid",
+                "api key expired",
+                "invalid api key",
+                "invalid_api_key",
+                "permission denied",
+            )
+        )
+    return False
+
+
+def _is_daily_quota_error(body_text: str) -> bool:
+    """Heuristic check for daily RPD exhaustion vs short-term RPM/TPM limits."""
+    low = (body_text or "").lower()
+    return any(marker in low for marker in ("per day", "perday", "rpd", "daily"))
+
+
+def _parse_retry_after(
+    headers: Any, body_text: str = "", default: float = 20.0, minimum: float = 5.0
+) -> float:
+    """Safely parse Retry-After header or error body delay hint."""
+    import re
+
+    retry_after = headers.get("Retry-After") if headers else None
+    if retry_after is not None:
+        try:
+            return max(float(str(retry_after).strip()), minimum)
+        except (ValueError, TypeError):
+            pass
+    if body_text:
+        m = re.search(r'(?:retryDelay["\s:]+|retry in\s+)(\d+(?:\.\d+)?)s', body_text, re.I)
+        if m:
+            try:
+                return max(float(m.group(1)), minimum)
+            except (ValueError, TypeError):
+                pass
+    return default
+
+
+def _next_model_in_order(
+    current_model: str, fallback_order: tuple[str, ...], tried_models: set[str]
+) -> str | None:
+    """Return the next untried fallback model in fallback_order without cycles."""
+    for candidate in fallback_order:
+        resolved = _resolve_model_alias(candidate)
+        if resolved != current_model and candidate != current_model and resolved not in tried_models and candidate not in tried_models:
+            return resolved
+    return None
+
+
+def _build_gemini_model_queue(requested_model: str) -> list[str]:
+    """Build ordered, cycle-free Gemini model queue skipping models already in cooldown."""
+    head = _resolve_model_alias(requested_model)
+    ordered: list[str] = [head]
+    for candidate in GEMINI_FALLBACK_ORDER:
+        resolved = _resolve_model_alias(candidate)
+        if resolved not in ordered:
+            ordered.append(resolved)
+    non_cooling = [m for m in ordered if not _is_model_cooling_down(m)]
+    return non_cooling if non_cooling else [ordered[-1]]
 
 
 class Provider:
@@ -131,6 +258,20 @@ class Provider:
         raise UnsupportedDocument(f"{self.name} cannot read PDFs here - pass a .txt/.md resume instead")
 
     @staticmethod
+    def _parse_api_keys(raw: str | None) -> list[str]:
+        """Parse comma-separated API keys, deduplicating while preserving order."""
+        if not raw or not str(raw).strip():
+            return []
+        seen: set[str] = set()
+        out: list[str] = []
+        for item in str(raw).split(","):
+            k = item.strip()
+            if k and k not in seen:
+                seen.add(k)
+                out.append(k)
+        return out
+
+    @staticmethod
     def _env(key: str) -> str:
         keys = Provider._get_api_keys(key)
         if not keys:
@@ -142,10 +283,7 @@ class Provider:
         from .auth import _load_env_if_needed
 
         _load_env_if_needed()
-        raw = (os.environ.get(key) or "").strip()
-        if not raw:
-            return []
-        return [k.strip() for k in raw.split(",") if k.strip()]
+        return Provider._parse_api_keys(os.environ.get(key))
 
 
 class AnthropicProvider(Provider):
@@ -174,6 +312,59 @@ class AnthropicProvider(Provider):
     def _text(msg) -> str:
         return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
 
+    def _invoke_with_rotation(
+        self,
+        op_name: str,
+        fn: Any,
+        api_key: str | None = None,
+    ) -> str:
+        """Execute an Anthropic SDK call with multi-key rotation and retry backoff."""
+        configured = (
+            Provider._parse_api_keys(api_key)
+            if (api_key and str(api_key).strip())
+            else Provider._get_api_keys(self.required_env)
+        )
+        usable = [k for k in configured if not _is_key_disabled(k)]
+        keys: list[str | None]
+        if usable:
+            keys = list(_rotate_cycle(usable, get_provider_key_index(self.name)))
+        elif not configured:
+            keys = [None]
+        else:
+            keys = []
+        if configured and not usable:
+            raise LLMError(f"{op_name} error: all configured API keys are invalid")
+
+        max_attempts = max(3, len(keys))
+        for attempt in range(max_attempts):
+            cur_key = keys[attempt % len(keys)]
+            _enforce_rate_limit_throttle(self.name, num_keys=max(1, len(usable)))
+            try:
+                try:
+                    c = self._client(api_key=cur_key) if cur_key else self._client()
+                except TypeError:
+                    c = self._client()
+                msg = fn(c)
+                return self._text(msg)
+            except Exception as e:
+                err_low = str(e).lower()
+                if cur_key and any(tok in err_low for tok in ("401", "403", "authentication", "invalid x-api-key", "invalid api key")):
+                    if len(configured) > 1:
+                        _record_key_disabled(cur_key)
+                    if len(configured) == 1 or not [k for k in configured if not _is_key_disabled(k)]:
+                        raise LLMError(f"{op_name} error: {e}") from e
+                if cur_key and ("429" in err_low or "rate" in err_low):
+                    _record_key_cooldown(cur_key, 30.0)
+                if attempt < max_attempts - 1:
+                    delay = 3 * (attempt + 1)
+                    print(
+                        f"  ! {op_name} rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_attempts})..."
+                    )
+                    _sleep_bounded(delay)
+                    continue
+                raise LLMError(f"{op_name} error: {e}") from e
+        raise LLMError(f"{op_name} failed after maximum retries")  # pragma: no cover
+
     def complete(
         self,
         model: str,
@@ -183,30 +374,16 @@ class AnthropicProvider(Provider):
         json_mode: bool = False,
         api_key: str | None = None,
     ) -> str:
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                try:
-                    c = self._client(api_key=api_key) if api_key else self._client()
-                except TypeError:
-                    c = self._client()
-                msg = c.messages.create(
-                    model=model,
-                    max_tokens=max_tokens,
-                    system=system,
-                    messages=[{"role": "user", "content": user}],
-                )
-                return self._text(msg)
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
-                    print(
-                        f"  ! anthropic rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(delay)
-                    continue
-                raise LLMError(f"anthropic error: {e}") from e
-        raise LLMError("anthropic failed after maximum retries")
+        return self._invoke_with_rotation(
+            "anthropic",
+            lambda c: c.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            ),
+            api_key=api_key,
+        )
 
     def complete_document(
         self,
@@ -216,44 +393,30 @@ class AnthropicProvider(Provider):
         max_tokens: int,
         api_key: str | None = None,
     ) -> str:
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                try:
-                    c = self._client(api_key=api_key) if api_key else self._client()
-                except TypeError:
-                    c = self._client()
-                msg = c.messages.create(
-                    model=model,
-                    max_tokens=max_tokens,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "document",
-                                    "source": {
-                                        "type": "base64",
-                                        "media_type": "application/pdf",
-                                        "data": base64.b64encode(pdf).decode(),
-                                    },
+        return self._invoke_with_rotation(
+            "anthropic document",
+            lambda c: c.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "application/pdf",
+                                    "data": base64.b64encode(pdf).decode(),
                                 },
-                                {"type": "text", "text": prompt},
-                            ],
-                        }
-                    ],
-                )
-                return self._text(msg)
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
-                    print(
-                        f"  ! anthropic document rate limit/error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(delay)
-                    continue
-                raise LLMError(f"anthropic document error: {e}") from e
-        raise LLMError("anthropic document failed after maximum retries")
+                            },
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+            ),
+            api_key=api_key,
+        )
 
 
 class GeminiProvider(Provider):
@@ -266,144 +429,196 @@ class GeminiProvider(Provider):
     def _post(self, model: str, body: dict, api_key: str | None = None) -> str:
         import random
 
-        effective_model = _resolve_model_alias(model)
-        if _is_model_cooling_down(effective_model):
-            if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                effective_model = _resolve_model_alias("gemini-flash-latest")
-            elif effective_model == "gemini-flash-latest":
-                effective_model = "gemini-flash-lite-latest"
-
         if api_key and str(api_key).strip():
-            all_configured_keys = [str(api_key).strip()]
+            configured_keys = Provider._parse_api_keys(api_key)
         else:
-            all_configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
+            configured_keys = Provider._get_api_keys("GEMINI_API_KEY")
 
-        if not all_configured_keys:
+        if not configured_keys:
             raise LLMError("GEMINI_API_KEY is not set (see .env.example)")
-        max_retries = max(2, min(4, len(all_configured_keys)))
-        url = f"{self.BASE}/{effective_model}:generateContent"
 
-        req_idx = get_gemini_key_index()
+        model_queue = _build_gemini_model_queue(model)
+        tried_models: set[str] = set()
+        last_error: LLMError | None = None
+        last_cause: Exception | None = None
+        q_idx = 0
 
-        for attempt in range(max_retries):
-            if api_key and str(api_key).strip():
-                active_keys = all_configured_keys
-            else:
-                active_keys = _get_active_api_keys("GEMINI_API_KEY")
+        while q_idx < len(model_queue):
+            effective_model = _resolve_model_alias(model_queue[q_idx])
+            q_idx += 1
+            if effective_model in tried_models:
+                continue
+            tried_models.add(effective_model)
+
+            active_keys, usable_keys = _get_eligible_keys(configured_keys, model=effective_model)
+            if not usable_keys:
+                raise last_error or LLMError("gemini: all configured API keys are invalid or disabled")
+
             if not active_keys:
-                # All keys in temporary cooldown — wait briefly for key window reset
-                time.sleep(1.0)
-                active_keys = all_configured_keys
-            if attempt == 0:
-                key = active_keys[req_idx % len(active_keys)]
-            else:
-                key = active_keys[0]
-            _enforce_key_throttle(key, min_interval=5.0)
-            try:
-                r = requests.post(
-                    url,
-                    params={"key": key},
-                    headers={"x-goog-api-key": key},
-                    json=body,
-                    timeout=TIMEOUT,
-                )
-                if r.status_code == 429 and attempt < max_retries - 1:
-                    retry_after = r.headers.get("Retry-After")
-                    cooldown = 20.0
-                    if retry_after:
-                        try:
-                            cooldown = max(float(str(retry_after).strip()), 5.0)
-                        except (ValueError, TypeError):
-                            pass
-                    _record_key_cooldown(key, cooldown)
-                    remaining_keys = [k for k in active_keys if k != key]
-                    if remaining_keys:
-                        print(
-                            f"  ! gemini key rate limited (HTTP 429) — rotating to active API key ({len(remaining_keys)} fresh keys remaining)..."
+                nxt = _next_model_in_order(effective_model, GEMINI_FALLBACK_ORDER, tried_models)
+                if q_idx < len(model_queue) or nxt:
+                    if nxt and nxt not in model_queue[q_idx:]:
+                        model_queue.append(nxt)
+                    continue
+                _sleep_bounded(1.0)
+                active_keys = usable_keys
+
+            url = f"{self.BASE}/{effective_model}:generateContent"
+            req_idx = get_gemini_key_index()
+            ordered_keys = _rotate_cycle(active_keys, req_idx)
+            tier_attempts = max(2, len(ordered_keys)) if len(usable_keys) == 1 else len(ordered_keys)
+
+            for attempt_idx in range(tier_attempts):
+                key = ordered_keys[attempt_idx % len(ordered_keys)]
+                _enforce_key_throttle(key, min_interval=5.0)
+                try:
+                    r = requests.post(
+                        url,
+                        params={"key": key},
+                        headers={"x-goog-api-key": key},
+                        json=body,
+                        timeout=_request_timeout(),
+                    )
+                    raw_text = getattr(r, "text", "")
+                    body_text = raw_text if isinstance(raw_text, str) else ""
+
+                    if r.status_code == 429:
+                        cooldown = _parse_retry_after(getattr(r, "headers", None), body_text, default=20.0, minimum=5.0)
+                        _record_key_cooldown(key, cooldown, model=effective_model)
+                        last_error = LLMError(f"gemini HTTP 429: {body_text[:300]}")
+
+                        remaining_active = [
+                            k for k in ordered_keys[attempt_idx + 1 :] if not _is_key_cooling_down(k, model=effective_model)
+                        ]
+                        if remaining_active:
+                            print(
+                                f"  ! gemini key rate limited on {effective_model} (HTTP 429) — rotating to active API key ({len(remaining_active)} fresh keys remaining)..."
+                            )
+                            _sleep_bounded(0.1 + random.uniform(0.05, 0.15))
+                            continue
+
+                        if len(usable_keys) == 1 and attempt_idx < tier_attempts - 1:
+                            total_delay = min(cooldown, 5.0) + random.uniform(0.1, 0.4)
+                            print(
+                                f"  ! gemini all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt_idx + 1}/{tier_attempts})..."
+                            )
+                            _sleep_bounded(total_delay)
+                            continue
+
+                        model_cooldown = 600.0 if _is_daily_quota_error(body_text) else 90.0
+                        _record_model_cooldown(effective_model, model_cooldown)
+                        nxt = _next_model_in_order(effective_model, GEMINI_FALLBACK_ORDER, tried_models)
+                        if nxt:
+                            if nxt not in model_queue[q_idx:]:
+                                model_queue.append(nxt)
+                            print(
+                                f"  ! {effective_model} quota exceeded across all keys — cascading to {nxt}..."
+                            )
+                        break
+
+                    if _is_invalid_key_response(r.status_code, body_text):
+                        if len(configured_keys) > 1:
+                            _record_key_disabled(key)
+                        last_error = LLMError(f"gemini HTTP {r.status_code}: {body_text[:300]}")
+                        still_usable = [k for k in ordered_keys[attempt_idx + 1 :] if not _is_key_disabled(k)]
+                        if still_usable:
+                            print(
+                                f"  ! gemini key unauthorized/invalid (HTTP {r.status_code}) — disabling key and rotating ({len(still_usable)} keys remaining)..."
+                            )
+                            continue
+                        if len(configured_keys) == 1 or not any(not _is_key_disabled(k) for k in configured_keys):
+                            raise last_error
+                        break
+
+                    if r.status_code in (500, 502, 503, 504):
+                        last_error = LLMError(f"gemini HTTP {r.status_code}: {body_text[:300]}")
+                        if attempt_idx < tier_attempts - 1:
+                            delay = 1.0 * (attempt_idx + 1) + random.uniform(0.1, 0.4)
+                            print(
+                                f"  ! gemini HTTP {r.status_code} — rotating key and retrying in {delay:.1f}s ({attempt_idx + 1}/{tier_attempts})..."
+                            )
+                            _sleep_bounded(delay)
+                            continue
+                        _record_model_cooldown(effective_model, 60.0)
+                        nxt = _next_model_in_order(effective_model, GEMINI_FALLBACK_ORDER, tried_models)
+                        if nxt:
+                            if nxt not in model_queue[q_idx:]:
+                                model_queue.append(nxt)
+                            print(
+                                f"  ! {effective_model} high demand (HTTP {r.status_code}) — cascading to {nxt}..."
+                            )
+                        break
+
+                    if r.status_code == 404:
+                        _record_model_cooldown(effective_model, 86400.0)
+                        last_error = LLMError(f"gemini HTTP 404: {body_text[:300]}")
+                        nxt = _next_model_in_order(effective_model, GEMINI_FALLBACK_ORDER, tried_models)
+                        if nxt:
+                            _record_model_alias(model, nxt)
+                            _record_model_alias(effective_model, nxt)
+                            if nxt not in model_queue[q_idx:]:
+                                model_queue.append(nxt)
+                            print(f"  ! {effective_model} HTTP 404 — cached alias -> {nxt}...")
+                            break
+                        raise last_error
+
+                    if r.status_code != 200:
+                        raise LLMError(f"gemini HTTP {r.status_code}: {body_text[:300]}")
+
+                    try:
+                        data = r.json()
+                    except (ValueError, TypeError) as e:
+                        if attempt_idx < tier_attempts - 1:
+                            delay = 5 * (attempt_idx + 1)
+                            print(
+                                f"  ! gemini malformed JSON — retrying in {delay}s ({attempt_idx + 1}/{tier_attempts})..."
+                            )
+                            _sleep_bounded(delay)
+                            continue
+                        raise LLMError(f"gemini returned invalid JSON: {body_text[:300]}") from e
+
+                    try:
+                        candidate = data["candidates"][0]
+                    except (KeyError, IndexError) as e:
+                        raise LLMError(f"gemini returned no candidates: {body_text[:300]}") from e
+
+                    reason = candidate.get("finishReason")
+                    parts = (candidate.get("content") or {}).get("parts") or []
+                    text = "".join(p.get("text", "") for p in parts if "text" in p)
+                    if reason == "MAX_TOKENS" or (not text and reason not in (None, "STOP")):
+                        raise LLMError(
+                            f"gemini stopped early (finishReason={reason}) with "
+                            f"{len(text)} chars of output — raise max_tokens for this stage"
                         )
-                        time.sleep(0.1 + random.uniform(0.05, 0.15))
+                    if not text:
+                        raise LLMError(f"gemini returned no text: {body_text[:300]}")
+                    return text
+
+                except requests.RequestException as e:
+                    last_error = LLMError(f"gemini network error: {e}")
+                    last_cause = e
+                    if attempt_idx < tier_attempts - 1:
+                        delay = 2 * (attempt_idx + 1)
+                        print(
+                            f"  ! gemini network error/timeout ({e}) — retrying in {delay}s ({attempt_idx + 1}/{tier_attempts})..."
+                        )
+                        _sleep_bounded(delay)
                         continue
-                    total_delay = min(cooldown, 5.0) + random.uniform(0.1, 0.4)
-                    print(
-                        f"  ! gemini all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(total_delay)
-                    continue
-                elif r.status_code == 429 and attempt == max_retries - 1:
-                    _record_model_cooldown(effective_model, 600.0)
-                    if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                        print(f"  ! {effective_model} quota exceeded across all keys — cascading to gemini-flash-latest...")
-                        return self._post("gemini-flash-latest", body, api_key=api_key)
-                    elif effective_model == "gemini-flash-latest":
-                        print("  ! gemini-flash-latest quota exceeded — cascading to gemini-flash-lite-latest...")
-                        return self._post("gemini-flash-lite-latest", body, api_key=api_key)
-
-                elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 1.0 * (attempt + 1) + random.uniform(0.1, 0.4)
-                    print(
-                        f"  ! gemini HTTP {r.status_code} — rotating key and retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(delay)
-                    continue
-                elif r.status_code in (500, 502, 503, 504) and attempt == max_retries - 1:
-                    _record_model_cooldown(effective_model, 60.0)
-                    if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
-                        print(f"  ! {effective_model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-latest...")
-                        return self._post("gemini-flash-latest", body, api_key=api_key)
-                    elif effective_model == "gemini-flash-latest":
-                        print(f"  ! {effective_model} high demand (HTTP {r.status_code}) — cascading to gemini-flash-lite-latest...")
-                        return self._post("gemini-flash-lite-latest", body, api_key=api_key)
-
-                if r.status_code == 404:
-                    _record_model_cooldown(effective_model, 86400.0)
-                    target_fallback = "gemini-flash-latest" if effective_model != "gemini-flash-latest" else "gemini-flash-lite-latest"
-                    _record_model_alias(model, target_fallback)
-                    _record_model_alias(effective_model, target_fallback)
-                    print(f"  ! {effective_model} HTTP 404 — cached alias -> {target_fallback}...")
-                    return self._post(target_fallback, body, api_key=api_key)
-                if r.status_code != 200:
-                    raise LLMError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
-                try:
-                    data = r.json()
-                except (ValueError, TypeError) as e:
-                    if attempt < max_retries - 1:
-                        delay = 5 * (attempt + 1)
-                        print(f"  ! gemini malformed JSON — retrying in {delay}s ({attempt + 1}/{max_retries})...")
-                        time.sleep(delay)
-                        continue
-                    raise LLMError(f"gemini returned invalid JSON: {r.text[:300]}") from e
-                try:
-                    candidate = data["candidates"][0]
-                except (KeyError, IndexError) as e:
-                    raise LLMError(f"gemini returned no candidates: {r.text[:300]}") from e
-
-                reason = candidate.get("finishReason")
-                parts = (candidate.get("content") or {}).get("parts") or []
-                text = "".join(p.get("text", "") for p in parts if "text" in p)
-                if reason == "MAX_TOKENS" or (not text and reason not in (None, "STOP")):
-                    raise LLMError(
-                        f"gemini stopped early (finishReason={reason}) with "
-                        f"{len(text)} chars of output — raise max_tokens for this stage"
-                    )
-                if not text:
-                    raise LLMError(f"gemini returned no text: {r.text[:300]}")
-                return text
-            except requests.RequestException as e:
-                if attempt < max_retries - 1:
-                    delay = 2 * (attempt + 1)
-                    print(f"  ! gemini network error/timeout ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})...")
-                    time.sleep(delay)
-                    continue
-                if effective_model in ("gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"):
                     _record_model_cooldown(effective_model, 180.0)
-                    print(f"  ! {effective_model} network error/timeout across all keys — cascading to gemini-flash-latest...")
-                    return self._post("gemini-flash-latest", body, api_key=api_key)
-                elif effective_model == "gemini-flash-latest":
-                    _record_model_cooldown(effective_model, 180.0)
-                    print("  ! gemini-flash-latest network error/timeout — cascading to gemini-flash-lite-latest...")
-                    return self._post("gemini-flash-lite-latest", body, api_key=api_key)
-                raise LLMError(f"gemini network error: {e}") from e
-        raise LLMError(f"gemini failed after {max_retries} attempts")  # pragma: no cover
+                    nxt = _next_model_in_order(effective_model, GEMINI_FALLBACK_ORDER, tried_models)
+                    if nxt:
+                        if nxt not in model_queue[q_idx:]:
+                            model_queue.append(nxt)
+                        print(
+                            f"  ! {effective_model} network error/timeout across all keys — cascading to {nxt}..."
+                        )
+                    break
+
+        if last_error is not None:
+            if last_cause is not None:
+                raise last_error from last_cause
+            raise last_error
+        raise LLMError("gemini failed after exhausting all keys and fallback models")  # pragma: no cover
 
     def complete(
         self,
@@ -476,82 +691,134 @@ class OpenAICompatProvider(Provider):
 
         base = os.getenv("LLM_BASE_URL", self.default_base).rstrip("/")
         if api_key and str(api_key).strip():
-            all_configured_keys = [str(api_key).strip()]
+            configured_keys = Provider._parse_api_keys(api_key)
         else:
-            all_configured_keys = Provider._get_api_keys(self.key_env)
-        if not all_configured_keys:
+            configured_keys = Provider._get_api_keys(self.key_env)
+        if not configured_keys:
             raise LLMError(f"{self.key_env} is not set (see .env.example)")
 
         messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
-        payload: dict[str, Any] = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.2}
-        if json_mode:
-            payload["response_format"] = {"type": "json_object"}
+        model_queue: list[str] = [model]
+        if base == self.default_base:
+            for alt_m in GROQ_FALLBACK_ORDER:
+                if alt_m not in model_queue:
+                    model_queue.append(alt_m)
+        non_cooling = [m for m in model_queue if not _is_model_cooling_down(m)]
+        effective_queue = non_cooling if non_cooling else [model_queue[-1]]
 
-        max_retries = max(6, len(all_configured_keys) * 3)
-        for attempt in range(max_retries):
-            if api_key and str(api_key).strip():
-                active_keys = all_configured_keys
-            else:
-                active_keys = _get_active_api_keys(self.key_env)
+        tried_models: set[str] = set()
+        last_error: LLMError | None = None
+        last_cause: Exception | None = None
+
+        for cur_model in effective_queue:
+            if cur_model in tried_models:
+                continue
+            tried_models.add(cur_model)
+
+            active_keys, usable_keys = _get_eligible_keys(configured_keys, model=cur_model)
+            if not usable_keys:
+                raise last_error or LLMError(f"{self.name}: all configured API keys are invalid")
             if not active_keys:
-                time.sleep(3.0)
-                active_keys = all_configured_keys
-            key = active_keys[attempt % len(active_keys)]
-            _enforce_rate_limit_throttle(self.name, num_keys=len(active_keys))
-            try:
-                r = requests.post(
-                    f"{base}/chat/completions",
-                    headers={"Authorization": f"Bearer {key}"},
-                    json=payload,
-                    timeout=TIMEOUT,
-                )
-                if r.status_code == 429 and attempt < max_retries - 1:
-                    retry_after = r.headers.get("Retry-After")
-                    cooldown = 60.0
-                    if retry_after:
-                        try:
-                            cooldown = max(float(str(retry_after).strip()), 10.0)
-                        except (ValueError, TypeError):
-                            pass
-                    _record_key_cooldown(key, cooldown)
-                    remaining_keys = [k for k in active_keys if k != key]
-                    if remaining_keys:
-                        print(
-                            f"  ! {self.name} key rate limited (HTTP 429) — rotating to active API key ({len(remaining_keys)} fresh keys remaining)..."
-                        )
-                        time.sleep(0.1 + random.uniform(0.05, 0.15))
-                        continue
-                    total_delay = min(cooldown, 15.0) + random.uniform(0.2, 0.8)
-                    print(
-                        f"  ! {self.name} all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(total_delay)
-                    continue
+                active_keys = usable_keys
 
-                elif r.status_code in (500, 502, 503, 504) and attempt < max_retries - 1:
-                    delay = 3.0 * (attempt + 1) + random.uniform(0.1, 0.8)
-                    print(
-                        f"  ! {self.name} HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt + 1}/{max_retries})..."
-                    )
-                    time.sleep(delay)
-                    continue
-                if r.status_code != 200:
-                    raise LLMError(f"{self.name} HTTP {r.status_code}: {r.text[:300]}")
+            payload: dict[str, Any] = {
+                "model": cur_model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.2,
+            }
+            if json_mode:
+                payload["response_format"] = {"type": "json_object"}
+
+            req_idx = get_provider_key_index(self.name)
+            ordered_keys = _rotate_cycle(active_keys, req_idx)
+            tier_attempts = max(3, len(ordered_keys) * 2) if len(usable_keys) == 1 else max(len(ordered_keys), 2)
+
+            for attempt_idx in range(tier_attempts):
+                key = ordered_keys[attempt_idx % len(ordered_keys)]
+                _enforce_rate_limit_throttle(self.name, num_keys=max(1, len(ordered_keys)))
                 try:
-                    return r.json()["choices"][0]["message"]["content"]
-                except (KeyError, IndexError, ValueError) as e:
-                    raise LLMError(f"{self.name} malformed reply: {r.text[:300]}") from e
-            except requests.RequestException as e:
-                if attempt < max_retries - 1:
-                    delay = 3 * (attempt + 1)
-
-                    print(
-                        f"  ! {self.name} network error ({e}) — retrying in {delay}s ({attempt + 1}/{max_retries})..."
+                    r = requests.post(
+                        f"{base}/chat/completions",
+                        headers={"Authorization": f"Bearer {key}"},
+                        json=payload,
+                        timeout=_request_timeout(),
                     )
-                    time.sleep(delay)
-                    continue
-                raise LLMError(f"{self.name} network error: {e}") from e
-        raise LLMError(f"{self.name} failed after {max_retries} attempts")  # pragma: no cover
+                    raw_text = getattr(r, "text", "")
+                    body_text = raw_text if isinstance(raw_text, str) else ""
+
+                    if r.status_code == 429:
+                        cooldown = _parse_retry_after(getattr(r, "headers", None), body_text, default=60.0, minimum=10.0)
+                        _record_key_cooldown(key, cooldown, model=cur_model)
+                        last_error = LLMError(f"{self.name} HTTP 429: {body_text[:300]}")
+                        remaining = [k for k in ordered_keys[attempt_idx + 1 :] if not _is_key_cooling_down(k, model=cur_model)]
+                        if remaining:
+                            print(
+                                f"  ! {self.name} key rate limited (HTTP 429) — rotating to active API key ({len(remaining)} fresh keys remaining)..."
+                            )
+                            _sleep_bounded(0.1 + random.uniform(0.05, 0.15))
+                            continue
+                        if len(usable_keys) == 1 and attempt_idx < tier_attempts - 1:
+                            total_delay = min(cooldown, 15.0) + random.uniform(0.2, 0.8)
+                            print(
+                                f"  ! {self.name} all keys rate limited (HTTP 429) — cooling down pool for {total_delay:.1f}s ({attempt_idx + 1}/{tier_attempts})..."
+                            )
+                            _sleep_bounded(total_delay)
+                            continue
+                        _record_model_cooldown(cur_model, 120.0)
+                        break
+
+                    if _is_invalid_key_response(r.status_code, body_text):
+                        if len(configured_keys) > 1:
+                            _record_key_disabled(key)
+                        last_error = LLMError(f"{self.name} HTTP {r.status_code}: {body_text[:300]}")
+                        still_usable = [k for k in ordered_keys[attempt_idx + 1 :] if not _is_key_disabled(k)]
+                        if still_usable:
+                            continue
+                        if len(configured_keys) == 1 or not any(not _is_key_disabled(k) for k in configured_keys):
+                            raise last_error
+                        break
+
+                    if r.status_code == 404:
+                        _record_model_cooldown(cur_model, 86400.0)
+                        last_error = LLMError(f"{self.name} HTTP 404: {body_text[:300]}")
+                        break
+
+                    if r.status_code in (500, 502, 503, 504):
+                        last_error = LLMError(f"{self.name} HTTP {r.status_code}: {body_text[:300]}")
+                        if attempt_idx < tier_attempts - 1:
+                            delay = 3.0 * (attempt_idx + 1) + random.uniform(0.1, 0.8)
+                            print(
+                                f"  ! {self.name} HTTP {r.status_code} — retrying in {delay:.1f}s ({attempt_idx + 1}/{tier_attempts})..."
+                            )
+                            _sleep_bounded(delay)
+                            continue
+                        _record_model_cooldown(cur_model, 60.0)
+                        break
+
+                    if r.status_code != 200:
+                        raise LLMError(f"{self.name} HTTP {r.status_code}: {body_text[:300]}")
+                    try:
+                        return r.json()["choices"][0]["message"]["content"]
+                    except (KeyError, IndexError, ValueError) as e:
+                        raise LLMError(f"{self.name} malformed reply: {body_text[:300]}") from e
+                except requests.RequestException as e:
+                    last_error = LLMError(f"{self.name} network error: {e}")
+                    last_cause = e
+                    if attempt_idx < tier_attempts - 1:
+                        delay = 3 * (attempt_idx + 1)
+                        print(
+                            f"  ! {self.name} network error ({e}) — retrying in {delay}s ({attempt_idx + 1}/{tier_attempts})..."
+                        )
+                        _sleep_bounded(delay)
+                        continue
+                    raise last_error from e
+
+        if last_error is not None:
+            if last_cause is not None:
+                raise last_error from last_cause
+            raise last_error
+        raise LLMError(f"{self.name} failed after exhausting keys and models")  # pragma: no cover
 
 
 class GroqProvider(OpenAICompatProvider):
@@ -652,17 +919,26 @@ def resolve(stage: str = "screen", check: bool = True) -> tuple[Provider, str]:
     return provider, model
 
 
-def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Provider, str] | None:
-    """Return an active live provider instance if available when primary provider quota is exhausted."""
+def get_fallback_provider(
+    current_name: str,
+    stage: str = "screen",
+    excluded: set[str] | list[str] | tuple[str, ...] | None = None,
+) -> tuple[Provider, str] | None:
+    """Return a distinct configured fallback provider when primary provider exhausts, avoiding cycles."""
     from .auth import _load_env_if_needed
 
     _load_env_if_needed()
 
-    candidates = ["gemini", "groq", "anthropic", "openai-compatible"]
     current_clean = (current_name or "").strip().lower()
+    blocked = {current_clean} | {str(x).strip().lower() for x in (excluded or ()) if str(x).strip()}
+    custom_base = (os.getenv("LLM_BASE_URL") or "").strip().rstrip("/")
+    has_custom_openai_base = bool(custom_base and custom_base != OpenAICompatProvider.default_base)
 
+    candidates = ["gemini", "groq", "anthropic", "openai-compatible"]
     for candidate in candidates:
-        if candidate == current_clean:
+        if candidate in blocked:
+            continue
+        if candidate == "openai-compatible" and not has_custom_openai_base and "groq" in blocked:
             continue
         req_env = PROVIDERS[candidate].required_env
         if req_env and bool((os.getenv(req_env) or "").strip()):
@@ -674,11 +950,4 @@ def get_fallback_provider(current_name: str, stage: str = "screen") -> tuple[Pro
             except Exception:
                 continue
 
-    if bool((os.getenv("GEMINI_API_KEY") or "").strip()):
-        try:
-            prov = get_provider("gemini")
-            prov.preflight()
-            return prov, "gemini-3.5-flash"
-        except Exception:
-            return None
     return None

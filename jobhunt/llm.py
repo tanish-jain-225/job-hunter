@@ -9,11 +9,12 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 from typing import Any
 
 from .fetch import Job
-from .providers import LLMError, Provider, get_fallback_provider, resolve
+from .providers import LLMError, Provider, UnsupportedDocument, get_fallback_provider, resolve
 
 _FENCE_OPEN = re.compile(r"^\s*```(?:json|JSON)?\s*", re.M)
 _FENCE_CLOSE = re.compile(r"\s*```\s*$", re.M)
@@ -48,6 +49,94 @@ from .llm_utils import (
     _as_list,
     extract_text_from_pdf,
 )
+
+
+def _provider_complete(
+    provider: Provider,
+    model: str,
+    system: str,
+    user: str,
+    max_tokens: int,
+    json_mode: bool = True,
+    api_key: str | None = None,
+) -> str:
+    """Invoke provider.complete with optional api_key compatibility fallback."""
+    if api_key:
+        try:
+            return provider.complete(
+                model,
+                system,
+                user,
+                max_tokens,
+                json_mode=json_mode,
+                api_key=api_key,
+            )
+        except TypeError:
+            pass
+    return provider.complete(
+        model,
+        system,
+        user,
+        max_tokens,
+        json_mode=json_mode,
+    )
+
+
+def _provider_complete_document(
+    provider: Provider,
+    model: str,
+    prompt: str,
+    pdf: bytes,
+    max_tokens: int,
+    api_key: str | None = None,
+) -> str:
+    """Invoke provider.complete_document with optional api_key compatibility fallback."""
+    if api_key:
+        try:
+            return provider.complete_document(
+                model,
+                prompt,
+                pdf,
+                max_tokens,
+                api_key=api_key,
+            )
+        except TypeError:
+            pass
+    return provider.complete_document(
+        model,
+        prompt,
+        pdf,
+        max_tokens,
+    )
+
+
+def _next_failover_provider(
+    current_provider: Provider,
+    stage: str,
+    failed_providers: set[str],
+    initial_provider_name: str,
+    current_api_key: str | None,
+    failed_objs: set[int] | None = None,
+) -> tuple[Provider, str, str | None] | None:
+    """Select an untried alternate provider, clearing provider-specific api_key when provider changes."""
+    curr_name = (getattr(current_provider, "name", "") or "primary").strip().lower()
+    if curr_name == "stub":
+        return None
+    failed_providers.add(curr_name)
+    if failed_objs is not None:
+        failed_objs.add(id(current_provider))
+    try:
+        fallback_info = get_fallback_provider(curr_name, stage=stage, excluded=failed_providers)
+    except TypeError:
+        fallback_info = get_fallback_provider(curr_name, stage=stage)
+    if not fallback_info:
+        return None
+    alt_provider, alt_model = fallback_info
+    if alt_provider is current_provider or (failed_objs is not None and id(alt_provider) in failed_objs):
+        return None
+    alt_name = (getattr(alt_provider, "name", "") or "").strip().lower()
+    next_api_key = current_api_key if alt_name == initial_provider_name else None
+    return alt_provider, alt_model, next_api_key
 
 # ---------------------------------------------------------------- profile ---
 
@@ -145,94 +234,56 @@ def build_profile(
         extracted_pdf_text = extract_text_from_pdf(resume_bytes)
 
     effective_text = (resume_text or extracted_pdf_text).strip()
+    active_provider = provider
+    active_model = model
+    active_api_key = api_key
+    initial_name = (getattr(active_provider, "name", "") or "primary").strip().lower()
+    failed_providers: set[str] = set()
+    failed_objs: set[int] = set()
 
-    if effective_text:
-        prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{effective_text}"
-        if api_key:
-            try:
-                raw = provider.complete(
-                    model,
-                    PROFILE_SYSTEM_PROMPT,
-                    prompt_content,
-                    PROFILE_MAX_TOKENS,
-                    json_mode=True,
-                    api_key=api_key,
-                )
-            except TypeError:
-                raw = provider.complete(
-                    model,
-                    PROFILE_SYSTEM_PROMPT,
-                    prompt_content,
-                    PROFILE_MAX_TOKENS,
-                    json_mode=True,
-                )
-        else:
-            raw = provider.complete(
-                model,
-                PROFILE_SYSTEM_PROMPT,
-                prompt_content,
-                PROFILE_MAX_TOKENS,
-                json_mode=True,
+    def _call_profile(prov: Provider, mdl: str, key: str | None) -> str:
+        if effective_text:
+            prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{effective_text}"
+            return _provider_complete(
+                prov, mdl, PROFILE_SYSTEM_PROMPT, prompt_content, PROFILE_MAX_TOKENS, json_mode=True, api_key=key
             )
-    elif is_pdf and resume_bytes:
-        doc_prompt = f"{PROFILE_SYSTEM_PROMPT}\n\n{PROFILE_PROMPT}"
-        try:
-            if api_key:
-                try:
-                    raw = provider.complete_document(
-                        model,
-                        doc_prompt,
-                        resume_bytes,
-                        PROFILE_MAX_TOKENS,
-                        api_key=api_key,
-                    )
-                except TypeError:
-                    raw = provider.complete_document(
-                        model,
-                        doc_prompt,
-                        resume_bytes,
-                        PROFILE_MAX_TOKENS,
-                    )
-            else:
-                raw = provider.complete_document(
-                    model,
-                    doc_prompt,
-                    resume_bytes,
-                    PROFILE_MAX_TOKENS,
+        if is_pdf and resume_bytes:
+            doc_prompt = f"{PROFILE_SYSTEM_PROMPT}\n\n{PROFILE_PROMPT}"
+            try:
+                return _provider_complete_document(prov, mdl, doc_prompt, resume_bytes, PROFILE_MAX_TOKENS, api_key=key)
+            except UnsupportedDocument:
+                pdf_txt = extract_text_from_pdf(resume_bytes).strip()
+                if not pdf_txt:
+                    raise
+                prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{pdf_txt}"
+                return _provider_complete(
+                    prov, mdl, PROFILE_SYSTEM_PROMPT, prompt_content, PROFILE_MAX_TOKENS, json_mode=True, api_key=key
                 )
-        except LLMError as e:
-            raise LLMError(
-                f"{e}\nTip: export your resume to .txt and re-run, or set "
-                f"DRAFT_PROVIDER=anthropic|gemini for PDF support."
-            ) from e
-    else:
         prompt_content = f"{PROFILE_PROMPT}\n\n--- RESUME TEXT ---\n{resume_text or ''}"
-        if api_key:
-            try:
-                raw = provider.complete(
-                    model,
-                    PROFILE_SYSTEM_PROMPT,
-                    prompt_content,
-                    PROFILE_MAX_TOKENS,
-                    json_mode=True,
-                    api_key=api_key,
-                )
-            except TypeError:
-                raw = provider.complete(
-                    model,
-                    PROFILE_SYSTEM_PROMPT,
-                    prompt_content,
-                    PROFILE_MAX_TOKENS,
-                    json_mode=True,
-                )
-        else:
-            raw = provider.complete(
-                model,
-                PROFILE_SYSTEM_PROMPT,
-                prompt_content,
-                PROFILE_MAX_TOKENS,
-                json_mode=True,
+        return _provider_complete(
+            prov, mdl, PROFILE_SYSTEM_PROMPT, prompt_content, PROFILE_MAX_TOKENS, json_mode=True, api_key=key
+        )
+
+    while True:
+        try:
+            raw = _call_profile(active_provider, active_model, active_api_key)
+            break
+        except (LLMError, UnsupportedDocument) as e:
+            fb = _next_failover_provider(
+                active_provider, "draft", failed_providers, initial_name, active_api_key, failed_objs
             )
+            if fb:
+                active_provider, active_model, active_api_key = fb
+                print(
+                    f"  Live Failover Cascade: switching profile parser -> {active_provider.name} ({active_model})..."
+                )
+                continue
+            if is_pdf and resume_bytes and not effective_text:
+                raise LLMError(
+                    f"{e}\nTip: export your resume to .txt and re-run, or set "
+                    f"DRAFT_PROVIDER=anthropic|gemini for PDF support."
+                ) from e
+            raise
 
     profile = parse_json(raw)
     if isinstance(profile, list) and len(profile) == 1 and isinstance(profile[0], dict):
@@ -465,13 +516,24 @@ def screen(
     profile_blob = json.dumps(clean_profile, ensure_ascii=False)
     batches = [jobs[i : i + batch_size] for i in range(0, len(jobs), batch_size)]
     system_prompt = _build_screen_system(profile)
+    active_api_key = api_key
+    initial_provider_name = (getattr(provider, "name", "") or "primary").strip().lower()
+    failed_providers: set[str] = set()
+    failed_provider_objs: set[int] = set()
+    provider_lock = threading.Lock()
 
     def _is_too_large_error(e: Exception) -> bool:
         """Return True if the error signals the request was too large (HTTP 413 / TPM exceeded)."""
         msg = str(e).lower()
         return "413" in msg or "request too large" in msg or "tokens per minute" in msg or "tpm" in msg
 
-    def process_batch_with_split(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
+    def process_batch_with_split(
+        n: int,
+        batch: list[Job],
+        prov: Provider | None = None,
+        mdl: str | None = None,
+        key: str | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """Attempt batch; on a too-large error split in half and retry recursively (min batch=1)."""
         prefix = "<untrusted_job_description>"
         suffix = "</untrusted_job_description>"
@@ -494,7 +556,16 @@ def screen(
                 }
             )
         results: dict[str, dict[str, Any]] = {}
-        if provider is None or model is None:
+        if prov is None or mdl is None:
+            with provider_lock:
+                cur_prov = provider
+                cur_model = model
+                cur_key = active_api_key
+        else:
+            cur_prov = prov
+            cur_model = mdl
+            cur_key = key
+        if cur_prov is None or cur_model is None:
             return results
 
         user_prompt = f"CANDIDATE PROFILE:\n{profile_blob}\n\nJOBS:\n{json.dumps(payload, ensure_ascii=False)}"
@@ -504,39 +575,22 @@ def screen(
             print(
                 f"  ! batch {n} prompt token count ({approx_tokens} tokens) > budget — pre-emptively micro-batching ({half}/{len(batch) - half})"
             )
-            left = process_batch_with_split(n, batch[:half])
-            right = process_batch_with_split(n, batch[half:])
+            left = process_batch_with_split(n, batch[:half], cur_prov, cur_model, cur_key)
+            right = process_batch_with_split(n, batch[half:], cur_prov, cur_model, cur_key)
             results.update(left)
             results.update(right)
             return results
 
         try:
-            if api_key:
-                try:
-                    raw = provider.complete(
-                        model,
-                        system_prompt,
-                        user_prompt,
-                        SCREEN_MAX_TOKENS,
-                        json_mode=True,
-                        api_key=api_key,
-                    )
-                except TypeError:
-                    raw = provider.complete(
-                        model,
-                        system_prompt,
-                        user_prompt,
-                        SCREEN_MAX_TOKENS,
-                        json_mode=True,
-                    )
-            else:
-                raw = provider.complete(
-                    model,
-                    system_prompt,
-                    user_prompt,
-                    SCREEN_MAX_TOKENS,
-                    json_mode=True,
-                )
+            raw = _provider_complete(
+                cur_prov,
+                cur_model,
+                system_prompt,
+                user_prompt,
+                SCREEN_MAX_TOKENS,
+                json_mode=True,
+                api_key=cur_key,
+            )
             for idx_r, r in enumerate(_as_list(parse_json(raw))):
                 jid = r.get("job_id") or r.get("jobId") or r.get("id") or r.get("job")
                 if not jid and "id" in r:
@@ -556,12 +610,52 @@ def screen(
                 print(
                     f"  ! batch {n} too large ({len(batch)} jobs) — splitting into halves of {half}/{len(batch) - half}"
                 )
-                left = process_batch_with_split(n, batch[:half])
-                right = process_batch_with_split(n, batch[half:])
+                left = process_batch_with_split(n, batch[:half], cur_prov, cur_model, cur_key)
+                right = process_batch_with_split(n, batch[half:], cur_prov, cur_model, cur_key)
                 results.update(left)
                 results.update(right)
             else:
                 print(f"  ! screen batch {n} failed ({type(e).__name__}: {e}) — skipping")
+        return results
+
+    def _run_batch_with_failover(n: int, batch: list[Job]) -> dict[str, dict[str, Any]]:
+        nonlocal provider, model, active_api_key
+        with provider_lock:
+            attempt_prov = provider
+            attempt_model = model
+            attempt_key = active_api_key
+        results = process_batch_with_split(n, batch, attempt_prov, attempt_model, attempt_key)
+        while not results and attempt_prov is not None and getattr(attempt_prov, "name", "") != "stub":
+            with provider_lock:
+                if provider is None:
+                    break
+                if provider is not attempt_prov:
+                    attempt_prov = provider
+                    attempt_model = model
+                    attempt_key = active_api_key
+                else:
+                    curr_name = getattr(provider, "name", "primary")
+                    fb = _next_failover_provider(
+                        provider,
+                        "screen",
+                        failed_providers,
+                        initial_provider_name,
+                        active_api_key,
+                        failed_provider_objs,
+                    )
+                    if not fb:
+                        break
+                    alt_provider, alt_model, next_key = fb
+                    print(
+                        f"  Live Failover Cascade: switching screening provider from {curr_name} -> {alt_provider.name} ({alt_model})..."
+                    )
+                    provider = alt_provider
+                    model = alt_model
+                    active_api_key = next_key
+                    attempt_prov = provider
+                    attempt_model = model
+                    attempt_key = active_api_key
+            results = process_batch_with_split(n, batch, attempt_prov, attempt_model, attempt_key)
         return results
 
     if max_workers > 1 and len(batches) > 1:
@@ -570,7 +664,7 @@ def screen(
         def throttled_process_batch(n: int, b: list[Job]) -> tuple[int, list[Job], dict[str, dict[str, Any]]]:
             if delay_seconds > 0 and n > 1:
                 time.sleep(min(delay_seconds, 1.0) * ((n - 1) % max_workers))
-            return n, b, process_batch_with_split(n, b)
+            return n, b, _run_batch_with_failover(n, b)
 
         with ThreadPoolExecutor(max_workers=min(max_workers, len(batches))) as executor:
             futures = [executor.submit(throttled_process_batch, idx + 1, batch) for idx, batch in enumerate(batches)]
@@ -593,20 +687,7 @@ def screen(
                 print(f"  screened {processed_count}/{len(jobs)} [offline keyword fallback]")
                 continue
 
-            results = process_batch_with_split(idx + 1, batch)
-            # Live provider failover cascade when current provider fails (and wasn't explicitly pinned by unit test)
-            if not results and getattr(provider, "name", "") != "stub":
-                curr_name = getattr(provider, "name", "primary")
-                fallback_info = get_fallback_provider(curr_name, stage="screen")
-                if fallback_info:
-                    alt_provider, alt_model = fallback_info
-                    print(
-                        f"  Live Failover Cascade: switching screening provider from {curr_name} -> {alt_provider.name} ({alt_model})..."
-                    )
-                    provider = alt_provider
-                    model = alt_model
-                    results = process_batch_with_split(idx + 1, batch)
-
+            results = _run_batch_with_failover(idx + 1, batch)
             strict_llm = os.environ.get("STRICT_LLM", "").strip().lower() in ("1", "true", "yes", "on")
 
             if not results:
@@ -705,6 +786,10 @@ def draft(
     system_prompt = _build_draft_system(profile)
     cand_projects = (profile or {}).get("notable_projects") or []
     default_proj = cand_projects[0] if cand_projects else "Key Engineering Project"
+    active_api_key = api_key
+    initial_provider_name = (getattr(provider, "name", "") or "primary").strip().lower()
+    failed_providers: set[str] = set()
+    failed_provider_objs: set[int] = set()
 
     for i, j in enumerate(jobs):
         try:
@@ -714,32 +799,33 @@ def draft(
                 f"JOB: {j.title} at {j.company} ({j.location or 'location not stated'})\n"
                 f"URL: {j.url}\n\n<untrusted_job_description>{clean_desc[:jd_chars]}</untrusted_job_description>"
             )
-            if api_key:
+            while True:
                 try:
-                    raw = provider.complete(
+                    raw = _provider_complete(
+                        provider,
                         model,
                         system_prompt,
                         user_msg,
                         DRAFT_MAX_TOKENS,
                         json_mode=True,
-                        api_key=api_key,
+                        api_key=active_api_key,
                     )
-                except TypeError:
-                    raw = provider.complete(
-                        model,
-                        system_prompt,
-                        user_msg,
-                        DRAFT_MAX_TOKENS,
-                        json_mode=True,
+                    break
+                except LLMError:
+                    fb = _next_failover_provider(
+                        provider,
+                        "draft",
+                        failed_providers,
+                        initial_provider_name,
+                        active_api_key,
+                        failed_provider_objs,
                     )
-            else:
-                raw = provider.complete(
-                    model,
-                    system_prompt,
-                    user_msg,
-                    DRAFT_MAX_TOKENS,
-                    json_mode=True,
-                )
+                    if not fb:
+                        raise
+                    provider, model, active_api_key = fb
+                    print(
+                        f"  Live Failover Cascade: switching drafting provider -> {provider.name} ({model})..."
+                    )
             kit = parse_json(raw)
             if isinstance(kit, list) and len(kit) == 1 and isinstance(kit[0], dict):
                 kit = kit[0]
