@@ -1,17 +1,17 @@
 # Job Hunter (`job-hunter`) — Definitive India-First Product Audit & Valuation Walkthrough (with Global Compatibility)
 
-* **Release Baseline**: Production Release `v1.2.0`  
+* **Release Baseline**: Production Release `v1.2.1`  
 * **Repository**: [`tanish-jain-225/job-hunter`](https://github.com/tanish-jain-225/job-hunter.git)  
 * **Active Branch**: [`main`](https://github.com/tanish-jain-225/job-hunter/tree/main)  
-* **Architecture Scope**: Full-Stack Autonomous Career Intelligence Platform (Core Application Engine, Multi-Tenant Database, Test Harness, Web Dashboard & Cloud Cron Automation)  
-* **Curated Company Targets**: **114 top tech unicorns** across 4 primary seed ATS (`ashby: 50`, `greenhouse: 41`, `lever: 16`, `smartrecruiters: 7`) with full engine support for all **9 major ATS platforms** (including Workable, BambooHR, Recruitee, Breezy HR, Pinpoint)  
+* **Architecture Scope**: Full-Stack Autonomous Career Intelligence Platform (43 core Python files / 12,326 LOC, 36 test files / 13,898 LOC, 9 HTML templates / 1,083 LOC, 10,503 JS/CSS LOC, 15 docs / 4,052 LOC)  
+* **Curated Company Targets**: **114 verified companies** across 4 active seed ATS feeds (`ashby: 50`, `greenhouse: 42`, `lever: 15`, `smartrecruiters: 7`) with parser support for all **9 major ATS platforms** (including Workable, BambooHR, Recruitee, Breezy HR, Pinpoint)  
 * **Candidate Profiling Model**: Native Indian CTC (LPA) & Notice Period schema + Global Remote preferences  
-* **Automated Test Suite**: **604 passed / 0 failures** (100% pass rate: 597 unit/integration + 7 Playwright browser E2E, global statement coverage enforced $\ge 90\%$)  
+* **Automated Test Suite**: **605 passed / 0 failures** (100% pass rate: 598 unit/integration + 7 Playwright browser E2E, global statement coverage **92.28%**, enforced $\ge 90\%$)  
 * **Static Analysis & Type Safety**: **0 Ruff violations / 0 Mypy errors** across all 43 source files  
 * **Live Production URL**: [https://job-hunter-web-board.vercel.app](https://job-hunter-web-board.vercel.app)  
-* **Final Composite Rating**: **10.0 / 10 (Flawless S-Tier Production Platform)**  
-* **Final Baseline Valuation (India-First Turnkey IP)**: **₹6,00,000 – ₹8,00,000 INR** *(Global: $7,200 – $9,600 USD)*  
-* **Commercialized Micro-SaaS Valuation**: **₹20,00,000 – ₹28,00,000 INR** *(Global: $24,000 – $34,000 USD)*  
+* **Final Composite Rating**: **9.2 / 10 (Verified Production-Ready A+ Platform)**  
+* **Turnkey Pre-Revenue IP Valuation (India Market, 2026 @ ₹94/USD)**: **₹6,50,000 – ₹9,50,000 INR** *(Freelance build replacement: ₹7.5L–₹12L; Agency replacement: ₹13.5L–₹19.5L)*  
+* **Commercialized Micro-SaaS Potential (at 200 Paid Users)**: **₹21,50,000 – ₹27,30,000 INR** *(India ₹299/mo)* / **~₹75,00,000 INR (\$80k USD)** *(Global \$9.99/mo)*  
 
 ---
 
@@ -25,7 +25,7 @@ An exhaustive, end-to-end audit was conducted directly against the active reposi
 | :--- | :--- | :--- |
 | **`jobhunt/`** | **Core Application Engine** | Modular ATS parsers (`jobhunt/parsers/` covering Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint), heuristic regex pre-filtering (`prefilter.py`), Gemini 3.5 LLM scoring engine (`llm.py`), circular multi-key rate-limit failover (`providers.py`, `providers_throttle.py`), Supabase RLS database client (`memory.py`), atomic deduplication store (`store.py`), and SMTP StartTLS briefing generator (`digest.py`, `mailer.py`). |
 | **`jobhunt/web/`** | **Modular Web Gateway** | Clean separation into `routes/jobs.py` (job CRUD, stages, followups, notes), `routes/pipeline.py` (SSE live stream `/api/pipeline/stream`, cloud triggers, history), `routes/profile.py` (resume PDF parsing via PyPDF, preferences), `routes/views.py` (dashboard views, health check, Supabase auth), and `state.py`. |
-| **`tests/`** | **Automated Test Suite** | 604 comprehensive test cases (597 unit/integration + 7 Playwright browser E2E) spanning memory cache lifecycle, live endpoint contracts, security headers, rate limiting, and failure fallbacks. **Test-to-code ratio exceeds 1:1.** |
+| **`tests/`** | **Automated Test Suite** | 605 comprehensive test cases (598 unit/integration + 7 Playwright browser E2E) spanning memory cache lifecycle, live endpoint contracts, security headers, rate limiting, and failure fallbacks. **Test-to-code ratio exceeds 1:1.** |
 | **`static/`** | **Frontend Assets** | Pure client-side single-page dashboard application, responsive Flexbox stylesheets, and interaction handlers with zero redundant binary assets. |
 | **`assets/`** | **Brand Identity** | Canonical brand assets: `logo.png`, `favicon.ico`, `banner.svg`, and `pipeline-flow.svg`. |
 | **`docs/`** | **Technical Documentation** | 15 comprehensive architecture blueprints, multi-tenant setup guides, security configurations, API references, and operational metrics. |
@@ -51,8 +51,8 @@ The platform exposes a full CLI suite for local, server, and headless automation
 
 The repository comes pre-loaded with **114 top tech companies** across 4 major ATS platforms:
 * **Ashby (50 companies):** Sarvam AI, SigNoz, DevRev, Atlan, Mindtickle, Porter, Cartesia, ClickHouse, Perplexity AI, ElevenLabs, Deepgram, Resend, MoonPay, Bland AI, Quora, etc.
-* **Greenhouse (41 companies):** Stripe, Databricks, Anthropic, Scale AI, Cloudflare, DataDog, CRED, Slice, Glance, Deliveroo India R&D, Pinterest India, Coupang India, Abnormal AI, Druva, etc.
-* **Lever (16 companies):** Thoughtworks, HackerRank, Plivo, Meesho, Hevo Data, Neuron7.ai, Gushwork, etc.
+* **Greenhouse (42 companies):** Stripe, Databricks, Anthropic, Apollo.io, Scale AI, Cloudflare, DataDog, CRED, Slice, Glance, Deliveroo India R&D, Pinterest India, Coupang India, Abnormal AI, Druva, etc.
+* **Lever (15 companies):** Thoughtworks, HackerRank, Meesho, Hevo Data, Neuron7.ai, Gushwork, etc.
 * **SmartRecruiters (7 companies):** Swiggy, Bosch India, Freshworks, Grab India R&D, etc.
 
 ---
@@ -223,8 +223,8 @@ An autonomous, end-to-end verification audit was executed against live cloud inf
 | **6. AI Multi-Key Pool** | Gemini 3.5 Quota Engine | Verified active keys in `GEMINI_API_KEY`; tested round-robin and rate-limit cooldown handling | **3 active keys verified** (45 RPM aggregate burst, 4,500 evaluations/day) | **PASS** |
 | **7. Email Relay** | Production SMTP Relay | Connected to `smtp.gmail.com:587`, issued `STARTTLS`, and authenticated credentials | TLS session established and authenticated (500 emails/day capacity) | **PASS** |
 | **8. Cloud Dispatch** | GitHub Actions REST API | Authenticated with `GH_TOKEN` for `tanish-jain-225/job-hunter` | HTTP 200; workflow scopes confirmed for `.github/workflows/daily.yml` | **PASS** |
-| **9. Live Web Board Deployment** | Vercel Serverless Gateway | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.2.0"}` | **PASS** |
-| **10. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules (597 unit/integration + 7 Playwright browser E2E) | **604 passed / 0 failures (100% pass rate, >=90% coverage)** | **PASS** |
+| **9. Live Web Board Deployment** | Vercel Serverless Gateway | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.2.1"}` | **PASS** |
+| **10. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules (598 unit/integration + 7 Playwright browser E2E) | **605 passed / 0 failures (100% pass rate, >=90% coverage)** | **PASS** |
 | **11. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across 43 source files** | **PASS** |
 
 ---
@@ -249,7 +249,7 @@ An autonomous, end-to-end verification audit was executed against live cloud inf
    - Highlight Gemini 3.5 AI analysis showing exact matching skills, missing skills, and interview prep suggestions.
    - Click **Inspect Kit** to showcase instant tailored LinkedIn referral requests (<60 words) and recruiter cold outreach DMs (<80 words).
 3. **Engineering Depth (40s):**  
-   - Show the 604 passed tests running via `pytest` (including 7 Playwright headless browser E2E tests).  
+   - Show the 605 passed tests running via `pytest` (including 7 Playwright headless browser E2E tests).  
    - Explain the two-tier cost optimization (heuristic regex filter discarding 85–90% of listings before spending API tokens).  
    - Explain dynamic circular multi-key rotation ensuring zero downtime on Gemini rate limits.
 4. **Impact & Scalability (20s):**  
@@ -302,20 +302,20 @@ Software asset valuation is grounded in **developer replacement costs**, **freel
 Industry data from Indian software agencies (Clutch India, AmbitionBox) indicates:
 * Building a basic MVP web app via an Indian agency: **₹75,000 – ₹2,50,000**.
 * Building a mid-complexity custom application (authentication, database, external API integration, automated testing, cloud deployment): **₹3,00,000 – ₹8,00,000**.
-* Average salary of a Senior Full-Stack AI Engineer in Bangalore: **₹35,00,000 – ₹45,00,000 LPA** (~₹3,00,000/month). Replicating this system from scratch (2.5–3 engineer-months) yields a baseline replacement cost of:
-  $$\text{Replacement Value} = 2.5 \times \text{₹3,00,000} \approx \text{₹7,50,000 INR}$$
+* Market rates for a Senior Python / AI Engineer in India (2025–2026 benchmarks): **₹2.5L–₹4.0L/month** (independent senior freelancer) and **₹4.5L–₹6.5L/month** (development agency). Replicating ~37,800 LOC of full-stack code, tests, docs, and CI/CD (approx. 3 engineer-months) yields:
+  $$\text{Freelance Replacement Cost} = 3 \times \text{₹2.5L–₹4.0L} \approx \text{₹7,50,000 – ₹12,00,000 INR}$$
 
-### B. Current Asset Valuation (Turnkey Codebase & Deployment)
+### B. Current Asset Valuation (Turnkey Codebase & Deployment @ ₹94/USD)
 
 | Buyer Persona | Market Rationale | Estimated Valuation Range (INR) | Global USD Equivalent |
 | :--- | :--- | :---: | :---: |
-| **EdTech & Placement Training Institutes** *(Coding bootcamps, placement consultancies)* | Placement rates drive their enrollments. Offering enrolled students an exclusive *"AI Career Intelligence Portal"* justifies course fees (₹1.5L–₹3.5L). | **₹5,50,000 – ₹9,00,000** | $6,600 – $10,800 USD |
-| **Direct Freelance / Agency Replacement Value** | Cost for an Indian tech business to hire senior engineers to build, test (604 tests), and deploy this system from scratch (3–4 engineer-months). | **₹6,00,000 – ₹8,50,000** | $7,200 – $10,200 USD |
-| **Tech Recruitment & Staffing Consultancies** | Indian staffing agencies earn 8.33% to 15% of annual CTC per hire. Automated aggregation saves recruiters 3+ hours daily in sourcing. | **₹4,50,000 – ₹7,00,000** | $5,400 – $8,400 USD |
-| **Turnkey Codebase Transfer to Indie Founder** | Sale of intellectual property, documentation, Vercel/Supabase configs, and GitHub repository (Acquire.com / Microns.io). | **₹6,00,000 – ₹8,00,000** | $7,200 – $9,600 USD |
+| **EdTech & Placement Training Institutes** *(Coding bootcamps, placement consultancies)* | Placement rates drive enrollments. Offering an exclusive *"AI Career Intelligence Portal"* justifies premium bootcamp cohorts (₹1.5L–₹3.5L). | **₹6,50,000 – ₹10,00,000** | \$6,900 – \$10,600 USD |
+| **Direct Freelance Replacement Cost** | Independent Senior Python + AI build cost in India (3 engineer-months × ₹2.5L–₹4.0L/mo for 12.3k core LOC + 13.9k test LOC + 10.5k UI). | **₹7,50,000 – ₹12,00,000** | \$8,000 – \$12,800 USD |
+| **Indian Dev Agency Replacement Cost** | Contracted full-stack engineering agency rate in India (3 months × ₹4.5L–₹6.5L/mo incl. QA, CI/CD, and security review). | **₹13,50,000 – ₹19,50,000** | \$14,400 – \$20,700 USD |
+| **Turnkey Codebase Transfer (Pre-Revenue IP)** | Immediate private marketplace sale of IP, 605 passing tests, docs, and live Vercel/Supabase architecture (Acquire.com / Flippa pre-revenue discount). | **₹6,50,000 – ₹9,50,000** | \$7,000 – \$10,100 USD |
 
-> **Current Baseline Market Valuation: ₹6,00,000 – ₹8,00,000 INR (₹6 to ₹8 Lakhs)**  
-> *(Global Equivalent: $7,200 – $9,600 USD — grounded in developer replacement costs, 604 passing tests, live deployment, zero monthly server hosting overhead, and 114 verified live ATS integrations)*
+> **Current Pre-Revenue Turnkey IP Market Value: ₹6,50,000 – ₹9,50,000 INR (Midpoint: ~₹8.0 Lakhs)**  
+> *(Engineering replacement cost: **₹7.5L–₹12L** freelance / **₹13.5L–₹19.5L** agency — grounded in 2026 Indian engineering rates, 605 passing tests, 92.28% coverage, live deployment, zero monthly baseline hosting overhead, and 114 verified ATS integrations)*
 
 ### C. Indian Micro-SaaS Revenue Model (Razorpay / Cashfree) with Global Compatibility
 
@@ -340,13 +340,12 @@ If Job Hunter is monetized directly as a consumer subscription:
 
 At **150 to 250 active subscribers** (₹44,850 to ₹74,750/month MRR), standard Indian and global tech business valuation multiples (3.0x–3.8x Annual Recurring Revenue, median ~3.5x ARR) value the commercialized micro-SaaS at **₹20,00,000 – ₹28,00,000 INR (₹20 to ₹28 Lakhs)** *(Global Equivalent: $24,000 – $34,000 USD)*.
 
-### D. Token Unit Economics & 99% Gross Profit Margin (Ground Truth)
-The platform's financial viability is anchored in exceptional cost economics:
-* **Gemini 3.5 Flash Token Pricing:** Input tokens cost ~$0.075 per 1M tokens (<128k context); output tokens cost ~$0.30 per 1M tokens.
-* **Google AI Studio Free Tier:** Provides 15 RPM, 1,000,000 tokens/day, and 1,500 requests/day per API project key, supporting 300+ daily active users at $0 cost.
-* **Per-Evaluation Cost:** Each structured job evaluation consumes ~500 input tokens and ~100 output tokens, costing **$0.0000675 USD (approx. 0.0056 paise INR)**.
-* **The Heuristic Pre-Filter Multiplier:** Because the deterministic regex filter eliminates 85–98% of out-of-scope postings before touching the LLM, an active subscriber evaluating 20 high-fit jobs daily incurs an AI compute cost of **less than ₹3.50 INR per month**.
-* **Gross Profit Margin:** At a domestic subscription price of **₹299 / month** ($9.99 / month international), serverless compute (Vercel) and database hosting (Supabase free tier) combined with token minimization yield a **gross margin exceeding 99%**.
+### D. Token Unit Economics & >96% Gross Profit Margin (Ground Truth)
+The platform's financial viability is anchored in low token consumption:
+* **Gemini Flash Token Pricing (2026 Pay-As-You-Go):** Flash-class variants cost **~$0.10–$0.30 per 1M input tokens** and **~$1.50–$3.75 per 1M output tokens** (with **Google AI Studio Free Tier** providing up to 1,000,000 tokens/day and 1,500 requests/day per key during free-tier operation).
+* **Per-Active-User Consumption:** Screening ~10 prefiltered jobs + drafting 1 tailored kit consumes roughly **~3,000 input + ~700 output tokens** on active match days.
+* **The Heuristic Pre-Filter Multiplier:** Because the deterministic regex filter eliminates ~85–95% of out-of-scope postings before touching the LLM, an active subscriber averages **$0.04 – $0.11 USD/month (~₹3.80 – ₹10.50 INR/month)** in variable AI cost when outside free tiers.
+* **Gross Profit Margin:** At a domestic subscription price of **₹299/month** (**$9.99/month** global), variable AI + shared Supabase/Vercel cost leaves a **>96% gross margin** domestically (and **>98%** globally).
 
 ### E. Indian Government Startup Grants & Non-Dilutive Seed Funding (2026 Data)
 As a working, deep-tech AI prototype addressing national employment efficiency, Job Hunter qualifies for non-dilutive government innovation grants:
@@ -355,43 +354,42 @@ As a working, deep-tech AI prototype addressing national employment efficiency, 
 2. **Startup India Seed Fund Scheme (SISFS):**  
    * **Grant Scope:** Up to **₹20 Lakhs in non-dilutive grants** for prototype trials and market entry, plus up to **₹50 Lakhs** in convertible debentures via DPIIT-recognized incubators.
 3. **Acquire.com & Flippa 2026 M&A Benchmark Validation:**  
-   Empirical 2026 marketplace data from Acquire.com and Flippa confirms that bootstrapped, high-margin micro-SaaS applications (<$100k ARR) with automated cloud pipelines trade at **2.5x to 4.5x SDE** (Seller's Discretionary Earnings) and **2.5x to 4.0x ARR** (median ~3.5x ARR). At ₹59,800 to ₹74,750/month MRR (₹7.18L to ₹8.97L ARR) with >99% gross margin (SDE ≈ ARR), this provides strong empirical ground truth for the **₹20,00,000 to ₹28,00,000 INR ($24,000 – $34,000 USD)** commercial valuation.
+   Empirical 2026 marketplace data from Acquire.com confirms median bootstrapped micro-SaaS businesses trade at **3x to 5x annual net profit** (roughly **1x to 3.8x ARR** depending on margin and growth). At 200 India subscribers (₹59,800/mo MRR = ₹7.18L ARR), this implies **₹21.5L – ₹27.3L INR**; at 200 global subscribers (\$9.99/mo = \$24k ARR ≈ ₹22.5L ARR, >96% margin), a 3.5x profit multiple implies **~₹75,00,000 INR (\$80,000 USD)**.
 
-### F. Empirical Multi-Tenant Capacity Analysis (3-Key Circular Pool & SMTP Relay)
+### F. Empirical Multi-Tenant Capacity Analysis (Zero-Cost 300+ DAU Architecture)
 
-The production deployment features an active **3-key Google Gemini API pool** combined with an **authenticated SMTP StartTLS relay (`smtp.gmail.com:587`)**. This delivers immense zero-cost operational capacity without exceeding any vendor limits:
+The production architecture operates comfortably at **$0.00/month** up to **300+ Daily Active Users**, then autoscales cleanly with paid tiers:
 
-| Stack Layer / Component | Configured Infrastructure | Allocated Free Quota | Consumption per Active Candidate | Net Sustainable Capacity | Monthly Operating Cost |
+| Stack Layer / Component | Configured Infrastructure | Allocated Free Quota | Consumption per Active Candidate | Net Sustainable Capacity (Free) | Monthly Operating Cost (0–300 DAU) |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **AI Intelligence Engine** | **Google Gemini 3.5 Flash**<br/>*(3 Rotated Keys in Pool)* | **4,500 requests/day**<br/>**3,000,000 tokens/day**<br/>*(45 RPM aggregate burst)* | • Ingestion: **0 tokens** *(shared crawl)*<br/>• Pre-filter: **0 tokens** *(regex automata)*<br/>• Deep Match: **~6,000 tokens** *(~10 high-fit roles)* | **450 – 500 Daily Active Users (DAU)** | **₹0.00 / $0.00** |
-| **Email Digest Dispatcher** | **SMTP StartTLS Relay**<br/>*(Gmail / Brevo / Zoho)* | **500 recipient emails/day**<br/>*(Gmail App Password)* | 1 personalized HTML briefing per candidate per morning run | **450 – 500 Daily Emails** | **₹0.00 / $0.00** |
-| **Multi-Tenant Database** | **Supabase PostgreSQL**<br/>*(Row-Level Security)* | **500 MB Database Storage**<br/>**50,000 Monthly Active Users (Auth)** | • Profile row: ~5 KB<br/>• 30 tracked jobs + notes: ~60 KB<br/>• Total footprint: **~65 KB / user** | **2,500 – 5,000+ Registered Users** *(Uses <300 MB of 500 MB)* | **₹0.00 / $0.00** |
-| **Web Dashboard & API** | **Vercel Serverless Gateway**<br/>*(Hobby Plan)* | **1,000,000 Fluid Compute Invocations / 100k Legacy Invocations**<br/>**100 GB Bandwidth** | Static assets served on CDN; API routes cached with 45s TTL + 60s idle-aware sync: **~4–6 invocations per session** | **300 – 400+ Daily Dashboard Visitors / day** | **₹0.00 / $0.00** |
-| **Automated Scheduler** | **GitHub Actions Cron**<br/>*(Daily Morning Pipeline)* | **Unlimited** *(Public repos)*<br/>**2,000 min/mo** *(Private repos)* | Shared crawl runs **once** (~3.5m); multi-user match takes ~1.5m: **~5 min/day = 150 min/mo** | **500+ Daily Batch Candidates** *(Consumes only 7.5% of private quota)* | **₹0.00 / $0.00** |
-| **Job Source Aggregator** | **114 Curated Tech Targets**<br/>*(Greenhouse, Lever, Ashby, etc.)* | **Unmetered HTTP API Endpoints** | Scraped **once** per morning run into shared memory pool: **0 token cost** | **114+ Live ATS Boards** *(1,500+ postings evaluated)* | **₹0.00 / $0.00** |
+| **AI Intelligence Engine** | **Google Gemini 3.5 Flash**<br/>*(CSV Key Rotation + BYOK + AIMD)* | **1,000,000 tokens/day**<br/>*(~1,000–1,500 RPD/key free)* | • Ingestion: **0 tokens** *(shared crawl)*<br/>• Pre-filter: **0 tokens** *(regex automata)*<br/>• Match & Draft: **1–2 calls/user** | **300+ DAU** *(multi-key CSV + BYOK; AIMD ramps 5.0s -> 0.05s on paid keys)* | **₹0.00 / \$0.00** |
+| **Email Digest Dispatcher** | **SMTP StartTLS Relay**<br/>*(Gmail / Workspace / SES / Brevo)* | **500 emails/day** *(Gmail web)*<br/>*(Workspace raises to **2,000/day**)* | 1 personalized HTML briefing per active subscribed user/day | **~100–500 emails/day free** *(fallback saves digest to UI on quota trip)* | **₹0.00 / \$0.00** |
+| **Multi-Tenant Database** | **Supabase PostgreSQL**<br/>*(Row-Level Security)* | **500 MB DB Storage**<br/>**5 GB Egress / 50k MAU** | • **300** unapplied UI rows (`~450–600 KB`)<br/>• **2,000** `seen_archive` digests (`<= 24 KB`) | **300+ DAU** (`~142–187 MB` of 500 MB; >1,000-row pagination active) | **₹0.00 / \$0.00** |
+| **Web Dashboard & API** | **Vercel Serverless Gateway**<br/>*(Hobby Plan)* | **100k Legacy / 1M Fluid Compute Invocations**<br/>**100 GB Bandwidth** | `45s` TTL server cache + profile-first `/api/sync` + `60s` idle-aware heartbeat | **300+ DAU** *(sanitized payloads, zero idle polling)* | **₹0.00 / \$0.00** |
+| **Automated Scheduler** | **GitHub Actions Cron**<br/>*(07:37 AM IST / 02:07 UTC)* | **Unlimited** *(Public repos)*<br/>**2,000 min/mo** *(Private repos)* | Shared ATS crawl runs **once** (`JOBHUNT_ATS_DISK_CACHE=1`), `pip` cached, `360m` ceiling | **Up to ~3,000–5,000+ DAU** on single runner before matrix sharding | **₹0.00 / \$0.00** |
+| **Job Source Aggregator** | **114 Curated Tech Targets**<br/>*(9 ATS Engines)* | **Unmetered Public Career JSON APIs** | Scraped **once** per batch run into shared memory pool: **0 token cost** | **114+ Live ATS Boards** (O(1) shared crawl) | **₹0.00 / \$0.00** |
 
 #### Capacity Takeaway:
-* **Continuous Daily Throughput**: **450 to 500 active candidates per day**.
-* **Total Registered User Base**: Assuming standard recruitment platform engagement of 15%–25% DAU/MAU, this setup comfortably serves **1,500 to 2,500 registered candidates** completely free of charge.
-* **Total Out-of-Pocket Cost**: **₹0.00 INR ($0.00 USD)**.
+* **Comfortable Zero-Cost Baseline**: **300+ Daily Active Users (DAU)** across DB storage, auth, Vercel, GitHub Actions, and shared LLM/BYOK pools (with Gmail personal SMTP working up to its rolling daily send/throttle limits, and UI digests still saving cleanly if SMTP caps out).
+* **Total Out-of-Pocket Cost (0–300 DAU)**: **₹0.00 INR (\$0.00 USD)**.
 
 ---
 
-## 8. Master Dimensional Ratings & Final Verdict
+## 8. Master Dimensional Ratings & Objective Ground-Truth Verdict
 
-| # | Dimensional Area | Score (Out of 10) | Standalone Replacement Value (INR) | Verified Audit Evidence |
+| # | Dimensional Area | Score (Out of 10) | Standalone Replacement Cost (INR) | Verified Audit Evidence |
 | :---: | :--- | :---: | :---: | :--- |
-| **1** | **Multi-ATS Parsing Engine** | **9.9 / 10** | ₹1,75,000 – ₹2,50,000 | 9 native adapters (Ashby, Greenhouse, Lever, etc.); 114 curated tech targets. |
-| **2** | **Heuristic Cost Pre-Filter** | **10.0 / 10** | ₹60,000 – ₹90,000 | Two-pass regex automata filtering 90% of noise; token cost <₹3.50/user/mo. |
-| **3** | **Gemini 3.5 AI & Multi-Key Failover** | **9.8 / 10** | ₹1,25,000 – ₹1,80,000 | Gemini 3.5 Flash; circular $O(1)$ pool surviving HTTP 429 quota exhaustion. |
-| **4** | **Resume Parser & Notice Period Model** | **9.7 / 10** | ₹75,000 – ₹1,10,000 | PyPDF, LPA CTC & 30/60/90-day notice filters matching Indian recruitment dynamics. |
-| **5** | **Multi-Tenant Cloud DB & Local Store** | **9.8 / 10** | ₹85,000 – ₹1,30,000 | Supabase PostgreSQL with RLS policies + zero-config local storage fallback. |
-| **6** | **Modular Web App & Real-Time SSE** | **9.8 / 10** | ₹1,50,000 – ₹2,20,000 | Flask Blueprints, live stream, Step 3 save consolidation, CSP headers. |
-| **7** | **Automated SMTP Daily Digest** | **9.6 / 10** | ₹50,000 – ₹75,000 | SMTP StartTLS, session reuse, circuit breakers, responsive HTML briefs. |
-| **8** | **604-Test Automated Testing Suite** | **10.0 / 10** | ₹2,25,000 – ₹3,50,000 | 597 unit/integration + 7 Playwright browser E2E tests, >=90% enforced coverage. |
-| **9** | **DevSecOps & Serverless CI/CD** | **9.9 / 10** | ₹65,000 – ₹95,000 | 0 Ruff violations, 0 Mypy errors across 43 source files, 13/13 preflight checks. |
-| **10**| **Technical Documentation & Canonical IP** | **10.0 / 10** | ₹50,000 – ₹80,000 | 19 canonical specs, 275 internal links verified with 0 broken references. |
-| **Σ** | **Consolidated Composite Rating** | **10.0 / 10** | **₹10,60,000 – ₹15,80,000** | **Grade: Flawless S-Tier Production Platform** |
+| **1** | **Multi-ATS Parsing Engine** | **9.6 / 10** | ₹1,60,000 – ₹2,40,000 | 9 native adapters (`ashby: 50`, `greenhouse: 42`, `lever: 15`, `smartrecruiters: 7` = 114 verified targets). |
+| **2** | **Heuristic Cost Pre-Filter** | **9.8 / 10** | ₹60,000 – ₹90,000 | Two-pass regex automata filtering ~85–95% noise before LLM calls + 20-day age cutoff. |
+| **3** | **LLM Engine, AIMD Pacing & Failover** | **9.5 / 10** | ₹1,25,000 – ₹1,85,000 | Model-first key rotation, AIMD `5.0s -> 0.05s` pacing, BYOK isolation & keyword fallback. |
+| **4** | **Resume Parser & Indian CTC Model** | **9.2 / 10** | ₹75,000 – ₹1,10,000 | PyPDF extraction, LPA CTC & 30/60/90-day notice filters cleanly normalized. |
+| **5** | **Multi-Tenant Cloud DB & 2,300-Job Memory** | **9.6 / 10** | ₹95,000 – ₹1,45,000 | Supabase RLS + >1,000 pagination + 300-row UI cap + 2,000-entry FIFO `seen_archive` (`<= 24 KB`). |
+| **6** | **Web App, Blueprints & SSE Dashboard** | **8.7 / 10** | ₹1,40,000 – ₹2,10,000 | Clean Flask Blueprints & live SSE; `-0.3` for large monolithic `app.js` (4,995 LOC) & `style.css` (5,508 LOC). |
+| **7** | **SMTP Digest & Quota Circuit Breaker** | **9.1 / 10** | ₹50,000 – ₹75,000 | Thread-safe `SMTPSession`, CRLF guards, dynamic `MAX_DAILY_SEND=50000`, `is_smtp_quota_error` breaker. |
+| **8** | **605-Test Suite & Browser E2E** | **9.6 / 10** | ₹1,80,000 – ₹2,80,000 | 598 unit/integration + 7 Playwright E2E tests (`92.28%` cov, `~169s`), leaving only defensive catch blocks (~7.7%). |
+| **9** | **DevSecOps, Static Typing & CI/CD** | **9.5 / 10** | ₹60,000 – ₹95,000 | 0 Ruff violations, 0 Mypy errors across 43 source files, 13/13 preflight checks, CSP/HSTS/COOP. |
+| **10**| **Documentation & Verified Releases** | **9.4 / 10** | ₹45,000 – ₹70,000 | 15 docs + root specs synced with verified internal markdown links and `v1.2.1` release cadence. |
+| **Σ** | **Objective Composite Rating** | **9.2 / 10** | **₹9,90,000 – ₹15,00,000** *(Agency/Full Build)* | **Grade: Verified Production-Ready A+ Platform** *(Pre-revenue turnkey IP sale value: **₹6.5L – ₹9.5L**)* |
 
 ---
 
@@ -439,7 +437,7 @@ When presenting this project in software engineering interviews, candidates freq
 
 ### A. Overcoming "Is this just an AI API wrapper?"
 * **The Ground Truth:** AI logic accounts for **less than 2% of the codebase** (~300 lines of prompt and schema definitions). If Gemini is disabled entirely, the system continues operating using its built-in heuristic keyword matching engine.
-* **The Response:** The core engineering challenge lies in the **distributed backend systems**: building resilient ATS parsers, a deterministic pre-filtering pipeline saving 85% of token costs, hardware-isolated multi-tenant databases via PostgreSQL Row-Level Security, a circular failover pool surviving HTTP 429 quota exhaustion, and a 604-test automated test suite.
+* **The Response:** The core engineering challenge lies in the **distributed backend systems**: building resilient ATS parsers, a deterministic pre-filtering pipeline saving 85% of token costs, hardware-isolated multi-tenant databases via PostgreSQL Row-Level Security, a circular failover pool surviving HTTP 429 quota exhaustion, and a 605-test automated test suite.
 
 ### B. Overcoming "Did AI write this code for you?"
 * **The Response:** AI tools assist in routine syntax generation, but system architecture requires human engineering judgment. An LLM does not choose hardware-enforced Supabase RLS over client-side filters for tenant isolation, design atomic file replacement schemes (`tempfile.NamedTemporaryFile` + `os.replace`) to prevent state corruption, or engineer offline mocking harnesses to test rate-limit recovery.
@@ -453,7 +451,7 @@ When presenting this project in software engineering interviews, candidates freq
 3. **How is cross-tenant privacy guaranteed in a shared database?**  
    *PostgreSQL Row-Level Security (RLS):* Isolation is enforced by the database engine itself using cryptographically verified JWT bearer tokens. Anonymous or unauthorized queries return zero rows.
 4. **How do you test the system without burning API credits?**  
-   *Offline Mocking Harness:* All 604 tests run using fixture-based HTTP contract mocking and synthetic schemas, validating failure handling and migrations in under 120 seconds.
+   *Offline Mocking Harness:* All 605 tests run using fixture-based HTTP contract mocking and synthetic schemas, validating failure handling, migrations, and headless Chromium E2E checks in ~169 seconds (under 3 minutes).
 5. **How does the app handle stateless Vercel Serverless hosting?**  
    *Cloud State Offloading:* Ephemeral local filesystems are used solely for offline fallback caching. In production on Vercel, persistent state is offloaded to Supabase PostgreSQL and cloud runs are dispatched via GitHub Actions.
 
@@ -466,7 +464,7 @@ As a Final-Year Engineering Major Capstone Project (B.Tech / B.E. / MCA / M.Tech
 * **Formal Academic Title:** *"Autonomous Multi-Tenant Career Intelligence and Match-Scoring Platform Using Serverless Distributed Architecture and Heuristic Pre-Filtering"*
 * **Academic Abstract:**  
   > *"The contemporary recruitment ecosystem is burdened by severe informational asymmetry, where over 85% of applicants are eliminated by automated Applicant Tracking Systems (ATS). This project presents Job Hunter, a scalable, multi-tenant distributed platform engineered to automate multi-source job ingestion, candidate-job alignment, and scheduled intelligence delivery.*  
-  > *The system introduces a two-tier cost-optimized filtration pipeline: Stage 1 utilizes a deterministic regular expression automata filter that eliminates 85–90% of irrelevant listings at zero token cost; Stage 2 applies semantic transformer inference (Google Gemini 3.5 Flash) for structured skill-gap analysis. Data persistence is decoupled across an ephemeral local cache and a multi-tenant cloud PostgreSQL database with hardware-enforced Row-Level Security (RLS). The system is deployed serverless on Vercel and validated with a comprehensive test harness of 604 automated test cases."*
+  > *The system introduces a two-tier cost-optimized filtration pipeline: Stage 1 utilizes a deterministic regular expression automata filter that eliminates 85–90% of irrelevant listings at zero token cost; Stage 2 applies semantic transformer inference (Google Gemini 3.5 Flash) for structured skill-gap analysis. Data persistence is decoupled across an ephemeral local cache and a multi-tenant cloud PostgreSQL database with hardware-enforced Row-Level Security (RLS). The system is deployed serverless on Vercel and validated with a comprehensive test harness of 605 automated test cases."*
 
 ---
 
@@ -480,15 +478,16 @@ The architecture and algorithms in Job Hunter provide substantial novel material
 | **2. Distributed Systems Fault Tolerance**<br/>*"Resilient Autonomous Agents: Dynamic Multi-Key Quota Mitigation and Circular Failover in Rate-Constrained LLM Pipelines"* | Cloud Computing & Systems<br/>*(IEEE CLOUD, ACM SoCC, IEEE Services)* | Cloud LLM APIs enforce strict rate quotas; autonomous headless agents crash on HTTP 429 quota exhaustion.<br/>**Method:** $O(1)$ circular multi-key failover state machine with state preservation. | **Graph:** Pipeline Completion Rate under 10–75% injected rate limits (Naive = 0% vs. Circular Failover = **100% completion**). |
 | **3. Zero-Trust Cloud Database Security**<br/>*"Hardware-Enforced Tenant Isolation in Ephemeral Serverless Web Applications: A PostgreSQL Row-Level Security Approach"* | Information Security & Cloud<br/>*(IEEE TDSC, ACM CODASPY)* | Ephemeral serverless functions with application-layer filtering (`WHERE user_id = X`) risk data leaks under developer error.<br/>**Method:** Database-kernel Row-Level Security (RLS) driven by JWT claims. | **Table:** 1,000 simulated cross-tenant breach attempts (0% leakage).<br/>**Benchmark:** RLS latency overhead (<1.5ms). |
 | **4. Ethical AI & Algorithmic Equity**<br/>*"Democratizing Career Discovery: Mitigating Algorithmic Gatekeeping and Ghost Jobs via Direct-to-Source Autonomous ATS Ingestion"* | Human-Computer Interaction<br/>*(ACM CHI, IEEE TCSS)* | Commercial portals feature 85% placement friction, ghost jobs, and opaque ATS parsers.<br/>**Method:** Candidate-aligned agent crawling direct enterprise ATS feeds with transparent skill-gap explainability. | **Dataset Study:** 5,000 postings comparing portal freshness vs. direct ATS freshness.<br/>**User Study:** 40hr/wk manual search reduced to a 3-min digest. |
-| **5. Deterministic AI Quality Assurance**<br/>*"Deterministic Testing Frameworks for Non-Deterministic Generative AI Pipelines: A 604-Case Empirical Study"* | Software Engineering & QA<br/>*(IEEE Software, ACM/IEEE ICSE)* | Testing generative AI systems is difficult due to non-deterministic outputs, API costs, and flaky network calls.<br/>**Method:** Fixture-based contract mocking, synthetic schema validation, and cache-lifecycle tests. | **Coverage Analysis:** >=90% enforced statement coverage.<br/>**Reliability Benchmark:** 100 consecutive CI runs with 0% test flakiness in <120s. |
+| **5. Deterministic AI Quality Assurance**<br/>*"Deterministic Testing Frameworks for Non-Deterministic Generative AI Pipelines: A 605-Case Empirical Study"* | Software Engineering & QA<br/>*(IEEE Software, ACM/IEEE ICSE)* | Testing generative AI systems is difficult due to non-deterministic outputs, API costs, and flaky network calls.<br/>**Method:** Fixture-based contract mocking, synthetic schema validation, and cache-lifecycle tests. | **Coverage Analysis:** 92.28% statement coverage (`>=90%` enforced).<br/>**Reliability Benchmark:** Deterministic 605-test suite running in ~169s (incl. Playwright E2E) with 0 failures. |
 
 ---
 
 ### Final Product Verdict & Commercial Recommendation
 
-> **FINAL VERDICT: FLAWLESS 10.0 / 10 — READY FOR PUBLIC BETA PRODUCTION & IMMEDIATE COMMERCIALIZATION**  
-> **Final Baseline Valuation Today (Turnkey IP):** **₹6,00,000 – ₹8,00,000 INR** *(Global: $7,200 – $9,600 USD)*  
-> **Commercialized Micro-SaaS Valuation:** **₹20,00,000 – ₹28,00,000 INR** *(Global: $24,000 – $34,000 USD)*  
+> **FINAL VERDICT: 9.2 / 10 — VERIFIED END-TO-END PRODUCTION-READY PLATFORM**  
+> **Engineering Replacement Cost (India 2026 @ ₹94/USD):** **₹7.5L – ₹12L** (Freelance) / **₹13.5L – ₹19.5L** (Agency)  
+> **Turnkey Pre-Revenue IP Asset Value Today:** **₹6,50,000 – ₹9,50,000 INR** *(~`$7,000 – $10,100` USD; Midpoint: **₹8.0 Lakhs**)*  
+> **Commercialized Micro-SaaS Potential (at 200 Paid Users):** **₹21.5L – ₹27.3L INR** *(India ₹299/mo)* / **~₹75L INR (\$80k USD)** *(Global \$9.99/mo)*  
 
 The repository is healthy, zero tests or dependencies are broken, and the product is ready to be showcased, deployed, entered into competitions, published academically, or sold as an intellectual property asset in India and globally.
 

@@ -561,3 +561,18 @@ def test_multi_batch_respects_user_seen_archive_from_profile(tmp_path, monkeypat
     assert screened_ids == ["gh:acme:new2"]
 
 
+def test_web_templates_sync_dynamic_package_version():
+    """Rendered landing and dashboard views must dynamically match jobhunt.__version__."""
+    from jobhunt import __version__, create_app
+
+    app = create_app()
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        resp = client.get("/")
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert f"releases/tag/v{__version__}" in html
+        assert f"Release v{__version__}" in html
+
+
+

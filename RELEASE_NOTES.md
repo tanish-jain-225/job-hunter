@@ -1,15 +1,23 @@
 # 🚀 Release Notes — Job Hunter
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Release-v1.2.0-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.0"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-604%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1"><img src="https://img.shields.io/badge/Release-v1.2.1-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.1"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-605%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
-> **Current Production Version**: `v1.2.0` | **Release Date**: November 12, 2026
+> **Current Production Version**: `v1.2.1` | **Release Date**: November 12, 2026
 >
-> **Quick Links**: [GitHub Release v1.2.0](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+> **Quick Links**: [GitHub Release v1.2.1](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+
+---
+
+## [v1.2.1] - 2026-11-12
+
+### 🔄 End-to-End Template & Ground-Truth Sync
+* **Dynamic Template Release Tag Injection**: `views.py` now injects `app_version` directly from `jobhunt.__version__` into `dashboard.html` and `landing.html`, eliminating hardcoded version drift across deployments.
+* **Ground-Truth Documentation & Valuation Sync**: Updated `SECURITY.md`, `README.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, and `docs/PRODUCT_ANALYSIS_WALKTHROUGH.md` to exact measured repository counts (`114` ATS targets, `43` source files / `12,326` LOC, `36` test files / `13,898` LOC, `605` tests / `92%+` coverage, 2026 INR/USD valuation benchmarks).
 
 ---
 

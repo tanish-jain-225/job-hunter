@@ -17,7 +17,9 @@ views_bp = Blueprint("views", __name__)
 @views_bp.route("/api/index.py")
 def index():
     """Render main Light Mode dashboard with digest & job tracker."""
-    resp = make_response(render_template("index.html"))
+    from ... import __version__
+
+    resp = make_response(render_template("index.html", app_version=__version__))
     # Prevent Chrome from treating this SPA shell as a skippable intermediate page
     # in the session history chain (bfcache eligibility). The SPA re-initialises
     # auth state on every page load, so stale cached copies are undesirable.

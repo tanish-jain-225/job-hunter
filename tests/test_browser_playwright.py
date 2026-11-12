@@ -630,9 +630,15 @@ def test_pagination_sorting_tech_hubs_and_digest(browser_page, live_server, popu
     assert len(js_errors) == 0, f"Console JS errors: {js_errors}"
 
 
-def test_profile_and_settings_full_lifecycle(browser_page, live_server, populated_jobs):
+def test_profile_and_settings_full_lifecycle(browser_page, live_server, populated_jobs, monkeypatch):
     """Verify Candidate Profile & Search Settings full end-to-end UX lifecycle, persistence, and reset."""
     page, console_errors, page_errors = browser_page
+
+    # Ensure resume upload never stalls on external LLM network latency during CI
+    monkeypatch.setattr(
+        "jobhunt.llm.build_profile",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("offline playwright test")),
+    )
 
     page.goto(f"{live_server}/", wait_until="domcontentloaded")
     page.wait_for_timeout(800)
@@ -642,7 +648,7 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
     page.wait_for_selector("#profile-modal.active", timeout=5000)
     assert page.is_visible("#profile-step-1")
 
-    # 2. Upload resume in Step 1 -> AI auto-fills by default
+    # 2. Upload resume in Step 1 -> local fallback parses sample_resume deterministically
     sample_resume = (
         "Alex Morgan\n"
         "Principal Platform Engineer\n"
@@ -654,7 +660,7 @@ def test_profile_and_settings_full_lifecycle(browser_page, live_server, populate
         "Current CTC: 22 LPA, Expected CTC: 38 LPA\n"
         "Specific cities: Bengaluru, Pune\n"
     )
-    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200):
+    with page.expect_response(lambda res: "/api/resume/upload" in res.url and res.status == 200, timeout=20000):
         page.set_input_files("#resume-file-input", {
             "name": "resume.txt",
             "mimeType": "text/plain",

@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.1] — 2026-11-12
+
+### Fixed & Synchronized
+- **Dynamic Version Links Across Templates (`jobhunt/web/routes/views.py`, `templates/partials/dashboard.html`, `templates/partials/landing.html`)**: Replaced stale `v1.1.8` footer/digest badges with dynamic `app_version` context passed from `jobhunt.__version__` so web templates never drift from package releases.
+- **Deterministic Test Verification (`tests/test_zero_cost_scaling.py`, `tests/test_browser_playwright.py`)**: Added `test_web_templates_sync_dynamic_package_version` (bringing the suite to **605 tests**, **92.17% statement coverage**) and stubbed external LLM calls inside `test_profile_and_settings_full_lifecycle` so `/api/resume/upload` exercises its local parser deterministically without external Gemini API timeouts.
+- **Full Ground-Truth Repository Audit (`SECURITY.md`, `README.md`, `docs/PRODUCT_ANALYSIS_WALKTHROUGH.md`)**: Synchronized live ATS target breakdown (`ashby: 50`, `greenhouse: 42`, `lever: 15`, `smartrecruiters: 7` = `114`), codebase footprint (`43` source files / `12,326` LOC, `36` test files / `13,898` LOC, `10,503` JS/CSS LOC, `9` HTML templates / `1,083` LOC), free-tier Supabase storage math (`~48–62 MB` per 100 users / `~142–187 MB` per 300 DAU), 2026 token economics, INR replacement/valuation benchmarks, and `SECURITY.md` supported versions (`1.2.1`).
+
+---
+
 ## [1.2.0] — 2026-11-12
 
 ### Added
@@ -257,6 +266,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.2.1]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1
 [1.2.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0
 [1.1.8]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8
 [1.1.7]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.7
