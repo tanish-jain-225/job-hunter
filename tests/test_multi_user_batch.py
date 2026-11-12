@@ -532,4 +532,23 @@ def test_multi_user_batch_onetime_mode_suppressed_with_zero_matches(monkeypatch:
     assert len(sent_emails) == 0
 
 
+def test_multi_run_logs_supabase_http_error(monkeypatch: pytest.MonkeyPatch, capsys):
+    """Non-200 PostgREST responses during user fetch must print diagnostics before returning user_not_found."""
+    from jobhunt import multi
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 400
+    mock_resp.text = '{"code":"42703","message":"column does not exist"}'
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: mock_resp)
+    monkeypatch.setattr("jobhunt.memory.SupabaseMemory.is_configured", True)
+
+    res = multi.run_multi_user_pipeline(mock=True, scorer="keyword", user_email="target@example.com")
+    out = capsys.readouterr().out
+
+    assert res["status"] == "user_not_found"
+    assert "Supabase user query HTTP 400" in out
+    assert "column does not exist" in out
+    assert "target@example.com" in out
+
+
 

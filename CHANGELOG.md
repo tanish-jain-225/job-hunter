@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.2] — 2026-11-12
+
+### Fixed
+- **Supabase PostgREST Multi-User Batch Query (`jobhunt/multi.py`)**: Removed non-existent `location` column from `_BATCH_PROFILE_COLUMNS` (which caused Supabase PostgREST `HTTP 400 / 42703: column user_profiles.location does not exist` on scheduled/targeted `jobhunt multi-run` workflows), added `min_salary_lpa` and `preferred_sectors`, and surfaced explicit HTTP/candidate diagnostics instead of silent exit code `1`.
+- **Schema-to-Query Regression Guardrails (`tests/test_schema_sql.py`, `tests/test_multi_user_batch.py`)**: Added static SQL schema validation asserting every explicit `select=` column in `multi.py` and `memory.py` exists in `supabase/schema.sql`, plus `test_multi_run_logs_supabase_http_error` (total **607 automated tests**).
+
+---
+
 ## [1.2.1] — 2026-11-12
 
 ### Fixed & Synchronized
@@ -266,6 +274,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.2.2]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2
 [1.2.1]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1
 [1.2.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0
 [1.1.8]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.1.8

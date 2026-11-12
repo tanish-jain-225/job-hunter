@@ -80,7 +80,7 @@ flowchart TD
 ```text
 job-hunter/
 ├── CHANGELOG.md                 # Universal release history and notable changes
-├── RELEASE_NOTES.md             # Detailed feature release notes (v1.2.1)
+├── RELEASE_NOTES.md             # Detailed feature release notes (v1.2.2)
 ├── SECURITY.md                  # Vulnerability reporting, security scope, and hardening architecture
 ├── README.md                    # Project homepage, live badges, and architectural overview
 ├── assets/                          # Canonical brand identity assets & diagrams
@@ -108,7 +108,7 @@ job-hunter/
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.2.1")
+│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.2.2")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, check, applied, stats, profile, web, verify, clean)
@@ -171,7 +171,7 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-step settings modal: (1) Resume & automatic AI extraction, (2) Criteria review, (3) Alerts & Save
-├── tests/                       # Automated Test Suite (605 passing tests, 92% coverage)
+├── tests/                       # Automated Test Suite (607 passing tests, 92% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening

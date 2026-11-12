@@ -37,10 +37,10 @@ from .store import Store, extract_seen_archive
 ROOT = Path(__file__).resolve().parent.parent
 
 _BATCH_PROFILE_COLUMNS = (
-    "email,name,title,location,experience_years,experience_level,skills,"
+    "email,name,title,experience_years,experience_level,skills,"
     "target_keywords,exclude_keywords,preferred_locations,job_types,education,"
     "email_notifications_enabled,notification_email,min_score_notification,"
-    "onboarding_completed,profile_json,created_at"
+    "onboarding_completed,min_salary_lpa,preferred_sectors,profile_json,created_at"
 )
 
 
@@ -445,6 +445,7 @@ def run_multi_user_pipeline(
                     params["email"] = f"eq.{user_email.lower().strip()}"
                 resp = requests.get(endpoint, headers=headers, params=params, timeout=memory.timeout)
                 if resp.status_code != 200:
+                    print(f"  ! Supabase user query HTTP {resp.status_code}: {resp.text[:300]}")
                     break
                 data = resp.json()
                 if not isinstance(data, list) or not data:
@@ -464,6 +465,7 @@ def run_multi_user_pipeline(
 
     # Never cross tenant boundaries or use a local fallback for a targeted run.
     if user_email and not users_to_process:
+        print(f"  ! Candidate profile not found or incomplete for targeted user: {user_email}")
         return {"status": "user_not_found", "users_processed": 0, "dispatched": 0}
 
     # Fallback to local profile only for the scheduled/local all-user mode.

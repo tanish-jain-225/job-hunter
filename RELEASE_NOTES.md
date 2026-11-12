@@ -1,15 +1,23 @@
 # 🚀 Release Notes — Job Hunter
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1"><img src="https://img.shields.io/badge/Release-v1.2.1-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.1"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-605%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2"><img src="https://img.shields.io/badge/Release-v1.2.2-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.2"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-607%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
-> **Current Production Version**: `v1.2.1` | **Release Date**: November 12, 2026
+> **Current Production Version**: `v1.2.2` | **Release Date**: November 12, 2026
 >
-> **Quick Links**: [GitHub Release v1.2.1](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+> **Quick Links**: [GitHub Release v1.2.2](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+
+---
+
+## [v1.2.2] - 2026-11-12
+
+### 🐛 Hotfix: GitHub Actions Batch User Query & Schema Drift Guardrail
+* **Supabase Batch Profile Projection (`jobhunt/multi.py`)**: Removed non-existent `location` column from `_BATCH_PROFILE_COLUMNS` (which triggered PostgreSQL error `42703: column user_profiles.location does not exist` during `jobhunt multi-run`), added `min_salary_lpa` and `preferred_sectors`, and printed explicit HTTP/candidate error diagnostics before returning `user_not_found`.
+* **Schema Alignment Tests (`tests/test_schema_sql.py`, `tests/test_multi_user_batch.py`)**: Verified every `select` column in `multi.py` and `memory.py` against `supabase/schema.sql`, expanding the suite to **607 passing tests** (**92%+ statement coverage**).
 
 ---
 
