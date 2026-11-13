@@ -315,7 +315,7 @@ Industry data from Indian software agencies (Clutch India, AmbitionBox) indicate
 | **Turnkey Codebase Transfer (Pre-Revenue IP)** | Immediate private marketplace sale of IP, 607 passing tests, docs, and live Vercel/Supabase architecture (Acquire.com / Flippa pre-revenue discount). | **₹6,50,000 – ₹9,50,000** | \$7,000 – \$10,100 USD |
 
 > **Current Pre-Revenue Turnkey IP Market Value: ₹6,50,000 – ₹9,50,000 INR (Midpoint: ~₹8.0 Lakhs)**  
-> *(Engineering replacement cost: **₹7.5L–₹12L** freelance / **₹13.5L–₹19.5L** agency — grounded in 2026 Indian engineering rates, 607 passing tests, 92.28% coverage, live deployment, zero monthly baseline hosting overhead, and 114 verified ATS integrations)*
+> *(Engineering replacement cost: **₹7.5L–₹12L** freelance / **₹13.5L–₹19.5L** agency — grounded in 2026 Indian engineering rates, 622 passing tests, 92%+ coverage, live deployment, zero monthly baseline hosting overhead, and 114 verified ATS integrations)*
 
 ### C. Indian Micro-SaaS Revenue Model (Razorpay / Cashfree) with Global Compatibility
 
