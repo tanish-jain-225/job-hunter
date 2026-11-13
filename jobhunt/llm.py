@@ -48,6 +48,10 @@ from .llm_utils import (
     _ensure_list,
     _as_list,
     extract_text_from_pdf,
+    calculate_timeline_yoe,
+    normalize_technical_skills,
+    synthesize_headline_and_targets,
+    sanitize_candidate_name,
 )
 
 
@@ -140,7 +144,7 @@ def _next_failover_provider(
 
 # ---------------------------------------------------------------- profile ---
 
-PROFILE_SYSTEM_PROMPT = """You are an expert AI Technical Recruiter, Talent Analyst, and ATS Resume Intelligence Engine specialized in software engineering and technology hiring.
+PROFILE_SYSTEM_PROMPT = """You are an expert AI Talent Acquisition Specialist, Executive Recruiter, and ATS Resume Intelligence Engine capable of analyzing candidates across all professions and industry sectors (Engineering, Product Management, UI/UX Design, Data & Analytics, Growth & Marketing, Sales & BD, Finance & Accounting, HR & Talent, Operations & PM, Legal & Compliance).
 Your task is to analyze candidate resumes with extreme accuracy and extract a comprehensive, high-signal, structured profile in JSON format.
 
 Extraction Guidelines:
@@ -150,47 +154,61 @@ Extraction Guidelines:
    - Never return company names, college names, or job titles as the candidate's name.
 
 2. Professional Headline Title (current_title):
-   - Extract their current or most recent job title (e.g. "Senior Backend Engineer", "Full Stack Developer", "Data Scientist").
-   - If the candidate is a fresher, recent graduate, or student, infer their target professional title based on their projects, skills, and coursework (e.g. "Software Engineer" or "Frontend Developer").
+   - Extract their current or most recent job title (e.g. "Senior Backend Engineer", "Product Manager", "Lead UI/UX Designer", "Financial Analyst", "Growth Marketing Specialist").
+   - If the candidate is a fresher, recent graduate, or student, infer their target professional title based on their projects, skills, and coursework (e.g. "Software Engineer", "Product Designer", "Data Analyst").
    - NEVER return generic non-professional terms like "Student", "Fresher", "Intern", or "Candidate".
 
-3. Total Years of Experience (years_experience):
-   - Calculate total full-time professional software engineering experience in years by analyzing work history start/end dates up to the present (2026).
-   - If the candidate has only internships, academic projects, or is a fresher/new-grad, return 0.0 or 0.5.
-   - Always return a numeric value (e.g. 0.0, 1.5, 3.0, 5.0).
+3. Work History & Years of Experience (work_history & years_experience):
+   - Extract discrete employment stints in `work_history` with company, role, start date, end date, and type ("full_time", "internship", "freelance", "academic_project").
+   - Calculate total full-time professional experience in years.
+   - Student internships and academic projects do NOT count as full-time industry tenure.
+   - If the candidate has only internships, academic projects, or is a fresher/new-grad, return 0.0 or 0.5. Always return a numeric value.
 
 4. Core Skills (core_skills):
-   - Extract 10 to 20 concrete technical skills: programming languages, backend/frontend frameworks, databases, cloud platforms, DevOps tools, and system architectures.
-   - Examples: ["Python", "FastAPI", "React", "PostgreSQL", "Docker", "AWS", "TypeScript", "Redis", "Kafka", "Microservices", "CI/CD", "Git"].
-   - DO NOT include soft skills (e.g. "team player", "leadership", "problem solving", "communication", "hard working").
+   - Extract 10 to 20 concrete functional and technical skills, tools, platforms, or domain methodologies relevant to candidate's discipline:
+     * Engineering: programming languages, frameworks, cloud, databases, DevOps.
+     * Product & Design: Figma, PRDs, wireframing, user research, A/B testing, design systems, JIRA.
+     * Data & Finance: SQL, Tableau, Power BI, financial modeling, valuation, QuickBooks, Excel.
+     * Marketing & Sales: SEO, SEM, Google Ads, CRM, Salesforce, HubSpot, copywriting.
+     * HR & Operations: talent acquisition, HRIS, Workday, employee relations, agile, supply chain.
+   - Normalize canonical naming (e.g. "React", "Python", "Figma", "Tableau", "SQL", "Salesforce", "Docker").
+   - DO NOT include soft-skill buzzwords (e.g. "team player", "leadership", "problem solving", "communication", "hard working").
 
 5. Target Job Titles (target_titles):
-   - Generate 3 to 6 realistic, specific technical job search titles matching this candidate's stack and experience level.
-   - Examples: ["Backend Engineer", "Python Developer", "Software Development Engineer", "Full Stack Developer"].
+   - Generate 3 to 6 realistic, specific job search titles matching this candidate's exact profession, domain, and experience level:
+     * For Engineering: ["Backend Engineer", "Python Developer", "Full Stack Developer"]
+     * For Product: ["Product Manager", "Associate Product Manager", "Product Owner"]
+     * For Design: ["Product Designer", "UI/UX Designer", "Visual Designer"]
+     * For Marketing/Sales: ["Growth Marketer", "Digital Marketing Specialist", "Account Executive"]
+     * For Finance/HR: ["Financial Analyst", "Talent Acquisition Specialist"]
    - These are directly used for ATS job matching and search queries.
 
 6. Excluded Keywords (exclude_keywords):
-   - 3 to 5 roles or seniority levels to automatically exclude based on candidate's profile.
-   - Standard defaults: ["Manager", "Director", "Sales", "Recruiter", "VP"].
+   - 3 to 5 seniority levels or roles to automatically exclude based on candidate's profile:
+     * For entry-level / junior candidates: exclude inappropriate senior/executive levels (e.g. ["Director", "VP", "Chief", "Head of", "Principal"]).
+     * For senior candidates: exclude entry-level roles (e.g. ["Intern", "Trainee", "Junior", "Fresher"]).
+     * NEVER exclude entire career domains (e.g. do NOT exclude "Sales" or "Manager" if candidate is in Sales or Management).
 
-7. Education (education):
+7. Education & Graduation Year (education & graduation_year):
    - Extract the highest degree, major, university/college name, graduation year, and GPA/CGPA if stated.
-   - Example: "B.Tech in Computer Science, IIT Delhi (2024), 8.8 CGPA".
+   - Example: "B.E. in Automation and Robotics Engineering, VESIT Mumbai (2027), 7.43 CGPA" or "MBA in Marketing, IIM Bangalore (2024)".
+   - Set `graduation_year` to integer completion year (e.g. 2027).
 
-8. Indian Tech Hubs & Locations (preferred_locations & location_preference):
-   - Detect mentioned cities, prioritizing Indian tech hubs: "Bengaluru", "Hyderabad", "Pune", "Delhi-NCR", "Mumbai", "Chennai", or "Remote".
+8. Locations & Preferences (preferred_locations & location_preference):
+   - Detect mentioned cities, normalizing Indian hubs: "Bengaluru", "Hyderabad", "Pune", "Delhi-NCR", "Mumbai", "Chennai", or global hubs, or "Remote".
    - If candidate lists "Bangalore", normalize to "Bengaluru". If "Gurgaon", "Noida", or "Delhi", normalize to "Delhi-NCR".
    - If candidate prefers remote work or has remote experience, include "Remote".
-   - location_preference should be: "specific_cities" (if specific cities detected), "remote_only" (if exclusively remote), "all_india", or "global".
+   - location_preference should be: "specific_cities", "remote_only", "all_india", or "global".
 
 9. Notice Period (notice_period):
    - Detect notice period if stated: "immediate", "15_days", "30_days", "60_days", "90_days".
    - If candidate is a fresher, student, or currently unemployed / available immediately, use "immediate".
-   - If not stated, default to "30_days" (standard Indian notice period).
+   - If not stated, default to "30_days" (standard notice period).
 
 10. Compensation / CTC in LPA (current_ctc_lpa & expected_ctc_lpa):
-    - Detect compensation stated in Lakhs Per Annum (LPA), INR, or Indian notation (e.g. "8.5 LPA" -> 8.5, "₹12 Lakhs" -> 12.0, "15L" -> 15.0).
-    - If not stated, return 0.0.
+    - Detect compensation stated in Lakhs Per Annum (LPA), INR, or standard notation (e.g. "8.5 LPA" -> 8.5, "₹12 Lakhs" -> 12.0).
+    - NEVER confuse project metrics (e.g. "handled 10L records", "improved latency by 15%") with compensation.
+    - If not stated explicitly, return 0.0.
 """
 
 PROFILE_PROMPT = """Extract a structured job-search profile from this resume.
@@ -198,14 +216,24 @@ PROFILE_PROMPT = """Extract a structured job-search profile from this resume.
 Return ONLY a valid JSON object matching this exact schema:
 {
   "name": "Full Name",
-  "current_title": "Current or Target Professional Role (e.g. Backend Engineer, Software Engineer)",
+  "current_title": "Current or Target Professional Role (e.g. Senior Backend Engineer, Product Manager, Product Designer, Financial Analyst)",
   "years_experience": 0.0,
-  "core_skills": ["Python", "FastAPI", "React", "PostgreSQL", "Docker"],
-  "domains": ["backend", "distributed systems", "cloud"],
+  "graduation_year": 2027,
+  "work_history": [
+    {
+      "company": "Company Name",
+      "role": "Role Title",
+      "start": "Month Year",
+      "end": "Month Year or Present",
+      "type": "full_time | internship | freelance | academic_project"
+    }
+  ],
+  "core_skills": ["Primary Skill 1", "Primary Skill 2", "Primary Skill 3", "Tool 4", "Platform 5"],
+  "domains": ["primary_domain", "secondary_domain"],
   "notable_projects": ["One line project summary with metrics and impact"],
   "education": "Degree, Major, Institution, Year, CGPA",
-  "target_titles": ["Software Engineer", "Backend Developer", "Full Stack Engineer"],
-  "exclude_keywords": ["Manager", "Director", "Sales", "Recruiter", "VP"],
+  "target_titles": ["Target Job Title 1", "Target Job Title 2", "Target Job Title 3"],
+  "exclude_keywords": ["Seniority levels or roles to avoid, e.g. Director, VP, Intern"],
   "seniority": "intern | new-grad | junior | mid | senior | staff",
   "experience_level": "fresher | 0-1 | 1-3 | 3-5 | 5+",
   "job_types": ["fulltime", "remote", "hybrid"],
@@ -291,47 +319,103 @@ def build_profile(
     if not isinstance(profile, dict):
         raise ValueError("profile extraction did not return a JSON object")
 
-    # Normalize years_experience and bidirectional alias experience_years
-    yoe = profile.get("years_experience")
-    if yoe is None:
-        yoe = profile.get("experience_years")
-    if isinstance(yoe, (int, float)):
-        val_yoe = float(yoe)
-    elif isinstance(yoe, str):
-        m = re.search(r"(\d+(?:\.\d+)?)", yoe)
+    # 1. Candidate Name Sanitization & Header Bounding
+    clean_name = sanitize_candidate_name(profile.get("name"), effective_text.splitlines())
+    profile["name"] = clean_name or str(profile.get("name") or "").strip()
+
+    # 2. Grounded Timeline Calculation for Years of Experience
+    work_hist = profile.get("work_history")
+    grad_yr = profile.get("graduation_year")
+    timeline_yoe = calculate_timeline_yoe(work_hist, graduation_year=grad_yr, resume_text=effective_text)
+
+    raw_yoe = profile.get("years_experience") if profile.get("years_experience") is not None else profile.get("experience_years")
+    if isinstance(raw_yoe, (int, float)):
+        val_yoe = float(raw_yoe)
+    elif isinstance(raw_yoe, str):
+        m = re.search(r"(\d+(?:\.\d+)?)", raw_yoe)
         val_yoe = float(m.group(1)) if m else 0.0
     else:
         val_yoe = 0.0
+
+    # If structured work_history was extracted, authoritative timeline math takes precedence
+    if work_hist and isinstance(work_hist, list) and len(work_hist) > 0:
+        val_yoe = timeline_yoe
+    else:
+        # Check if student/fresher context clamps YoE
+        is_student_or_fresher = False
+        if grad_yr:
+            try:
+                g_m = re.search(r"\b(20\d\d)\b", str(grad_yr))
+                if g_m and int(g_m.group(1)) >= 2025:
+                    is_student_or_fresher = True
+            except Exception:
+                pass
+        if not is_student_or_fresher and effective_text:
+            m_edu = re.search(
+                r"(?i)\b(?:final[- ]year|student|undergraduate|fresher|pre[- ]final)\b",
+                effective_text,
+            )
+            m_batch = re.search(r"(?i)\b(?:batch|class)\s*(?:of)?\s*(202[5-9]|203\d)\b", effective_text)
+            if m_edu and m_batch:
+                is_student_or_fresher = True
+
+        if is_student_or_fresher:
+            val_yoe = 0.0
+        elif timeline_yoe > 0.0:
+            val_yoe = timeline_yoe
+
     profile["years_experience"] = val_yoe
     profile["experience_years"] = val_yoe
 
-    # Bidirectional aliases for core_skills <-> skills
-    skills_list = _ensure_list(profile.get("core_skills") or profile.get("skills"))
+    # 3. Canonical Technical Skills (Strip Soft Skills & Deduplicate)
+    raw_skills = profile.get("core_skills") or profile.get("skills")
+    skills_list = normalize_technical_skills(raw_skills)
     profile["core_skills"] = skills_list
     profile["skills"] = skills_list
 
     profile["domains"] = _ensure_list(profile.get("domains"))
     profile["notable_projects"] = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
-
     profile["exclude_keywords"] = _ensure_list(profile.get("exclude_keywords") or profile.get("avoid_roles"))
     profile["job_types"] = _ensure_list(profile.get("job_types"))
-    profile["name"] = str(profile.get("name") or "").strip()
 
-    # Bidirectional aliases for current_title <-> title
+    # 4. Headline Professional Role & Tailored Target Job Titles
     cur_title = str(profile.get("current_title") or profile.get("title") or "").strip()
-    profile["current_title"] = cur_title
-    profile["title"] = cur_title
+    synthesized_title, synthesized_targets = synthesize_headline_and_targets(
+        cur_title, skills_list, yoe=val_yoe, domains=profile["domains"]
+    )
+    profile["current_title"] = synthesized_title
+    profile["title"] = synthesized_title
 
-    # Bidirectional aliases for target_titles <-> target_keywords
-    targets_list = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
-    if not targets_list:
-        targets_list = [cur_title or "Software Engineer"]
-    profile["target_titles"] = targets_list
-    profile["target_keywords"] = targets_list
+    existing_targets = _ensure_list(profile.get("target_titles") or profile.get("target_keywords"))
+    clean_targets = [
+        str(t).strip() for t in existing_targets
+        if str(t).strip() and str(t).strip().lower() not in {"student", "fresher", "intern", "candidate"}
+    ]
+    if clean_targets:
+        profile["target_titles"] = clean_targets
+        profile["target_keywords"] = clean_targets
+    else:
+        profile["target_titles"] = synthesized_targets
+        profile["target_keywords"] = synthesized_targets
 
     profile["education"] = str(profile.get("education") or "").strip()
-    profile["seniority"] = str(profile.get("seniority") or "").strip()
-    profile["experience_level"] = str(profile.get("experience_level") or "").strip()
+
+    # 5. Experience Level & Seniority Calibration
+    if val_yoe <= 0.0:
+        profile["experience_level"] = "fresher"
+        profile["seniority"] = "entry"
+    elif val_yoe < 1.0:
+        profile["experience_level"] = "0-1"
+        profile["seniority"] = "entry"
+    elif val_yoe < 3.0:
+        profile["experience_level"] = "1-3"
+        profile["seniority"] = "mid"
+    elif val_yoe < 5.0:
+        profile["experience_level"] = "3-5"
+        profile["seniority"] = "mid"
+    else:
+        profile["experience_level"] = "5+"
+        profile["seniority"] = "senior"
 
     # Preferred locations & location preference normalization
     raw_locs = profile.get("preferred_locations")
@@ -379,7 +463,7 @@ def build_profile(
     elif raw_np in {"immediate", "15_days", "30_days", "60_days", "90_days"}:
         norm_np = raw_np
     else:
-        norm_np = "30_days"
+        norm_np = "immediate" if val_yoe == 0.0 else "30_days"
     profile["notice_period"] = norm_np
 
     # Current & Expected CTC in LPA
@@ -415,11 +499,11 @@ def _build_screen_system(profile: dict | None = None, cfg: dict | None = None) -
     name = _get_candidate_name(profile)
     edu = (profile or {}).get("education", "")
     yoe = (profile or {}).get("years_experience")
-    seniority = (profile or {}).get("seniority", "software engineer")
+    seniority = (profile or {}).get("seniority", "mid")
     target_titles = (profile or {}).get("target_titles") or (profile or {}).get("target_keywords") or []
-    titles_str = ", ".join(target_titles) if target_titles else "Software Engineering / Technical Roles"
+    titles_str = ", ".join(target_titles) if target_titles else "Target Opportunities"
     domains = (profile or {}).get("domains") or []
-    domains_str = ", ".join(domains) if domains else "Software Engineering"
+    domains_str = ", ".join(domains) if domains else "Candidate Expertise"
 
     details = []
     if edu:
@@ -720,15 +804,15 @@ def screen(
 
 def _build_draft_system(profile: dict | None = None) -> str:
     name = _get_candidate_name(profile)
-    edu = (profile or {}).get("education") or "Technical Degree / Professional Experience"
+    edu = (profile or {}).get("education") or "Degree / Professional Background"
     raw_skills = (profile or {}).get("skills") or (profile or {}).get("core_skills") or []
-    skills = ", ".join(raw_skills) if raw_skills else "Software Engineering, Full Stack Development, REST APIs, Git"
+    skills = ", ".join(raw_skills) if raw_skills else "Relevant Professional Competencies & Tools"
 
     projects = (profile or {}).get("notable_projects") or []
     if projects:
         projects_str = "\n".join(f"  {idx + 1}. {p}" for idx, p in enumerate(projects))
     else:
-        projects_str = "  1. Production software applications and engineering deliverables"
+        projects_str = "  1. Key professional deliverables and project impact"
 
     github = (profile or {}).get("github", "")
     github_ref = f" ({github})" if github else ""
@@ -759,9 +843,9 @@ Return ONLY a JSON object:
   "matching_skills": [str],    // 4-8 matching skills candidate possesses for this role
   "gaps": [str],               // 1-3 honest missing requirements and how to address them
   "cover_note": str,           // 120-160 words. Plain, direct cover note with zero fluff or generic flattery.
-  "cold_outreach": str,        // Under 80 words. Concise recruiter cold message referencing role title, key tech stack, availability/notice period{github_ref}.
-  "referral_request": str,     // Under 60 words. Short professional LinkedIn message asking an engineering peer/alumnus for an internal referral with key tech alignment.
-  "questions_to_ask": [str]    // 2 sharp technical questions showing thorough reading of the JD
+  "cold_outreach": str,        // Under 80 words. Concise recruiter cold message referencing role title, key skills/domain alignment, availability/notice period{github_ref}.
+  "referral_request": str,     // Under 60 words. Short professional LinkedIn message asking a team colleague/alumnus for an internal referral with key skill alignment.
+  "questions_to_ask": [str]    // 2 sharp professional questions showing thorough reading of the JD
 }}"""
 
 
@@ -785,7 +869,7 @@ def draft(
     profile_blob = json.dumps(profile, ensure_ascii=False)
     system_prompt = _build_draft_system(profile)
     cand_projects = (profile or {}).get("notable_projects") or []
-    default_proj = cand_projects[0] if cand_projects else "Key Engineering Project"
+    default_proj = cand_projects[0] if cand_projects else "Key Project & Deliverables"
     active_api_key = api_key
     initial_provider_name = (getattr(provider, "name", "") or "primary").strip().lower()
     failed_providers: set[str] = set()
@@ -896,16 +980,16 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
 
         j.score = round(max(0.0, min(10.0, score)), 1)
 
-        matched_str = ", ".join(hits[:5]) if hits else "relevant technical stack"
-        j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] general technical match"
+        matched_str = ", ".join(hits[:5]) if hits else "relevant competencies"
+        j.reason = f"[keyword stub] skills matched: {matched_str}" if hits else "[keyword stub] general professional match"
 
         # Populate offline draft stand-in for dry-run rendering
         cand_name = _get_candidate_name(profile)
-        edu_str = str((profile or {}).get("education") or "Technical Degree")
+        edu_str = str((profile or {}).get("education") or "Professional Background")
         cand_projects = (profile or {}).get("notable_projects") or []
-        first_project = cand_projects[0] if cand_projects else "Key Engineering Project"
+        first_project = cand_projects[0] if cand_projects else "Key Project & Deliverables"
         github_link = str((profile or {}).get("github") or "")
-        github_suffix = f"\nGitHub: {github_link}" if github_link else ""
+        github_suffix = f"\nPortfolio / Links: {github_link}" if github_link else ""
 
         project_highlight = first_project
         for p in cand_projects:
@@ -914,8 +998,8 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
                 project_highlight = p
                 break
 
-        lead_skill_1 = hits[0] if len(hits) > 0 else (raw_skills[0] if raw_skills else "Core Technologies")
-        lead_skill_2 = hits[1] if len(hits) > 1 else (raw_skills[1] if len(raw_skills) > 1 else "Software Engineering")
+        lead_skill_1 = hits[0] if len(hits) > 0 else (raw_skills[0] if raw_skills else "Core Domain")
+        lead_skill_2 = hits[1] if len(hits) > 1 else (raw_skills[1] if len(raw_skills) > 1 else "Execution")
 
         loc_lower = (j.location or "").lower()
         is_ind = any(c in loc_lower or c in blob for c in ("india", "bengaluru", "bangalore", "pune", "hyderabad", "mumbai", "delhi", "gurgaon", "gurugram", "noida", "chennai"))
@@ -932,19 +1016,19 @@ def keyword_screen(jobs: list[Job], profile: dict, **_) -> list[Job]:
             "salary_range_inr": str(extracted_sal or ""),
             "best_project": project_highlight,
             "tailored_bullets": [
-                f"Engineered software solutions utilizing {lead_skill_1} and {lead_skill_2}.",
-                "Developed scalable backend workflows, APIs, and robust data layers.",
-                "Implemented automated testing, monitoring, and continuous integration practices.",
+                f"Delivered impactful outcomes leveraging expertise in {lead_skill_1} and {lead_skill_2}.",
+                "Spearheaded execution, cross-functional collaboration, and strategic deliverables.",
+                "Maintained rigorous quality, metrics tracking, and continuous improvement standards.",
             ],
             "matching_skills": hits[:6]
             if hits
-            else (raw_skills[:6] if raw_skills else ["Software Engineering", "REST APIs", "Git"]),
+            else (raw_skills[:6] if raw_skills else ["Strategic Planning", "Execution", "Collaboration"]),
             "gaps": ["Verify specific domain/experience requirements mentioned in the job description."],
-            "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with a background in {edu_str}. I built {project_highlight}. My technical skills in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
-            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and built {project_highlight} with {matched_str}. Would love to connect!{github_suffix}",
+            "cover_note": f"Hi Hiring Team,\n\nI am {cand_name}, with a background in {edu_str}. I led {project_highlight}. My competencies in {matched_str} align directly with your {j.title} position at {j.company}.\n\nBest regards,\n{cand_name}",
+            "cold_outreach": f"Hi! I saw your {j.title} opening at {j.company}. I'm {cand_name} ({edu_str}) and delivered {project_highlight} with {matched_str}. Would love to connect!{github_suffix}",
             "questions_to_ask": [
-                f"What are the primary technical milestones for the {j.title} in their first 90 days?",
-                "How does your engineering team approach architecture reviews and deployment testing?",
+                f"What are the primary milestones and deliverables for the {j.title} in their first 90 days?",
+                "How does your team measure impact and collaborate across functional stakeholders?",
             ],
         }
 
@@ -960,7 +1044,7 @@ def generate_followup_note(
 ) -> dict[str, str]:
     """Generate professional follow-up templates (email & LinkedIn) for applied opportunities."""
     name = (candidate_name or "Candidate").strip()
-    title = (job_title or "Software Engineer").strip()
+    title = (job_title or "Professional Opportunity").strip()
     comp = (company or "Hiring Team").strip()
     date_str = f" on {applied_on}" if applied_on else " recently"
 
@@ -970,8 +1054,8 @@ def generate_followup_note(
         f"Hi {comp} Recruiting Team,\n\n"
         f"I hope you're having a great week!\n\n"
         f"I am following up on my application for the {title} role submitted{date_str}. "
-        f"I remain very enthusiastic about {comp}'s mission and would love to reiterate my strong interest in contributing to your engineering team.\n\n"
-        f"Please let me know if you need any additional portfolio samples, code repositories, or background details from my side.\n\n"
+        f"I remain very enthusiastic about {comp}'s mission and would love to reiterate my strong interest in contributing to your team.\n\n"
+        f"Please let me know if you need any additional portfolio samples, case studies, or background details from my side.\n\n"
         f"Thank you for your time and consideration,\n"
         f"{name}"
     )

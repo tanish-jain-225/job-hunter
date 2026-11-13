@@ -5,6 +5,46 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.4] — 2026-11-13
+
+### Added & Universalized
+- **10/10 Universal Multi-Domain Career Intelligence Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`, `jobhunt/web/routes/profile.py`, `jobhunt/cli.py`)**:
+  - **Dynamic Multi-Domain Role Synthesis (`synthesize_headline_and_targets`)**: Upgraded synthesis from single-sector tech logic to dynamic, multi-domain classification spanning 10 core career families without hardcoded rigid lists:
+    * *Product Management* (PRDs, Roadmapping, User Stories, A/B Testing $\rightarrow$ `Product Manager`, `Associate Product Manager`, `Product Owner`)
+    * *UI/UX & Product Design* (Figma, Wireframing, User Research, Prototyping $\rightarrow$ `Product Designer`, `UI/UX Designer`, `Visual Designer`)
+    * *Data & Business Intelligence* (SQL, Tableau, Power BI, Snowflake $\rightarrow$ `Data Analyst`, `BI Analyst`, `Analytics Engineer`)
+    * *AI & Machine Learning* (PyTorch, TensorFlow, LLMs, NLP $\rightarrow$ `AI/ML Engineer`, `Data Scientist`, `Machine Learning Engineer`)
+    * *Growth & Marketing* (SEO, SEM, Google Ads, HubSpot, GA4 $\rightarrow$ `Growth Marketer`, `Digital Marketing Specialist`, `Content Strategist`)
+    * *Sales & Business Development* (Salesforce, B2B Sales, Lead Generation, CRM $\rightarrow$ `Account Executive`, `Business Development Representative`)
+    * *Finance & Accounting* (Financial Modeling, Valuation, QuickBooks, Auditing $\rightarrow$ `Financial Analyst`, `Accountant`)
+    * *Human Resources & Talent* (Talent Acquisition, Technical Recruiting, HRIS, Workday $\rightarrow$ `Talent Acquisition Specialist`, `HR Specialist`)
+    * *Operations & Project Management* (Supply Chain, Logistics, PMP, Scrum Master $\rightarrow$ `Operations Manager`, `Project Manager`)
+    * *Legal & Compliance* (Contract Management, Regulatory Compliance, GDPR $\rightarrow$ `Legal Counsel`, `Compliance Specialist`)
+    * *Software Engineering* (Preserved existing frontend, backend, full stack, DevOps, and cloud role synthesis)
+  - **Target Pollution Prevention**: Strict domain isolation guarantees non-tech candidates (e.g. Product Managers, Designers, Marketers) are never polluted with inappropriate software engineering titles or tech-stack keywords.
+  - **Dynamic Cross-Domain Canonical Skill Mappings**: Expanded `_CANONICAL_SKILL_MAP` and section extraction catalog with 150+ universal industry skills, platforms, and methodologies (Figma, PRDs, Tableau, Power BI, Salesforce, HubSpot, QuickBooks, SAP, Workday, PMP, Agile, Scrum).
+  - **Domain-Agnostic LLM Prompts & Seniority-Aware Exclusion**: Updated `PROFILE_SYSTEM_PROMPT` to analyze resumes across all industry sectors; eliminated hardcoded functional exclusions (*"Sales"*, *"Manager"*, *"Recruiter"*), replacing them with seniority-level calibrations (excluding C-level/VP roles for freshers, and internships for senior professionals).
+  - **Universal UI & Onboarding Copy (`templates/partials/profile_settings.html`, `static/js/app.js`)**: Updated placeholders, guidance notes, and fallbacks to seamlessly guide candidates from any career discipline.
+- **Automated Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **622 passed tests** (615 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors).
+
+---
+
+## [1.2.3] — 2026-11-13
+
+### Added & Enhanced
+- **Deterministic Resume Parsing Accuracy Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`, `jobhunt/web/routes/profile.py`)**:
+  - **Timeline YoE Math (`calculate_timeline_yoe`)**: Converts work history intervals into calendar months and merges overlapping employment stints without double-counting tenure.
+  - **Internship & Academic Exclusion**: Excludes student internships, traineeships, and academic projects from full-time professional experience calculations.
+  - **Fresher & Student Clamping**: Accurately detects graduation dates ($\ge 2025$, including Class of 2026/2027) and student indicators, clamping YoE to `0.0` (or max 0.5) to prevent coursework and degree dates from falsely inflating candidate experience.
+  - **Canonical Skill Normalization (`normalize_technical_skills`)**: Maps fragmented tech synonyms (`React.js` $\rightarrow$ `React`, `Postgres` $\rightarrow$ `PostgreSQL`, `Python3` $\rightarrow$ `Python`, `Golang` $\rightarrow$ `Go`, `NextJS` $\rightarrow$ `Next.js`) and purges 22+ non-technical soft-skill buzzwords (*"Problem Solving"*, *"Teamwork"*, *"Leadership"*, etc.).
+  - **Headline Role & Target Synthesis (`synthesize_headline_and_targets`)**: Dynamically derives professional engineering titles (`Full Stack Developer`, `Backend Engineer`, `AI/ML Software Engineer`) based on validated tech stack, ensuring candidates are never left with unsearchable labels (`Student`, `Fresher`, `Intern`, `Candidate`).
+  - **Header-Bounded Name Extraction (`sanitize_candidate_name`)**: Strips document titles (`Resume`, `CV`) and contact markers, extracting clean candidate names from header delimiters.
+- **Headless Chromium Default Playwright Execution (`tests/test_browser_playwright.py`)**:
+  - Configured Chromium launch arguments with full sandbox bypass flags (`--no-sandbox`, `--disable-setuid-sandbox`, `--disable-gpu`, `--disable-dev-shm-usage`, `--disable-background-networking`) so headless browser tests execute reliably and cleanly by default.
+- **Full Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added dedicated accuracy test cases covering interval math, fresher clamping, and skill normalization, bringing the automated test suite to **616 passed tests** (100% pass rate, 0 failures, 0 errors).
+
+---
+
 ## [1.2.2] — 2026-11-12
 
 ### Fixed

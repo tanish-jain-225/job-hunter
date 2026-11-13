@@ -1851,17 +1851,11 @@ input:checked + .slider::before {
 }
 
 .pill-count {
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
-  font-size: 10.5px;
-  font-weight: 800;
-  background: rgba(79, 70, 229, 0.1);
-  color: var(--primary);
+  display: none !important;
 }
 
-.pill.active .pill-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+.metrics-bar {
+  display: none !important;
 }
 
 .highlight-match {

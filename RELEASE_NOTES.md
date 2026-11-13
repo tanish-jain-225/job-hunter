@@ -1,15 +1,51 @@
 # 🚀 Release Notes — Job Hunter
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2"><img src="https://img.shields.io/badge/Release-v1.2.2-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.2"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-607%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-v1.2.4-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.4"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-622%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
 
-> **Current Production Version**: `v1.2.2` | **Release Date**: November 12, 2026
+> **Current Production Version**: `v1.2.4` | **Release Date**: November 13, 2026
 >
-> **Quick Links**: [GitHub Release v1.2.2](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+> **Quick Links**: [GitHub Release v1.2.4](https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4) &bull; [Changelog](CHANGELOG.md) &bull; [Product Audit & Valuation](docs/PRODUCT_ANALYSIS_WALKTHROUGH.md) &bull; [System Architecture](docs/ARCHITECTURE.md) &bull; [Live Demo](https://job-hunter-web-board.vercel.app)
+
+---
+
+## [v1.2.4] - 2026-11-13
+
+### 🌟 Universal Multi-Domain Career Intelligence Engine (India-First & Global)
+* **Universal Multi-Domain Role Synthesis (`jobhunt/llm_utils.py`)**: Dynamically identifies professional domains across 10 major career disciplines without hardcoded single-domain limitations:
+  - **Product Management**: PRDs, Roadmapping, User Stories, A/B Testing $\rightarrow$ `Product Manager`, `Associate Product Manager`, `Product Owner`
+  - **UI/UX & Product Design**: Figma, Wireframing, User Research, Prototyping $\rightarrow$ `Product Designer`, `UI/UX Designer`, `Visual Designer`
+  - **Data & Business Intelligence**: SQL, Tableau, Power BI, Snowflake $\rightarrow$ `Data Analyst`, `BI Analyst`, `Analytics Engineer`
+  - **AI & Machine Learning**: PyTorch, TensorFlow, LLMs, NLP $\rightarrow$ `AI/ML Engineer`, `Data Scientist`
+  - **Growth & Marketing**: SEO, SEM, Google Ads, HubSpot, GA4 $\rightarrow$ `Growth Marketer`, `Digital Marketing Specialist`
+  - **Sales & Business Development**: Salesforce, B2B Sales, Lead Generation $\rightarrow$ `Account Executive`, `Business Development Representative`
+  - **Finance & Accounting**: Financial Modeling, Valuation, QuickBooks, Auditing $\rightarrow$ `Financial Analyst`, `Accountant`
+  - **Human Resources & Talent**: Talent Acquisition, Technical Recruiting, HRIS, Workday $\rightarrow$ `Talent Acquisition Specialist`, `HR Specialist`
+  - **Operations & Project Management**: Supply Chain, Logistics, PMP, Scrum Master $\rightarrow$ `Operations Manager`, `Project Manager`
+  - **Legal & Compliance**: Contract Management, Regulatory Compliance, GDPR $\rightarrow$ `Legal Counsel`, `Compliance Specialist`
+  - **Engineering**: Preserves existing high-precision synthesis across Full Stack, Backend, Frontend, and DevOps.
+* **Domain Search Isolation**: Guarantees that non-tech candidates (Product Managers, Designers, Marketers, Sales Reps, Accountants) are never polluted with software engineering titles or tech stack keywords.
+* **Cross-Domain Canonical Skills & Catalog (`jobhunt/llm_utils.py`, `jobhunt/web/routes/profile.py`)**: Expanded canonical mappings and section heuristics to 150+ universal tools and methodologies (Figma, PRDs, Tableau, Power BI, Salesforce, HubSpot, QuickBooks, Workday, PMP, Agile, Scrum).
+* **Domain-Agnostic LLM Prompts & Seniority Calibration (`jobhunt/llm.py`)**: Universalized `PROFILE_SYSTEM_PROMPT` to analyze talent across all industries and disciplines, replacing hardcoded functional exclusions (*"Sales"*, *"Manager"*, *"Recruiter"*) with dynamic seniority-level calibration.
+* **Universal Application Drafting & Follow-Up Notes**: Universalized draft kit system prompts, offline scorer stand-ins, and follow-up templates for any professional deliverable or discipline.
+* **Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the repository test suite to **622 passed tests** (**92%+ statement coverage**, **0 Ruff errors**).
+
+---
+
+## [v1.2.3] - 2026-11-13
+
+### 🎯 Deterministic Resume Intelligence Accuracy Engine
+* **Interval-Based Timeline YoE (`jobhunt/llm_utils.py`)**: Merges overlapping professional stints to eliminate double-counted tenure, and strictly excludes student internships from full-time professional experience.
+* **Student & Fresher Clamping**: Explicitly detects graduation year $\ge 2025$ and student labels, clamping YoE to `0.0` to eliminate hallucinated years from degree dates.
+* **Canonical Skill Normalization**: Maps fragmented synonyms (`React.js` $\rightarrow$ `React`, `Postgres` $\rightarrow$ `PostgreSQL`, `Python3` $\rightarrow$ `Python`, `Golang` $\rightarrow$ `Go`) while purging 22+ soft-skill buzzwords (*"Problem Solving"*, *"Teamwork"*, etc.).
+* **Dynamic Headline Role & Target Synthesis**: Synthesizes engineering titles (`Full Stack Developer`, `Backend Engineer`, `AI/ML Software Engineer`) from validated skill sets, eliminating raw `"Student"` or `"Fresher"` tags.
+* **Header-Bounded Candidate Name Extraction**: Strips document titles and contact metadata, capturing clean candidate names from header delimiters.
+* **Default Headless Chromium Playwright Runner (`tests/test_browser_playwright.py`)**: Configured Chromium launch flags (`--no-sandbox`, `--disable-setuid-sandbox`) for clean, default browser testing across local and CI environments.
+* **Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added 9 dedicated accuracy unit and integration tests, expanding the repository test suite to **616 passed tests** (**92%+ statement coverage**).
 
 ---
 

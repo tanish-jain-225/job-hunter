@@ -42,7 +42,7 @@ Service health check endpoint for monitoring, uptime verification, and Vercel se
 {
   "status": "healthy",
   "service": "job-hunter",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "environment": "vercel",
   "auth_required": true,
   "memory_connected": true,
@@ -315,7 +315,13 @@ Upload and extract structured candidate profile data from a resume document (PDF
 
 **Auth:** Required  
 **Content-Type:** `multipart/form-data` (file field: `file`) OR `application/json` (`{"resume_text": "...", "filename": "resume.pdf"}`)  
-**Timeout & Resilience:** Adaptive backend execution ceiling (`8.0s` on Vercel serverless to guarantee completion before Vercel's 10s gateway timeout; `14.0s` on standard/local servers) backed by a 2-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser (guaranteeing deterministic extraction of title, education, and 100+ skills during upstream AI provider load spikes or outages without fabricating personal defaults).  
+**Timeout & Resilience:** Adaptive backend execution ceiling (`8.0s` on Vercel serverless to guarantee completion before Vercel's 10s gateway timeout; `14.0s` on standard/local servers) backed by a 2-tier fallback engine: Tier 1 multi-provider AI cascade (Gemini $\rightarrow$ Groq $\rightarrow$ Claude $\rightarrow$ OpenAI with circular key rotation) $\rightarrow$ Tier 2 high-speed smart local regex parser. Both tiers run through an automated deterministic accuracy pipeline:
+- **Timeline YoE Math (`calculate_timeline_yoe`)**: Merges overlapping intervals without double-counting; strictly excludes internships/traineeships from full-time tenure; clamps college students/freshers (graduation $\ge 2025$) to 0.0 YoE.
+- **Canonical Skill Normalization (`normalize_technical_skills`)**: Maps synonyms (`React.js` $\rightarrow$ `React`, `Postgres` $\rightarrow$ `PostgreSQL`, `Python3` $\rightarrow$ `Python`, `Golang` $\rightarrow$ `Go`) and strips 22+ soft-skill buzzwords.
+- **Headline Role Synthesis (`synthesize_headline_and_targets`)**: Dynamically derives stack-based engineering titles (e.g., `Full Stack Developer`, `Backend Engineer`), replacing non-professional labels (`Student`, `Fresher`, `Intern`, `Candidate`).
+- **Header-Bounded Name Extraction (`sanitize_candidate_name`)**: Strips document labels (`Resume`, `CV`) and extracts clean candidate names.
+- **Notice Period & Compensation**: Defaults freshers to `immediate` notice and parses compensation in `₹ LPA`.
+
 **Response:**
 ```json
 {
@@ -324,12 +330,12 @@ Upload and extract structured candidate profile data from a resume document (PDF
   "resume_text": "...",
   "profile": {
     "name": "Alex Doe",
-    "title": "Full-Stack Developer",
+    "title": "Full Stack Developer",
     "education": "B.S. in Computer Science",
     "experience_years": 0.0,
-    "skills": ["JavaScript", "Python", "React.js", "Node.js", "Express.js", "Next.js", "MongoDB"],
+    "skills": ["Python", "JavaScript", "React", "Node.js", "Express.js", "Next.js", "MongoDB"],
     "target_keywords": ["Full Stack Developer", "Software Engineer"],
-    "notice_period": "30_days",
+    "notice_period": "immediate",
     "current_ctc_lpa": 0,
     "expected_ctc_lpa": 0,
     "resume_text": "..."

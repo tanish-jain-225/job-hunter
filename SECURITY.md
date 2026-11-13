@@ -10,11 +10,11 @@ Job Hunter actively maintains and supports the latest stable releases:
 
 | Version | Supported          | Status |
 | ------- | ------------------ | ------ |
-| 1.2.2   | :white_check_mark: | Current Production Release |
-| 1.2.1   | :white_check_mark: | Maintenance Release |
-| 1.2.0   | :white_check_mark: | Maintenance Release |
-| 1.1.8   | :white_check_mark: | Security Support |
-| < 1.1.8 | :x:                | End of Life (Upgrade Recommended) |
+| 1.2.4   | :white_check_mark: | Current Production Release |
+| 1.2.3   | :white_check_mark: | Maintenance Release |
+| 1.2.2   | :white_check_mark: | Maintenance Release |
+| 1.2.1   | :white_check_mark: | Security Support |
+| < 1.2.1 | :x:                | End of Life (Upgrade Recommended) |
 
 ---
 
@@ -132,5 +132,5 @@ The Flask backend (`jobhunt/web/__init__.py`) enforces strict HTTP security head
 - **[Deployment Guide](docs/DEPLOYMENT.md)** — Free-tier cloud production deployment on Vercel and Supabase.
 - **[REST API Reference](docs/API.md)** — Complete REST API reference.
 - **[Changelog](CHANGELOG.md)** — Release history and notable changes.
-- **[Release Notes](RELEASE_NOTES.md)** — Detailed v1.2.2 release notes.
+- **[Release Notes](RELEASE_NOTES.md)** — Detailed v1.2.4 release notes.
 - **[README.md](README.md)** — Project homepage.

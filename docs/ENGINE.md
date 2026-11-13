@@ -101,6 +101,19 @@ For jobs in `applied` or `interviewing` stages, Job Hunter calculates the elapse
 
 ---
 
+## Phase 5: Deterministic Resume Parsing & Normalization Engine (`jobhunt.llm_utils`)
+
+To eliminate LLM hallucinations, experience miscalculations, and skill clutter, Job Hunter routes both LLM responses and offline local fallbacks through a deterministic Python normalization layer:
+
+* **Timeline YoE Math (`calculate_timeline_yoe`)**: Converts work history intervals into calendar months and merges overlapping employment stints to eliminate double-counting.
+* **Internship Exclusion**: Automatically excludes student internships, traineeships, and academic projects from full-time professional experience calculations.
+* **Fresher & Student Clamping**: Candidates with graduation years $\ge 2025$ (e.g., Class of 2026/2027) or labeled with `"student"` / `"undergraduate"` are clamped to **0.0 YoE** (or maximum 0.5), preventing false inflation from coursework dates.
+* **Canonical Skill Normalization (`normalize_technical_skills`)**: Maps synonyms (`React.js` $\rightarrow$ `React`, `Postgres` $\rightarrow$ `PostgreSQL`, `Python3` $\rightarrow$ `Python`, `Golang` $\rightarrow$ `Go`) and filters out 22+ non-technical soft-skill buzzwords (*"Problem Solving"*, *"Teamwork"*, *"Leadership"*).
+* **Headline Role Synthesis (`synthesize_headline_and_targets`)**: Dynamically derives professional engineering titles (`Full Stack Developer`, `Backend Engineer`, `AI/ML Software Engineer`) based on validated technical skills, ensuring candidates are never left with generic labels (`Student`, `Fresher`, `Intern`, `Candidate`).
+* **Header-Bounded Name Extraction (`sanitize_candidate_name`)**: Extracts authentic candidate names from header delimiter formats (`|`, `•`, `-`, `,`), stripping document titles (`Resume`, `CV`) and contact markers.
+
+---
+
 ## AI Providers (`providers.py`)
 
 Job Hunter routes all intelligence phases through the configured AI provider — **Google Gemini (`gemini-3.5-flash`)** by default, with Anthropic Claude, Groq, Ollama, and any OpenAI-compatible endpoint supported via env var overrides.

@@ -263,7 +263,613 @@ __all__ = [
     "_ensure_list",
     "_as_list",
     "extract_text_from_pdf",
+    "parse_month_year",
+    "calculate_timeline_yoe",
+    "normalize_technical_skills",
+    "synthesize_headline_and_targets",
+    "sanitize_candidate_name",
     "MAX_PDF_BYTES",
     "MAX_PDF_PAGES",
     "MAX_RESUME_TEXT_CHARS",
 ]
+
+
+_CANONICAL_SKILL_MAP: dict[str, str] = {
+    "react.js": "React",
+    "reactjs": "React",
+    "react js": "React",
+    "next.js": "Next.js",
+    "nextjs": "Next.js",
+    "next js": "Next.js",
+    "node.js": "Node.js",
+    "nodejs": "Node.js",
+    "node js": "Node.js",
+    "express.js": "Express.js",
+    "expressjs": "Express.js",
+    "express js": "Express.js",
+    "vue.js": "Vue.js",
+    "vuejs": "Vue.js",
+    "postgres": "PostgreSQL",
+    "postgresql": "PostgreSQL",
+    "psql": "PostgreSQL",
+    "mongo": "MongoDB",
+    "mongodb": "MongoDB",
+    "python3": "Python",
+    "python 3": "Python",
+    "golang": "Go",
+    "go lang": "Go",
+    "typescript": "TypeScript",
+    "javascript": "JavaScript",
+    "js": "JavaScript",
+    "es6": "JavaScript",
+    "es6+": "JavaScript",
+    "aws": "AWS",
+    "amazon web services": "AWS",
+    "gcp": "GCP",
+    "google cloud": "GCP",
+    "google cloud platform": "GCP",
+    "ci/cd": "CI/CD",
+    "ci cd": "CI/CD",
+    "ci/cd pipelines": "CI/CD",
+    "github actions": "GitHub Actions",
+    "fastapi": "FastAPI",
+    "django": "Django",
+    "flask": "Flask",
+    "docker": "Docker",
+    "kubernetes": "Kubernetes",
+    "k8s": "Kubernetes",
+    "redis": "Redis",
+    "graphql": "GraphQL",
+    "rest": "REST APIs",
+    "rest api": "REST APIs",
+    "rest apis": "REST APIs",
+    "restful api": "REST APIs",
+    "restful apis": "REST APIs",
+    "tailwind": "Tailwind CSS",
+    "tailwindcss": "Tailwind CSS",
+    "pydantic": "Pydantic",
+    "supabase": "Supabase",
+    "firebase": "Firebase",
+    "firestore": "Firebase Firestore",
+    "firebase firestore": "Firebase Firestore",
+    "pytest": "Pytest",
+    "jest": "Jest",
+    "playwright": "Playwright",
+    "cypress": "Cypress",
+    "selenium": "Selenium",
+    "postman": "Postman",
+    "git": "Git",
+    "github": "GitHub",
+    "jwt": "JWT",
+    "rbac": "RBAC",
+    "numpy": "NumPy",
+    "pandas": "Pandas",
+    "pytorch": "PyTorch",
+    "tensorflow": "TensorFlow",
+    "scikit-learn": "scikit-learn",
+    "sklearn": "scikit-learn",
+    # Design & Product
+    "figma": "Figma",
+    "sketch": "Sketch",
+    "adobe xd": "Adobe XD",
+    "adobexd": "Adobe XD",
+    "wireframing": "Wireframing",
+    "prototyping": "Prototyping",
+    "user research": "User Research",
+    "usability testing": "Usability Testing",
+    "design systems": "Design Systems",
+    "design system": "Design Systems",
+    "interaction design": "Interaction Design",
+    "visual design": "Visual Design",
+    "product management": "Product Management",
+    "prd": "PRDs",
+    "prds": "PRDs",
+    "product roadmap": "Product Roadmapping",
+    "roadmapping": "Product Roadmapping",
+    "user stories": "User Stories",
+    "a/b testing": "A/B Testing",
+    "ab testing": "A/B Testing",
+    "jira": "Jira",
+    "confluence": "Confluence",
+    "linear": "Linear",
+    "mixpanel": "Mixpanel",
+    "amplitude": "Amplitude",
+    # Data & Analytics
+    "sql": "SQL",
+    "tableau": "Tableau",
+    "power bi": "Power BI",
+    "powerbi": "Power BI",
+    "looker": "Looker",
+    "looker studio": "Looker Studio",
+    "metabase": "Metabase",
+    "dbt": "dbt",
+    "snowflake": "Snowflake",
+    "bigquery": "BigQuery",
+    "excel": "Excel",
+    "advanced excel": "Advanced Excel",
+    # Marketing & Growth
+    "seo": "SEO",
+    "sem": "SEM",
+    "google ads": "Google Ads",
+    "google analytics": "Google Analytics",
+    "ga4": "Google Analytics",
+    "hubspot": "HubSpot",
+    "marketo": "Marketo",
+    "content strategy": "Content Strategy",
+    "copywriting": "Copywriting",
+    "email marketing": "Email Marketing",
+    "meta ads": "Meta Ads",
+    # Sales & BD
+    "salesforce": "Salesforce",
+    "b2b sales": "B2B Sales",
+    "lead generation": "Lead Generation",
+    "cold outreach": "Cold Outreach",
+    "crm": "CRM",
+    "pipeline management": "Pipeline Management",
+    # Finance & Accounting
+    "financial modeling": "Financial Modeling",
+    "valuation": "Valuation",
+    "quickbooks": "QuickBooks",
+    "tally": "Tally",
+    "sap": "SAP",
+    "budgeting": "Budgeting",
+    "forecasting": "Financial Forecasting",
+    "auditing": "Auditing",
+    "ifrs": "IFRS",
+    "gaap": "GAAP",
+    # HR & People
+    "talent acquisition": "Talent Acquisition",
+    "recruiting": "Recruiting",
+    "technical recruiting": "Technical Recruiting",
+    "hris": "HRIS",
+    "workday": "Workday",
+    "bamboohr": "BambooHR",
+    "people operations": "People Operations",
+    "employee relations": "Employee Relations",
+    # Operations & Project Management
+    "supply chain": "Supply Chain",
+    "logistics": "Logistics",
+    "operations management": "Operations Management",
+    "process optimization": "Process Optimization",
+    "asana": "Asana",
+    "monday.com": "Monday.com",
+    "pmp": "PMP",
+    # Legal & Compliance
+    "contract management": "Contract Management",
+    "compliance": "Regulatory Compliance",
+    "regulatory compliance": "Regulatory Compliance",
+    "gdpr": "GDPR",
+    "due diligence": "Due Diligence",
+}
+
+_SOFT_SKILLS_BLACKLIST: set[str] = {
+    "problem solving",
+    "communication",
+    "communication skills",
+    "leadership",
+    "leadership skills",
+    "team work",
+    "teamwork",
+    "team player",
+    "hard working",
+    "hardworking",
+    "critical thinking",
+    "time management",
+    "adaptability",
+    "agile",
+    "scrum",
+    "collaboration",
+    "active listening",
+    "multitasking",
+    "work ethic",
+    "attention to detail",
+    "presentation skills",
+    "analytical skills",
+    "creative thinking",
+}
+
+
+def parse_month_year(s: str) -> tuple[int, int] | None:
+    """Parse month and year from common date strings like 'Aug 2024', '08/2024', '2024', 'Present'."""
+    if not s or not isinstance(s, str):
+        return None
+    cleaned = s.strip().lower()
+    # Fixed base year for 2026/2027 context
+    if any(k in cleaned for k in ("present", "current", "now", "ongoing")):
+        return (2026, 11)
+    month_map = {
+        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+        "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+        "january": 1, "february": 2, "march": 3, "april": 4, "june": 6,
+        "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    }
+    m1 = re.search(r"([a-z]+)[\s,.-]+(20\d\d|19\d\d)", cleaned)
+    if m1 and m1.group(1) in month_map:
+        return (int(m1.group(2)), month_map[m1.group(1)])
+    m2 = re.search(r"(20\d\d|19\d\d)[\s,.-]+([a-z]+)", cleaned)
+    if m2 and m2.group(2) in month_map:
+        return (int(m2.group(1)), month_map[m2.group(2)])
+    m3 = re.search(r"(\d{1,2})[\s/.-]+(20\d\d|19\d\d)", cleaned)
+    if m3 and 1 <= int(m3.group(1)) <= 12:
+        return (int(m3.group(2)), int(m3.group(1)))
+    m4 = re.search(r"(20\d\d|19\d\d)[\s/.-]+(\d{1,2})", cleaned)
+    if m4 and 1 <= int(m4.group(2)) <= 12:
+        return (int(m4.group(1)), int(m4.group(2)))
+    m_yr = re.search(r"\b(20\d\d|19\d\d)\b", cleaned)
+    if m_yr:
+        return (int(m_yr.group(1)), 6)
+    return None
+
+
+def calculate_timeline_yoe(
+    work_history: Any,
+    graduation_year: Any = None,
+    resume_text: str | None = None,
+) -> float:
+    """Calculate grounded full-time professional software experience in years with overlap deduplication.
+
+    Excludes student internships and academic projects from full-time tenure, and clamps recent
+    graduates / freshers (graduation year >= 2024 with no full-time stints) to 0.0 or 0.5.
+    """
+    grad_yr: int | None = None
+    if graduation_year is not None:
+        try:
+            m_g = re.search(r"\b(20\d\d)\b", str(graduation_year))
+            if m_g:
+                grad_yr = int(m_g.group(1))
+        except Exception:
+            pass
+
+    if grad_yr is None and resume_text:
+        m_edu = re.search(
+            r"(?i)(?:expected|graduation|graduating|batch\s*of|class\s*of|b\.?e\.?|b\.?tech|m\.?s\.?|bachelor|master)[\s\w,()'-]*?\b(202[4-9]|203\d)\b",
+            resume_text,
+        )
+        if m_edu:
+            grad_yr = int(m_edu.group(1))
+
+    full_time_intervals: list[tuple[int, int]] = []
+    has_full_time = False
+
+    if isinstance(work_history, list):
+        for entry in work_history:
+            if not isinstance(entry, dict):
+                continue
+            role = str(entry.get("role") or "").lower()
+            stint_type = str(entry.get("type") or "").lower()
+
+            is_internship = (
+                "intern" in stint_type
+                or "intern" in role
+                or "trainee" in role
+                or "apprentice" in role
+                or "academic" in stint_type
+                or "project" in stint_type
+            )
+            if is_internship:
+                continue
+
+            start_t = parse_month_year(str(entry.get("start") or ""))
+            end_t = parse_month_year(str(entry.get("end") or ""))
+            if start_t and end_t:
+                s_idx = start_t[0] * 12 + start_t[1]
+                e_idx = end_t[0] * 12 + end_t[1]
+                if e_idx >= s_idx:
+                    full_time_intervals.append((s_idx, e_idx))
+                    has_full_time = True
+
+    if not has_full_time and resume_text:
+        is_student = bool(
+            re.search(r"(?i)\b(?:final[- ]year|student|undergraduate|fresher|pre[- ]final)\b", resume_text)
+            and grad_yr and grad_yr >= 2025
+        )
+        if is_student:
+            return 0.0
+
+        yoe_m = re.search(
+            r"(?i)(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)\s*(?:of\s+)?(?:total\s+)?(?:experience|exp|industry\s+experience|work\s+experience|software\s+experience)",
+            resume_text,
+        )
+        if yoe_m:
+            try:
+                claimed = float(yoe_m.group(1))
+                if grad_yr and grad_yr >= 2025 and claimed > 1.0:
+                    claimed = 0.5
+                return round(claimed, 1)
+            except ValueError:
+                pass
+
+    if not full_time_intervals:
+        return 0.0
+
+    sorted_ivs = sorted(full_time_intervals, key=lambda x: (x[0], x[1]))
+    merged = [sorted_ivs[0]]
+    for cur_s, cur_e in sorted_ivs[1:]:
+        prev_s, prev_e = merged[-1]
+        if cur_s <= prev_e:
+            merged[-1] = (prev_s, max(prev_e, cur_e))
+        else:
+            merged.append((cur_s, cur_e))
+
+    total_months = sum(e - s + 1 for s, e in merged)
+    yoe = round(total_months / 12.0, 1)
+
+    if grad_yr and grad_yr >= 2026:
+        yoe = min(yoe, 1.0)
+
+    return max(0.0, yoe)
+
+
+def normalize_technical_skills(skills: Any) -> list[str]:
+    """Normalize tech skills into canonical forms and strip soft skills and buzzwords."""
+    raw_list = _ensure_list(skills)
+    seen_lower = set()
+    cleaned_skills: list[str] = []
+
+    for item in raw_list:
+        token = str(item).strip()
+        if not token or len(token) > 40:
+            continue
+        token_lower = token.lower()
+        if token_lower in _SOFT_SKILLS_BLACKLIST:
+            continue
+
+        canonical = _CANONICAL_SKILL_MAP.get(token_lower, token)
+        can_lower = canonical.lower()
+        if can_lower not in seen_lower:
+            seen_lower.add(can_lower)
+            cleaned_skills.append(canonical)
+
+    return cleaned_skills
+
+
+def synthesize_headline_and_targets(
+    title: str | None,
+    skills: list[str],
+    yoe: float = 0.0,
+    domains: list[str] | None = None,
+) -> tuple[str, list[str]]:
+    """Synthesize a professional role title and tailored search keywords across all industries and professions.
+
+    Dynamically identifies professional domains (Product Management, UI/UX Design, Data & BI,
+    Growth & Marketing, Sales & BD, Finance & Accounting, HR & Talent, Operations & PM,
+    Legal & Compliance, and Engineering) without rigid single-sector hardcoding.
+    """
+    clean_title = (title or "").strip()
+    non_professional_keywords = (
+        "student", "fresher", "intern", "candidate", "graduate",
+        "undergraduate", "b.tech", "b.e.", "bachelor", "master",
+    )
+    is_invalid = not clean_title or any(np in clean_title.lower() for np in non_professional_keywords)
+
+    skills_lower = [s.lower() for s in skills]
+    domains_lower = [d.lower() for d in (domains or [])]
+    combined_context = " ".join([clean_title.lower()] + skills_lower + domains_lower)
+
+    # 1. Multi-domain signal detection
+    domain_weights: dict[str, int] = {
+        "design": 0,
+        "product": 0,
+        "data_analytics": 0,
+        "ai_ml": 0,
+        "marketing": 0,
+        "sales": 0,
+        "finance": 0,
+        "hr": 0,
+        "operations": 0,
+        "legal": 0,
+        "engineering": 0,
+    }
+
+    # Signal catalogs
+    design_kws = ("figma", "sketch", "adobe xd", "wireframing", "prototyping", "user research", "usability testing", "design systems", "interaction design", "visual design", "ui/ux", "designer")
+    product_kws = ("product management", "prd", "prds", "product roadmapping", "user stories", "a/b testing", "feature prioritization", "linear", "mixpanel", "amplitude", "product manager", "product owner")
+    data_kws = ("tableau", "power bi", "powerbi", "looker", "metabase", "data analysis", "business intelligence", "snowflake", "bigquery", "dbt", "bi analyst", "data analyst")
+    aiml_kws = ("pytorch", "tensorflow", "machine learning", "deep learning", "nlp", "computer vision", "scikit-learn", "data scientist", "ai/ml", "artificial intelligence")
+    marketing_kws = ("seo", "sem", "google ads", "meta ads", "hubspot", "marketo", "google analytics", "copywriting", "content strategy", "email marketing", "growth marketing", "digital marketing")
+    sales_kws = ("salesforce", "b2b sales", "lead generation", "cold outreach", "crm", "pipeline management", "account executive", "business development", "inside sales")
+    finance_kws = ("financial modeling", "valuation", "quickbooks", "tally", "sap", "auditing", "budgeting", "financial forecasting", "ifrs", "gaap", "accounting", "financial analyst")
+    hr_kws = ("talent acquisition", "technical recruiting", "recruiting", "hris", "workday", "bamboohr", "people operations", "employee relations", "human resources")
+    ops_kws = ("supply chain", "logistics", "operations management", "process optimization", "asana", "monday.com", "pmp", "project manager", "program manager", "scrum master")
+    legal_kws = ("contract management", "regulatory compliance", "gdpr", "due diligence", "compliance", "legal counsel", "corporate law")
+
+    has_frontend = any(k in skills_lower for k in ("react", "vue", "angular", "next.js", "tailwind css", "html5", "css3", "javascript", "typescript"))
+    has_backend = any(k in skills_lower for k in ("python", "fastapi", "flask", "django", "node.js", "express.js", "go", "golang", "postgresql", "mongodb", "rest apis", "sql", "java", "c++", "rust"))
+    has_devops = any(k in skills_lower for k in ("docker", "kubernetes", "aws", "gcp", "azure", "ci/cd", "github actions", "terraform"))
+
+    for kw in design_kws:
+        if kw in combined_context:
+            domain_weights["design"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in product_kws:
+        if kw in combined_context:
+            domain_weights["product"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in data_kws:
+        if kw in combined_context:
+            domain_weights["data_analytics"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in aiml_kws:
+        if kw in combined_context:
+            domain_weights["ai_ml"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in marketing_kws:
+        if kw in combined_context:
+            domain_weights["marketing"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in sales_kws:
+        if kw in combined_context:
+            domain_weights["sales"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in finance_kws:
+        if kw in combined_context:
+            domain_weights["finance"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in hr_kws:
+        if kw in combined_context:
+            domain_weights["hr"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in ops_kws:
+        if kw in combined_context:
+            domain_weights["operations"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+    for kw in legal_kws:
+        if kw in combined_context:
+            domain_weights["legal"] += 2 if (clean_title and kw in clean_title.lower()) else 1
+
+    if has_frontend or has_backend or has_devops or any(k in combined_context for k in ("engineer", "developer", "sde", "software")):
+        domain_weights["engineering"] += 2
+        if has_frontend:
+            domain_weights["engineering"] += 1
+        if has_backend:
+            domain_weights["engineering"] += 1
+        if has_devops:
+            domain_weights["engineering"] += 1
+
+    # Detect primary domain
+    sorted_domains = sorted(domain_weights.items(), key=lambda x: x[1], reverse=True)
+    top_domain, top_score = sorted_domains[0]
+    detected_domain = top_domain if top_score > 0 else "engineering"
+
+    # 2. Derive headline title
+    if is_invalid:
+        if detected_domain == "design":
+            derived_title = "Product Designer"
+        elif detected_domain == "product":
+            derived_title = "Associate Product Manager" if yoe <= 1.0 else "Product Manager"
+        elif detected_domain == "data_analytics":
+            derived_title = "Data Analyst"
+        elif detected_domain == "ai_ml":
+            derived_title = "AI/ML Engineer"
+        elif detected_domain == "marketing":
+            derived_title = "Growth Marketer"
+        elif detected_domain == "sales":
+            derived_title = "Business Development Representative" if yoe <= 1.5 else "Account Executive"
+        elif detected_domain == "finance":
+            derived_title = "Financial Analyst"
+        elif detected_domain == "hr":
+            derived_title = "Talent Acquisition Specialist"
+        elif detected_domain == "operations":
+            derived_title = "Project Manager"
+        elif detected_domain == "legal":
+            derived_title = "Legal Counsel"
+        else:
+            # Engineering fallback hierarchy
+            if has_frontend and has_backend:
+                derived_title = "Full Stack Developer"
+            elif domain_weights["ai_ml"] > 0 and has_backend:
+                derived_title = "AI/ML Software Engineer"
+            elif has_backend:
+                derived_title = "Backend Engineer"
+            elif has_frontend:
+                derived_title = "Frontend Developer"
+            elif has_devops:
+                derived_title = "DevOps Engineer"
+            else:
+                derived_title = "Software Engineer"
+    else:
+        derived_title = clean_title
+
+    # 3. Generate tailored target titles for the detected domain
+    target_titles: list[str] = [derived_title]
+
+    def _add_target(t: str) -> None:
+        if t.lower() not in [x.lower() for x in target_titles] and len(target_titles) < 5:
+            target_titles.append(t)
+
+    if detected_domain == "design":
+        for t in ["Product Designer", "UI/UX Designer", "UX Designer", "Visual Designer", "Lead Product Designer"]:
+            _add_target(t)
+    elif detected_domain == "product":
+        for t in ["Product Manager", "Associate Product Manager", "Technical Product Manager", "Product Owner", "Product Lead"]:
+            _add_target(t)
+    elif detected_domain == "data_analytics":
+        for t in ["Data Analyst", "Business Intelligence Analyst", "Analytics Engineer", "BI Analyst", "Data Specialist"]:
+            _add_target(t)
+    elif detected_domain == "ai_ml":
+        for t in ["AI/ML Engineer", "Machine Learning Engineer", "Data Scientist", "AI Engineer", "Deep Learning Engineer"]:
+            _add_target(t)
+    elif detected_domain == "marketing":
+        for t in ["Growth Marketer", "Digital Marketing Specialist", "Content Marketing Manager", "Marketing Manager", "Growth Lead"]:
+            _add_target(t)
+    elif detected_domain == "sales":
+        for t in ["Account Executive", "Business Development Representative", "Sales Development Representative", "Inside Sales Specialist", "Sales Manager"]:
+            _add_target(t)
+    elif detected_domain == "finance":
+        for t in ["Financial Analyst", "Finance Associate", "Accountant", "Senior Financial Analyst", "Financial Planning & Analysis (FP&A)"]:
+            _add_target(t)
+    elif detected_domain == "hr":
+        for t in ["Talent Acquisition Specialist", "Technical Recruiter", "HR Generalist", "People Operations Specialist", "HR Specialist"]:
+            _add_target(t)
+    elif detected_domain == "operations":
+        for t in ["Operations Manager", "Project Manager", "Program Manager", "Operations Specialist", "Scrum Master"]:
+            _add_target(t)
+    elif detected_domain == "legal":
+        for t in ["Legal Counsel", "Compliance Specialist", "Corporate Counsel", "Legal Analyst", "Regulatory Specialist"]:
+            _add_target(t)
+    elif detected_domain == "engineering":
+        if has_backend and "python" in skills_lower:
+            _add_target("Python Developer")
+            _add_target("Backend Engineer")
+            _add_target("Software Engineer")
+        if has_frontend and ("react" in skills_lower or "next.js" in skills_lower):
+            _add_target("Full Stack Developer")
+            _add_target("React Developer")
+        if domain_weights["ai_ml"] > 0:
+            _add_target("AI/ML Engineer")
+        if has_devops:
+            _add_target("DevOps Engineer")
+        for fallback in ["Software Engineer", "Software Development Engineer", "Full Stack Developer"]:
+            _add_target(fallback)
+    else:
+        # Universal fallback for unique custom professions
+        for variant in [f"Senior {derived_title}", f"Lead {derived_title}", f"Associate {derived_title}", f"{derived_title} Specialist"]:
+            _add_target(variant)
+
+    return derived_title, target_titles[:5]
+
+
+def sanitize_candidate_name(raw_name: str | None, text_lines: list[str] | None = None) -> str:
+    """Validate and clean candidate name, stripping document titles, contact info, and noise."""
+    name_skip_terms = {
+        "resume", "curriculum vitae", "cv", "portfolio", "github", "linkedin",
+        "contact", "email", "phone", "summary", "professional summary",
+        "executive summary", "objective", "career objective", "about me",
+        "profile", "personal profile", "experience", "work experience",
+        "skills", "technical skills", "education", "projects", "certifications",
+        "software engineer", "developer", "student", "candidate", "dombivli", "mumbai", "india",
+        "product manager", "product designer", "data analyst", "account executive", "marketing manager",
+        "financial analyst", "recruiter", "operations manager",
+    }
+    if raw_name:
+        cand = str(raw_name).strip("•-*| \t()[]{}#_")
+        cand = re.sub(
+            r"(?i)^(?:resume\s*[-:]\s*|candidate(?:\s+name)?\s*[:\-]\s*|full\s+name\s*[:\-]\s*|name\s*[:\-]\s*)",
+            "",
+            cand,
+        ).strip()
+        cand_lower = cand.lower()
+        if (
+            2 <= len(cand) <= 45
+            and not re.search(r"[@:/0-9]", cand)
+            and cand_lower not in name_skip_terms
+        ):
+            words = cand.split()
+            if 1 <= len(words) <= 5:
+                return cand.title() if (cand.islower() or cand.isupper()) else cand
+
+    if text_lines:
+        line_skip_headers = {
+            "curriculum vitae", "resume", "cv", "portfolio", "summary",
+            "professional summary", "executive summary", "objective",
+            "career objective", "about me", "experience", "work experience",
+            "education", "skills", "technical skills", "projects", "certifications",
+        }
+        for line in text_lines[:6]:
+            line_str = line.strip()
+            if not line_str or line_str.lower() in line_skip_headers:
+                continue
+            segments = re.split(r"[|•·,\t/]+", line_str)
+            for seg in segments:
+                clean_seg = seg.strip("•-*| \t()[]{}#_")
+                clean_lower = clean_seg.lower()
+                if (
+                    2 <= len(clean_seg) <= 35
+                    and not re.search(r"[@:/0-9\+]", clean_seg)
+                    and not any(term in clean_lower for term in name_skip_terms)
+                ):
+                    words = clean_seg.split()
+                    if 1 <= len(words) <= 4:
+                        return clean_seg.title() if (clean_seg.islower() or clean_seg.isupper()) else clean_seg
+    return ""

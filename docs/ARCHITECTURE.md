@@ -10,7 +10,7 @@ Welcome to the **Job Hunter** developer architecture and onboarding guide. This 
 
 ## Executive Summary & Core Philosophy
 
-**Job Hunter** is an autonomous, multi-tenant career intelligence platform that continuously scouts public, unauthenticated Applicant Tracking System (ATS) career boards, deterministically filters irrelevant noise at $0 API cost, leverages Google Gemini 3.5 Flash for high-throughput candidate fit scoring, generates custom application kits (tailored cover letters, networking cold outreach, and matching resume bullets), and delivers findings through an interactive single-page web dashboard and daily HTML briefings.
+**Job Hunter** is an India-First autonomous, multi-tenant career intelligence platform engineered natively for the Indian hiring ecosystem (LPA compensation norms, Indian tech metro hubs & IT corridors, notice period dynamics, GCCs, and top unicorns) with global cross-border reach. It continuously scouts public, unauthenticated Applicant Tracking System (ATS) career boards, deterministically filters irrelevant noise at $0 API cost, leverages Google Gemini 3.5 Flash for high-throughput candidate fit scoring, generates custom application kits (tailored cover letters, networking cold outreach, and matching resume bullets), and delivers findings through an interactive single-page web dashboard and daily HTML briefings.
 
 ### Core Tenets
 1. **The Hunter Never Fires Without Authorization**: The agent scouts, scores, and drafts—it never auto-submits applications. Final submission is always user-authorized.
@@ -80,7 +80,7 @@ flowchart TD
 ```text
 job-hunter/
 ├── CHANGELOG.md                 # Universal release history and notable changes
-├── RELEASE_NOTES.md             # Detailed feature release notes (v1.2.2)
+├── RELEASE_NOTES.md             # Detailed feature release notes (v1.2.4)
 ├── SECURITY.md                  # Vulnerability reporting, security scope, and hardening architecture
 ├── README.md                    # Project homepage, live badges, and architectural overview
 ├── assets/                          # Canonical brand identity assets & diagrams
@@ -108,7 +108,7 @@ job-hunter/
 │   ├── SETUP.md                 # Step-by-step installation and configuration guide
 │   └── TROUBLESHOOTING.md       # Diagnostic guide for common errors and rate limits
 ├── jobhunt/                     # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.2.2")
+│   ├── __init__.py              # Package exports and version metadata (__version__ = "1.2.4")
 │   ├── auth.py                  # Supabase Auth, offline HMAC token verification (SUPABASE_JWT_SECRET), and @require_auth decorator
 │   ├── clean.py                 # CLI tool for safely purging test fixtures and transient stores
 │   ├── cli.py                   # Command-line interface dispatcher (run, multi-run, check, applied, stats, profile, web, verify, clean)
@@ -116,7 +116,7 @@ job-hunter/
 │   ├── digest.py                # Responsive HTML email digest builder with inline CSS and logo guard
 │   ├── fetch.py                 # Job dataclass and unified ATS scraping orchestrator
 │   ├── llm.py                   # Candidate screening, kit drafting prompts, and resilient JSON parsers
-│   ├── llm_utils.py             # Shared LLM serialization and prompt formatting helpers
+│   ├── llm_utils.py             # Grounded timeline YoE, canonical skills, role synthesis & name sanitization
 │   ├── mailer.py                # SMTP client with thread-safe SMTPSession reuse, env-backed MAX_DAILY_SEND=50000, and upstream quota detection
 │   ├── memory.py                # Supabase REST client with tenant-isolated Row-Level Security & automated 30-day log pruning (prune_pipeline_runs)
 │   ├── memory_codec.py          # Candidate profile schema encoding & validation
@@ -171,10 +171,12 @@ job-hunter/
 │       ├── navbar.html          # Navigation header, brand mark, and user context pill
 │       ├── onboarding.html      # Legacy setup stub maintained for DOM backwards compatibility (wizard removed)
 │       └── profile_settings.html # 3-step settings modal: (1) Resume & automatic AI extraction, (2) Criteria review, (3) Alerts & Save
-├── tests/                       # Automated Test Suite (607 passing tests, 92% coverage)
+├── tests/                       # Automated Test Suite (622 passing tests, 92% coverage)
 │   ├── conftest.py              # Pytest fixtures, mock state, and thread-safe provider reset
 │   ├── test_production_readiness_hardening.py # Thread-safe API keys, prompt isolation, alias caching, mailer RFC headers
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening
+│   ├── test_resume_accuracy.py  # Grounded timeline YoE, fresher clamping & canonical skills
+│   ├── test_browser_playwright.py # End-to-end headless Chromium browser tests
 │   ├── test_api_jobs_stage.py   # Application pipeline stage transitions and email test endpoint
 │   ├── test_app.py              # Web application factory, routes, static asset delivery
 │   ├── test_auth.py             # View state isolation, JWT verification, and auth guards

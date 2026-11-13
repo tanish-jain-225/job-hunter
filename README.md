@@ -12,10 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2"><img src="https://img.shields.io/badge/Release-v1.2.2-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.2"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-v1.2.4-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.4"></a>
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-607%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-622%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -25,7 +25,7 @@
 
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
-  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.2.2)</strong></a> &bull;
+  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.2.4)</strong></a> &bull;
   <a href="CHANGELOG.md"><strong>Changelog</strong></a> &bull;
   <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
   <a href="docs/GUIDE.md">Candidate Playbook</a> &bull;
@@ -283,7 +283,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.2.2
+# Output: jobhunt 1.2.4
 ```
 
 ---
@@ -396,7 +396,7 @@ This extracts your core skills, current title, experience level, and target keyw
 In the web dashboard, candidates manage their preferences through a privacy-first **3-step Profile & Search Settings** modal (new accounts start with only their verified email populated, and an icon-only reset control in the top-left restores that email-only state after confirmation):
 
 - **Step 1 (Resume Upload & Extraction)**: Drag-and-drop `.pdf` or `.txt` resume upload with 100% in-memory parsing that automatically triggers server-side extraction and advances structured criteria into Step 2.
-- **Step 2 (Candidate Profile & Search Criteria)**: Review and manually refine extracted candidate fields—target roles, skills, experience, notice period, CTC, excluded keywords, job types, and locations—backed by a **2-tier extraction fallback engine** (AI provider cascade $\rightarrow$ smart local regex parser).
+- **Step 2 (Candidate Profile & Search Criteria)**: Review and manually refine extracted candidate fields—target roles, skills, experience, notice period, CTC, excluded keywords, job types, and locations—backed by a **2-tier extraction fallback engine** (AI provider cascade $\rightarrow$ deterministic local regex parser with grounded timeline interval math, internship exclusion, student/fresher YoE clamping to 0.0, canonical skill normalization, and headline role synthesis).
 - **Step 3 (Alert Settings & Delivery Modes)**: Minimum AI match score threshold (default: 7.5), email briefing frequency (_Daily 5:00 AM Radar_ vs. _Instant On-Demand Only_), notification email, and the single **Save** action.
 
 ---
@@ -594,7 +594,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.2.2) & public exports
+│   ├── __init__.py           # Package version (1.2.4) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
@@ -602,7 +602,7 @@ job-hunter/
 │   ├── digest.py             # Responsive HTML email digest generator with XSS escaping
 │   ├── fetch.py              # Job dataclass & unified ATS scraping orchestrator
 │   ├── llm.py                # Screening, drafting, profile extraction & tolerant JSON parser
-│   ├── llm_utils.py          # Shared LLM serialization and sanitized formatting helpers
+│   ├── llm_utils.py          # Grounded timeline YoE, canonical skills, role synthesis & name sanitization
 │   ├── mailer.py             # SMTP email dispatcher
 │   ├── memory.py             # Supabase PostgreSQL client with Row-Level Security (RLS)
 │   ├── memory_codec.py       # Candidate profile schema encoding & validation
@@ -653,10 +653,12 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 607 automated test cases with 92% statement coverage
+├── tests/                    # 622 automated test cases (615 unit/integration + 7 Playwright) with 92% coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
+│   ├── test_resume_accuracy.py # Grounded timeline YoE, fresher clamping & canonical skills
+│   ├── test_browser_playwright.py # End-to-end headless Chromium browser tests
 │   ├── test_coverage_90_perfection.py # Strict >=90% line coverage enforcement & edge case hardening
 │   ├── test_e2e_live_comprehensive.py # Comprehensive 14-suite live integration test matrix
 │   ├── test_parsers_hypothesis.py     # Property-based testing for all 9 ATS parsers
@@ -704,7 +706,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**607 automated tests**, 92% coverage):
+Run the full automated test suite locally (**622 automated tests: 615 unit/integration + 7 Playwright**, 92% coverage):
 
 ```bash
 # Run full test suite
@@ -728,7 +730,7 @@ ruff check .
 | **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
 | **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest -q`                           | **607 passed tests** with 100% success rate              | Verified |
+| **5. Full Automated Test Suite** | `pytest`                              | **622 passed tests** with 100% success rate              | Verified |
 | **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
 | **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
 

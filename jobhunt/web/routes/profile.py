@@ -13,6 +13,12 @@ from flask import Blueprint, current_app, jsonify, request
 
 from ... import cli, llm
 from ...auth import require_auth
+from ...llm_utils import (
+    calculate_timeline_yoe,
+    normalize_technical_skills,
+    sanitize_candidate_name,
+    synthesize_headline_and_targets,
+)
 from ...memory import SupabaseMemory, create_blank_profile, invalidate_user_cache
 from ...store import get_user_profile_path, get_writable_path  # noqa: F401
 from ..state import enforce_rate_limit, get_current_user_context, get_user_profile, sanitize_profile_for_response
@@ -182,8 +188,9 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
                     if cleaned.lower() not in skip_words:
                         add_skill(cleaned)
 
-    # 2. Comprehensive catalog of 100+ modern engineering and tech stack keywords
+    # 2. Comprehensive catalog of 150+ modern cross-domain professional and technical keywords
     common_keywords = [
+        # Engineering & Tech Stack
         "Python", "JavaScript", "TypeScript", "Golang", "Java", "C++", "C#", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "SQL",
         "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch", "SQLite", "Cassandra", "DynamoDB", "Firebase", "Firestore",
         "Docker", "Kubernetes", "AWS", "GCP", "Azure", "Terraform", "Linux", "Git", "GitHub Actions", "CI/CD",
@@ -193,6 +200,23 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
         "Jest", "Playwright", "Pytest", "Selenium", "Cypress", "Postman",
         "Distributed Systems", "System Design", "OOP", "Data Structures", "Algorithms",
         "AI", "LLM", "Machine Learning", "Deep Learning", "NLP", "Computer Vision", "PyTorch", "TensorFlow", "scikit-learn", "Pandas", "NumPy", "LangChain", "HuggingFace", "RAG",
+        # Product & Design
+        "Product Management", "Product Roadmapping", "PRDs", "User Stories", "A/B Testing", "Feature Prioritization", "Jira", "Confluence", "Linear", "Mixpanel", "Amplitude",
+        "Figma", "Sketch", "Adobe XD", "Wireframing", "Prototyping", "Design Systems", "User Research", "Usability Testing", "UI/UX", "Interaction Design", "Visual Design",
+        # Data & Analytics
+        "Tableau", "Power BI", "Looker", "Metabase", "dbt", "Snowflake", "BigQuery", "Excel", "Advanced Excel",
+        # Marketing & Growth
+        "SEO", "SEM", "Google Ads", "Meta Ads", "HubSpot", "Marketo", "Google Analytics", "Content Strategy", "Copywriting", "Email Marketing", "Growth Marketing",
+        # Sales & Business Development
+        "Salesforce", "B2B Sales", "Lead Generation", "CRM", "Cold Outreach", "Pipeline Management", "Solution Selling", "Account Management",
+        # Finance & Accounting
+        "Financial Modeling", "Valuation", "QuickBooks", "Tally", "SAP", "Auditing", "Budgeting", "Financial Forecasting", "IFRS", "GAAP",
+        # HR & People Operations
+        "Talent Acquisition", "Technical Recruiting", "Recruiting", "HRIS", "Workday", "BambooHR", "People Operations", "Employee Relations",
+        # Operations & Project Management
+        "Supply Chain", "Logistics", "Operations Management", "Process Optimization", "Asana", "Monday.com", "PMP", "Scrum Master", "Agile",
+        # Legal & Compliance
+        "Contract Management", "Regulatory Compliance", "GDPR", "Due Diligence",
     ]
 
     for kw in common_keywords:
@@ -206,7 +230,7 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
         if re.search(r"(?i)\b(?:golang|go\s+developer|go\s+engineer|go\s+routine|go\s+lang)\b", resume_text):
             add_skill("Go")
 
-    return found_skills
+    return normalize_technical_skills(found_skills)
 
 
 @profile_bp.route("/api/profile", methods=["GET", "POST"])
@@ -294,15 +318,12 @@ def api_profile():
 
         if not merged_profile.get("target_keywords") and merged_profile.get("title"):
             cur = merged_profile["title"]
-            inferred = [cur]
-            if "backend" in cur.lower():
-                inferred.extend(["Software Engineer", "Backend Developer", "Full Stack Developer"])
-            elif "frontend" in cur.lower():
-                inferred.extend(["Frontend Engineer", "React Developer", "Software Engineer"])
-            elif "ai" in cur.lower() or "ml" in cur.lower():
-                inferred.extend(["Machine Learning Engineer", "Python Developer", "Data Scientist"])
-            else:
-                inferred.extend(["Software Engineer", "Backend Developer", "Full Stack Developer"])
+            _, inferred = synthesize_headline_and_targets(
+                cur,
+                merged_profile.get("skills") or [],
+                yoe=float(merged_profile.get("experience_years") or 0.0),
+                domains=merged_profile.get("domains"),
+            )
             merged_profile["target_keywords"] = inferred[:5]
             merged_profile["target_titles"] = inferred[:5]
 
@@ -326,9 +347,6 @@ def api_profile():
 
         _normalize_preference_fields(merged_profile)
 
-        if not merged_profile.get("exclude_keywords"):
-            merged_profile["exclude_keywords"] = ["Manager", "Director", "Sales", "Recruiter", "VP"]
-
         # Smart experience level calculation if missing
         if not merged_profile.get("experience_level"):
             y = float(merged_profile.get("experience_years") or 0.0)
@@ -342,6 +360,15 @@ def api_profile():
                 merged_profile["experience_level"] = "3-5"
             else:
                 merged_profile["experience_level"] = "5+"
+
+        if not merged_profile.get("exclude_keywords"):
+            exp_lvl = merged_profile.get("experience_level")
+            if exp_lvl in ("fresher", "0-1"):
+                merged_profile["exclude_keywords"] = ["Director", "VP", "Chief", "Head of", "Principal"]
+            elif exp_lvl in ("3-5", "5+"):
+                merged_profile["exclude_keywords"] = ["Intern", "Trainee", "Junior", "Fresher"]
+            else:
+                merged_profile["exclude_keywords"] = []
 
         if not merged_profile.get("job_types"):
             if merged_profile.get("experience_level") == "fresher":
@@ -501,13 +528,6 @@ def api_resume_upload():
         derived_edu = ""
         if resume_text:
             lines = [line.strip() for line in resume_text.splitlines() if line.strip()]
-            name_skip_terms = {
-                "resume", "curriculum vitae", "cv", "portfolio", "github", "linkedin",
-                "contact", "email", "phone", "summary", "professional summary",
-                "executive summary", "objective", "career objective", "about me",
-                "profile", "personal profile", "experience", "work experience",
-                "skills", "technical skills", "education", "projects", "certifications",
-            }
 
             # 1. Check explicit name label
             name_pat = re.search(
@@ -516,31 +536,18 @@ def api_resume_upload():
                 re.MULTILINE,
             )
             if name_pat:
-                cand = name_pat.group(1).strip("•-*| \t")
-                if not any(term in cand.lower() for term in name_skip_terms):
-                    derived_name = cand.title()
+                derived_name = sanitize_candidate_name(name_pat.group(1))
 
             # 2. Check top lines before major section headers (splitting contact delimiters like |, •, -, ,)
             if not derived_name:
-                for line in lines[:8]:
-                    if any(term in line.lower() for term in name_skip_terms):
-                        continue
-                    segments = re.split(r"[|•·,\t/]+", line)
-                    for seg in segments:
-                        clean_seg = seg.strip("•-*| \t()[]{}")
-                        if 2 <= len(clean_seg) <= 35 and not re.search(r"[@:/0-9]", clean_seg):
-                            if not any(term in clean_seg.lower() for term in name_skip_terms):
-                                words = clean_seg.split()
-                                if 1 <= len(words) <= 4:
-                                    derived_name = clean_seg.title() if (clean_seg.islower() or clean_seg.isupper()) else clean_seg
-                                    break
-                    if derived_name:
-                        break
+                derived_name = sanitize_candidate_name(None, text_lines=lines)
 
             # 3. Check headline professional title
             title_keywords = [
                 "Engineer", "Developer", "Architect", "Scientist", "Designer",
                 "Specialist", "Analyst", "Lead", "Manager", "Consultant", "SDE",
+                "Officer", "Director", "Executive", "Associate", "Representative",
+                "Strategist", "Generalist", "Coordinator", "Counsel", "Partner",
             ]
             role_pat = re.search(
                 r"(?i)^(?:title|designation|current\s+role|role)\s*[:\-]\s*([A-Za-z\s\.\'-]{3,50})",
@@ -549,29 +556,29 @@ def api_resume_upload():
             )
             if role_pat:
                 clean_r = role_pat.group(1).strip("•-*| \t")
-                if not any(term in clean_r.lower() for term in name_skip_terms):
+                if not any(term in clean_r.lower() for term in ("resume", "cv", "summary", "profile", "skills")):
                     derived_title = clean_r
 
             if not derived_title:
                 for line in lines[:15]:
                     if any(tk.lower() in line.lower() for tk in title_keywords) and len(line) < 150:
-                        if not any(term in line.lower() for term in name_skip_terms):
-                            segments = re.split(r"[|•·\t/]+", line)
-                            for seg in segments:
-                                clean_seg = seg.strip("•-*| \t()[]{}")
-                                if any(tk.lower() in clean_seg.lower() for tk in title_keywords) and not re.search(r"[@:]", clean_seg) and len(clean_seg) < 60:
-                                    derived_title = clean_seg
-                                    break
-                            if derived_title:
+                        segments = re.split(r"[|•·\t/]+", line)
+                        for seg in segments:
+                            clean_seg = seg.strip("•-*| \t()[]{}")
+                            if any(tk.lower() in clean_seg.lower() for tk in title_keywords) and not re.search(r"[@:]", clean_seg) and len(clean_seg) < 60:
+                                derived_title = clean_seg
                                 break
-                            clean_line = line.split("|")[0].split("•")[0].split("-")[0].strip("•-*| \t")
-                            if clean_line and any(tk.lower() in clean_line.lower() for tk in title_keywords):
-                                derived_title = clean_line
-                                break
+                        if derived_title:
+                            break
+                        clean_line = line.split("|")[0].split("•")[0].split("-")[0].strip("•-*| \t")
+                        if clean_line and any(tk.lower() in clean_line.lower() for tk in title_keywords):
+                            derived_title = clean_line
+                            break
 
             edu_keywords = [
                 "B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master",
                 "Degree", "University", "College", "Institute", "BCA", "MCA", "B.Sc", "M.Sc",
+                "BBA", "MBA", "B.Com", "M.Com", "B.A.", "M.A.", "Ph.D", "Diploma", "LLB", "LLM",
             ]
             for line in lines:
                 if any(ek.lower() in line.lower() for ek in edu_keywords) and len(line) < 80:
@@ -586,22 +593,13 @@ def api_resume_upload():
 
         skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
 
-        if not derived_title or derived_title.lower() in {"student", "fresher", "intern", "candidate", "b.tech student"}:
-            skills_lower = [s.lower() for s in skills_list]
-            if any(k in skills_lower for k in ("react", "vue", "angular", "next.js", "frontend", "html", "css")) and not any(k in skills_lower for k in ("django", "fastapi", "spring", "golang")):
-                derived_title = "Frontend Developer"
-            elif any(k in skills_lower for k in ("python", "fastapi", "django", "golang", "go", "java", "sql", "backend", "postgresql")):
-                derived_title = "Backend Engineer"
-            elif any(k in skills_lower for k in ("pytorch", "tensorflow", "machine learning", "deep learning", "ai", "llm")):
-                derived_title = "AI/ML Engineer"
-            else:
-                derived_title = existing.get("title") or existing.get("current_title") or "Software Engineer"
-
-        if not derived_edu and existing.get("education"):
-            derived_edu = existing.get("education") or ""
-
-        derived_years = 0.0
-        if resume_text:
+        # Grounded timeline calculation for YoE
+        derived_years = calculate_timeline_yoe(None, resume_text=resume_text)
+        is_student_or_fresher = bool(
+            resume_text and re.search(r"(?i)\b(?:final[- ]year|student|undergraduate|fresher|pre[- ]final)\b", resume_text)
+            and re.search(r"\b(202[5-9]|203\d)\b", resume_text)
+        )
+        if not is_student_or_fresher and derived_years == 0.0 and resume_text:
             yoe_match = re.search(
                 r"(?i)(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)\s*(?:of\s+)?(?:total\s+)?(?:experience|exp|industry\s+experience|work\s+experience|software\s+experience)",
                 resume_text,
@@ -618,11 +616,33 @@ def api_resume_upload():
                         derived_years = float(yoe_match_2.group(1))
                     except ValueError:
                         pass
-        if derived_years == 0.0 and (existing.get("experience_years") or existing.get("years_experience")):
+        if not is_student_or_fresher and derived_years == 0.0 and (existing.get("experience_years") or existing.get("years_experience")):
             try:
                 derived_years = float(existing.get("experience_years") or existing.get("years_experience") or 0.0)
             except (ValueError, TypeError):
                 pass
+
+        if is_student_or_fresher:
+            derived_years = 0.0
+
+        # Synthesize professional title and target titles (never leaving 'Student' or 'Fresher')
+        derived_title, syn_targets = synthesize_headline_and_targets(
+            derived_title, skills_list, yoe=derived_years, domains=existing.get("domains")
+        )
+
+        target_titles: list[str] = []
+        if isinstance(existing.get("target_keywords"), list) and existing["target_keywords"]:
+            target_titles.extend([t for t in existing["target_keywords"] if str(t).lower() not in {"student", "fresher", "intern", "candidate"}])
+        elif isinstance(existing.get("target_titles"), list) and existing["target_titles"]:
+            target_titles.extend([t for t in existing["target_titles"] if str(t).lower() not in {"student", "fresher", "intern", "candidate"}])
+
+        if not target_titles:
+            target_titles = syn_targets
+        elif derived_title and derived_title not in target_titles:
+            target_titles.insert(0, derived_title)
+
+        if not derived_edu and existing.get("education"):
+            derived_edu = existing.get("education") or ""
 
         if derived_years <= 0.0:
             derived_exp_level = "fresher"
@@ -639,43 +659,6 @@ def api_resume_upload():
         else:
             derived_exp_level = "5+"
             derived_seniority = "senior"
-
-        target_titles: list[str] = []
-        if isinstance(existing.get("target_keywords"), list) and existing["target_keywords"]:
-            target_titles.extend(existing["target_keywords"])
-        elif isinstance(existing.get("target_titles"), list) and existing["target_titles"]:
-            target_titles.extend(existing["target_titles"])
-
-        if derived_title and derived_title not in target_titles:
-            target_titles.append(derived_title)
-
-        # Supplement high-signal target titles tailored to specialization
-        tl_lower = [t.lower() for t in target_titles]
-        if "backend" in derived_title.lower():
-            for t in ["Backend Engineer", "Software Engineer", "Python Developer", "Full Stack Developer", "Software Development Engineer"]:
-                if t.lower() not in tl_lower and len(target_titles) < 5:
-                    target_titles.append(t)
-                    tl_lower.append(t.lower())
-        elif "frontend" in derived_title.lower():
-            for t in ["Frontend Engineer", "React Developer", "Software Engineer", "UI Engineer", "Full Stack Developer"]:
-                if t.lower() not in tl_lower and len(target_titles) < 5:
-                    target_titles.append(t)
-                    tl_lower.append(t.lower())
-        elif "full" in derived_title.lower():
-            for t in ["Full Stack Developer", "Software Engineer", "Backend Engineer", "Frontend Engineer", "Full Stack Engineer"]:
-                if t.lower() not in tl_lower and len(target_titles) < 5:
-                    target_titles.append(t)
-                    tl_lower.append(t.lower())
-        elif "ai" in derived_title.lower() or "ml" in derived_title.lower():
-            for t in ["AI/ML Engineer", "Machine Learning Engineer", "Python Developer", "Data Scientist", "Software Engineer"]:
-                if t.lower() not in tl_lower and len(target_titles) < 5:
-                    target_titles.append(t)
-                    tl_lower.append(t.lower())
-        else:
-            for t in ["Software Engineer", "Backend Developer", "Full Stack Developer", "Software Development Engineer", "SDE"]:
-                if t.lower() not in tl_lower and len(target_titles) < 5:
-                    target_titles.append(t)
-                    tl_lower.append(t.lower())
 
         # Indian tech hub city detection from resume text
         detected_locations: list[str] = []
@@ -703,7 +686,7 @@ def api_resume_upload():
             derived_loc_pref = str(existing.get("location_preference") or "all_india")
 
         # Notice period detection
-        derived_notice_period = "30_days"
+        derived_notice_period = "immediate" if derived_years <= 0.0 else "30_days"
         if resume_text:
             np_m = re.search(r"(?i)(?:notice\s*period|notice|availability|serving\s*notice|joining\s*time)\s*[:\-]?\s*([^\n,\.;]+)", resume_text)
             text_for_np = np_m.group(1).lower() if np_m else resume_text.lower()
@@ -751,8 +734,8 @@ def api_resume_upload():
 
         parsed_profile = {
             "name": derived_name or "",
-            "title": derived_title or "Software Engineer",
-            "current_title": derived_title or "Software Engineer",
+            "title": derived_title or "Professional",
+            "current_title": derived_title or "Professional",
             "years_experience": derived_years,
             "experience_years": derived_years,
             "education": derived_edu or "",
@@ -760,7 +743,7 @@ def api_resume_upload():
             "core_skills": skills_list,
             "target_keywords": target_titles[:5],
             "target_titles": target_titles[:5],
-            "domains": ["Software Engineering"],
+            "domains": [derived_title] if derived_title else ["Professional"],
             "notable_projects": [],
             "seniority": derived_seniority,
             "experience_level": derived_exp_level,
@@ -789,6 +772,41 @@ def api_resume_upload():
             parsed_profile["experience_years"] = parsed_profile["years_experience"]
         elif "experience_years" in parsed_profile and "years_experience" not in parsed_profile:
             parsed_profile["years_experience"] = parsed_profile["experience_years"]
+
+        # Ensure sanitized name
+        s_name = sanitize_candidate_name(parsed_profile.get("name"), resume_text.splitlines() if resume_text else None)
+        if s_name:
+            parsed_profile["name"] = s_name
+
+        # Ensure normalized skills
+        if parsed_profile.get("skills"):
+            parsed_profile["skills"] = normalize_technical_skills(parsed_profile["skills"])
+            parsed_profile["core_skills"] = parsed_profile["skills"]
+
+        # Ensure headline title and targets
+        p_cur_title = str(parsed_profile.get("title") or parsed_profile.get("current_title") or "").strip()
+        p_title, p_targets = synthesize_headline_and_targets(
+            p_cur_title,
+            parsed_profile.get("skills") or [],
+            yoe=float(parsed_profile.get("experience_years") or 0.0),
+            domains=parsed_profile.get("domains"),
+        )
+        parsed_profile["title"] = p_title
+        parsed_profile["current_title"] = p_title
+
+        existing_targets = parsed_profile.get("target_keywords") or parsed_profile.get("target_titles") or []
+        if isinstance(existing_targets, str):
+            existing_targets = [x.strip() for x in existing_targets.split(",") if x.strip()]
+        clean_targets = [
+            str(t).strip() for t in existing_targets
+            if str(t).strip() and str(t).strip().lower() not in {"student", "fresher", "intern", "candidate"}
+        ]
+        if clean_targets:
+            parsed_profile["target_keywords"] = clean_targets
+            parsed_profile["target_titles"] = clean_targets
+        else:
+            parsed_profile["target_keywords"] = p_targets
+            parsed_profile["target_titles"] = p_targets
 
     # Extract existing notification preferences
     existing_notif = bool((existing or {}).get("email_notifications_enabled", False))

@@ -72,14 +72,15 @@ flowchart LR
   * **3 Gemini API Keys**: 750 Daily Active Users (**100% Free Forever**)
 
 ### B. Database & Multi-Tenant Storage (Supabase PostgreSQL)
-* **Free Tier Quota**: **500 MB Database Storage** & **50,000 Monthly Active Users**.
-* **Storage Invariant**: Every user profile is capped at a rolling retention window of **1,000 unapplied jobs** (`jobhunt/store.py:prune_old_jobs`).
+* **Free Tier Quota**: **500 MB Database Storage**, **50,000 Monthly Active Users**, and **5 GB Egress Bandwidth**.
+* **Storage Invariant**: Every user profile is capped at a rolling retention window of **300 unapplied jobs** (`jobhunt/store.py:prune_old_jobs`, override via `MAX_TRACKED_JOBS_COUNT`).
 * **Protected Records**: Jobs marked `Applied`, `Interviewing`, or `Offer` are **never pruned**.
 * **Storage Plateau**:
   * Average size per stored job kit: **~1.5 KB**
-  * 1,000 jobs $\times$ 1.5 KB = **~1.5 MB per user**
-  * 100 Users = **~150 MB total** (Uses **30%** of 500 MB free tier).
-  * 330 Users = **~495 MB total** (Uses **99%** of 500 MB free tier, matching the 300-user Gemini API 1-key ceiling).
+  * 300 jobs $\times$ 1.5 KB = **~450 KB per user**
+  * 100 Users = **~45 MB total** (Uses **9%** of 500 MB free tier).
+  * 500 Users = **~225 MB total** (Uses **45%** of 500 MB free tier).
+  * 1,000 Users = **~450 MB total** (Uses **90%** of 500 MB free tier, comfortably accommodating the multi-key ceiling).
 
 ### C. Daily Briefing Dispatch (Gmail SMTP)
 * **Free Outbound Limit**: **500 emails / 24 hours** per Google Account.
@@ -98,7 +99,7 @@ flowchart LR
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **607 automated tests** (600 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
+* **622 automated tests** (615 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.

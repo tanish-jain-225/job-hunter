@@ -286,7 +286,7 @@ function renderPaginationHtml(totalJobs, startIdx, endIdx, totalPages) {
   return `
     <div class="pagination-bar" role="navigation" aria-label="Job Board Pagination">
       <div class="pagination-info">
-        Showing <strong>${totalJobs > 0 ? startIdx + 1 : 0}–${endIdx}</strong> of <strong>${totalJobs}</strong> ${totalJobs === 1 ? 'opportunity' : 'opportunities'}
+        Opportunities Feed
       </div>
       <div class="pagination-controls">
         <button type="button" class="pagination-btn pagination-nav-btn" data-action="set-page" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} aria-label="Previous Page" title="Previous Page">
@@ -2209,7 +2209,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     targets.unshift(mainTitle);
   }
   if (targets.length === 0 && isAutoFill) {
-    targets = ['Software Engineer'];
+    targets = mainTitle ? [mainTitle] : ['Professional'];
   }
   const seenTargets = new Set();
   const dedupedTargets = [];
@@ -2228,7 +2228,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   const titleInput = document.getElementById('prof-title');
   const onbTitleInput = document.getElementById('onboard-prof-title');
-  const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : (isAutoFill ? 'Software Engineer' : ''));
+  const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : (isAutoFill ? 'Professional' : ''));
   if (titleInput && (isAutoFill || !titleInput.value.trim() || mainTitle)) titleInput.value = chosenTitle;
   if (onbTitleInput && (isAutoFill || !onbTitleInput.value.trim() || mainTitle)) onbTitleInput.value = chosenTitle;
 
@@ -2802,7 +2802,7 @@ async function submitTextContextParse() {
       if (bannerText) {
         const skillCount = Array.isArray(p.skills) ? p.skills.length : (Array.isArray(p.core_skills) ? p.core_skills.length : 0);
         const candName = p.name || 'Candidate';
-        const candTitle = p.title || p.current_title || 'Software Engineer';
+        const candTitle = p.title || p.current_title || 'Candidate';
         bannerText.innerText = `✨ Auto-filled by AI: ${candName} • ${candTitle} • ${skillCount} skills extracted.`;
       }
 
@@ -2868,7 +2868,7 @@ async function handleResumeFileSelectedAndParse(event) {
       if (bannerText) {
         const skillCount = Array.isArray(p.skills) ? p.skills.length : (Array.isArray(p.core_skills) ? p.core_skills.length : 0);
         const candName = p.name || 'Candidate';
-        const candTitle = p.title || p.current_title || 'Software Engineer';
+        const candTitle = p.title || p.current_title || 'Candidate';
         bannerText.innerText = `✨ Auto-filled by AI: ${candName} • ${candTitle} • ${skillCount} skills extracted.`;
       }
 
@@ -3527,7 +3527,8 @@ async function refreshDigest(force = false) {
   appState.digestRefreshing = true;
 
   try {
-    const res = await authFetch('/api/digest?t=' + Date.now(), { cache: 'no-store' });
+    const url = force ? ('/api/digest?force=1&t=' + Date.now()) : ('/api/digest?t=' + Date.now());
+    const res = await authFetch(url, { cache: 'no-store' });
     if (!res.ok) {
       if (res.status === 401) {
         const unauthMarkup = '<div style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#64748b;"><h3>Authentication Required</h3><p>Please sign in to view your career digest.</p></div>';
@@ -3543,7 +3544,11 @@ async function refreshDigest(force = false) {
       }
       throw new Error(`HTTP ${res.status}`);
     }
-    const html = await res.text();
+    let html = await res.text();
+    // Sanitize any legacy tracker metrics from cached briefings
+    html = html.replace(/<td[^>]*class=["'][^"']*meta-table-col[^"']*["'][^>]*>\s*Tracker:\s*<b>.*?<\/b>\s*total seen\s*<\/td>/gis, '')
+               .replace(/<td[^>]*>\s*Tracker:\s*<b>.*?<\/b>\s*total seen\s*<\/td>/gis, '')
+               .replace(/Tracker:\s*<b>\d+<\/b>\s*total seen/gi, '');
     if (container.tagName === 'IFRAME') {
       container.srcdoc = html;
     } else {

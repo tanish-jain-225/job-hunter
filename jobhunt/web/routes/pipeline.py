@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import json
 import os
+import re
 import threading
 import time
 from pathlib import Path
@@ -338,6 +339,32 @@ def api_sync():
     )
 
 
+def _sanitize_digest_html(html_str: str) -> str:
+    """Ensure no legacy tracker counts or unwanted metrics leak in digest briefings."""
+    if not html_str or not isinstance(html_str, str):
+        return html_str
+    # Strip Tracker td column from briefing header meta bar
+    cleaned = re.sub(
+        r"<td[^>]*class=[\"'][^\"']*meta-table-col[^\"']*[\"'][^>]*>\s*Tracker:\s*<b>.*?</b>\s*total seen\s*</td>",
+        "",
+        html_str,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    cleaned = re.sub(
+        r"<td[^>]*>\s*Tracker:\s*<b>.*?</b>\s*total seen\s*</td>",
+        "",
+        cleaned,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    cleaned = re.sub(
+        r"Tracker:\s*<b>\d+</b>\s*total seen",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    return cleaned
+
+
 @pipeline_bp.route("/api/digest")
 @require_auth
 def api_digest():
@@ -367,7 +394,7 @@ def api_digest():
         if not latest_html and isinstance(remote_profile.get("profile_json"), dict):
             latest_html = remote_profile["profile_json"].get("latest_digest_html")
         if latest_html and isinstance(latest_html, str) and len(latest_html.strip()) > 50:
-            return latest_html, 200, {"Content-Type": "text/html"}
+            return _sanitize_digest_html(latest_html), 200, {"Content-Type": "text/html"}
 
     seen_file = cfg.get("seen_file", "state/seen.json")
     st = Store(seen_file, user_email=email, token=token)
@@ -381,7 +408,11 @@ def api_digest():
 
     # 2. If static file exists locally, explicit_force is not requested, and no cache-buster ?t= was passed
     if target and target.is_file() and not explicit_force and request.args.get("t") is None:
-        return send_file(str(Path(target).resolve()), mimetype="text/html")
+        try:
+            content = Path(target).read_text(encoding="utf-8")
+            return _sanitize_digest_html(content), 200, {"Content-Type": "text/html"}
+        except Exception:
+            return send_file(str(Path(target).resolve()), mimetype="text/html")
 
     # 3. Dynamic generation (first run, explicit force_rebuild, or unpopulated cache)
     from ... import digest
@@ -491,6 +522,7 @@ def api_digest():
         stats=st.stats(),
         profile=profile_data,
     )
+    html_content = _sanitize_digest_html(html_content)
     try:
         digest.write(html_content, digest_file)
     except Exception:

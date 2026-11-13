@@ -110,6 +110,7 @@ def playwright_browser():
                 timeout=15000,
                 args=[
                     "--no-sandbox",
+                    "--disable-setuid-sandbox",
                     "--disable-gpu",
                     "--disable-dev-shm-usage",
                     "--disable-background-networking",

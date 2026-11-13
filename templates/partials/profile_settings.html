@@ -55,7 +55,7 @@
           <span style="font-size:22px; line-height:1; flex-shrink:0;">🤖</span>
           <div style="font-size:13px; color:var(--text-muted, #475569); line-height:1.5;">
             <strong style="color:var(--text, #0f172a); display:block; margin-bottom:3px; font-weight:600;">Autonomous AI Profile Calibration</strong>
-            Upload your resume above and our AI will automatically extract your contact name, headline title, technical skills, years of experience, Indian CTC, notice period, and preferred tech hubs into your search radar. You can review, verify, and fine-tune all details manually in the next steps.
+            Upload your resume above and our AI will automatically extract your contact name, headline title, core competencies, years of experience, compensation, notice period, and preferred locations into your search radar. You can review, verify, and fine-tune all details manually in the next steps.
           </div>
         </div>
 
@@ -84,21 +84,21 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="prof-title">Headline Professional Title *</label>
-            <input type="text" class="form-input" id="prof-title" placeholder="e.g. Senior Software Engineer" autocomplete="organization-title" required>
+            <input type="text" class="form-input" id="prof-title" placeholder="e.g. Senior Software Engineer / Product Manager" autocomplete="organization-title" required>
           </div>
         </div>
 
         <!-- Target Job Titles (Included) -->
         <div class="form-group" style="margin-top:14px;">
           <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
-          <input type="text" class="form-input" id="prof-targets" placeholder="e.g. Backend Engineer, Software Engineer, Full Stack Developer" autocomplete="off" spellcheck="false" required>
+          <input type="text" class="form-input" id="prof-targets" placeholder="e.g. Product Manager, Backend Engineer, UX Designer" autocomplete="off" spellcheck="false" required>
           <span class="form-hint">Job searches and pipeline matches compare these roles directly against open listings.</span>
         </div>
 
         <!-- Core Skills -->
         <div class="form-group" style="margin-top:14px;">
           <label class="form-label" for="prof-skills">Core Skills * <span class="form-hint-inline">(comma separated)</span></label>
-          <input type="text" class="form-input" id="prof-skills" placeholder="Python, SQL, React, Go, Docker" autocomplete="off" spellcheck="false" required>
+          <input type="text" class="form-input" id="prof-skills" placeholder="e.g. Python, SQL, Figma, Product Strategy, React" autocomplete="off" spellcheck="false" required>
         </div>
 
         <!-- Years of Experience & Education -->
@@ -109,7 +109,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="prof-education">Education</label>
-            <input type="text" class="form-input" id="prof-education" placeholder="e.g. B.Tech Computer Science / Tier-1 College / 8.5 CGPA" autocomplete="off" spellcheck="false">
+            <input type="text" class="form-input" id="prof-education" placeholder="e.g. B.Tech Computer Science / MBA / 8.5 CGPA" autocomplete="off" spellcheck="false">
           </div>
         </div>
 
@@ -138,7 +138,7 @@
         <!-- Excluded Title Keywords -->
         <div class="form-group" style="margin-top:14px;">
           <label class="form-label" for="prof-excludes">Excluded Title Keywords <span class="form-hint-inline">(comma separated)</span></label>
-          <input type="text" class="form-input" id="prof-excludes" placeholder="Manager, Director, Sales, Recruiter, VP" autocomplete="off" spellcheck="false">
+          <input type="text" class="form-input" id="prof-excludes" placeholder="e.g. Intern, Director, Senior (roles to avoid)" autocomplete="off" spellcheck="false">
           <span class="form-hint">Any job containing these keywords in the title will be automatically filtered out.</span>
         </div>
 

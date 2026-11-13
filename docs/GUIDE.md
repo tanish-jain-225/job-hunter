@@ -82,7 +82,7 @@ flowchart LR
 
 In today's hyper-competitive Indian tech hiring landscape and global remote market, job hunting is fraught with informational asymmetry:
 * **The 75% Cold ATS Barrier**: Over **70% to 75% of fresher resumes submitted via cold web applications are automatically eliminated by ATS software** before a human recruiter ever sees them, while generic applications face an automated rejection rate as high as **98%**.
-* **The 50%–70% Referral Dominance**: Industry data shows that **50% to 70% of roles** across Indian product tech companies (Swiggy, Razorpay, Meesho, CRED) and 2,100+ Global Capability Centers (GCCs) in Bengaluru, Hyderabad, and Pune are filled via **internal employee referrals** before public job board indexing.
+* **The 50%–70% Referral Dominance**: Industry data shows that **50% to 70% of roles** across Indian product tech companies (Swiggy, Razorpay, Meesho, CRED) and 1,800+ Global Capability Centers (GCCs with 2,900+ units) in Bengaluru, Hyderabad, and Pune are filled via **internal employee referrals** before public job board indexing.
 * **The Time Sink**: Job seekers waste 10–15 hours every week browsing outdated aggregate job boards (where listings are often expired or reposted by third-party recruiters) and manually writing repetitive cover letters.
 
 **Job Hunter eliminates this friction through a deterministic 4-stage scout-and-score funnel:**

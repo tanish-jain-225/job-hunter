@@ -323,9 +323,6 @@ def build(jobs: list[Job], scanned: int, candidates: int, stats: dict, profile: 
           <td align="left" valign="top" class="meta-table-col" style="vertical-align:top;font-size:12.5px;color:{MUTED};line-height:1.5;">
             {today} · Candidate: {cand_info}
           </td>
-          <td align="right" valign="top" class="meta-table-col" style="vertical-align:top;font-size:12.5px;color:{MUTED};line-height:1.5;text-align:right;white-space:nowrap;padding-left:8px;">
-            Tracker: <b>{stats.get('tracked', 0)}</b> total seen
-          </td>
         </tr>
       </table>
       <div style="font-size:12px;color:{MUTED};line-height:1.5;display:block;">
