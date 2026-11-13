@@ -15,7 +15,7 @@
   <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-v1.2.4-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.4"></a>
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-622%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-644%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -653,7 +653,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 622 automated test cases (615 unit/integration + 7 Playwright) with 92% coverage
+├── tests/                    # 644 automated test cases (637 unit/integration + 7 Playwright) with 92% coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -706,33 +706,52 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the full automated test suite locally (**622 automated tests: 615 unit/integration + 7 Playwright**, 92% coverage):
+Run the **all-in-one unified verification pipeline** locally (**644 automated tests: 637 unit/integration + 7 Playwright**, 92% coverage) in **one single command**:
 
 ```bash
-# Run full test suite
-pytest
+# Unified Pipeline: Runs Ruff Linting + Mypy Static Typing + Full Pytest Suite + Code Coverage in one command:
+python run_tests.py
 
-# Run tests with 90%+ terminal coverage report (92% achieved)
-pytest --cov=jobhunt --cov-report=term-missing
+# Or via cross-platform helper scripts:
+scripts/test.bat        # Windows
+./scripts/test.sh       # Linux / macOS
+```
 
-# Run static type checker
-mypy jobhunt
+### Targeted Execution & Pipeline Options
 
-# Run linter & code style checks
-ruff check .
+```bash
+# Run with strict 90%+ coverage gate
+python run_tests.py --cov-fail-under=90
+
+# Run only Pytest suite + Coverage (skip Ruff and Mypy)
+python run_tests.py --tests-only
+
+# Run only Ruff linter and Mypy static type checker
+python run_tests.py --lint-only
+
+# Run only Mypy static type checker (analyzes all 43 source files)
+python run_tests.py --mypy-only
+
+# Run tests without coverage overhead (fast turnaround)
+python run_tests.py --no-cov
+
+# Target specific test files or expressions
+python run_tests.py tests/test_resume_accuracy.py
+python run_tests.py -k "resume"
 ```
 
 ### Verification Matrix
 
 | Verification Gate                | Command                               | Expected Result                                          |  Status  |
 | -------------------------------- | ------------------------------------- | -------------------------------------------------------- | :------: |
-| **1. Offline Smoke Test**        | `jobhunt run --mock --scorer keyword` | Scans 11 mock jobs, writes `out/digest.html`             | Verified |
-| **2. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
-| **3. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
-| **4. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
-| **5. Full Automated Test Suite** | `pytest`                              | **622 passed tests** with 100% success rate              | Verified |
-| **6. Static Type Checker**       | `mypy jobhunt`                        | Zero type errors across all source files                 | Verified |
-| **7. Code Style & Linter**       | `ruff check .`                        | All checks passed (0 errors)                             | Verified |
+| **1. Unified Verification**      | `python run_tests.py`                 | **All 4 gates pass** (Ruff, Mypy, Pytest, Coverage)      | Verified |
+| **2. Static Type Checker**       | `python run_tests.py --mypy-only`     | Zero type errors across all 43 source files              | Verified |
+| **3. Code Style & Linter**       | `python run_tests.py --ruff-only`     | All checks passed (0 errors)                             | Verified |
+| **4. Full Automated Test Suite** | `python run_tests.py --tests-only`    | **644 passed tests** with 100% success rate              | Verified |
+| **5. Offline Smoke Test**        | `jobhunt run --mock --scorer keyword` | Scans 11 mock jobs, writes `out/digest.html`             | Verified |
+| **6. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
+| **7. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |
+| **8. Web Server & API**          | `python app.py` (visit `/api/health`) | Returns `{"status": "healthy", "service": "job-hunter"}` | Verified |
 
 ---
 

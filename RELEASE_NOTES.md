@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-v1.2.4-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.4"></a>
-  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-622%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/actions"><img src="https://img.shields.io/badge/tests-644%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
 </p>
@@ -15,7 +15,23 @@
 
 ## [v1.2.4] - 2026-11-13
 
-### 🌟 Universal Multi-Domain Career Intelligence Engine (India-First & Global)
+### 🌟 Unified All-in-One Quality, Type, Test & Coverage Pipeline (`run_tests.py`)
+* **Single-Command Pipeline**: Runs all 4 quality verification gates in one command (`python run_tests.py` or `scripts/test.bat` / `scripts/test.sh`):
+  1. **Gate 1 (Ruff)**: Strict code quality and style linting (`ruff check .`) with 0 errors across repository.
+  2. **Gate 2 (Mypy)**: Exhaustive static type analysis (`mypy jobhunt`) across all 43 core source files with 0 type errors.
+  3. **Gate 3 (Pytest)**: Full automated test suite (**644 passed tests**: 637 unit/integration + 7 Playwright E2E).
+  4. **Gate 4 (Code Coverage)**: Complete line coverage calculation with `pytest-cov` reporting missing lines and supporting `--cov-fail-under=90`, `--cov-html`, and `--cov-xml`.
+* **Verification Dashboard**: Generates an executive terminal summary table displaying real-time duration and status per gate.
+* **Runner Unit Tests (`tests/test_unified_runner.py`)**: Added 14 unit tests validating the runner CLI flags, error propagation, and reporting.
+
+### 🎯 High-Precision Resume Parsing & Smart Profile Ingestion Engine
+* **PDF Annotation Hyperlink Extraction (`jobhunt/llm_utils.py`)**: Inspects PDF `/Annots` dictionaries to capture hyperlinks (GitHub, LinkedIn, Portfolio demos) that text extractors discard.
+* **Bounded Degree Matching (`parse_education_smart`)**: Enforces word boundaries and clean tokens to prevent false positives (e.g., `mba` false positive matching `Mumbai`). Extracts degree, institution, graduation year, and CGPA accurately.
+* **Smart Project Extraction (`parse_projects_smart`)**: Isolates project titles, tech stack keywords, and quantifiable deliverables directly from resume bodies.
+* **Corridor Location Detection (`detect_preferred_locations_smart`)**: Maps sub-metro tech corridors into primary metros (Dombivli $\rightarrow$ Mumbai, Whitefield $\rightarrow$ Bengaluru, Hinjewadi $\rightarrow$ Pune, Cyberabad $\rightarrow$ Hyderabad, Noida $\rightarrow$ Delhi-NCR).
+* **Smart Contact & Token Cleaning**: Unglues glued tokens, spaces bullet symbols, cleans telephone/email formats, and extracts user profiles from URLs.
+
+### 🌐 Universal Multi-Domain Career Intelligence Engine (India-First & Global)
 * **Universal Multi-Domain Role Synthesis (`jobhunt/llm_utils.py`)**: Dynamically identifies professional domains across 10 major career disciplines without hardcoded single-domain limitations:
   - **Product Management**: PRDs, Roadmapping, User Stories, A/B Testing $\rightarrow$ `Product Manager`, `Associate Product Manager`, `Product Owner`
   - **UI/UX & Product Design**: Figma, Wireframing, User Research, Prototyping $\rightarrow$ `Product Designer`, `UI/UX Designer`, `Visual Designer`
@@ -32,7 +48,7 @@
 * **Cross-Domain Canonical Skills & Catalog (`jobhunt/llm_utils.py`, `jobhunt/web/routes/profile.py`)**: Expanded canonical mappings and section heuristics to 150+ universal tools and methodologies (Figma, PRDs, Tableau, Power BI, Salesforce, HubSpot, QuickBooks, Workday, PMP, Agile, Scrum).
 * **Domain-Agnostic LLM Prompts & Seniority Calibration (`jobhunt/llm.py`)**: Universalized `PROFILE_SYSTEM_PROMPT` to analyze talent across all industries and disciplines, replacing hardcoded functional exclusions (*"Sales"*, *"Manager"*, *"Recruiter"*) with dynamic seniority-level calibration.
 * **Universal Application Drafting & Follow-Up Notes**: Universalized draft kit system prompts, offline scorer stand-ins, and follow-up templates for any professional deliverable or discipline.
-* **Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the repository test suite to **622 passed tests** (**92%+ statement coverage**, **0 Ruff errors**).
+* **Test Suite Expansion (`tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, Finance resumes, and the unified test runner, expanding the repository test suite to **644 passed tests** (**92%+ statement coverage**, **0 Ruff errors**, **0 Mypy errors**).
 
 ---
 

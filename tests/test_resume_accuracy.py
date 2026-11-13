@@ -11,11 +11,19 @@ import pytest
 from app import app
 from jobhunt.llm_utils import (
     calculate_timeline_yoe,
+    clean_pdf_extracted_text,
+    detect_preferred_locations_smart,
+    extract_text_from_pdf,
     normalize_technical_skills,
+    parse_contact_smart,
+    parse_education_smart,
     parse_month_year,
+    parse_projects_smart,
+    parse_summary_smart,
     sanitize_candidate_name,
     synthesize_headline_and_targets,
 )
+from jobhunt.web.routes.profile import _extract_skills_from_text
 
 
 @pytest.fixture
@@ -314,4 +322,187 @@ def test_end_to_end_product_manager_resume_upload(client, mock_supabase_env):
         assert "Software Engineer" not in prof["target_keywords"]
         assert "Product Management" in prof["skills"] or "PRDs" in prof["skills"]
         assert "A/B Testing" in prof["skills"]
+
+
+def test_parse_education_smart_accuracy():
+    """Verify smart education parser extracts degree, long university names, end-of-interval grad year, and CGPA."""
+    edu_text = """
+    EDUCATION
+    Vivekanand Education Society’s Institute of Technology, Mumbai 2023 – 2027 (Expected)
+    B.E. in Automation and Robotics Engineering
+    CGPA: 7.43/10.0
+    """
+    edu, yr = parse_education_smart(edu_text)
+    assert yr == 2027
+    assert "Vivekanand Education Society" in edu
+    assert "Automation and Robotics Engineering" in edu
+    assert "CGPA: 7.43/10.0" in edu
+    # Ensure substring 'mba' from 'Mumbai' did not match degree
+    assert not any(seg.strip().lower() == "mba" for seg in edu.split(","))
+
+
+def test_parse_projects_smart_accuracy():
+    """Verify smart projects parser extracts project titles, tech stack headers, and deliverable descriptions."""
+    proj_text = """
+    PROJECTS
+    Department Ledger Portal – Academic Records System Live Demo | GitHub
+    Next.js, React, Firebase Firestore, Jest, Playwright
+    • Built an academic records portal with separate student, faculty and administrator workflows.
+    • Automated grade tracking reducing compilation turnaround by 40%.
+
+    Edvanta – AI-Assisted Learning Platform Live Demo | GitHub
+    Python, Flask, React, MongoDB, Firebase, Pydantic
+    • Designed and deployed 33 modular REST endpoints supporting assessment workflows.
+    • Integrated schema validation with Pydantic for high payload safety.
+    """
+    projects = parse_projects_smart(proj_text)
+    assert len(projects) == 2
+    assert "Department Ledger Portal" in projects[0]
+    assert "Edvanta" in projects[1]
+    assert "academic records portal" in projects[0]
+    assert "modular REST endpoints" in projects[1]
+
+
+def test_parse_summary_smart_accuracy():
+    """Verify smart executive summary parser extracts career overview and excludes bullet points."""
+    text = """
+    TANISH SANGHVI
+    Professional Summary
+    Final-year Automation and Robotics Engineering student with hands-on project experience building full-stack applications.
+    Worked with relational and NoSQL databases, authentication, schema validation and automated testing pipelines.
+
+    Technical Skills
+    Python, SQL, JavaScript
+    """
+    summary = parse_summary_smart(text)
+    assert "Automation and Robotics Engineering" in summary
+    assert "full-stack applications" in summary
+
+
+def test_parse_contact_smart_accuracy():
+    """Verify smart contact parser extracts phone numbers, emails, and LinkedIn / GitHub profile links."""
+    text = """
+    TANISH SANGHVI
+    Dombivli, Maharashtra, India | +91-7021341948 | tanishjain020205@gmail.com
+    Links & Profiles:
+    - https://www.linkedin.com/in/tanish-jain-tj02022005
+    - https://github.com/tanish-jain-225
+    - https://department-ledger-portal.vercel.app
+    """
+    contacts = parse_contact_smart(text)
+    assert contacts["phone"] == "+91-7021341948"
+    assert contacts["email"] == "tanishjain020205@gmail.com"
+    assert "tanish-jain-225" in contacts["github"]
+    assert "tanish-jain-tj02022005" in contacts["linkedin"]
+
+
+def test_detect_preferred_locations_smart_corridors():
+    """Verify Indian tech corridors and sub-metro clusters are mapped to primary metro hubs."""
+    assert detect_preferred_locations_smart("Living in Dombivli, Maharashtra") == ["Mumbai"]
+    assert detect_preferred_locations_smart("Office at Whitefield, Electronic City") == ["Bengaluru"]
+    assert detect_preferred_locations_smart("Hinjewadi Phase 1, Magarpatta") == ["Pune"]
+    assert detect_preferred_locations_smart("Hitec City, Gachibowli, Cyberabad") == ["Hyderabad"]
+    assert detect_preferred_locations_smart("Noida Sector 62, Gurgaon Cyber City") == ["Delhi-NCR"]
+
+
+def test_extract_skills_ungluing_and_category_prefixes():
+    """Verify adjacent line endpoints are never glued and ampersand category headers are parsed cleanly."""
+    resume_section = """
+    TECHNICAL SKILLS
+    Languages: Python, SQL, JavaScript, TypeScript, C++
+    Frameworks & Libraries: React, Next.js, Flask, Node.js, Express.js
+    Databases & Platforms: PostgreSQL, MongoDB, Firebase, Supabase
+    Developer Tools: Git, GitHub Actions, Postman, Vercel, Render, debugging
+    """
+    skills = _extract_skills_from_text(resume_section)
+
+    # Glued tokens must NOT exist
+    assert "C++ React" not in skills
+    assert "Supabase Pytest" not in skills
+    assert "debugging Git" not in skills
+
+    # Individual canonical skills must be extracted cleanly
+    assert "Python" in skills
+    assert "C++" in skills
+    assert "React" in skills
+    assert "Flask" in skills
+    assert "PostgreSQL" in skills
+    assert "Supabase" in skills
+    assert "Git" in skills
+    assert "Vercel" in skills
+    assert "Render" in skills
+
+    # Duty/soft buzzwords must be stripped
+    assert "debugging" not in skills
+
+
+def test_clean_pdf_extracted_text_repairs_artifacts():
+    """Verify clean_pdf_extracted_text unglues years, CGPA, links, and repairs broken hyphenation."""
+    raw = "Mumbai2023 EngineeringCGPA SystemLive Demo genera-\ntion hands- on •Python"
+    cleaned = clean_pdf_extracted_text(raw)
+    assert "Mumbai 2023" in cleaned
+    assert "Engineering CGPA" in cleaned
+    assert "generation" in cleaned
+    assert "hands-on" in cleaned
+    assert "• Python" in cleaned
+
+
+def test_real_user_pdf_resume_parsing(client, mock_supabase_env):
+    """End-to-end test against the real uploaded resume PDF verifying accuracy across all dimensions."""
+    import os
+    pdf_path = r"C:\Users\Tanish\.gemini\antigravity\brain\da974832-2702-4d2d-bba5-411944c7c095\.user_uploaded\media_1793514186809_c2998b57.pdf"
+    if not os.path.exists(pdf_path):
+        pytest.skip("Local test PDF resume not found on disk")
+
+    with open(pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+
+    extracted_txt = extract_text_from_pdf(pdf_bytes)
+    assert len(extracted_txt) > 200
+
+    # Test through fallback upload route
+    with (
+        mock.patch("jobhunt.llm.build_profile", side_effect=Exception("LLM fallback trigger")),
+        mock.patch("jobhunt.memory.SupabaseMemory.get_user_profile", return_value={}),
+    ):
+        res = client.post(
+            "/api/resume/upload",
+            json={"resume_text": extracted_txt, "filename": "tanish_sanghvi_resume.pdf"},
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+
+        prof = data["profile"]
+        assert prof["name"] == "Tanish Sanghvi"
+        assert prof["experience_years"] == 0.0
+        assert prof["experience_level"] == "fresher"
+        assert prof["notice_period"] == "immediate"
+        assert "Mumbai" in prof["preferred_locations"]
+
+        # Skills validation
+        assert "Python" in prof["skills"]
+        assert "React" in prof["skills"]
+        assert "Flask" in prof["skills"]
+        assert "PostgreSQL" in prof["skills"]
+        assert "C++ React" not in prof["skills"]
+        assert "Supabase Pytest" not in prof["skills"]
+        assert "debugging Git" not in prof["skills"]
+
+        # Education & projects
+        assert "Vivekanand Education Society" in prof["education"]
+        assert prof["graduation_year"] == 2027
+        assert len(prof["notable_projects"]) >= 3
+        assert any("Edvanta" in p for p in prof["notable_projects"])
+        assert any("Department Ledger Portal" in p for p in prof["notable_projects"])
+
+        # Contact validation
+        assert prof["phone"] == "+91-7021341948"
+        assert prof["candidate_email"] == "tanishjain020205@gmail.com"
+        assert prof["notification_email"] == "tanishjain020205@gmail.com"
+        assert data["parsed_profile"]["email"] == "tanishjain020205@gmail.com"
+        assert "tanish-jain-225" in prof["github"]
+        assert "tanish-jain-tj02022005" in prof["linkedin"]
+
 

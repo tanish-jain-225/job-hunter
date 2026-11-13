@@ -220,8 +220,32 @@ def _as_list(payload: Any) -> list[dict]:
     raise ValueError(f"expected a JSON array of results, got {type(payload).__name__}")
 
 
+def clean_pdf_extracted_text(text: str) -> str:
+    """Repair common PDF text extraction artifacts (joined words, glued dates, broken hyphenation)."""
+    if not text:
+        return ""
+    # 1. Unstick letters immediately glued to 4-digit years: e.g. "Mumbai2023" -> "Mumbai 2023"
+    t = re.sub(r"([A-Za-z,])(20\d\d|19\d\d)\b", r"\1 \2", text)
+    # 2. Unstick letters glued to CGPA/GPA: e.g. "EngineeringCGPA" -> "Engineering CGPA"
+    t = re.sub(r"([a-z])(CGPA|GPA|SGPA)", r"\1 \2", t)
+    # 3. Unstick glued links/badges: e.g. "SystemLive" -> "System Live Demo", "DemoGitHub" -> "Demo | GitHub"
+    t = re.sub(r"([a-z])(Live\s*Demo|GitHub|LinkedIn|Portfolio)", r"\1 \2", t)
+    # 4. Repair line-broken hyphenation: e.g. "genera\ntion" -> "generation"
+    t = re.sub(r"(\b[a-zA-Z]{2,})\s*-\s*\n\s*([a-zA-Z]{2,}\b)", r"\1\2", t)
+    # 5. Repair wrapped words where a syllable broke across newline without hyphen: e.g. "genera\ntion"
+    t = re.sub(r"(\b[a-zA-Z]{3,})\n(tion|tions|ing|ment|ments|ity|ities|able|ible)\b", r"\1\2", t)
+    # 6. Repair unstick hyphenated words broken with space: e.g. "hands- on" -> "hands-on"
+    t = re.sub(r"(\b\w+)-\s+(\w+\b)", r"\1-\2", t)
+    # 7. Ensure space after bullet characters without mangling hyphenated words
+    t = re.sub(r"([•·\*])([A-Za-z0-9])", r"\1 \2", t)
+    t = re.sub(r"(?m)^-\s*([A-Za-z0-9])", r"- \1", t)
+    # 8. Normalize multiple horizontal spaces
+    t = re.sub(r"[ \t]+", " ", t)
+    return t.strip()
+
+
 def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
-    """Extract plain text from PDF bytes locally using pypdf with bounds safety."""
+    """Extract plain text from PDF bytes locally using pypdf with bounds safety and text cleanup."""
     if not pdf_bytes or not isinstance(pdf_bytes, (bytes, bytearray)):
         return ""
 
@@ -234,12 +258,28 @@ def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
 
         reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
         pages_text: list[str] = []
+        extracted_links: list[str] = []
         for page in reader.pages[:MAX_PDF_PAGES]:
             text = page.extract_text()
             if text:
                 pages_text.append(text.strip())
+            if "/Annots" in page:
+                try:
+                    annots = page["/Annots"]
+                    if hasattr(annots, "__iter__"):
+                        for annot in annots:  # type: ignore[union-attr]
+                            obj = annot.get_object() if hasattr(annot, "get_object") else annot
+                            if hasattr(obj, "__contains__") and "/A" in obj and "/URI" in obj["/A"]:
+                                uri = str(obj["/A"]["/URI"]).strip()
+                                if uri and uri not in extracted_links and not uri.startswith("javascript:"):
+                                    extracted_links.append(uri)
+                except Exception:
+                    pass
+        if extracted_links:
+            pages_text.append("Links & Profiles:\n" + "\n".join(f"- {link}" for link in extracted_links))
         res = "\n\n".join(pages_text).strip()
         if res:
+            res = clean_pdf_extracted_text(res)
             return res[:MAX_RESUME_TEXT_CHARS]
     except Exception as e:
         logger.debug("pypdf parsing failed: %s", e)
@@ -250,6 +290,7 @@ def extract_text_from_pdf(pdf_bytes: bytes | None) -> str:
         if len(decoded) > 20 and any(
             kw in decoded for kw in ("Resume", "skills", "Python", "experience", "education", "projects")
         ):
+            decoded = clean_pdf_extracted_text(decoded)
             return decoded[:MAX_RESUME_TEXT_CHARS]
     except Exception:
         pass
@@ -262,12 +303,18 @@ __all__ = [
     "repair_truncated_json",
     "_ensure_list",
     "_as_list",
+    "clean_pdf_extracted_text",
     "extract_text_from_pdf",
     "parse_month_year",
     "calculate_timeline_yoe",
     "normalize_technical_skills",
     "synthesize_headline_and_targets",
     "sanitize_candidate_name",
+    "parse_education_smart",
+    "parse_projects_smart",
+    "parse_summary_smart",
+    "parse_contact_smart",
+    "detect_preferred_locations_smart",
     "MAX_PDF_BYTES",
     "MAX_PDF_PAGES",
     "MAX_RESUME_TEXT_CHARS",
@@ -275,6 +322,11 @@ __all__ = [
 
 
 _CANONICAL_SKILL_MAP: dict[str, str] = {
+    "c++": "C++",
+    "cpp": "C++",
+    "c#": "C#",
+    "c sharp": "C#",
+    "react": "React",
     "react.js": "React",
     "reactjs": "React",
     "react js": "React",
@@ -338,10 +390,23 @@ _CANONICAL_SKILL_MAP: dict[str, str] = {
     "cypress": "Cypress",
     "selenium": "Selenium",
     "postman": "Postman",
+    "vercel": "Vercel",
+    "render": "Render",
     "git": "Git",
     "github": "GitHub",
     "jwt": "JWT",
+    "jwt authentication": "JWT",
     "rbac": "RBAC",
+    "role-based access control": "RBAC",
+    "role- based access control": "RBAC",
+    "html": "HTML",
+    "html5": "HTML",
+    "css": "CSS",
+    "css3": "CSS",
+    "unit testing": "Unit Testing",
+    "integration testing": "Integration Testing",
+    "end-to-end testing": "E2E Testing",
+    "end- to- end testing": "E2E Testing",
     "numpy": "NumPy",
     "pandas": "Pandas",
     "pytorch": "PyTorch",
@@ -466,6 +531,11 @@ _SOFT_SKILLS_BLACKLIST: set[str] = {
     "presentation skills",
     "analytical skills",
     "creative thinking",
+    "error handling",
+    "debugging",
+    "audit logging",
+    "document autofill",
+    "autofill",
 }
 
 
@@ -873,3 +943,208 @@ def sanitize_candidate_name(raw_name: str | None, text_lines: list[str] | None =
                     if 1 <= len(words) <= 4:
                         return clean_seg.title() if (clean_seg.islower() or clean_seg.isupper()) else clean_seg
     return ""
+
+
+def parse_education_smart(text: str) -> tuple[str, int | None]:
+    """Accurately extract candidate degree, major, institution, graduation year, and CGPA/GPA."""
+    if not text:
+        return "", None
+
+    edu_sec_m = re.search(
+        r"(?i)(?:education|academic\s+background|academics|qualifications)\s*[:\n](.*?)(?=\n\s*(?:technical\s+skills|skills|experience|work\s+history|projects|certifications|awards|achievements|summary|$))",
+        text,
+        re.DOTALL,
+    )
+    sec = edu_sec_m.group(1).strip() if edu_sec_m else text
+
+    # Graduation year (prefer end of date range e.g. '2023 - 2027', else max year in section)
+    grad_yr: int | None = None
+    yr_range = re.search(r"[-–—]\s*(20\d\d)\b", sec)
+    if yr_range:
+        grad_yr = int(yr_range.group(1))
+    else:
+        all_yrs = [int(y) for y in re.findall(r"\b(20\d\d)\b", sec)]
+        if all_yrs:
+            grad_yr = max(all_yrs)
+
+    # CGPA / GPA
+    cgpa = ""
+    cgpa_m = re.search(
+        r"(?i)\b(?:cgpa|gpa|percentage|marks|score)\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?(?:\s*/\s*[0-9]+(?:\.[0-9]+)?)?%?)",
+        sec,
+    )
+    if cgpa_m:
+        cgpa = f"CGPA: {cgpa_m.group(1)}"
+
+    degree_patterns = [
+        r"\b(?:b\.?tech|b\.?e\.?|bachelor(?:[\'\’]s)?(?:\s+of\s+engineering|\s+of\s+technology|\s+of\s+science)?)\b",
+        r"\b(?:m\.?tech|m\.?e\.?|m\.?s\.?|master(?:[\'\’]s)?)\b",
+        r"\b(?:bca|mca|b\.?sc|m\.?sc|b\.?com|m\.?com|bba|mba|ph\.?d|diploma|llb|llm)\b",
+    ]
+    inst_patterns = [
+        r"\b(?:institute|university|college|school|academy|campus)\b",
+    ]
+
+    degree = ""
+    institution = ""
+
+    for line in sec.splitlines():
+        l_str = line.strip()
+        if not l_str or re.search(r"(?i)^relevant\s+coursework", l_str):
+            continue
+        # Clean CGPA and date ranges out of line for presentation
+        l_clean = re.sub(
+            r"(?i)\b(?:cgpa|gpa|percentage|score|marks)\s*[:\-]?\s*[0-9]+(?:\.[0-9]+)?(?:\s*/\s*[0-9]+(?:\.[0-9]+)?)?%?",
+            "",
+            l_str,
+        )
+        l_clean = re.sub(r"\b20\d\d\s*[-–—]\s*(?:20\d\d|present|\(expected\))\b", "", l_clean, flags=re.IGNORECASE)
+        l_clean = re.sub(r"\(expected\)", "", l_clean, flags=re.IGNORECASE).strip(" ,-•|\t")
+
+        is_degree = any(re.search(pat, l_str, re.IGNORECASE) for pat in degree_patterns)
+        is_inst = any(re.search(pat, l_str, re.IGNORECASE) for pat in inst_patterns)
+
+        if is_degree and not degree:
+            degree = l_clean
+        elif is_inst and not institution:
+            institution = l_clean
+
+    parts = []
+    if degree:
+        parts.append(degree)
+    if institution:
+        parts.append(institution)
+    if grad_yr:
+        parts.append(f"({grad_yr})")
+    if cgpa:
+        parts.append(cgpa)
+
+    return ", ".join(parts) if parts else "", grad_yr
+
+
+def parse_projects_smart(text: str) -> list[str]:
+    """Extract key projects, tech stacks, and impact bullets from resume text."""
+    if not text:
+        return []
+
+    proj_sec_m = re.search(
+        r"(?i)(?:projects|key\s+projects|academic\s+projects|personal\s+projects)\s*[:\n](.*?)(?=\n\s*(?:achievements|leadership|certifications|awards|education|skills|experience|$))",
+        text,
+        re.DOTALL,
+    )
+    if not proj_sec_m:
+        return []
+
+    sec = proj_sec_m.group(1).strip()
+    projects: list[str] = []
+    current_title = ""
+    current_desc: list[str] = []
+
+    for line in sec.splitlines():
+        l_str = line.strip()
+        if not l_str:
+            continue
+        is_bullet = bool(re.match(r"^[•·\*\-\d\.]", l_str))
+        is_links = bool(re.search(r"(?i)(?:live\s*demo|\|\s*github\b|github\.com|preview|deployed\b)", l_str))
+        is_dash_header = bool(
+            re.search(r"^[A-Za-z0-9\s]{2,40}\s*[-–—:]\s*[A-Za-z0-9\s]", l_str)
+        ) and not re.search(r"(?i)\bgithub\s+actions\b", l_str)
+
+        if (is_links or is_dash_header) and not is_bullet:
+            if current_title:
+                desc_str = " ".join(current_desc)[:220]
+                projects.append(f"{current_title}: {desc_str}" if desc_str else current_title)
+            t_clean = re.sub(r"(?i)(?:live\s*demo|\|\s*github\b|github\.com|preview|deployed|link).*$", "", l_str)
+            current_title = re.sub(r"[|•·\t]+", " ", t_clean).strip(" -–—:|")
+            current_desc = []
+        elif is_bullet:
+            b_clean = re.sub(r"^[•·\*\-\d\.]+\s*", "", l_str).strip()
+            if b_clean and len(current_desc) < 2:
+                current_desc.append(b_clean)
+        elif current_title and not current_desc and len(l_str) < 120:
+            current_desc.append(f"Built with {l_str}.")
+
+    if current_title:
+        desc_str = " ".join(current_desc)[:220]
+        projects.append(f"{current_title}: {desc_str}" if desc_str else current_title)
+
+    return projects[:5]
+
+
+def parse_summary_smart(text: str) -> str:
+    """Extract candidate executive summary, profile, or about-me text from resume."""
+    if not text:
+        return ""
+    m = re.search(
+        r"(?i)(?:professional\s+summary|summary|executive\s+summary|profile|about\s+me|career\s+objective|objective)\s*[:\n](.*?)(?=\n\s*(?:education|technical\s+skills|skills|experience|work\s+history|projects|certifications|awards|$))",
+        text,
+        re.DOTALL,
+    )
+    if not m:
+        return ""
+    raw = m.group(1).strip()
+    lines = [l.strip() for l in raw.splitlines() if l.strip() and not re.match(r"^[•·\*\-]", l)]
+    return " ".join(" ".join(lines).split())[:400]
+
+
+def parse_contact_smart(text: str) -> dict[str, str]:
+    """Extract phone number, email address, GitHub URL, and LinkedIn URL from resume text."""
+    if not text:
+        return {"phone": "", "email": "", "github": "", "linkedin": ""}
+
+    phone_m = re.search(r"(?:\+?91[\-\s]?)?[6789]\d{9}\b", text)
+    email_m = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
+    gh_m = re.search(r"(?i)github\.com/([A-Za-z0-9\-_]+)(?:/(?:[ \t\n\"']|$)|[ \t\n\"']|$)", text)
+    if not gh_m:
+        gh_m = re.search(r"(?i)github\.com/([A-Za-z0-9\-_]+)", text)
+    li_m = re.search(r"(?i)linkedin\.com/in/([A-Za-z0-9\-_]+)", text)
+
+    return {
+        "phone": phone_m.group(0).strip() if phone_m else "",
+        "email": email_m.group(0).strip() if email_m else "",
+        "github": f"https://github.com/{gh_m.group(1)}" if gh_m else "",
+        "linkedin": f"https://linkedin.com/in/{li_m.group(1)}" if li_m else "",
+    }
+
+
+def detect_preferred_locations_smart(text: str) -> list[str]:
+    """Detect Indian tech hubs and sub-metro tech corridors from candidate resume text."""
+    if not text:
+        return []
+
+    hub_patterns = {
+        "Bengaluru": [
+            r"\bbengaluru\b", r"\bbangalore\b", r"\bblr\b", r"\bwhitefield\b",
+            r"\belectronic\s*city\b", r"\bbellandur\b", r"\bkoramangala\b", r"\bmanyata\b",
+        ],
+        "Hyderabad": [
+            r"\bhyderabad\b", r"\bhyd\b", r"\bcyberabad\b", r"\bhitec\s*city\b",
+            r"\bgachibowli\b", r"\bmadhapur\b", r"\bsecunderabad\b",
+        ],
+        "Pune": [
+            r"\bpune\b", r"\bhinjewadi\b", r"\bmagarpatta\b", r"\bkothrud\b", r"\bvimannagar\b",
+        ],
+        "Delhi-NCR": [
+            r"\bdelhi\b", r"\bgurgaon\b", r"\bgurugram\b", r"\bnoida\b", r"\bncr\b",
+            r"\bfaridabad\b", r"\bghaziabad\b",
+        ],
+        "Mumbai": [
+            r"\bmumbai\b", r"\bbombay\b", r"\bdombivli\b", r"\bthane\b", r"\bnavi\s*mumbai\b",
+            r"\bkalyan\b", r"\bandheri\b", r"\bbandra\b", r"\bborivali\b",
+        ],
+        "Chennai": [
+            r"\bchennai\b", r"\bmadras\b", r"\btambaram\b", r"\bomr\b", r"\bvelachery\b",
+        ],
+        "Remote": [
+            r"\bremote\b", r"\bwork from home\b", r"\bwfh\b",
+        ],
+    }
+
+    detected: list[str] = []
+    t_lower = text.lower()
+    for name, patterns in hub_patterns.items():
+        if any(re.search(pat, t_lower) for pat in patterns):
+            if name not in detected:
+                detected.append(name)
+
+    return detected

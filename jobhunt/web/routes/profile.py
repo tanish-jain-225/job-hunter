@@ -15,7 +15,13 @@ from ... import cli, llm
 from ...auth import require_auth
 from ...llm_utils import (
     calculate_timeline_yoe,
+    clean_pdf_extracted_text,
+    detect_preferred_locations_smart,
     normalize_technical_skills,
+    parse_contact_smart,
+    parse_education_smart,
+    parse_projects_smart,
+    parse_summary_smart,
     sanitize_candidate_name,
     synthesize_headline_and_targets,
 )
@@ -171,22 +177,28 @@ def _extract_skills_from_text(resume_text: str) -> list[str]:
     )
     if skills_sec_m:
         sec_text = skills_sec_m.group(1)
-        # Split by category headers, commas, bullets, pipes, or newlines
-        cleaned_lines = []
+        # Process lines individually to avoid joining adjacent line tokens (e.g. "C++ React")
         for line in sec_text.splitlines():
-            line_str = re.sub(r"(?i)^[a-z\s]+:\s*", "", line.strip())  # remove e.g. "Languages: ", "Frameworks: "
-            if line_str:
-                cleaned_lines.append(line_str)
-        tokens = re.split(r"[,•·|\t\n;/]+", " ".join(cleaned_lines))
-        for tok in tokens:
-            cleaned = tok.strip("•-*| \t()[]{}")
-            if 1 < len(cleaned) <= 25 and not re.search(r"[@:/0-9]", cleaned):
-                # Only add if it looks like a clean tech term (starts with letter)
-                if re.match(r"^[A-Za-z][A-Za-z0-9#\+\.\-\s]{0,24}$", cleaned):
-                    # Filter out non-technical noise words
-                    skip_words = {"proficient", "familiar", "basics", "strong", "advanced", "intermediate", "tools", "languages", "frameworks", "databases"}
-                    if cleaned.lower() not in skip_words:
-                        add_skill(cleaned)
+            line_str = re.sub(r"^[^:\n]{1,50}:\s*", "", line.strip())  # remove e.g. "Languages: ", "Backend & APIs: "
+            if not line_str:
+                continue
+            line_str = re.sub(r"\(.*?\)", "", line_str)
+            tokens = re.split(r"[,•·|\t;/]+", line_str)
+            for tok in tokens:
+                cleaned = tok.strip("•-*| \t()[]{}")
+                if 1 < len(cleaned) <= 30 and not re.search(r"[@:]", cleaned) and not re.match(r"^\d+$", cleaned):
+                    # Only add if it starts with a letter
+                    if re.match(r"^[A-Za-z][A-Za-z0-9#\+\.\-\s]{0,29}$", cleaned):
+                        # Filter out non-technical noise words
+                        skip_words = {
+                            "proficient", "familiar", "basics", "strong", "advanced", "intermediate",
+                            "tools", "languages", "frameworks", "databases", "libraries", "platforms",
+                            "apis", "developer", "backend", "frontend", "fullstack", "full stack",
+                            "debugging", "error handling", "audit logging", "document autofill", "autofill",
+                            "testing", "engineering", "development",
+                        }
+                        if cleaned.lower() not in skip_words:
+                            add_skill(cleaned)
 
     # 2. Comprehensive catalog of 150+ modern cross-domain professional and technical keywords
     common_keywords = [
@@ -490,15 +502,18 @@ def api_resume_upload():
         if len(resume_text) > 100_000:
             return jsonify({"status": "error", "message": "Resume text exceeds maximum allowed length."}), 400
 
+    if resume_text:
+        resume_text = clean_pdf_extracted_text(resume_text)
+
     if not resume_text and not resume_bytes:
         return jsonify({"status": "error", "message": "No resume file or text content provided."}), 400
 
     memory = SupabaseMemory(token=token)
 
-    # Perform AI Candidate Profile Extraction with responsive safety timeout (8.0s on Vercel to stay within 10s serverless limit, 14.0s standard)
+    # Perform AI Candidate Profile Extraction with responsive safety timeout (8.5s on Vercel to stay within 10s serverless limit, 35.0s standard)
     parsed_profile = None
     is_vercel = os.environ.get("VERCEL") == "1"
-    extraction_timeout = 8.0 if is_vercel else 14.0
+    extraction_timeout = 8.5 if is_vercel else 35.0
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
         provider, model = llm.resolve("draft")
@@ -525,7 +540,8 @@ def api_resume_upload():
         # Fallback smart extraction from resume text if LLM unavailable or times out
         derived_name = ""
         derived_title = ""
-        derived_edu = ""
+        derived_edu, smart_grad_yr = parse_education_smart(resume_text) if resume_text else ("", None)
+
         if resume_text:
             lines = [line.strip() for line in resume_text.splitlines() if line.strip()]
 
@@ -575,26 +591,16 @@ def api_resume_upload():
                             derived_title = clean_line
                             break
 
-            edu_keywords = [
-                "B.Tech", "B.E.", "M.Tech", "M.S.", "Bachelor", "Master",
-                "Degree", "University", "College", "Institute", "BCA", "MCA", "B.Sc", "M.Sc",
-                "BBA", "MBA", "B.Com", "M.Com", "B.A.", "M.A.", "Ph.D", "Diploma", "LLB", "LLM",
-            ]
-            for line in lines:
-                if any(ek.lower() in line.lower() for ek in edu_keywords) and len(line) < 80:
-                    derived_edu = line
-                    break
-
         if not derived_name or len(derived_name) > 40:
             if existing.get("name") and existing["name"] != "Candidate":
                 derived_name = existing["name"]
             else:
                 derived_name = ""
 
-        skills_list = _extract_skills_from_text(resume_text)[:15] if resume_text else []
+        skills_list = _extract_skills_from_text(resume_text)[:25] if resume_text else []
 
         # Grounded timeline calculation for YoE
-        derived_years = calculate_timeline_yoe(None, resume_text=resume_text)
+        derived_years = calculate_timeline_yoe(None, graduation_year=smart_grad_yr, resume_text=resume_text)
         is_student_or_fresher = bool(
             resume_text and re.search(r"(?i)\b(?:final[- ]year|student|undergraduate|fresher|pre[- ]final)\b", resume_text)
             and re.search(r"\b(202[5-9]|203\d)\b", resume_text)
@@ -661,22 +667,7 @@ def api_resume_upload():
             derived_seniority = "senior"
 
         # Indian tech hub city detection from resume text
-        detected_locations: list[str] = []
-        if resume_text:
-            hub_patterns = {
-                "Bengaluru": [r"\bbengaluru\b", r"\bbangalore\b", r"\bblr\b"],
-                "Hyderabad": [r"\bhyderabad\b", r"\bhyd\b"],
-                "Pune": [r"\bpune\b"],
-                "Delhi-NCR": [r"\bdelhi\b", r"\bgurgaon\b", r"\bgurugram\b", r"\bnoida\b", r"\bncr\b"],
-                "Mumbai": [r"\bmumbai\b", r"\bbombay\b"],
-                "Chennai": [r"\bchennai\b", r"\bmadras\b"],
-                "Remote": [r"\bremote\b", r"\bwork from home\b", r"\bwfh\b"],
-            }
-            rt_lower = resume_text.lower()
-            for hub_name, patterns in hub_patterns.items():
-                if any(re.search(pat, rt_lower) for pat in patterns):
-                    if hub_name not in detected_locations:
-                        detected_locations.append(hub_name)
+        detected_locations = detect_preferred_locations_smart(resume_text) if resume_text else []
         if not detected_locations and existing.get("preferred_locations"):
             detected_locations = [str(x).strip() for x in existing.get("preferred_locations", []) if str(x).strip()]
 
@@ -732,19 +723,30 @@ def api_resume_upload():
             except (ValueError, TypeError):
                 pass
 
+        derived_projects = parse_projects_smart(resume_text) if resume_text else []
+        derived_summary = parse_summary_smart(resume_text) if resume_text else ""
+        derived_contacts = parse_contact_smart(resume_text) if resume_text else {}
+
         parsed_profile = {
             "name": derived_name or "",
             "title": derived_title or "Professional",
             "current_title": derived_title or "Professional",
             "years_experience": derived_years,
             "experience_years": derived_years,
+            "graduation_year": smart_grad_yr,
             "education": derived_edu or "",
             "skills": skills_list,
             "core_skills": skills_list,
             "target_keywords": target_titles[:5],
             "target_titles": target_titles[:5],
             "domains": [derived_title] if derived_title else ["Professional"],
-            "notable_projects": [],
+            "notable_projects": derived_projects,
+            "summary": derived_summary,
+            "profile_text": derived_summary,
+            "email": derived_contacts.get("email") or email,
+            "phone": derived_contacts.get("phone") or "",
+            "github": derived_contacts.get("github") or "",
+            "linkedin": derived_contacts.get("linkedin") or "",
             "seniority": derived_seniority,
             "experience_level": derived_exp_level,
             "preferred_locations": detected_locations,
@@ -808,16 +810,45 @@ def api_resume_upload():
             parsed_profile["target_keywords"] = p_targets
             parsed_profile["target_titles"] = p_targets
 
+        # Enrich any missing fields from smart local parser
+        if resume_text:
+            if not parsed_profile.get("education"):
+                s_edu, s_yr = parse_education_smart(resume_text)
+                if s_edu:
+                    parsed_profile["education"] = s_edu
+                if not parsed_profile.get("graduation_year") and s_yr:
+                    parsed_profile["graduation_year"] = s_yr
+            if not parsed_profile.get("notable_projects"):
+                parsed_profile["notable_projects"] = parse_projects_smart(resume_text)
+            if not parsed_profile.get("summary"):
+                parsed_profile["summary"] = parse_summary_smart(resume_text)
+                if not parsed_profile.get("profile_text"):
+                    parsed_profile["profile_text"] = parsed_profile["summary"]
+            c_contacts = parse_contact_smart(resume_text)
+            for cf in ("email", "phone", "github", "linkedin"):
+                if not parsed_profile.get(cf) and c_contacts.get(cf):
+                    parsed_profile[cf] = c_contacts[cf]
+            if not parsed_profile.get("preferred_locations"):
+                parsed_profile["preferred_locations"] = detect_preferred_locations_smart(resume_text)
+
     # Extract existing notification preferences
     existing_notif = bool((existing or {}).get("email_notifications_enabled", False))
-    existing_target_email = (existing or {}).get("notification_email") or email
+    existing_target_email = (existing or {}).get("notification_email") or parsed_profile.get("email") or email
 
     full_profile = {
         "email": email,
+        "candidate_email": parsed_profile.get("email") or "",
         "name": parsed_profile.get("name") or (existing or {}).get("name") or "",
         "title": parsed_profile.get("title") or parsed_profile.get("current_title") or (existing or {}).get("title") or (existing or {}).get("current_title") or "",
         "current_title": parsed_profile.get("current_title") or parsed_profile.get("title") or (existing or {}).get("current_title") or (existing or {}).get("title") or "",
         "education": parsed_profile.get("education") or (existing or {}).get("education") or "",
+        "graduation_year": parsed_profile.get("graduation_year") or (existing or {}).get("graduation_year") or None,
+        "summary": parsed_profile.get("summary") or (existing or {}).get("summary") or "",
+        "profile_text": parsed_profile.get("summary") or parsed_profile.get("profile_text") or (existing or {}).get("summary") or "",
+        "notable_projects": parsed_profile.get("notable_projects") or (existing or {}).get("notable_projects") or [],
+        "phone": parsed_profile.get("phone") or (existing or {}).get("phone") or "",
+        "github": parsed_profile.get("github") or (existing or {}).get("github") or "",
+        "linkedin": parsed_profile.get("linkedin") or (existing or {}).get("linkedin") or "",
         "experience_years": parsed_profile.get("experience_years") or parsed_profile.get("years_experience") or (existing or {}).get("experience_years") or (existing or {}).get("years_experience") or 0.0,
         "years_experience": parsed_profile.get("years_experience") or parsed_profile.get("experience_years") or (existing or {}).get("years_experience") or (existing or {}).get("experience_years") or 0.0,
         "skills": parsed_profile.get("skills") or parsed_profile.get("core_skills") or (existing or {}).get("skills") or (existing or {}).get("core_skills") or [],

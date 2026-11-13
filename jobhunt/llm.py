@@ -47,11 +47,17 @@ from .llm_utils import (
     parse_json,
     _ensure_list,
     _as_list,
+    clean_pdf_extracted_text,
     extract_text_from_pdf,
     calculate_timeline_yoe,
     normalize_technical_skills,
     synthesize_headline_and_targets,
     sanitize_candidate_name,
+    parse_education_smart,
+    parse_projects_smart,
+    parse_summary_smart,
+    parse_contact_smart,
+    detect_preferred_locations_smart,
 )
 
 
@@ -219,6 +225,11 @@ Return ONLY a valid JSON object matching this exact schema:
   "current_title": "Current or Target Professional Role (e.g. Senior Backend Engineer, Product Manager, Product Designer, Financial Analyst)",
   "years_experience": 0.0,
   "graduation_year": 2027,
+  "summary": "2-3 sentence executive professional summary of candidate profile, background, and core strengths",
+  "email": "candidate@example.com",
+  "phone": "+91-9876543210",
+  "github": "https://github.com/username",
+  "linkedin": "https://linkedin.com/in/username",
   "work_history": [
     {
       "company": "Company Name",
@@ -262,6 +273,8 @@ def build_profile(
         extracted_pdf_text = extract_text_from_pdf(resume_bytes)
 
     effective_text = (resume_text or extracted_pdf_text).strip()
+    if effective_text:
+        effective_text = clean_pdf_extracted_text(effective_text)
     active_provider = provider
     active_model = model
     active_api_key = api_key
@@ -326,6 +339,11 @@ def build_profile(
     # 2. Grounded Timeline Calculation for Years of Experience
     work_hist = profile.get("work_history")
     grad_yr = profile.get("graduation_year")
+    parsed_edu, parsed_grad_yr = parse_education_smart(effective_text) if effective_text else ("", None)
+    if (not grad_yr or str(grad_yr) in ("0", "None", "")) and parsed_grad_yr:
+        grad_yr = parsed_grad_yr
+        profile["graduation_year"] = grad_yr
+
     timeline_yoe = calculate_timeline_yoe(work_hist, graduation_year=grad_yr, resume_text=effective_text)
 
     raw_yoe = profile.get("years_experience") if profile.get("years_experience") is not None else profile.get("experience_years")
@@ -374,7 +392,25 @@ def build_profile(
     profile["skills"] = skills_list
 
     profile["domains"] = _ensure_list(profile.get("domains"))
-    profile["notable_projects"] = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
+    existing_proj = _ensure_list(profile.get("notable_projects") or profile.get("projects"))
+    if not existing_proj and effective_text:
+        existing_proj = parse_projects_smart(effective_text)
+    profile["notable_projects"] = existing_proj
+    profile["projects"] = existing_proj
+
+    clean_summary = str(profile.get("summary") or "").strip()
+    if not clean_summary and effective_text:
+        clean_summary = parse_summary_smart(effective_text)
+    profile["summary"] = clean_summary
+    if not profile.get("profile_text") and clean_summary:
+        profile["profile_text"] = clean_summary
+
+    if effective_text:
+        contacts = parse_contact_smart(effective_text)
+        for cf in ("email", "phone", "github", "linkedin"):
+            if not profile.get(cf) and contacts.get(cf):
+                profile[cf] = contacts[cf]
+
     profile["exclude_keywords"] = _ensure_list(profile.get("exclude_keywords") or profile.get("avoid_roles"))
     profile["job_types"] = _ensure_list(profile.get("job_types"))
 
@@ -398,7 +434,10 @@ def build_profile(
         profile["target_titles"] = synthesized_targets
         profile["target_keywords"] = synthesized_targets
 
-    profile["education"] = str(profile.get("education") or "").strip()
+    if not profile.get("education") and parsed_edu:
+        profile["education"] = parsed_edu
+    else:
+        profile["education"] = str(profile.get("education") or "").strip()
 
     # 5. Experience Level & Seniority Calibration
     if val_yoe <= 0.0:
@@ -425,6 +464,9 @@ def build_profile(
         pref_locs = [s.strip() for s in raw_locs.split(",") if s.strip()]
     else:
         pref_locs = []
+
+    if not pref_locs and effective_text:
+        pref_locs = detect_preferred_locations_smart(effective_text)
 
     # Normalize hub city names
     hub_name_map = {

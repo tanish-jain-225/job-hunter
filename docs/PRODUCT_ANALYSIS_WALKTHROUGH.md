@@ -6,7 +6,7 @@
 * **Architecture Scope**: Full-Stack Autonomous Career Intelligence Platform (46 core Python files / 11,638 LOC, 37 test files / 11,509 LOC, 9 HTML templates / 973 LOC, 9,280 JS/CSS LOC, 15 docs / 4,100+ LOC)  
 * **Curated Company Targets**: **114 verified companies** across 4 active seed ATS feeds (`ashby: 50`, `greenhouse: 42`, `lever: 15`, `smartrecruiters: 7`) with parser support for all **9 major ATS platforms** (including Workable, BambooHR, Recruitee, Breezy HR, Pinpoint)  
 * **Candidate Profiling Model**: Native Indian CTC (LPA) & Notice Period schema + Global Remote preferences + Multi-Domain Universal Role Synthesis across 10 career families (Product, Design, Data, AI/ML, Marketing, Sales, Finance, HR, Operations, Legal, and Engineering)  
-* **Automated Test Suite**: **622 passed / 0 failures** (100% pass rate: 615 unit/integration + 7 Playwright browser E2E, global statement coverage **92%+**, enforced $\ge 90\%$)  
+* **Automated Test Suite**: **644 passed / 0 failures** (100% pass rate: 637 unit/integration + 7 Playwright browser E2E, global statement coverage **92%+**, enforced $\ge 90\%$) via single unified runner (`python run_tests.py`)  
 * **Static Analysis & Type Safety**: **0 Ruff violations / 0 Mypy errors** across all source files  
 * **Live Production URL**: [https://job-hunter-web-board.vercel.app](https://job-hunter-web-board.vercel.app)  
 * **Final Composite Rating**: **9.2 / 10 (Verified Production-Ready A+ Platform)**  
@@ -25,7 +25,7 @@ An exhaustive, end-to-end audit was conducted directly against the active reposi
 | :--- | :--- | :--- |
 | **`jobhunt/`** | **Core Application Engine** | Modular ATS parsers (`jobhunt/parsers/` covering Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR, Recruitee, Breezy HR, Pinpoint), heuristic regex pre-filtering (`prefilter.py`), Gemini 3.5 LLM scoring engine (`llm.py`), circular multi-key rate-limit failover (`providers.py`, `providers_throttle.py`), Supabase RLS database client (`memory.py`), atomic deduplication store (`store.py`), and SMTP StartTLS briefing generator (`digest.py`, `mailer.py`). |
 | **`jobhunt/web/`** | **Modular Web Gateway** | Clean separation into `routes/jobs.py` (job CRUD, stages, followups, notes), `routes/pipeline.py` (SSE live stream `/api/pipeline/stream`, cloud triggers, history), `routes/profile.py` (resume PDF parsing via PyPDF, preferences), `routes/views.py` (dashboard views, health check, Supabase auth), and `state.py`. |
-| **`tests/`** | **Automated Test Suite** | 622 comprehensive test cases (615 unit/integration + 7 Playwright browser E2E) spanning memory cache lifecycle, live endpoint contracts, security headers, rate limiting, and failure fallbacks. **Test-to-code ratio exceeds 1:1.** |
+| **`tests/`** | **Automated Test Suite** | 644 comprehensive test cases (637 unit/integration + 7 Playwright browser E2E) spanning memory cache lifecycle, live endpoint contracts, security headers, rate limiting, static typing verification, and failure fallbacks. **Test-to-code ratio exceeds 1:1.** |
 | **`static/`** | **Frontend Assets** | Pure client-side single-page dashboard application, responsive Flexbox stylesheets, and interaction handlers with zero redundant binary assets. |
 | **`assets/`** | **Brand Identity** | Canonical brand assets: `logo.png`, `favicon.ico`, `banner.svg`, and `pipeline-flow.svg`. |
 | **`docs/`** | **Technical Documentation** | 15 comprehensive architecture blueprints, multi-tenant setup guides, security configurations, API references, and operational metrics. |
@@ -224,8 +224,8 @@ An autonomous, end-to-end verification audit was executed against live cloud inf
 | **7. Email Relay** | Production SMTP Relay | Connected to `smtp.gmail.com:587`, issued `STARTTLS`, and authenticated credentials | TLS session established and authenticated (500 emails/day capacity) | **PASS** |
 | **8. Cloud Dispatch** | GitHub Actions REST API | Authenticated with `GH_TOKEN` for `tanish-jain-225/job-hunter` | HTTP 200; workflow scopes confirmed for `.github/workflows/daily.yml` | **PASS** |
 | **9. Live Web Board Deployment** | Vercel Serverless Gateway | Probed [`https://job-hunter-web-board.vercel.app/api/health`](https://job-hunter-web-board.vercel.app/api/health) | HTTP 200: `{"status": "healthy", "database_status": "connected", "version": "1.2.4"}` | **PASS** |
-| **10. Automated Test Suite** | Local CI Engine (`pytest`) | Full execution of all test modules (615 unit/integration + 7 Playwright browser E2E) | **622 passed / 0 failures (100% pass rate, >=90% coverage)** | **PASS** |
-| **11. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across all source files** | **PASS** |
+| **10. Unified Quality & Test Suite** | Unified Runner (`python run_tests.py`) | Single-command execution across all 4 gates (Ruff linting, Mypy static typing across 43 source files, 644 tests with 637 unit/integration + 7 Playwright E2E, and line coverage) | **644 passed / 0 failures (100% pass rate, >=90% coverage across repository)** | **PASS** |
+| **11. Static Analysis & Type Checking** | `ruff` & `mypy` | Strict syntax, security, and static type checking | **0 linter violations, 0 type errors across all 43 source files** | **PASS** |
 
 ---
 

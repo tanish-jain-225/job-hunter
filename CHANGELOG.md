@@ -8,6 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.2.4] — 2026-11-13
 
 ### Added & Universalized
+- **Unified All-in-One Quality, Type, Test & Coverage Pipeline (`run_tests.py`, `scripts/test.bat`, `scripts/test.sh`)**:
+  - Implemented single-command unified test runner executing all 4 quality gates in sequence:
+    * *Gate 1: Ruff Linting*: Repository-wide linting & code style hygiene (`ruff check .`) with 0 errors.
+    * *Gate 2: Mypy Typing*: Static type analysis (`mypy jobhunt`) across all 43 source files with 0 type errors.
+    * *Gate 3: Pytest Suite*: 644 automated tests (637 unit/integration + 7 Playwright browser E2E) with 100% pass rate.
+    * *Gate 4: Code Coverage*: Complete line coverage calculation with `pytest-cov` reporting missing lines, supporting `--cov-fail-under=90`, `--cov-html`, and `--cov-xml`.
+  - Added pipeline verification dashboard reporting real-time status and duration for every gate.
+  - Added `tests/test_unified_runner.py` with 14 unit tests validating runner CLI parsing, gate execution, and error handling.
+- **High-Precision Resume Parsing & Smart Profile Ingestion Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`, `jobhunt/web/routes/profile.py`)**:
+  - *PDF Annotation Hyperlinks*: Scans `/Annots` in PDF documents to capture underlying links (GitHub, LinkedIn, demo sites).
+  - *Bounded Degree Matching*: Enforces word boundaries on degrees to eliminate false positive substring matching (e.g., `mba` matching `Mumbai`), capturing degree, institution, graduation year, and CGPA accurately.
+  - *Smart Project Extraction*: Isolates up to 5 top resume projects with tech stacks and quantifiable deliverables.
+  - *Corridor Location Mapping*: Accurately resolves Indian sub-metro tech corridors into primary hubs (Dombivli $\rightarrow$ Mumbai, Whitefield $\rightarrow$ Bengaluru, Hinjewadi $\rightarrow$ Pune, Cyberabad $\rightarrow$ Hyderabad, Noida $\rightarrow$ Delhi-NCR).
+  - *Smart Contact & Line-by-Line Token Ungluing*: Spaces bullet points, strips non-technical buzzwords, and repairs unglued adjacent-line skills.
 - **10/10 Universal Multi-Domain Career Intelligence Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`, `jobhunt/web/routes/profile.py`, `jobhunt/cli.py`)**:
   - **Dynamic Multi-Domain Role Synthesis (`synthesize_headline_and_targets`)**: Upgraded synthesis from single-sector tech logic to dynamic, multi-domain classification spanning 10 core career families without hardcoded rigid lists:
     * *Product Management* (PRDs, Roadmapping, User Stories, A/B Testing $\rightarrow$ `Product Manager`, `Associate Product Manager`, `Product Owner`)
@@ -25,7 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **Dynamic Cross-Domain Canonical Skill Mappings**: Expanded `_CANONICAL_SKILL_MAP` and section extraction catalog with 150+ universal industry skills, platforms, and methodologies (Figma, PRDs, Tableau, Power BI, Salesforce, HubSpot, QuickBooks, SAP, Workday, PMP, Agile, Scrum).
   - **Domain-Agnostic LLM Prompts & Seniority-Aware Exclusion**: Updated `PROFILE_SYSTEM_PROMPT` to analyze resumes across all industry sectors; eliminated hardcoded functional exclusions (*"Sales"*, *"Manager"*, *"Recruiter"*), replacing them with seniority-level calibrations (excluding C-level/VP roles for freshers, and internships for senior professionals).
   - **Universal UI & Onboarding Copy (`templates/partials/profile_settings.html`, `static/js/app.js`)**: Updated placeholders, guidance notes, and fallbacks to seamlessly guide candidates from any career discipline.
-- **Automated Test Suite Expansion (`tests/test_resume_accuracy.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **622 passed tests** (615 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors).
+- **Automated Test Suite Expansion (`tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **644 passed tests** (637 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
 
 ---
 
@@ -314,6 +328,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.2.4]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4
+[1.2.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.3
 [1.2.2]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2
 [1.2.1]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.1
 [1.2.0]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.0
