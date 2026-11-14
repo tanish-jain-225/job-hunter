@@ -17,7 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Universal Multi-Domain Career Intelligence Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`)**:
   - Dynamic multi-domain role synthesis across 10 career families (Product, Design, Data, AI/ML, Marketing, Sales, Finance, HR, Operations, Legal, and Engineering) with domain search isolation.
 - **Quality & Preflight Test Certification**:
-  - Passed all 649 tests (642 unit/integration + 7 Playwright browser E2E) with 92% statement coverage, 0 Ruff violations, and 0 Mypy type errors across 43 source files.
+  - Passed all 650 tests (643 unit/integration + 7 Playwright browser E2E) with 92% statement coverage, 0 Ruff violations, and 0 Mypy type errors across 43 source files.
 
 ---
 
@@ -28,7 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Implemented single-command unified test runner executing all 4 quality gates in sequence:
     * *Gate 1: Ruff Linting*: Repository-wide linting & code style hygiene (`ruff check .`) with 0 errors.
     * *Gate 2: Mypy Typing*: Static type analysis (`mypy jobhunt`) across all 43 source files with 0 type errors.
-    * *Gate 3: Pytest Suite*: 649 automated tests (642 unit/integration + 7 Playwright browser E2E) with 100% pass rate.
+    * *Gate 3: Pytest Suite*: 650 automated tests (643 unit/integration + 7 Playwright browser E2E) with 100% pass rate.
     * *Gate 4: Code Coverage*: Complete line coverage calculation with `pytest-cov` reporting missing lines, supporting `--cov-fail-under=90`, `--cov-html`, and `--cov-xml`.
   - Added pipeline verification dashboard reporting real-time status and duration for every gate.
   - Added `tests/test_unified_runner.py` with 14 unit tests validating runner CLI parsing, gate execution, and error handling.
@@ -67,7 +67,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Dedicated Step 2 input controls for Phone (`#prof-phone`), LinkedIn (`#prof-linkedin`), GitHub (`#prof-github`), and Summary (`#prof-summary`).
   - Consolidated single Save action (`#btn-profile-save`) strictly on the final step (Step 3: Alert Settings), guaranteeing unambiguous, atomic persistence.
   - Accurate form hydration preserving fresher values (`0` YoE and `0` CTC) and eliminating unwanted title exclusions.
-- **Automated Test Suite Expansion (`tests/test_ai_parsing_and_state_save.py`, `tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **649 passed tests** (642 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
+- **Automated Test Suite Expansion (`tests/test_ai_parsing_and_state_save.py`, `tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **650 passed tests** (643 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
 - **Automated Radar Cloud Scheduler Optimization (`.github/workflows/daily.yml`)**: Optimized automated daily cron schedule to **`08:17 UTC` (`01:47 PM IST`)** via `cron: '17 8 * * *'`, synchronizing runs with the 1:30 PM IST Gemini API 24-hour daily quota renewal window while evading top-of-the-hour runner queue spikes.
 
 ---

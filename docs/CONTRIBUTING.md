@@ -47,7 +47,7 @@ Thank you for your interest in contributing to `jobhunt`! This guide covers loca
 ## Running Tests & Quality Checks
 
 ### 1. Test Suite (pytest)
-Run the full unit and integration test suite without any network requests or API keys (642 tests with 92% coverage, or 649 tests including Playwright):
+Run the full unit and integration test suite without any network requests or API keys (643 tests with 92% coverage, or 650 tests including Playwright):
 ```bash
 pytest
 ```
