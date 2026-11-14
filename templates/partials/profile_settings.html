@@ -88,6 +88,28 @@
           </div>
         </div>
 
+        <!-- Contact & Portfolio Links -->
+        <div class="form-grid-3" style="margin-top:14px;">
+          <div class="form-group">
+            <label class="form-label" for="prof-phone">Phone / Mobile</label>
+            <input type="tel" class="form-input" id="prof-phone" placeholder="e.g. +91 98765 43210" autocomplete="tel">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-linkedin">LinkedIn Profile URL</label>
+            <input type="url" class="form-input" id="prof-linkedin" placeholder="e.g. https://linkedin.com/in/username" autocomplete="url" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-github">GitHub / Portfolio URL</label>
+            <input type="url" class="form-input" id="prof-github" placeholder="e.g. https://github.com/username" autocomplete="url" spellcheck="false">
+          </div>
+        </div>
+
+        <!-- Executive Summary / Bio -->
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="prof-summary">Executive Summary / Bio <span class="form-hint-inline">(extracted from resume or custom)</span></label>
+          <textarea class="form-input form-textarea" id="prof-summary" rows="2" placeholder="Brief professional overview, technical achievements, and career focus..." autocomplete="off" spellcheck="false" style="min-height:58px; resize:vertical;"></textarea>
+        </div>
+
         <!-- Target Job Titles (Included) -->
         <div class="form-group" style="margin-top:14px;">
           <label class="form-label" for="prof-targets">Target Job Titles (Included) * <span class="form-hint-inline">(comma separated)</span></label>
@@ -195,15 +217,22 @@
           </div>
         </div>
 
-        <!-- Step 2 Footer: Only Previous and Next -->
-        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:24px;">
+        <!-- Step 2 Footer: Previous, Save Directly, or Next to Alerts -->
+        <div class="wizard-step-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:24px; gap:8px;">
           <button type="button" class="btn btn-secondary" id="profile-back-2" data-action="wizard-back" data-step="2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             <span>Previous</span>
           </button>
-          <button type="button" class="btn btn-primary" id="profile-next-2" data-action="wizard-next" data-step="2">
-            <span>Next: Alert Settings &rarr;</span>
-          </button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary" id="btn-profile-save-step2" data-action="save-profile-preferences" title="Save profile changes immediately">
+              <span class="spinner" id="profile-save-spinner-2" style="display:none;"></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span id="profile-save-btn-text-2">Save Profile</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="profile-next-2" data-action="wizard-next" data-step="2">
+              <span>Next: Alert Settings &rarr;</span>
+            </button>
+          </div>
         </div>
       </div>
 

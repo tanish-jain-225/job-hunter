@@ -506,6 +506,23 @@ def build_profile(
         norm_np = raw_np
     else:
         norm_np = "immediate" if val_yoe == 0.0 else "30_days"
+
+    if (not raw_np or norm_np == "30_days") and effective_text:
+        np_m = re.search(
+            r"(?i)(?:notice\s*period|notice|availability|serving\s*notice|joining\s*time)\s*[:\-]?\s*([^\n,\.;]+)",
+            effective_text,
+        )
+        text_for_np = np_m.group(1).lower() if np_m else effective_text.lower()
+        if any(k in text_for_np for k in ("immediate", "available immediately", "join immediately", "0 day", "zero day", "serving notice", "lwd")):
+            norm_np = "immediate"
+        elif any(k in text_for_np for k in ("15 day", "2 week", "15d")):
+            norm_np = "15_days"
+        elif any(k in text_for_np for k in ("60 day", "2 month", "60d")):
+            norm_np = "60_days"
+        elif any(k in text_for_np for k in ("90 day", "3 month", "90d")):
+            norm_np = "90_days"
+        elif any(k in text_for_np for k in ("30 day", "1 month", "30d")):
+            norm_np = "30_days"
     profile["notice_period"] = norm_np
 
     # Current & Expected CTC in LPA
@@ -518,6 +535,28 @@ def build_profile(
             profile[ctc_field] = float(m.group(1)) if m else 0.0
         else:
             profile[ctc_field] = 0.0
+
+    if profile.get("current_ctc_lpa") == 0.0 and effective_text:
+        c_ctc = re.search(
+            r"(?i)(?:current\s*ctc|present\s*ctc|cctc|current\s*salary|current\s*fixed|fixed\s*ctc|current\s*pkg|current\s*package)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|lacs?|l\b)?",
+            effective_text,
+        )
+        if c_ctc:
+            try:
+                profile["current_ctc_lpa"] = float(c_ctc.group(1))
+            except ValueError:
+                pass
+
+    if profile.get("expected_ctc_lpa") == 0.0 and effective_text:
+        e_ctc = re.search(
+            r"(?i)(?:expected\s*ctc|exp\s*ctc|ectc|expected\s*salary|expected\s*pkg|expected\s*package)\s*[:\-]?\s*(?:inr|rs\.?|₹)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|lacs?|l\b)?",
+            effective_text,
+        )
+        if e_ctc:
+            try:
+                profile["expected_ctc_lpa"] = float(e_ctc.group(1))
+            except ValueError:
+                pass
 
     if profile.get("expected_ctc_lpa") and not profile.get("min_salary_lpa"):
         profile["min_salary_lpa"] = profile["expected_ctc_lpa"]

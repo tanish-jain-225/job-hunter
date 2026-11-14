@@ -2091,6 +2091,10 @@ async function openProfileModal(tab = 'resume') {
       if (notifEmail && authEmail) notifEmail.value = authEmail;
       if (targetsInput)  targetsInput.value  = '';
       if (excludesInput) excludesInput.value = '';
+      ['prof-phone', 'prof-linkedin', 'prof-github', 'prof-summary'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
       selectMailMode('none');
     }
   } catch (err) {
@@ -2105,6 +2109,10 @@ async function openProfileModal(tab = 'resume') {
     if (notifEmail && authEmail) notifEmail.value = authEmail;
     if (targetsInput)  targetsInput.value  = '';
     if (excludesInput) excludesInput.value = '';
+    ['prof-phone', 'prof-linkedin', 'prof-github', 'prof-summary'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
     selectMailMode('none');
   }
 }
@@ -2176,7 +2184,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     let yoeVal = '';
     if (p.experience_years != null || p.years_experience != null) {
       const numYoe = parseFloat(p.experience_years ?? p.years_experience);
-      if (!isNaN(numYoe) && (isAutoFill || numYoe > 0 || p.onboarding_completed === true)) {
+      if (!isNaN(numYoe) && (isAutoFill || numYoe >= 0 || p.onboarding_completed === true)) {
         yoeVal = String(numYoe);
       }
     } else if (p.experience_level) {
@@ -2240,7 +2248,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   } else if (typeof rawExcludes === 'string' && rawExcludes.trim()) {
     excludes = rawExcludes.split(',').map(s => s.trim()).filter(Boolean);
   } else if (isAutoFill) {
-    excludes = ['Manager', 'Director', 'Sales', 'Recruiter', 'VP'];
+    excludes = [];
   }
   const seenExcludes = new Set();
   const dedupedExcludes = [];
@@ -2388,13 +2396,34 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const currentCtcInput = document.getElementById('prof-current-ctc');
   if (currentCtcInput) {
     const curVal = parseFloat(p.current_ctc_lpa);
-    currentCtcInput.value = (!isNaN(curVal) && curVal > 0) ? String(curVal) : '';
+    currentCtcInput.value = (!isNaN(curVal) && curVal >= 0 && (isAutoFill || curVal > 0 || p.onboarding_completed === true)) ? String(curVal) : '';
   }
 
   const expectedCtcInput = document.getElementById('prof-expected-ctc');
   if (expectedCtcInput) {
     const expVal = parseFloat(p.expected_ctc_lpa != null ? p.expected_ctc_lpa : p.min_salary_lpa);
-    expectedCtcInput.value = (!isNaN(expVal) && expVal > 0) ? String(expVal) : '';
+    expectedCtcInput.value = (!isNaN(expVal) && expVal >= 0 && (isAutoFill || expVal > 0 || p.onboarding_completed === true)) ? String(expVal) : '';
+  }
+
+  // 10. Contact Details, Social Profiles & Narrative Bio
+  const phoneInput = document.getElementById('prof-phone');
+  if (phoneInput && (isAutoFill || !phoneInput.value.trim())) {
+    phoneInput.value = (p.phone || '').trim();
+  }
+
+  const linkedinInput = document.getElementById('prof-linkedin');
+  if (linkedinInput && (isAutoFill || !linkedinInput.value.trim())) {
+    linkedinInput.value = (p.linkedin || '').trim();
+  }
+
+  const githubInput = document.getElementById('prof-github');
+  if (githubInput && (isAutoFill || !githubInput.value.trim())) {
+    githubInput.value = (p.github || '').trim();
+  }
+
+  const summaryInput = document.getElementById('prof-summary');
+  if (summaryInput && (isAutoFill || !summaryInput.value.trim())) {
+    summaryInput.value = (p.summary || p.profile_text || '').trim();
   }
 
   // Update active state of Indian Tech Hub preset chips
@@ -2568,6 +2597,7 @@ async function flushUserProfileData() {
     'prof-name', 'prof-title', 'prof-years', 'prof-education',
     'prof-skills', 'prof-targets', 'prof-excludes', 'prof-resume-text',
     'prof-specific-cities', 'notif-min-score', 'prof-current-ctc', 'prof-expected-ctc',
+    'prof-phone', 'prof-linkedin', 'prof-github', 'prof-summary',
     'onboard-prof-name', 'onboard-prof-title', 'onboard-prof-years',
     'onboard-prof-education', 'onboard-prof-skills', 'onboard-prof-targets',
     'onboard-prof-excludes', 'onboard-specific-cities', 'onboarding-paste-text',
@@ -3145,6 +3175,18 @@ async function saveProfilePreferences() {
   const expCtcInput = document.getElementById('prof-expected-ctc');
   const expCtc = (expCtcInput && expCtcInput.value.trim() !== '') ? parseFloat(expCtcInput.value) : (activeProfileData?.expected_ctc_lpa ?? null);
 
+  const phoneInput = document.getElementById('prof-phone');
+  const phone = phoneInput ? phoneInput.value.trim() : (activeProfileData?.phone || parsedResumeData?.phone || '');
+
+  const linkedinInput = document.getElementById('prof-linkedin');
+  const linkedin = linkedinInput ? linkedinInput.value.trim() : (activeProfileData?.linkedin || parsedResumeData?.linkedin || '');
+
+  const githubInput = document.getElementById('prof-github');
+  const github = githubInput ? githubInput.value.trim() : (activeProfileData?.github || parsedResumeData?.github || '');
+
+  const summaryInput = document.getElementById('prof-summary');
+  const summary = summaryInput ? summaryInput.value.trim() : (activeProfileData?.summary || activeProfileData?.profile_text || parsedResumeData?.summary || '');
+
   const payload = {
     name,
     title,
@@ -3162,6 +3204,7 @@ async function saveProfilePreferences() {
     email_notifications_enabled: notifEnabled,
     mail_mode: mailMode,
     notification_email: notifEmail,
+    candidate_email: notifEmail || activeProfileData?.candidate_email || activeProfileData?.email || '',
     min_score_notification: notifScore,
     onboarding_completed: Boolean(name && skills.length > 0 && targets.length > 0),
     job_types: jobTypes,
@@ -3172,6 +3215,12 @@ async function saveProfilePreferences() {
     current_ctc_lpa: curCtc,
     expected_ctc_lpa: expCtc,
     min_salary_lpa: expCtc,
+    phone,
+    linkedin,
+    github,
+    summary,
+    profile_text: summary,
+    graduation_year: activeProfileData?.graduation_year || parsedResumeData?.graduation_year || null,
     preferred_sectors: activeProfileData?.preferred_sectors || [],
     domains: activeProfileData?.domains || parsedResumeData?.domains || [],
     notable_projects: activeProfileData?.notable_projects || parsedResumeData?.notable_projects || []

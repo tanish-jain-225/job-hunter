@@ -49,6 +49,14 @@ _PROFILE_JSON_EXTRA_KEYS = (
     "latest_digest_job_ids",
     "custom_companies",
     "seen_archive",
+    "phone",
+    "candidate_email",
+    "github",
+    "linkedin",
+    "summary",
+    "profile_text",
+    "graduation_year",
+    "portfolio",
 )
 
 
@@ -472,6 +480,13 @@ class SupabaseMemory:
             "mail_mode": profile.get("mail_mode") or ("daily" if profile.get("email_notifications_enabled") else ""),
             "domains": profile.get("domains") or [],
             "notable_projects": profile.get("notable_projects") or [],
+            "phone": profile.get("phone") or "",
+            "candidate_email": profile.get("candidate_email") or profile.get("email") or clean_email,
+            "github": profile.get("github") or "",
+            "linkedin": profile.get("linkedin") or "",
+            "summary": profile.get("summary") or profile.get("profile_text") or "",
+            "profile_text": profile.get("profile_text") or profile.get("summary") or "",
+            "graduation_year": profile.get("graduation_year"),
         }
 
         for dk in _PROFILE_JSON_EXTRA_KEYS:

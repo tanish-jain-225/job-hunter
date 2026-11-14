@@ -381,3 +381,141 @@ def test_resume_upload_complex_header_name_and_indian_ctc_extraction(client=None
     assert "PostgreSQL" in skills
 
 
+def test_profile_persistence_preserves_contact_and_narrative_fields(monkeypatch):
+    """Verify that contact, portfolio links, summary, and academic details survive persistence roundtrip."""
+    from jobhunt.memory import SupabaseMemory
+    from jobhunt.memory_codec import create_blank_profile, merge_db_profile_row
+
+    monkeypatch.setenv("SUPABASE_URL", "https://mock-project.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "mock-anon-key")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "mock-service-key")
+
+    email = "candidate.persist@example.com"
+    blank = create_blank_profile(email)
+    assert "phone" in blank
+    assert "github" in blank
+    assert "linkedin" in blank
+    assert "summary" in blank
+    assert "graduation_year" in blank
+
+    profile_payload = {
+        "email": email,
+        "name": "Arjun Sharma",
+        "title": "Senior Staff Engineer",
+        "skills": ["Python", "FastAPI", "PostgreSQL"],
+        "experience_years": 8.0,
+        "phone": "+91 98765 43210",
+        "candidate_email": "arjun.work@example.com",
+        "github": "https://github.com/arjun-sharma",
+        "linkedin": "https://linkedin.com/in/arjun-sharma-lead",
+        "summary": "Distributed systems engineer building high-throughput event processing pipelines.",
+        "graduation_year": 2016,
+        "current_ctc_lpa": 45.0,
+        "expected_ctc_lpa": 60.0,
+        "notice_period": "30_days",
+    }
+
+    mock_resp = mock.MagicMock()
+    mock_resp.status_code = 201
+
+    mem = SupabaseMemory(token="fake-token")
+    with mock.patch("requests.post", return_value=mock_resp) as mock_post:
+        success = mem.upsert_user_profile(email, profile_payload, token="fake-token")
+        assert success is True
+
+        call_args = mock_post.call_args
+        sent_body = call_args[1]["json"]
+        pjson = sent_body.get("profile_json") or {}
+
+        assert pjson.get("phone") == "+91 98765 43210"
+        assert pjson.get("candidate_email") == "arjun.work@example.com"
+        assert pjson.get("github") == "https://github.com/arjun-sharma"
+        assert pjson.get("linkedin") == "https://linkedin.com/in/arjun-sharma-lead"
+        assert "Distributed systems" in pjson.get("summary", "")
+        assert pjson.get("graduation_year") == 2016
+
+        # Test merge_db_profile_row hydrates all fields
+        db_row = {
+            "email": email,
+            "name": sent_body.get("name"),
+            "title": sent_body.get("title"),
+            "skills": sent_body.get("skills"),
+            "profile_json": pjson,
+        }
+        merged = merge_db_profile_row(db_row)
+        assert merged["phone"] == "+91 98765 43210"
+        assert merged["candidate_email"] == "arjun.work@example.com"
+        assert merged["github"] == "https://github.com/arjun-sharma"
+        assert merged["linkedin"] == "https://linkedin.com/in/arjun-sharma-lead"
+        assert "Distributed systems" in merged["summary"]
+        assert merged["graduation_year"] == 2016
+
+
+def test_parse_contact_smart_spaced_and_hyphenated():
+    from jobhunt.llm_utils import parse_contact_smart
+
+    res1 = parse_contact_smart("Phone: +91 70213 41948 | Email: test@dev.co")
+    assert res1["phone"] == "+91 70213 41948"
+    assert res1["email"] == "test@dev.co"
+
+    res2 = parse_contact_smart("Contact: +91-98765-43210")
+    assert res2["phone"] == "+91-98765-43210"
+
+
+def test_parse_education_smart_single_line_degree_and_institution():
+    from jobhunt.llm_utils import parse_education_smart
+
+    text = """
+    EDUCATION
+    B.Tech in Computer Engineering, Vivekanand Education Society's Institute of Technology (2025) 9.1 CGPA
+    """
+    edu_str, grad_yr = parse_education_smart(text)
+    assert "B.Tech in Computer Engineering" in edu_str
+    assert "Vivekanand Education Society's Institute of Technology" in edu_str
+    assert grad_yr == 2025
+
+
+def test_calculate_timeline_yoe_graduate_engineer_trainee():
+    from jobhunt.llm_utils import calculate_timeline_yoe
+
+    work_history = [
+        {
+            "role": "Graduate Engineer Trainee",
+            "type": "Full-Time",
+            "start": "Jan 2023",
+            "end": "Jan 2024",
+        },
+        {
+            "role": "Software Development Engineer",
+            "type": "Full-Time",
+            "start": "Feb 2024",
+            "end": "Jan 2025",
+        },
+    ]
+    yoe = calculate_timeline_yoe(work_history=work_history, graduation_year=2023)
+    assert yoe >= 1.9
+
+
+def test_build_profile_ctc_and_notice_period_fallback():
+    from jobhunt.llm import build_profile
+
+    raw_llm_dict = {
+        "name": "Rohan Gupta",
+        "current_title": "Backend Developer",
+        "current_ctc_lpa": 0,
+        "expected_ctc_lpa": 0,
+        "notice_period": "30_days",
+    }
+    resume_text = """
+    Rohan Gupta | Backend Developer
+    Current CTC: 14 LPA | Expected CTC: 22 LPA
+    Notice Period: Serving notice period, immediate joiner
+    """
+    with mock.patch("jobhunt.llm._provider_complete", return_value=json.dumps(raw_llm_dict)):
+        profile = build_profile(resume_text=resume_text)
+        assert profile["current_ctc_lpa"] == 14.0
+        assert profile["expected_ctc_lpa"] == 22.0
+        assert profile["notice_period"] == "immediate"
+
+
+

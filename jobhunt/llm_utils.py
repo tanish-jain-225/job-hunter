@@ -608,13 +608,19 @@ def calculate_timeline_yoe(
             role = str(entry.get("role") or "").lower()
             stint_type = str(entry.get("type") or "").lower()
 
+            is_get_or_fulltime_trainee = any(
+                t in role for t in ("graduate engineer trainee", "engineer trainee", "management trainee", "graduate trainee")
+            )
             is_internship = (
-                "intern" in stint_type
-                or "intern" in role
-                or "trainee" in role
-                or "apprentice" in role
-                or "academic" in stint_type
-                or "project" in stint_type
+                (
+                    "intern" in stint_type
+                    or "intern" in role
+                    or ("trainee" in role and not is_get_or_fulltime_trainee)
+                    or "apprentice" in role
+                    or "academic" in stint_type
+                    or "project" in stint_type
+                )
+                and not is_get_or_fulltime_trainee
             )
             if is_internship:
                 continue
@@ -629,9 +635,11 @@ def calculate_timeline_yoe(
                     has_full_time = True
 
     if not has_full_time and resume_text:
+        import datetime
+        current_yr = datetime.datetime.now().year
         is_student = bool(
             re.search(r"(?i)\b(?:final[- ]year|student|undergraduate|fresher|pre[- ]final)\b", resume_text)
-            and grad_yr and grad_yr >= 2025
+            and grad_yr and grad_yr > current_yr
         )
         if is_student:
             return 0.0
@@ -643,7 +651,9 @@ def calculate_timeline_yoe(
         if yoe_m:
             try:
                 claimed = float(yoe_m.group(1))
-                if grad_yr and grad_yr >= 2025 and claimed > 1.0:
+                if grad_yr and grad_yr > current_yr and claimed > 0.5:
+                    claimed = 0.0
+                elif grad_yr and grad_yr == current_yr and claimed > 1.0:
                     claimed = 0.5
                 return round(claimed, 1)
             except ValueError:
@@ -1004,7 +1014,21 @@ def parse_education_smart(text: str) -> tuple[str, int | None]:
         is_degree = any(re.search(pat, l_str, re.IGNORECASE) for pat in degree_patterns)
         is_inst = any(re.search(pat, l_str, re.IGNORECASE) for pat in inst_patterns)
 
-        if is_degree and not degree:
+        if is_degree and is_inst and not degree and not institution:
+            split_done = False
+            for d in (",", "|", " - ", " – ", " — "):
+                if d in l_clean:
+                    chunks = [c.strip(" ,-•|\t") for c in l_clean.split(d) if c.strip(" ,-•|\t")]
+                    deg_chunk = next((c for c in chunks if any(re.search(p, c, re.IGNORECASE) for p in degree_patterns)), None)
+                    inst_chunk = next((c for c in chunks if any(re.search(p, c, re.IGNORECASE) for p in inst_patterns)), None)
+                    if deg_chunk and inst_chunk and deg_chunk != inst_chunk:
+                        degree = deg_chunk
+                        institution = inst_chunk
+                        split_done = True
+                        break
+            if not split_done:
+                degree = l_clean
+        elif is_degree and not degree:
             degree = l_clean
         elif is_inst and not institution:
             institution = l_clean
@@ -1092,7 +1116,7 @@ def parse_contact_smart(text: str) -> dict[str, str]:
     if not text:
         return {"phone": "", "email": "", "github": "", "linkedin": ""}
 
-    phone_m = re.search(r"(?:\+?91[\-\s]?)?[6789]\d{9}\b", text)
+    phone_m = re.search(r"(?:\+?91[\-\s]?)?[6789](?:[\-\s]?\d){9}\b", text)
     email_m = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
     gh_m = re.search(r"(?i)github\.com/([A-Za-z0-9\-_]+)(?:/(?:[ \t\n\"']|$)|[ \t\n\"']|$)", text)
     if not gh_m:

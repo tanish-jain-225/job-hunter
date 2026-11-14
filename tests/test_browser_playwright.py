@@ -49,12 +49,36 @@ def is_chromium_available() -> bool:
         return False
 
 
-CHROMIUM_AVAILABLE = is_chromium_available()
+def is_playwright_functional() -> bool:
+    """Safely check if Playwright is installed, browser binary exists, and driver can initialize without hanging."""
+    if not PLAYWRIGHT_AVAILABLE:
+        return False
+    if not is_chromium_available():
+        return False
+    if os.environ.get("SKIP_PLAYWRIGHT", "").lower() in ("1", "true", "yes"):
+        return False
+
+    result = [False]
+
+    def _probe() -> None:
+        try:
+            with sync_playwright():
+                result[0] = True
+        except Exception:
+            result[0] = False
+
+    t = threading.Thread(target=_probe, daemon=True)
+    t.start()
+    t.join(timeout=2.0)
+    return result[0]
+
+
+PLAYWRIGHT_FUNCTIONAL = is_playwright_functional()
 
 pytestmark = [
     pytest.mark.skipif(
-        not CHROMIUM_AVAILABLE,
-        reason="playwright and chromium browser binary are required; run 'playwright install chromium'",
+        not PLAYWRIGHT_FUNCTIONAL,
+        reason="Playwright chromium driver is unavailable, uninstalled, or unsupported in current environment",
     ),
     pytest.mark.playwright,
 ]

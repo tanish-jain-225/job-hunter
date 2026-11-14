@@ -323,6 +323,20 @@ def api_profile():
         if isinstance(merged_profile.get("resume_text"), str):
             merged_profile["resume_text"] = merged_profile["resume_text"][:50_000]
 
+        # Contact, portfolio, narrative and academic fields normalization
+        for str_field in ("phone", "candidate_email", "github", "linkedin", "summary", "profile_text"):
+            if str_field in data:
+                merged_profile[str_field] = str(data[str_field] or "").strip()[:500]
+            elif str_field in existing:
+                merged_profile[str_field] = str(existing[str_field] or "").strip()[:500]
+            else:
+                merged_profile[str_field] = ""
+
+        if "graduation_year" in data:
+            merged_profile["graduation_year"] = data["graduation_year"]
+        elif "graduation_year" in existing:
+            merged_profile["graduation_year"] = existing.get("graduation_year")
+
         # Smart title & target keywords cross-inference
         if not merged_profile.get("title") and merged_profile.get("target_keywords"):
             merged_profile["title"] = merged_profile["target_keywords"][0]

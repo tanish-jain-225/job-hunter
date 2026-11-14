@@ -41,6 +41,15 @@ def create_blank_profile(email: str) -> Dict[str, Any]:
         "expected_ctc_lpa": 0,
         "min_salary_lpa": 0,
         "preferred_sectors": [],
+        "phone": "",
+        "candidate_email": clean_email,
+        "github": "",
+        "linkedin": "",
+        "summary": "",
+        "profile_text": "",
+        "graduation_year": None,
+        "domains": [],
+        "notable_projects": [],
         "profile_json": {},
     }
 
@@ -142,5 +151,32 @@ def merge_db_profile_row(row: Dict[str, Any]) -> Dict[str, Any]:
         row.get("notification_email")
         if row.get("notification_email") is not None
         else (pjson.get("notification_email") or row.get("email") or "")
+    )
+    res["phone"] = row.get("phone") or pjson.get("phone") or ""
+    res["candidate_email"] = (
+        row.get("candidate_email")
+        or pjson.get("candidate_email")
+        or row.get("email")
+        or pjson.get("email")
+        or ""
+    )
+    res["github"] = row.get("github") or pjson.get("github") or ""
+    res["linkedin"] = row.get("linkedin") or pjson.get("linkedin") or ""
+    res["summary"] = row.get("summary") or pjson.get("summary") or pjson.get("profile_text") or ""
+    res["profile_text"] = row.get("profile_text") or pjson.get("profile_text") or res["summary"]
+    res["graduation_year"] = (
+        row.get("graduation_year")
+        if row.get("graduation_year") is not None
+        else pjson.get("graduation_year")
+    )
+    res["domains"] = (
+        row.get("domains")
+        if row.get("domains") is not None
+        else (pjson.get("domains") or [])
+    )
+    res["notable_projects"] = (
+        row.get("notable_projects")
+        if row.get("notable_projects") is not None
+        else (pjson.get("notable_projects") or [])
     )
     return res
