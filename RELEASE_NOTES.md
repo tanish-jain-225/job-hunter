@@ -33,7 +33,7 @@
   - Accurate calculation of timeline Years of Experience (YoE) treating Graduate Engineer Trainees as salaried full-time experience.
 * **Modernized Settings UI (`templates/partials/profile_settings.html`, `static/js/app.js`)**:
   - Dedicated Step 2 input controls for Phone (`#prof-phone`), LinkedIn (`#prof-linkedin`), GitHub (`#prof-github`), and Summary (`#prof-summary`).
-  - Direct Save action (`#btn-profile-save-step2`) allowing immediate persistence from Step 2 without needing to navigate back and forth.
+  - Consolidated single Save action (`#btn-profile-save`) strictly on the final step (Step 3: Alert Settings), guaranteeing unambiguous, atomic persistence.
   - Accurate form hydration preserving fresher values (`0` YoE and `0` CTC) and eliminating unwanted title exclusions.
 
 ### 🌐 Universal Multi-Domain Career Intelligence Engine (India-First & Global)
@@ -69,7 +69,7 @@
   - Accurate calculation of timeline Years of Experience (YoE) treating Graduate Engineer Trainees as salaried full-time experience.
 * **Modernized Settings UI (`templates/partials/profile_settings.html`, `static/js/app.js`)**:
   - Dedicated Step 2 input controls for Phone (`#prof-phone`), LinkedIn (`#prof-linkedin`), GitHub (`#prof-github`), and Summary (`#prof-summary`).
-  - Direct Save action (`#btn-profile-save-step2`) allowing immediate persistence from Step 2 without needing to navigate back and forth.
+  - Consolidated single Save action (`#btn-profile-save`) strictly on the final step (Step 3: Alert Settings), guaranteeing unambiguous, atomic persistence.
   - Accurate form hydration preserving fresher values (`0` YoE and `0` CTC) and eliminating unwanted title exclusions.
 * **CI Preflight Hardening & Cloud Scheduler Optimization**:
   - Re-scheduled daily GitHub Actions automated radar (`.github/workflows/daily.yml`) to **`08:17 UTC` (`01:47 PM IST`)** via `cron: '17 8 * * *'`, optimizing for the 24-hour Gemini API quota renewal window (1:30 PM IST) and evading runner queue congestion.

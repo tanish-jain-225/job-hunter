@@ -387,7 +387,7 @@ def api_profile():
             else:
                 merged_profile["experience_level"] = "5+"
 
-        if not merged_profile.get("exclude_keywords"):
+        if "exclude_keywords" not in data and "exclude_keywords" not in existing and not merged_profile.get("exclude_keywords"):
             exp_lvl = merged_profile.get("experience_level")
             if exp_lvl in ("fresher", "0-1"):
                 merged_profile["exclude_keywords"] = ["Director", "VP", "Chief", "Head of", "Principal"]
@@ -396,7 +396,7 @@ def api_profile():
             else:
                 merged_profile["exclude_keywords"] = []
 
-        if not merged_profile.get("job_types"):
+        if "job_types" not in data and "job_types" not in existing and not merged_profile.get("job_types"):
             if merged_profile.get("experience_level") == "fresher":
                 merged_profile["job_types"] = ["fulltime", "internship", "remote"]
             else:

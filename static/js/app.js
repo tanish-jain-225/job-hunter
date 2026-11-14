@@ -2025,6 +2025,9 @@ async function openProfileModal(tab = 'resume') {
     if (data.status === 'success' && data.profile) {
       const p = data.profile;
       activeProfileData = p;
+      parsedResumeData = null; // Always clear stale resume extraction so it never clobbers saved preferences
+      lastParsedResumeText = '';
+      selectedResumeFile = null;
       renderCandidateSummary(p);
 
       const nameInput    = document.getElementById('prof-name');
@@ -2062,8 +2065,8 @@ async function openProfileModal(tab = 'resume') {
         selectMailMode('none');
       }
 
-      if (notifEmail)  notifEmail.value    = p.notification_email || authEmail;
-      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '' && (p.onboarding_completed === true || p.email_notifications_enabled === true)) ? String(p.min_score_notification) : '';
+      if (notifEmail)  notifEmail.value    = p.notification_email || p.candidate_email || authEmail;
+      if (notifScore)  notifScore.value    = (p.min_score_notification != null && p.min_score_notification !== '') ? String(p.min_score_notification) : '7.5';
 
       // ── Step 1 Next button: always accessible
       const nextBtn = document.getElementById('profile-next-1');
@@ -2146,11 +2149,9 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const nameInput = document.getElementById('prof-name');
   const onbNameInput = document.getElementById('onboard-prof-name');
   const rawCandidateName = (p.name && p.name !== 'Candidate') ? p.name.trim() : '';
-  const existingNameVal = nameInput ? nameInput.value.trim() : '';
-  const finalName = rawCandidateName || existingNameVal || '';
 
-  if (nameInput) nameInput.value = finalName;
-  if (onbNameInput) onbNameInput.value = finalName;
+  if (nameInput) nameInput.value = rawCandidateName;
+  if (onbNameInput) onbNameInput.value = rawCandidateName;
 
   // 2. Core Skills (Support array or comma-separated string, deduplicate case-insensitively)
   const skillsInput = document.getElementById('prof-skills');
@@ -2173,8 +2174,11 @@ function populateSection2FromProfile(p, isAutoFill = false) {
       }
     }
     const skillsStr = dedupedSkills.join(', ');
-    if (skillsInput && (isAutoFill || !skillsInput.value.trim())) skillsInput.value = skillsStr;
-    if (onbSkillsInput && (isAutoFill || !onbSkillsInput.value.trim())) onbSkillsInput.value = skillsStr;
+    if (skillsInput) skillsInput.value = skillsStr;
+    if (onbSkillsInput) onbSkillsInput.value = skillsStr;
+  } else {
+    if (skillsInput) skillsInput.value = '';
+    if (onbSkillsInput) onbSkillsInput.value = '';
   }
 
   // 3. Years of Experience & Education
@@ -2193,16 +2197,14 @@ function populateSection2FromProfile(p, isAutoFill = false) {
         yoeVal = String(expMap[p.experience_level]);
       }
     }
-    if (yearsInput && (isAutoFill || yoeVal !== '' || !yearsInput.value.trim())) yearsInput.value = yoeVal;
-    if (onbYearsInput && (isAutoFill || yoeVal !== '' || !onbYearsInput.value.trim())) onbYearsInput.value = yoeVal;
+    if (yearsInput) yearsInput.value = yoeVal;
+    if (onbYearsInput) onbYearsInput.value = yoeVal;
   }
   const eduInput = document.getElementById('prof-education');
   const onbEduInput = document.getElementById('onboard-prof-education');
-  if (p.education) {
-    const eduStr = p.education.trim();
-    if (eduInput && (isAutoFill || !eduInput.value.trim())) eduInput.value = eduStr;
-    if (onbEduInput && (isAutoFill || !onbEduInput.value.trim())) onbEduInput.value = eduStr;
-  }
+  const eduStr = (p.education || '').trim();
+  if (eduInput) eduInput.value = eduStr;
+  if (onbEduInput) onbEduInput.value = eduStr;
 
   // 4. Target Job Titles (Included) & Headline Title
   let rawTargets = p.target_keywords || p.target_titles;
@@ -2213,7 +2215,7 @@ function populateSection2FromProfile(p, isAutoFill = false) {
     targets = rawTargets.split(',').map(s => s.trim()).filter(Boolean);
   }
   const mainTitle = (p.title || p.current_title || '').trim();
-  if (mainTitle && !targets.some(t => t.toLowerCase() === mainTitle.toLowerCase())) {
+  if (isAutoFill && mainTitle && !targets.some(t => t.toLowerCase() === mainTitle.toLowerCase())) {
     targets.unshift(mainTitle);
   }
   if (targets.length === 0 && isAutoFill) {
@@ -2231,14 +2233,14 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const targetsStr = dedupedTargets.join(', ');
   const targetsInput = document.getElementById('prof-targets');
   const onbTargetsInput = document.getElementById('onboard-prof-targets');
-  if (targetsInput && (isAutoFill || !targetsInput.value.trim())) targetsInput.value = targetsStr;
-  if (onbTargetsInput && (isAutoFill || !onbTargetsInput.value.trim())) onbTargetsInput.value = targetsStr;
+  if (targetsInput) targetsInput.value = targetsStr;
+  if (onbTargetsInput) onbTargetsInput.value = targetsStr;
 
   const titleInput = document.getElementById('prof-title');
   const onbTitleInput = document.getElementById('onboard-prof-title');
   const chosenTitle = mainTitle || (dedupedTargets.length > 0 ? dedupedTargets[0] : (isAutoFill ? 'Professional' : ''));
-  if (titleInput && (isAutoFill || !titleInput.value.trim() || mainTitle)) titleInput.value = chosenTitle;
-  if (onbTitleInput && (isAutoFill || !onbTitleInput.value.trim() || mainTitle)) onbTitleInput.value = chosenTitle;
+  if (titleInput) titleInput.value = chosenTitle;
+  if (onbTitleInput) onbTitleInput.value = chosenTitle;
 
   // 5. Excluded Title Keywords
   let rawExcludes = p.exclude_keywords || p.exclude_titles || p.avoid_roles;
@@ -2262,8 +2264,8 @@ function populateSection2FromProfile(p, isAutoFill = false) {
   const excludesStr = dedupedExcludes.join(', ');
   const excludesInput = document.getElementById('prof-excludes');
   const onbExcludesInput = document.getElementById('onboard-prof-excludes');
-  if (excludesInput && (isAutoFill || !excludesInput.value.trim())) excludesInput.value = excludesStr;
-  if (onbExcludesInput && (isAutoFill || !onbExcludesInput.value.trim())) onbExcludesInput.value = excludesStr;
+  if (excludesInput) excludesInput.value = excludesStr;
+  if (onbExcludesInput) onbExcludesInput.value = excludesStr;
 
   // 6. Experience Level
   let expKey = '';
@@ -2407,23 +2409,23 @@ function populateSection2FromProfile(p, isAutoFill = false) {
 
   // 10. Contact Details, Social Profiles & Narrative Bio
   const phoneInput = document.getElementById('prof-phone');
-  if (phoneInput && (isAutoFill || !phoneInput.value.trim())) {
+  if (phoneInput) {
     phoneInput.value = (p.phone || '').trim();
   }
 
   const linkedinInput = document.getElementById('prof-linkedin');
-  if (linkedinInput && (isAutoFill || !linkedinInput.value.trim())) {
+  if (linkedinInput) {
     linkedinInput.value = (p.linkedin || '').trim();
   }
 
   const githubInput = document.getElementById('prof-github');
-  if (githubInput && (isAutoFill || !githubInput.value.trim())) {
+  if (githubInput) {
     githubInput.value = (p.github || '').trim();
   }
 
   const summaryInput = document.getElementById('prof-summary');
-  if (summaryInput && (isAutoFill || !summaryInput.value.trim())) {
-    summaryInput.value = (p.summary || p.profile_text || '').trim();
+  if (summaryInput) {
+    summaryInput.value = (p.profile_summary || p.summary || p.profile_text || '').trim();
   }
 
   // Update active state of Indian Tech Hub preset chips
@@ -2553,6 +2555,8 @@ function closeProfileModal() {
   const modalEl = document.getElementById('profile-modal');
   if (modalEl) modalEl.classList.remove('active');
   selectedResumeFile = null;
+  parsedResumeData = null;
+  lastParsedResumeText = '';
   // Reset wizard state to Part 1
   profileWizardGoTo(1);
   const nextBtn = document.getElementById('profile-next-1');
@@ -2753,13 +2757,6 @@ function profileWizardGoTo(step) {
   const subtitle = document.getElementById('profile-wizard-subtitle');
   if (subtitle) subtitle.innerText = subtitles[step] || '';
 
-  if (step === 2 && parsedResumeData) {
-    const skillsVal = document.getElementById('prof-skills')?.value?.trim();
-    if (!skillsVal) {
-      populateSection2FromProfile(parsedResumeData, true);
-    }
-  }
-
   [1, 2, 3].forEach(s => {
     const stepEl = document.getElementById(`profile-step-${s}`);
     const nodeEl = document.getElementById(`pws-node-${s}`);
@@ -2785,10 +2782,6 @@ function profileWizardGoTo(step) {
 }
 
 function profileWizardNext(fromStep) {
-  // If moving from Step 1 to Step 2 with parsed resume data, auto-fill Step 2 criteria
-  if (fromStep === 1 && parsedResumeData) {
-    populateSection2FromProfile(parsedResumeData, true);
-  }
   profileWizardGoTo(fromStep + 1);
 }
 
@@ -3060,42 +3053,32 @@ async function saveProfilePreferences() {
     ? targetsInput.value.split(',').map(s => s.trim()).filter(Boolean)
     : (Array.isArray(activeProfileData?.target_keywords) && activeProfileData.target_keywords.length
         ? activeProfileData.target_keywords
-        : (Array.isArray(activeProfileData?.target_titles) && activeProfileData.target_titles.length
-            ? activeProfileData.target_titles
-            : (Array.isArray(parsedResumeData?.target_keywords) && parsedResumeData.target_keywords.length
-                ? parsedResumeData.target_keywords
-                : (Array.isArray(parsedResumeData?.target_titles) ? parsedResumeData.target_titles : []))));
+        : (Array.isArray(activeProfileData?.target_titles) ? activeProfileData.target_titles : []));
 
   const titleInput = document.getElementById('prof-title');
   const title = titleInput && titleInput.value.trim() !== ''
     ? titleInput.value.trim()
-    : (targets.length > 0 ? targets[0] : (activeProfileData?.title || activeProfileData?.current_title || parsedResumeData?.title || parsedResumeData?.current_title || ''));
+    : (targets.length > 0 ? targets[0] : (activeProfileData?.title || activeProfileData?.current_title || ''));
 
   const yearsInput = document.getElementById('prof-years');
   const years = yearsInput && yearsInput.value.trim() !== ''
     ? (parseFloat(yearsInput.value) || 0)
-    : (activeProfileData?.experience_years ?? activeProfileData?.years_experience ?? parsedResumeData?.experience_years ?? parsedResumeData?.years_experience ?? 0);
+    : (activeProfileData?.experience_years ?? activeProfileData?.years_experience ?? 0);
 
   const eduInput = document.getElementById('prof-education');
-  const education = eduInput && eduInput.value.trim() !== ''
-    ? eduInput.value.trim()
-    : (activeProfileData?.education || parsedResumeData?.education || '');
+  const education = eduInput ? eduInput.value.trim() : (activeProfileData?.education || '');
 
   const skillsInput = document.getElementById('prof-skills');
   const skills = skillsInput && skillsInput.value.trim() !== ''
     ? skillsInput.value.split(',').map(s => s.trim()).filter(Boolean)
     : (Array.isArray(activeProfileData?.skills) && activeProfileData.skills.length
         ? activeProfileData.skills
-        : (Array.isArray(activeProfileData?.core_skills) && activeProfileData.core_skills.length
-            ? activeProfileData.core_skills
-            : (Array.isArray(parsedResumeData?.skills) && parsedResumeData.skills.length
-                ? parsedResumeData.skills
-                : (Array.isArray(parsedResumeData?.core_skills) ? parsedResumeData.core_skills : []))));
+        : (Array.isArray(activeProfileData?.core_skills) ? activeProfileData.core_skills : []));
 
   const excludesInput = document.getElementById('prof-excludes');
-  const excludes = excludesInput && excludesInput.value.trim() !== ''
+  const excludes = excludesInput
     ? excludesInput.value.split(',').map(s => s.trim()).filter(Boolean)
-    : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : (Array.isArray(parsedResumeData?.exclude_keywords) ? parsedResumeData.exclude_keywords : []));
+    : (Array.isArray(activeProfileData?.exclude_keywords) ? activeProfileData.exclude_keywords : []);
 
   if (!name) {
     showToast('Please enter your candidate name in Step 2.', 'warning');
@@ -3170,22 +3153,22 @@ async function saveProfilePreferences() {
   const noticePeriod = noticeInput ? noticeInput.value : (activeProfileData?.notice_period || 'immediate');
 
   const curCtcInput = document.getElementById('prof-current-ctc');
-  const curCtc = (curCtcInput && curCtcInput.value.trim() !== '') ? parseFloat(curCtcInput.value) : (activeProfileData?.current_ctc_lpa ?? null);
+  const curCtc = (curCtcInput && curCtcInput.value.trim() !== '') ? parseFloat(curCtcInput.value) : (curCtcInput ? null : (activeProfileData?.current_ctc_lpa ?? null));
 
   const expCtcInput = document.getElementById('prof-expected-ctc');
-  const expCtc = (expCtcInput && expCtcInput.value.trim() !== '') ? parseFloat(expCtcInput.value) : (activeProfileData?.expected_ctc_lpa ?? null);
+  const expCtc = (expCtcInput && expCtcInput.value.trim() !== '') ? parseFloat(expCtcInput.value) : (expCtcInput ? null : (activeProfileData?.expected_ctc_lpa ?? null));
 
   const phoneInput = document.getElementById('prof-phone');
-  const phone = phoneInput ? phoneInput.value.trim() : (activeProfileData?.phone || parsedResumeData?.phone || '');
+  const phone = phoneInput ? phoneInput.value.trim() : (activeProfileData?.phone || '');
 
   const linkedinInput = document.getElementById('prof-linkedin');
-  const linkedin = linkedinInput ? linkedinInput.value.trim() : (activeProfileData?.linkedin || parsedResumeData?.linkedin || '');
+  const linkedin = linkedinInput ? linkedinInput.value.trim() : (activeProfileData?.linkedin || '');
 
   const githubInput = document.getElementById('prof-github');
-  const github = githubInput ? githubInput.value.trim() : (activeProfileData?.github || parsedResumeData?.github || '');
+  const github = githubInput ? githubInput.value.trim() : (activeProfileData?.github || '');
 
   const summaryInput = document.getElementById('prof-summary');
-  const summary = summaryInput ? summaryInput.value.trim() : (activeProfileData?.summary || activeProfileData?.profile_text || parsedResumeData?.summary || '');
+  const summary = summaryInput ? summaryInput.value.trim() : (activeProfileData?.summary || activeProfileData?.profile_text || '');
 
   const payload = {
     name,
@@ -3220,28 +3203,19 @@ async function saveProfilePreferences() {
     github,
     summary,
     profile_text: summary,
-    graduation_year: activeProfileData?.graduation_year || parsedResumeData?.graduation_year || null,
+    graduation_year: activeProfileData?.graduation_year || null,
     preferred_sectors: activeProfileData?.preferred_sectors || [],
-    domains: activeProfileData?.domains || parsedResumeData?.domains || [],
-    notable_projects: activeProfileData?.notable_projects || parsedResumeData?.notable_projects || []
+    domains: activeProfileData?.domains || [],
+    notable_projects: activeProfileData?.notable_projects || []
   };
 
-  const saveBtns = [
-    document.getElementById('btn-profile-save'),
-    document.getElementById('btn-profile-save-step2')
-  ].filter(Boolean);
-  const spinners = [
-    document.getElementById('profile-save-spinner'),
-    document.getElementById('profile-save-spinner-2')
-  ].filter(Boolean);
-  const btnTexts = [
-    document.getElementById('profile-save-btn-text'),
-    document.getElementById('profile-save-btn-text-2')
-  ].filter(Boolean);
+  const saveBtn = document.getElementById('btn-profile-save');
+  const spinner = document.getElementById('profile-save-spinner');
+  const btnText = document.getElementById('profile-save-btn-text');
 
-  saveBtns.forEach(b => { b.disabled = true; });
-  spinners.forEach(s => { s.style.display = 'inline-block'; });
-  btnTexts.forEach(t => { t.innerText = 'Saving...'; });
+  if (saveBtn) saveBtn.disabled = true;
+  if (spinner) spinner.style.display = 'inline-block';
+  if (btnText) btnText.innerText = 'Saving...';
 
   appState.isSavingProfile = true;
 
@@ -3255,6 +3229,9 @@ async function saveProfilePreferences() {
     if (data.status === 'success') {
       const savedProfile = data.profile || payload;
       activeProfileData = { ...savedProfile };
+      parsedResumeData = null; // Clear parsed resume so future modal opens never clobber saved profile
+      lastParsedResumeText = '';
+      selectedResumeFile = null;
       Storage.set(localStorage, STORAGE_KEYS.CACHED_PROFILE, activeProfileData);
       renderCandidateSummary(savedProfile);
       updateJobSearchButtonState();
@@ -3271,9 +3248,9 @@ async function saveProfilePreferences() {
     showToast('Failed to save profile: ' + err.message, 'error');
   } finally {
     appState.isSavingProfile = false;
-    saveBtns.forEach(b => { b.disabled = false; });
-    spinners.forEach(s => { s.style.display = 'none'; });
-    btnTexts.forEach(t => { t.innerText = 'Save Profile'; });
+    if (saveBtn) saveBtn.disabled = false;
+    if (spinner) spinner.style.display = 'none';
+    if (btnText) btnText.innerText = 'Save Profile';
   }
 }
 

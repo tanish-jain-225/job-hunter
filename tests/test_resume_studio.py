@@ -491,7 +491,7 @@ def test_api_jobs_search_matches_skills_and_fit_reasons(client, mock_supabase_en
 
 
 def test_profile_settings_modal_elements_and_structure(client):
-    """Verify templates have visible prof-title input and step 2 save button."""
+    """Verify templates have visible prof-title input and save button exclusively in final step 3."""
     res = client.get("/")
     assert res.status_code == 200
     html = res.get_data(as_text=True)
@@ -500,6 +500,37 @@ def test_profile_settings_modal_elements_and_structure(client):
     assert 'id="prof-title"' in html
     assert 'Headline Professional Title' in html
     assert 'data-action="save-profile-preferences"' in html
+    assert 'id="btn-profile-save"' in html
+    assert 'id="btn-profile-save-step2"' not in html
+
+
+def test_profile_settings_empty_exclusions_and_contacts_preserved(client, mock_supabase_env):
+    """Verify POST /api/profile respects user-cleared empty exclude_keywords and preserves contact fields."""
+    with patch("requests.post", return_value=MagicMock(status_code=201)):
+        res = client.post(
+            "/api/profile",
+            json={
+                "name": "Jordan Dev",
+                "title": "Staff Engineer",
+                "skills": ["Python", "FastAPI"],
+                "target_keywords": ["Staff Engineer"],
+                "exclude_keywords": [],
+                "phone": "+91 98765 43210",
+                "linkedin": "https://linkedin.com/in/jordandev",
+                "github": "https://github.com/jordandev",
+                "summary": "Specialist in distributed systems and cloud orchestration.",
+            },
+            headers={"Authorization": "Bearer mock-token"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "success"
+        prof = data["profile"]
+        assert prof["exclude_keywords"] == []
+        assert prof["phone"] == "+91 98765 43210"
+        assert prof["linkedin"] == "https://linkedin.com/in/jordandev"
+        assert prof["github"] == "https://github.com/jordandev"
+        assert prof["summary"] == "Specialist in distributed systems and cloud orchestration."
 
 
 def test_profile_post_type_validation_rejects_non_strings(client, mock_supabase_env):

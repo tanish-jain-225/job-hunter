@@ -65,7 +65,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Accurate calculation of timeline Years of Experience (YoE) treating Graduate Engineer Trainees as salaried full-time experience.
 - **Modernized Settings UI (`templates/partials/profile_settings.html`, `static/js/app.js`)**:
   - Dedicated Step 2 input controls for Phone (`#prof-phone`), LinkedIn (`#prof-linkedin`), GitHub (`#prof-github`), and Summary (`#prof-summary`).
-  - Direct Save action (`#btn-profile-save-step2`) allowing immediate persistence from Step 2 without needing to navigate back and forth.
+  - Consolidated single Save action (`#btn-profile-save`) strictly on the final step (Step 3: Alert Settings), guaranteeing unambiguous, atomic persistence.
   - Accurate form hydration preserving fresher values (`0` YoE and `0` CTC) and eliminating unwanted title exclusions.
 - **Automated Test Suite Expansion (`tests/test_ai_parsing_and_state_save.py`, `tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **649 passed tests** (642 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
 - **Automated Radar Cloud Scheduler Optimization (`.github/workflows/daily.yml`)**: Optimized automated daily cron schedule to **`08:17 UTC` (`01:47 PM IST`)** via `cron: '17 8 * * *'`, synchronizing runs with the 1:30 PM IST Gemini API 24-hour daily quota renewal window while evading top-of-the-hour runner queue spikes.
