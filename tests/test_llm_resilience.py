@@ -516,8 +516,8 @@ def test_multi_user_pipeline_keyword_fallback_and_daily_schedule(monkeypatch):
     spy_kw.assert_called_once()
     assert unscored_job.score is not None
 
-    # Verify daily workflow cron timing matches 7:37 AM IST (02:07 UTC)
+    # Verify daily workflow cron timing matches 1:47 PM IST (08:17 UTC)
     daily_yml = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "daily.yml"
     content = daily_yml.read_text(encoding="utf-8")
-    assert "cron: '7 2 * * *'" in content
+    assert "cron: '17 8 * * *'" in content
 
