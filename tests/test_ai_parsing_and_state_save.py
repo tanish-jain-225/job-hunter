@@ -496,9 +496,10 @@ def test_calculate_timeline_yoe_graduate_engineer_trainee():
     assert yoe >= 1.9
 
 
-def test_build_profile_ctc_and_notice_period_fallback():
+def test_build_profile_ctc_and_notice_period_fallback(monkeypatch):
     from jobhunt.llm import build_profile
 
+    monkeypatch.setenv("GEMINI_API_KEY", "mock-test-key")
     raw_llm_dict = {
         "name": "Rohan Gupta",
         "current_title": "Backend Developer",
@@ -511,8 +512,14 @@ def test_build_profile_ctc_and_notice_period_fallback():
     Current CTC: 14 LPA | Expected CTC: 22 LPA
     Notice Period: Serving notice period, immediate joiner
     """
+    mock_prov = mock.MagicMock()
     with mock.patch("jobhunt.llm._provider_complete", return_value=json.dumps(raw_llm_dict)):
-        profile = build_profile(resume_text=resume_text)
+        profile = build_profile(
+            resume_text=resume_text,
+            provider=mock_prov,
+            model="gemini-3.5-flash",
+            api_key="mock-test-key",
+        )
         assert profile["current_ctc_lpa"] == 14.0
         assert profile["expected_ctc_lpa"] == 22.0
         assert profile["notice_period"] == "immediate"
