@@ -537,7 +537,7 @@ Deploy Job Hunter to the cloud so it runs 24/7 autonomously:
 ```mermaid
 flowchart TD
     Repo["GitHub Repository"] --> Vercel["Vercel Serverless\n(Hosts Web Dashboard & API)"]
-    Repo --> Actions["GitHub Actions\n(Runs Daily 07:37 AM IST Cron)"]
+    Repo --> Actions["GitHub Actions\n(Runs Daily 01:47 PM IST Cron)"]
     Vercel <--> Supabase[("Supabase PostgreSQL\n(Auth, Profiles, Tracked Jobs)")]
     Actions <--> Supabase
     Actions --> SMTP["Gmail SMTP\n(Sends Morning Digest)"]
@@ -570,7 +570,7 @@ flowchart TD
 
 ---
 
-### Step 6.2: Configure Automated Daily 07:37 AM IST Cron via GitHub Actions
+### Step 6.2: Configure Automated Daily 01:47 PM IST Cron via GitHub Actions
 
 The repository includes a ready-to-use GitHub Actions workflow in [`.github/workflows/daily.yml`](../.github/workflows/daily.yml).
 
@@ -591,7 +591,7 @@ The repository includes a ready-to-use GitHub Actions workflow in [`.github/work
 3. Navigate to the **Actions** tab in GitHub:
    - Click **"Daily Career Intelligence Digest"** in the left sidebar.
    - Click **"Run workflow"** to trigger a test execution immediately!
-   - By default, the workflow executes automatically every day at **07:37 AM IST (02:07 UTC)**.
+   - By default, the workflow executes automatically every day at **01:47 PM IST (08:17 UTC)**.
 
 ---
 
@@ -617,7 +617,7 @@ Run this diagnostic checklist to verify every subsystem:
 | **0. Preflight Diagnostics** | `jobhunt check` | All packages, configurations, and keys verified | ✅ Passed |
 | **1. Mock Smoke Test** | `jobhunt run --mock --scorer keyword` | Scans mock jobs, writes `out/digest.html` | ✅ Passed |
 | **2. Board Reachability** | `jobhunt verify --workers 10` | 114/114 boards verified reachable (HTTP 200) | ✅ Passed |
-| **3. Automated Test Suite** | `python -m pytest tests/` | **622 passed tests (615 unit/integration + 7 Playwright browser tests, 100% pass rate, 92% coverage)** | ✅ Passed |
+| **3. Automated Test Suite** | `python -m pytest tests/` | **649 passed tests (642 unit/integration + 7 Playwright browser tests, 100% pass rate, 92% coverage)** | ✅ Passed |
 | **4. Web Health Endpoint** | Start `python app.py`, then `curl http://localhost:5000/api/health` | `{"status": "healthy", "service": "job-hunter"}` | ✅ Passed |
 | **5. Type Checking** | `mypy jobhunt` | Success: no issues found across all source files | ✅ Passed |
 | **6. Code Linting** | `ruff check .` | All checks passed (0 errors) | ✅ Passed |

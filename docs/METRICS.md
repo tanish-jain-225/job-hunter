@@ -92,14 +92,14 @@ flowchart LR
 
 ### D. Compute & Automation (GitHub Actions Cloud)
 * **Free Monthly Minutes**: **2,000 minutes / month** (or unlimited if repository is public).
-* **Schedule**: Daily at **07:37 AM IST** (`7 2 * * *`).
+* **Schedule**: Daily at **01:47 PM IST** (`17 8 * * *`).
 * **Capacity**:
   * 100 Users: ~2.5 min/day $\times$ 30 = **75 mins/mo** (**3.75%** of quota)
   * 250 Users: ~4.5 min/day $\times$ 30 = **135 mins/mo** (**6.75%** of quota)
   * 500 Users: ~8.5 min/day $\times$ 30 = **255 mins/mo** (**12.75%** of quota)
 
 ### E. Quality Assurance & Test Verification
-* **622 automated tests** (615 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
+* **649 automated tests** (642 unit/integration + 7 Playwright browser E2E) passing with 100% success rate (`92%` statement coverage).
 * Strict test coverage enforced in CI (`pytest --cov=jobhunt --cov-report=term-missing`).
 * Runtime varies by machine and test environment (~55–90s full suite).
 * **Python Runtime Matrix**: Continuously tested and certified across Python 3.9, 3.10, 3.11, and 3.12.

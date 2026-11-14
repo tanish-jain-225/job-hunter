@@ -123,9 +123,9 @@ MAX_TRACKED_JOBS_COUNT=300
 
 ---
 
-## Step 5: Configure Automated Daily 7:37 AM IST Cron (GitHub Actions)
+## Step 5: Configure Automated Daily 1:47 PM IST Cron (GitHub Actions)
 
-Job Hunter executes a centralized single-pass crawl across eligible users every day at `02:07 UTC` (`07:37 IST`) via GitHub Actions.
+Job Hunter executes a centralized single-pass crawl across eligible users every day at `08:17 UTC` (`01:47 PM IST`) via GitHub Actions.
 
 1. Go to your GitHub repository > **Settings > Secrets and variables > Actions**.
 2. Add the following **Repository Secrets**:

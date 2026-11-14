@@ -12,10 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-v1.2.4-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.4"></a>
+  <a href="https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.5"><img src="https://img.shields.io/badge/Release-v1.2.5-0ea5e9?style=for-the-badge&logo=github&logoColor=white" alt="Version 1.2.5"></a>
   <a href="https://job-hunter-web-board.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Web%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
   <a href="https://github.com/tanish-jain-225/job-hunter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tanish-jain-225/job-hunter/ci.yml?branch=main&style=for-the-badge&label=CI&color=success" alt="CI Status"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-644%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-649%20passed-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/coverage-92%25-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Coverage"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
@@ -25,7 +25,7 @@
 
 <p align="center">
   <a href="https://job-hunter-web-board.vercel.app"><strong>Explore Web Board &raquo;</strong></a> &bull;
-  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.2.4)</strong></a> &bull;
+  <a href="RELEASE_NOTES.md"><strong>Release Notes (v1.2.5)</strong></a> &bull;
   <a href="CHANGELOG.md"><strong>Changelog</strong></a> &bull;
   <a href="docs/PRODUCT_ANALYSIS_WALKTHROUGH.md"><strong>Product Audit &amp; Valuation</strong></a> &bull;
   <a href="docs/GUIDE.md">Candidate Playbook</a> &bull;
@@ -82,7 +82,7 @@ flowchart TD
 
     subgraph S5["📬 STAGE 5: EXECUTIVE DELIVERY & SYNCHRONIZATION"]
         WEB["💻 Interactive Web Board<br>5-Stage Pipeline Tracking • 4-Day Follow-Up Alerts"]
-        EMAIL["✉️ Daily Morning Briefing<br>07:37 AM IST Inbox Digest • Thread-Safe SMTPSession (Dynamic 50k Cap)"]
+        EMAIL["✉️ Daily Automated Briefing<br>01:47 PM IST Inbox Digest • Thread-Safe SMTPSession (Dynamic 50k Cap)"]
         DB[("⚡ Supabase PostgreSQL<br>Row-Level Security (RLS) Multi-Tenant Storage")]
         CSV["📊 Instant CSV Export<br>out/tracker.csv Pipeline Mirror"]
     end
@@ -133,7 +133,7 @@ The modern tech job search is fundamentally broken, especially across the high-s
 | **AI Scorer & Engine** | Generic GPT-4o-mini prompt wrappers | Basic template variable substitutions | **Google Gemini 3.5 Flash** (1M token context, multi-key rotation) |
 | **Application Kit Output** | Single basic cover letter | Generic auto-filled forms | **Full Kit**: Cover Note, Recruiter DM, LinkedIn Referral & Bullets |
 | **Account Safety** | Safe (manual) | ⚠️ High risk of LinkedIn account bans & ATS spam penalties | **The Golden Rule**: Scout & Draft; Human Submits (100% Safe) |
-| **Daily Delivery** | Manual dashboard login | Email blast spam | **Automated Daily Morning Digest** (07:37 AM IST in your inbox) |
+| **Daily Delivery** | Manual dashboard login | Email blast spam | **Automated Daily Digest** (01:47 PM IST in your inbox) |
 | **Data Privacy** | Closed proprietary cloud databases | Third-party bot servers | **100% Private**: Supabase PostgreSQL with Row-Level Security (RLS) |
 
 ---
@@ -283,7 +283,7 @@ Verify the installation:
 
 ```bash
 jobhunt --version
-# Output: jobhunt 1.2.4
+# Output: jobhunt 1.2.5
 ```
 
 ---
@@ -503,7 +503,7 @@ For multi-tenant cloud hosting, **Job Hunter** is designed to run 100% free usin
 
 - **Vercel**: Hosts the Flask WSGI web application (`api/index.py`) and static dashboard assets.
 - **Supabase**: Manages user authentication and PostgreSQL storage with Row-Level Security.
-- **GitHub Actions**: Runs the scheduled daily batch crawler every morning at 07:37 AM IST (02:07 UTC).
+- **GitHub Actions**: Runs the scheduled daily batch crawler daily at 01:47 PM IST (08:17 UTC).
 
 ```mermaid
 flowchart TD
@@ -521,7 +521,7 @@ flowchart TD
     end
 
     subgraph GHA["GitHub Actions (Scheduled Worker)"]
-        CRON["daily.yml (07:37 AM IST)"]
+        CRON["daily.yml (01:47 PM IST)"]
         MULTI["jobhunt multi-run"]
     end
 
@@ -562,7 +562,7 @@ flowchart TD
 
 ## Automated Scheduled Execution (GitHub Actions)
 
-The scheduled workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) executes every morning at **07:37 AM IST (02:07 UTC)**:
+The scheduled workflow [`.github/workflows/daily.yml`](.github/workflows/daily.yml) executes daily at **01:47 PM IST (08:17 UTC)**:
 
 - Uses least-privilege `contents: read` permissions.
 - Centralized multi-user batch pipeline crawls all company boards **once** into a shared pool.
@@ -594,7 +594,7 @@ job-hunter/
 │   ├── logo.png              # Multi-resolution brand mark
 │   └── pipeline-flow.svg     # 5-stage automated architecture vector diagram
 ├── jobhunt/                  # Core Python Package (0 Mypy errors across all source files)
-│   ├── __init__.py           # Package version (1.2.4) & public exports
+│   ├── __init__.py           # Package version (1.2.5) & public exports
 │   ├── auth.py               # Supabase Auth, JWT verification, session caching & @require_auth
 │   ├── clean.py              # Temporary file and test store cleanup utility
 │   ├── cli.py                # Argparse CLI subcommands (run, multi-run, profile, verify, clean, etc.)
@@ -653,7 +653,7 @@ job-hunter/
 ├── supabase/
 │   ├── schema.sql            # Atomic PostgreSQL schema with cascading FKs & Row-Level Security (RLS)
 │   └── teardown.sql          # Atomic, cascade-safe reset and migration teardown script
-├── tests/                    # 644 automated test cases (637 unit/integration + 7 Playwright) with 92% coverage
+├── tests/                    # 649 automated test cases (642 unit/integration + 7 Playwright) with 92% coverage
 │   ├── conftest.py           # Shared Pytest fixtures & mock configuration
 │   ├── test_app.py           # Web dashboard routes & error handling tests
 │   ├── test_auth.py          # Supabase auth token verification & protected endpoint tests
@@ -706,7 +706,7 @@ job-hunter/
 
 ## Automated Test Suite & Quality Verification
 
-Run the **all-in-one unified verification pipeline** locally (**644 automated tests: 637 unit/integration + 7 Playwright**, 92% coverage) in **one single command**:
+Run the **all-in-one unified verification pipeline** locally (**649 automated tests: 642 unit/integration + 7 Playwright**, 92% coverage) in **one single command**:
 
 ```bash
 # Unified Pipeline: Runs Ruff Linting + Mypy Static Typing + Full Pytest Suite + Code Coverage in one command:
@@ -747,7 +747,7 @@ python run_tests.py -k "resume"
 | **1. Unified Verification**      | `python run_tests.py`                 | **All 4 gates pass** (Ruff, Mypy, Pytest, Coverage)      | Verified |
 | **2. Static Type Checker**       | `python run_tests.py --mypy-only`     | Zero type errors across all 43 source files              | Verified |
 | **3. Code Style & Linter**       | `python run_tests.py --ruff-only`     | All checks passed (0 errors)                             | Verified |
-| **4. Full Automated Test Suite** | `python run_tests.py --tests-only`    | **644 passed tests** with 100% success rate              | Verified |
+| **4. Full Automated Test Suite** | `python run_tests.py --tests-only`    | **649 passed tests** with 100% success rate              | Verified |
 | **5. Offline Smoke Test**        | `jobhunt run --mock --scorer keyword` | Scans 11 mock jobs, writes `out/digest.html`             | Verified |
 | **6. Live ATS Board Auditor**    | `jobhunt verify --workers 10`         | Verifies live HTTP connectivity across `companies.yaml`  | Verified |
 | **7. Live Gemini Screening**     | `jobhunt run --strict-llm`            | Screens top live postings with Google Gemini 3.5 Flash   | Verified |

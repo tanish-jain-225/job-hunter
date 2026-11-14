@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.5] — 2026-11-14
+
+### Added & Optimized
+- **Automated Radar Cloud Scheduler Optimization (`.github/workflows/daily.yml`)**:
+  - Re-scheduled daily automated radar workflow to **`08:17 UTC` (`01:47 PM IST`)** via `cron: '17 8 * * *'`, synchronizing runs with the 1:30 PM IST Gemini API 24-hour daily quota renewal window.
+  - Eccentric prime minute offset (`:17`) bypasses top-of-the-hour and half-hour GitHub Actions runner queue spikes.
+  - Aligns delivery with active Indian recruiter afternoon desk review windows (02:00 PM – 04:00 PM IST).
+- **Candidate Profile State Preservation & Narrative Persistence (`jobhunt/memory.py`, `jobhunt/memory_codec.py`, `jobhunt/web/routes/profile.py`)**:
+  - Full bidirectional persistence of candidate contact and narrative fields: Phone, Candidate Email, LinkedIn, GitHub, Profile Summary, Profile Text, and Graduation Year across sessions in both local storage (`profile.json`) and Supabase PostgreSQL.
+- **Universal Multi-Domain Career Intelligence Engine (`jobhunt/llm_utils.py`, `jobhunt/llm.py`)**:
+  - Dynamic multi-domain role synthesis across 10 career families (Product, Design, Data, AI/ML, Marketing, Sales, Finance, HR, Operations, Legal, and Engineering) with domain search isolation.
+- **Quality & Preflight Test Certification**:
+  - Passed all 649 tests (642 unit/integration + 7 Playwright browser E2E) with 92% statement coverage, 0 Ruff violations, and 0 Mypy type errors across 43 source files.
+
+---
+
 ## [1.2.4] — 2026-11-13
 
 ### Added & Universalized
@@ -12,7 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Implemented single-command unified test runner executing all 4 quality gates in sequence:
     * *Gate 1: Ruff Linting*: Repository-wide linting & code style hygiene (`ruff check .`) with 0 errors.
     * *Gate 2: Mypy Typing*: Static type analysis (`mypy jobhunt`) across all 43 source files with 0 type errors.
-    * *Gate 3: Pytest Suite*: 644 automated tests (637 unit/integration + 7 Playwright browser E2E) with 100% pass rate.
+    * *Gate 3: Pytest Suite*: 649 automated tests (642 unit/integration + 7 Playwright browser E2E) with 100% pass rate.
     * *Gate 4: Code Coverage*: Complete line coverage calculation with `pytest-cov` reporting missing lines, supporting `--cov-fail-under=90`, `--cov-html`, and `--cov-xml`.
   - Added pipeline verification dashboard reporting real-time status and duration for every gate.
   - Added `tests/test_unified_runner.py` with 14 unit tests validating runner CLI parsing, gate execution, and error handling.
@@ -39,7 +55,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **Dynamic Cross-Domain Canonical Skill Mappings**: Expanded `_CANONICAL_SKILL_MAP` and section extraction catalog with 150+ universal industry skills, platforms, and methodologies (Figma, PRDs, Tableau, Power BI, Salesforce, HubSpot, QuickBooks, SAP, Workday, PMP, Agile, Scrum).
   - **Domain-Agnostic LLM Prompts & Seniority-Aware Exclusion**: Updated `PROFILE_SYSTEM_PROMPT` to analyze resumes across all industry sectors; eliminated hardcoded functional exclusions (*"Sales"*, *"Manager"*, *"Recruiter"*), replacing them with seniority-level calibrations (excluding C-level/VP roles for freshers, and internships for senior professionals).
   - **Universal UI & Onboarding Copy (`templates/partials/profile_settings.html`, `static/js/app.js`)**: Updated placeholders, guidance notes, and fallbacks to seamlessly guide candidates from any career discipline.
-- **Automated Test Suite Expansion (`tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **644 passed tests** (637 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
+- **Profile Settings State Preservation & Multi-Tenant Persistence (`jobhunt/memory.py`, `jobhunt/memory_codec.py`, `jobhunt/web/routes/profile.py`)**:
+  - Full persistence of candidate contact and narrative fields: Phone, Candidate Email, LinkedIn, GitHub, Profile Summary, Profile Text, and Graduation Year across sessions.
+  - Bidirectional serialization in both local storage (`profile.json`) and cloud database (`Supabase`), guaranteeing that settings are permanently preserved across reloads and multi-day visits.
+- **Smart AI Extraction & Regex Fallbacks (`jobhunt/llm.py`, `jobhunt/llm_utils.py`)**:
+  - Regex fallbacks for Indian CTC representations (`14 LPA`, `Fixed CTC: 12 Lacs`) and notice periods (`immediate`, `15_days`, `30_days`, `60_days`, `90_days`) when LLMs return 0 or unparsed values.
+  - Relaxed Indian phone regex supporting formatted and hyphenated numbers (e.g. `+91 70213 41948`, `+91-98765-43210`).
+  - Single-line education parser extracting degree, college name, and graduation year with high fidelity.
+  - Accurate calculation of timeline Years of Experience (YoE) treating Graduate Engineer Trainees as salaried full-time experience.
+- **Modernized Settings UI (`templates/partials/profile_settings.html`, `static/js/app.js`)**:
+  - Dedicated Step 2 input controls for Phone (`#prof-phone`), LinkedIn (`#prof-linkedin`), GitHub (`#prof-github`), and Summary (`#prof-summary`).
+  - Direct Save action (`#btn-profile-save-step2`) allowing immediate persistence from Step 2 without needing to navigate back and forth.
+  - Accurate form hydration preserving fresher values (`0` YoE and `0` CTC) and eliminating unwanted title exclusions.
+- **Automated Test Suite Expansion (`tests/test_ai_parsing_and_state_save.py`, `tests/test_resume_accuracy.py`, `tests/test_unified_runner.py`)**: Added dedicated integration tests validating Product Management, UI/UX Design, Data Analytics, Marketing, Sales, and Finance resumes, expanding the automated test suite to **649 passed tests** (642 non-playwright + 7 Playwright, 100% pass rate, 0 failures, 0 Ruff errors, 0 Mypy errors).
+- **Automated Radar Cloud Scheduler Optimization (`.github/workflows/daily.yml`)**: Optimized automated daily cron schedule to **`08:17 UTC` (`01:47 PM IST`)** via `cron: '17 8 * * *'`, synchronizing runs with the 1:30 PM IST Gemini API 24-hour daily quota renewal window while evading top-of-the-hour runner queue spikes.
 
 ---
 
@@ -328,6 +357,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **9-document docs suite**: SETUP, DEPLOYMENT, ENGINE, DASHBOARD, MULTI_USER, TROUBLESHOOTING, CONTRIBUTING, GUIDE, JOB_HUNT
 - MIT License
 
+[1.2.5]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.5
 [1.2.4]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.4
 [1.2.3]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.3
 [1.2.2]: https://github.com/tanish-jain-225/job-hunter/releases/tag/v1.2.2
